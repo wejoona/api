@@ -1,0 +1,107 @@
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
+import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
+import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+  PaymentInstructions,
+} from '../../../shared/domain/gateways';
+
+export interface InitiateDepositInput {
+  userId: string;
+  amount: number;
+  sourceCurrency: string;
+  channelId: string;
+}
+
+export interface InitiateDepositOutput {
+  transactionId: string;
+  depositId: string;
+  amount: number;
+  sourceCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  fee: number;
+  estimatedAmount: number;
+  paymentInstructions: PaymentInstructions;
+  expiresAt: Date;
+}
+
+@Injectable()
+export class InitiateDepositUseCase {
+  constructor(
+    private readonly walletRepository: WalletRepository,
+    private readonly transactionRepository: TransactionRepository,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly paymentGateway: IPaymentGateway,
+  ) {}
+
+  async execute(input: InitiateDepositInput): Promise<InitiateDepositOutput> {
+    // Validate wallet exists
+    const wallet = await this.walletRepository.findByUserId(input.userId);
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    if (!wallet.isActive) {
+      throw new BadRequestException('Wallet is not active');
+    }
+
+    if (!wallet.yellowCardWalletId) {
+      throw new BadRequestException('Wallet not linked to payment provider');
+    }
+
+    // Validate amount
+    if (input.amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    // Initiate deposit with payment gateway
+    const depositResponse = await this.paymentGateway.initiateDeposit({
+      subwalletId: wallet.yellowCardWalletId,
+      amount: input.amount,
+      sourceCurrency: input.sourceCurrency,
+      targetCurrency: 'USD',
+      channelId: input.channelId,
+    });
+
+    // Create transaction record
+    const transaction = TransactionEntity.createDeposit({
+      walletId: wallet.id,
+      amount:
+        depositResponse.amount * depositResponse.rate - depositResponse.fee,
+      currency: 'USD',
+      yellowCardRef: depositResponse.externalId,
+      metadata: {
+        sourceCurrency: input.sourceCurrency,
+        sourceAmount: input.amount,
+        rate: depositResponse.rate,
+        fee: depositResponse.fee,
+        channelId: input.channelId,
+        depositId: depositResponse.id,
+      },
+    });
+
+    await this.transactionRepository.save(transaction);
+
+    return {
+      transactionId: transaction.id,
+      depositId: depositResponse.id,
+      amount: input.amount,
+      sourceCurrency: input.sourceCurrency,
+      targetCurrency: 'USD',
+      rate: depositResponse.rate,
+      fee: depositResponse.fee,
+      estimatedAmount:
+        input.amount * depositResponse.rate - depositResponse.fee,
+      paymentInstructions: depositResponse.paymentInstructions,
+      expiresAt: depositResponse.expiresAt,
+    };
+  }
+}
