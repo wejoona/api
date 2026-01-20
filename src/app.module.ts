@@ -6,7 +6,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 
-import { configuration } from './config';
+import { configuration, envValidationSchema } from './config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -30,6 +30,10 @@ import { BlnkModule } from './modules/providers/blnk';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: false,
+      },
     }),
 
     // Database
