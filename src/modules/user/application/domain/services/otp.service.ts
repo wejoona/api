@@ -14,6 +14,7 @@ export class OtpService implements OnModuleDestroy {
     this.redis = new Redis({
       host: this.configService.get<string>('redis.host'),
       port: this.configService.get<number>('redis.port'),
+      password: this.configService.get<string>('redis.password'),
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         this.logger.warn(
