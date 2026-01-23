@@ -8,7 +8,6 @@ import {
   IdentityProviderUser,
 } from '../../interfaces';
 import { CircleConfig, CircleUser } from '../circle.types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -24,6 +23,8 @@ interface CircleApiError {
 
 /**
  * Circle Identity Adapter
+ *
+ * Handles user identity operations via Circle Programmable Wallets API.
  *
  * Note: Circle Programmable Wallets doesn't have a full KYC system built-in.
  * For production, you'd typically:
@@ -43,137 +44,23 @@ export class CircleIdentityAdapter implements IIdentityProvider {
   constructor(private readonly configService: ConfigService) {
     this.config = {
       apiKey: this.configService.get<string>('circle.apiKey') || '',
-      entitySecret: this.configService.get<string>('circle.entitySecret') || '',
+      entitySecret:
+        this.configService.get<string>('circle.entitySecretCipherText') || '',
       baseUrl:
-        this.configService.get<string>('circle.baseUrl') ||
+        this.configService.get<string>('circle.apiUrl') ||
         'https://api.circle.com/v1/w3s',
       walletSetId: this.configService.get<string>('circle.walletSetId'),
-      useMock: this.configService.get<boolean>('circle.useMock') ?? true,
+      useMock: false, // This adapter is for real API only
     };
 
-    if (this.config.useMock) {
-      this.logger.warn('Circle Identity running in MOCK mode');
+    if (!this.config.apiKey) {
+      this.logger.warn('Circle API key not configured');
+    } else {
+      this.logger.log('Circle Identity adapter initialized');
     }
   }
 
   async createUser(data: CreateUserData): Promise<IdentityProviderUser> {
-    if (this.config.useMock) {
-      return this.mockCreateUser(data);
-    }
-    return this.apiCreateUser(data);
-  }
-
-  async getUser(providerId: string): Promise<IdentityProviderUser | null> {
-    if (this.config.useMock) {
-      return this.mockGetUser(providerId);
-    }
-    return this.apiGetUser(providerId);
-  }
-
-  async submitKyc(providerId: string, data: KycData): Promise<KycResult> {
-    if (this.config.useMock) {
-      return this.mockSubmitKyc(providerId, data);
-    }
-    return this.apiSubmitKyc(providerId, data);
-  }
-
-  async getKycStatus(providerId: string): Promise<KycResult> {
-    if (this.config.useMock) {
-      return this.mockGetKycStatus(providerId);
-    }
-    return this.apiGetKycStatus(providerId);
-  }
-
-  async updateUser(
-    providerId: string,
-    data: Partial<CreateUserData>,
-  ): Promise<IdentityProviderUser> {
-    if (this.config.useMock) {
-      return this.mockUpdateUser(providerId, data);
-    }
-    return this.apiUpdateUser(providerId, data);
-  }
-
-  // ============================================
-  // MOCK IMPLEMENTATIONS
-  // ============================================
-
-  private mockCreateUser(data: CreateUserData): IdentityProviderUser {
-    const providerId = `circle_user_${uuidv4().slice(0, 8)}`;
-    this.logger.log(
-      `[MOCK] Created Circle user: ${providerId} for internal user: ${data.userId}`,
-    );
-
-    return {
-      providerId,
-      status: 'active',
-      kycStatus: 'none',
-      kycTier: 'none',
-      createdAt: new Date(),
-    };
-  }
-
-  private mockGetUser(providerId: string): IdentityProviderUser | null {
-    return {
-      providerId,
-      status: 'active',
-      kycStatus: 'none',
-      kycTier: 'basic',
-      createdAt: new Date(),
-    };
-  }
-
-  private mockSubmitKyc(_providerId: string, data: KycData): KycResult {
-    this.logger.log(
-      `[MOCK] KYC submitted for ${data.firstName} ${data.lastName}`,
-    );
-
-    // Simulate instant approval for mock mode
-    return {
-      status: 'pending',
-      tier: 'basic',
-      limits: {
-        dailyDeposit: 1000,
-        dailyWithdrawal: 500,
-        monthlyVolume: 10000,
-      },
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private mockGetKycStatus(_providerId: string): KycResult {
-    return {
-      status: 'approved',
-      tier: 'standard',
-      limits: {
-        dailyDeposit: 10000,
-        dailyWithdrawal: 5000,
-        monthlyVolume: 50000,
-      },
-    };
-  }
-
-  private mockUpdateUser(
-    providerId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _data: Partial<CreateUserData>,
-  ): IdentityProviderUser {
-    return {
-      providerId,
-      status: 'active',
-      kycStatus: 'approved',
-      kycTier: 'standard',
-      createdAt: new Date(),
-    };
-  }
-
-  // ============================================
-  // REAL API IMPLEMENTATIONS
-  // ============================================
-
-  private async apiCreateUser(
-    data: CreateUserData,
-  ): Promise<IdentityProviderUser> {
     try {
       const response = await fetch(`${this.config.baseUrl}/users`, {
         method: 'POST',
@@ -211,9 +98,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
     }
   }
 
-  private async apiGetUser(
-    providerId: string,
-  ): Promise<IdentityProviderUser | null> {
+  async getUser(providerId: string): Promise<IdentityProviderUser | null> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/users/${providerId}`,
@@ -240,7 +125,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
       return {
         providerId: circleUser.id,
         status: circleUser.status === 'ENABLED' ? 'active' : 'inactive',
-        kycStatus: 'none', // Circle doesn't track this directly
+        kycStatus: 'none',
         kycTier: 'none',
         createdAt: new Date(circleUser.createDate),
       };
@@ -252,29 +137,21 @@ export class CircleIdentityAdapter implements IIdentityProvider {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private apiSubmitKyc(providerId: string, data: KycData): Promise<KycResult> {
+  async submitKyc(_providerId: string, _data: KycData): Promise<KycResult> {
     // Circle Programmable Wallets doesn't have built-in KYC
     // You would integrate with a separate KYC provider here
-    return Promise.reject(
-      new Error('KYC submission requires separate KYC provider integration'),
-    );
+    throw new Error('KYC submission requires separate KYC provider integration');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private apiGetKycStatus(providerId: string): Promise<KycResult> {
+  async getKycStatus(_providerId: string): Promise<KycResult> {
     // Return from your database/KYC provider
-    return Promise.reject(
-      new Error('KYC status requires separate KYC provider integration'),
-    );
+    throw new Error('KYC status requires separate KYC provider integration');
   }
 
-  private apiUpdateUser(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async updateUser(
     _providerId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _data: Partial<CreateUserData>,
   ): Promise<IdentityProviderUser> {
-    return Promise.reject(new Error('User update not implemented for Circle'));
+    throw new Error('User update not implemented for Circle');
   }
 }

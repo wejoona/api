@@ -1,0 +1,32 @@
+{
+  "defaultUser": {
+    "providerId": "circle_user_mock_001",
+    "status": "active",
+    "kycStatus": "approved",
+    "kycTier": "standard"
+  },
+  "kycLimits": {
+    "none": {
+      "dailyDeposit": 100,
+      "dailyWithdrawal": 50,
+      "monthlyVolume": 500
+    },
+    "basic": {
+      "dailyDeposit": 1000,
+      "dailyWithdrawal": 500,
+      "monthlyVolume": 10000
+    },
+    "standard": {
+      "dailyDeposit": 10000,
+      "dailyWithdrawal": 5000,
+      "monthlyVolume": 50000
+    },
+    "enhanced": {
+      "dailyDeposit": 100000,
+      "dailyWithdrawal": 50000,
+      "monthlyVolume": 500000
+    }
+  },
+  "kycTiers": ["none", "basic", "standard", "enhanced"],
+  "kycStatuses": ["none", "pending", "approved", "rejected"]
+}

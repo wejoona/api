@@ -12,7 +12,6 @@ import {
   CircleTransfer,
   CIRCLE_USDC_TOKENS,
 } from '../circle.types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -38,6 +37,13 @@ interface CircleApiError {
   message: string;
 }
 
+/**
+ * Circle Transfer Adapter
+ *
+ * Handles transfer operations via Circle Programmable Wallets API.
+ * This adapter is for real API calls only - mock operations are handled
+ * by MockCircleTransferAdapter.
+ */
 @Injectable()
 export class CircleTransferAdapter implements ITransferProvider {
   private readonly logger = new Logger(CircleTransferAdapter.name);
@@ -50,146 +56,33 @@ export class CircleTransferAdapter implements ITransferProvider {
   constructor(private readonly configService: ConfigService) {
     this.config = {
       apiKey: this.configService.get<string>('circle.apiKey') || '',
-      entitySecret: this.configService.get<string>('circle.entitySecret') || '',
+      entitySecret:
+        this.configService.get<string>('circle.entitySecretCipherText') || '',
       baseUrl:
-        this.configService.get<string>('circle.baseUrl') ||
+        this.configService.get<string>('circle.apiUrl') ||
         'https://api.circle.com/v1/w3s',
       walletSetId: this.configService.get<string>('circle.walletSetId'),
-      useMock: this.configService.get<boolean>('circle.useMock') ?? true,
+      useMock: false,
     };
 
     this.defaultBlockchain =
-      this.configService.get<string>('circle.blockchain') || 'ETH-SEPOLIA';
+      this.configService.get<string>('circle.defaultBlockchain') || 'MATIC';
     const tokenMap: Record<string, string> = CIRCLE_USDC_TOKENS;
     this.usdcTokenId =
       tokenMap[this.defaultBlockchain] || CIRCLE_USDC_TOKENS['ETH-SEPOLIA'];
 
-    if (this.config.useMock) {
-      this.logger.warn('Circle Transfer running in MOCK mode');
+    if (!this.config.apiKey) {
+      this.logger.warn('Circle API key not configured');
+    } else {
+      this.logger.log('Circle Transfer adapter initialized');
     }
   }
 
   async internalTransfer(data: InternalTransferData): Promise<TransferResult> {
-    if (this.config.useMock) {
-      return this.mockInternalTransfer(data);
-    }
-    return this.apiInternalTransfer(data);
-  }
-
-  async externalTransfer(data: ExternalTransferData): Promise<TransferResult> {
-    if (this.config.useMock) {
-      return this.mockExternalTransfer(data);
-    }
-    return this.apiExternalTransfer(data);
-  }
-
-  async getTransferStatus(providerTransferId: string): Promise<TransferResult> {
-    if (this.config.useMock) {
-      return this.mockGetTransferStatus(providerTransferId);
-    }
-    return this.apiGetTransferStatus(providerTransferId);
-  }
-
-  async estimateFee(
-    data: Partial<ExternalTransferData>,
-  ): Promise<{ fee: string; currency: string }> {
-    if (this.config.useMock) {
-      return this.mockEstimateFee(data);
-    }
-    return this.apiEstimateFee(data);
-  }
-
-  // ============================================
-  // MOCK IMPLEMENTATIONS
-  // ============================================
-
-  private mockInternalTransfer(data: InternalTransferData): TransferResult {
-    const providerId = `circle_tx_${uuidv4().slice(0, 8)}`;
-
-    this.logger.log(
-      `[MOCK] Internal transfer: ${data.amount} ${data.currency} from ${data.fromWalletId} to ${data.toWalletId}`,
-    );
-
-    // Internal transfers are instant and free
-    return {
-      providerId,
-      status: 'completed',
-      amount: data.amount,
-      currency: data.currency,
-      fee: '0',
-      fromWalletId: data.fromWalletId,
-      toWalletId: data.toWalletId,
-      createdAt: new Date(),
-      completedAt: new Date(),
-    };
-  }
-
-  private mockExternalTransfer(data: ExternalTransferData): TransferResult {
-    const providerId = `circle_tx_${uuidv4().slice(0, 8)}`;
-
-    this.logger.log(
-      `[MOCK] External transfer: ${data.amount} ${data.currency} from ${data.fromWalletId} to ${data.toAddress}`,
-    );
-
-    return {
-      providerId,
-      status: 'pending',
-      amount: data.amount,
-      currency: data.currency,
-      fee: '1.00',
-      fromWalletId: data.fromWalletId,
-      toAddress: data.toAddress,
-      createdAt: new Date(),
-    };
-  }
-
-  private mockGetTransferStatus(providerTransferId: string): TransferResult {
-    return {
-      providerId: providerTransferId,
-      status: 'completed',
-      amount: '100.00',
-      currency: 'USDC',
-      fee: '0',
-      fromWalletId: 'mock_wallet',
-      txHash: `0x${this.generateMockTxHash()}`,
-      createdAt: new Date(),
-      completedAt: new Date(),
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private mockEstimateFee(data: Partial<ExternalTransferData>): {
-    fee: string;
-    currency: string;
-  } {
-    return {
-      fee: '1.00',
-      currency: 'USDC',
-    };
-  }
-
-  private generateMockTxHash(): string {
-    const chars = '0123456789abcdef';
-    let result = '';
-    for (let i = 0; i < 64; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
-  }
-
-  // ============================================
-  // REAL API IMPLEMENTATIONS
-  // ============================================
-
-  private async apiInternalTransfer(
-    data: InternalTransferData,
-  ): Promise<TransferResult> {
-    // For internal transfers between Circle wallets, we need to:
-    // 1. Get the destination wallet's address
-    // 2. Execute a transfer to that address
-
     try {
-      // First, get destination wallet address
+      // For internal transfers between Circle wallets, we need to:
+      // 1. Get the destination wallet's address
+      // 2. Execute a transfer to that address
       const destWalletResponse = await fetch(
         `${this.config.baseUrl}/wallets/${data.toWalletId}`,
         {
@@ -248,9 +141,7 @@ export class CircleTransferAdapter implements ITransferProvider {
     }
   }
 
-  private async apiExternalTransfer(
-    data: ExternalTransferData,
-  ): Promise<TransferResult> {
+  async externalTransfer(data: ExternalTransferData): Promise<TransferResult> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/transactions/transfer`,
@@ -292,9 +183,7 @@ export class CircleTransferAdapter implements ITransferProvider {
     }
   }
 
-  private async apiGetTransferStatus(
-    providerTransferId: string,
-  ): Promise<TransferResult> {
+  async getTransferStatus(providerTransferId: string): Promise<TransferResult> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/transactions/${providerTransferId}`,
@@ -321,7 +210,7 @@ export class CircleTransferAdapter implements ITransferProvider {
     }
   }
 
-  private async apiEstimateFee(
+  async estimateFee(
     data: Partial<ExternalTransferData>,
   ): Promise<{ fee: string; currency: string }> {
     try {

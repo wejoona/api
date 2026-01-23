@@ -1,46 +1,60 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import {
-  CircleIdentityAdapter,
-  CircleWalletAdapter,
-  CircleTransferAdapter,
-} from './adapters';
-import {
   IDENTITY_PROVIDER,
   WALLET_PROVIDER,
   TRANSFER_PROVIDER,
 } from '../interfaces';
+import {
+  CircleProviderFactory,
+  createCircleIdentityProvider,
+  createCircleWalletProvider,
+  createCircleTransferProvider,
+} from './circle.factory';
 
+/**
+ * Circle Provider Module
+ *
+ * Provides identity, wallet, and transfer services via Circle Programmable Wallets.
+ * Uses factory pattern to switch between mock and real implementations based on config.
+ *
+ * Configuration:
+ * - CIRCLE_USE_MOCK=true or absence of CIRCLE_API_KEY: Uses mock adapters
+ * - CIRCLE_API_KEY present: Uses real Circle API
+ */
 @Global()
 @Module({
   imports: [ConfigModule],
   providers: [
-    // Circle Adapters
-    CircleIdentityAdapter,
-    CircleWalletAdapter,
-    CircleTransferAdapter,
+    // Factory for creating providers
+    CircleProviderFactory,
 
-    // Bind to interfaces
+    // Identity Provider (factory-based)
     {
       provide: IDENTITY_PROVIDER,
-      useExisting: CircleIdentityAdapter,
+      useFactory: createCircleIdentityProvider,
+      inject: [CircleProviderFactory],
     },
+
+    // Wallet Provider (factory-based)
     {
       provide: WALLET_PROVIDER,
-      useExisting: CircleWalletAdapter,
+      useFactory: createCircleWalletProvider,
+      inject: [CircleProviderFactory],
     },
+
+    // Transfer Provider (factory-based)
     {
       provide: TRANSFER_PROVIDER,
-      useExisting: CircleTransferAdapter,
+      useFactory: createCircleTransferProvider,
+      inject: [CircleProviderFactory],
     },
   ],
   exports: [
     IDENTITY_PROVIDER,
     WALLET_PROVIDER,
     TRANSFER_PROVIDER,
-    CircleIdentityAdapter,
-    CircleWalletAdapter,
-    CircleTransferAdapter,
+    CircleProviderFactory,
   ],
 })
 export class CircleModule {}

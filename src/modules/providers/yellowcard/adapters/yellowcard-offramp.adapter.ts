@@ -14,9 +14,7 @@ import {
   YellowCardChannel,
   YellowCardPayout,
   YELLOWCARD_COUNTRIES,
-  YELLOWCARD_MOBILE_MONEY_NETWORKS,
 } from '../yellowcard.types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface YellowCardApiResponse<T> {
   data: T;
@@ -32,6 +30,13 @@ interface YellowCardApiError {
   message: string;
 }
 
+/**
+ * Yellow Card Off-Ramp Adapter
+ *
+ * Handles withdrawal operations (USDC → XOF) via Yellow Card API.
+ * This adapter is for real API calls only - mock operations are handled
+ * by MockYellowCardOffRampAdapter.
+ */
 @Injectable()
 export class YellowCardOffRampAdapter implements IOffRampProvider {
   private readonly logger = new Logger(YellowCardOffRampAdapter.name);
@@ -49,235 +54,18 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
       secretKey: this.configService.get<string>('yellowCard.secretKey') || '',
       webhookSecret:
         this.configService.get<string>('yellowCard.webhookSecret') || '',
-      useMock: this.configService.get<boolean>('yellowCard.useMock') ?? true,
+      useMock: false,
     };
 
-    if (this.config.useMock) {
-      this.logger.warn('Yellow Card Off-Ramp running in MOCK mode');
+    if (!this.config.apiKey) {
+      this.logger.warn('Yellow Card API key not configured');
+    } else {
+      this.logger.log('Yellow Card Off-Ramp adapter initialized');
     }
   }
 
   async getChannels(
     country: string,
-    currency?: string,
-  ): Promise<WithdrawalChannel[]> {
-    if (this.config.useMock) {
-      return this.mockGetChannels(country, currency);
-    }
-    return this.apiGetChannels(country, currency);
-  }
-
-  async getRate(
-    sourceCurrency: string,
-    targetCurrency: string,
-    amount: number,
-  ): Promise<{
-    rate: number;
-    sourceAmount: number;
-    targetAmount: number;
-    fee: number;
-    expiresAt: Date;
-  }> {
-    if (this.config.useMock) {
-      return this.mockGetRate(sourceCurrency, targetCurrency, amount);
-    }
-    return this.apiGetRate(sourceCurrency, targetCurrency, amount);
-  }
-
-  async initiateWithdrawal(
-    data: InitiateWithdrawalData,
-  ): Promise<WithdrawalResult> {
-    if (this.config.useMock) {
-      return this.mockInitiateWithdrawal(data);
-    }
-    return this.apiInitiateWithdrawal(data);
-  }
-
-  async getWithdrawalStatus(
-    providerWithdrawalId: string,
-  ): Promise<WithdrawalResult> {
-    if (this.config.useMock) {
-      return this.mockGetWithdrawalStatus(providerWithdrawalId);
-    }
-    return this.apiGetWithdrawalStatus(providerWithdrawalId);
-  }
-
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (this.config.useMock) {
-      return true;
-    }
-    const expectedSignature = crypto
-      .createHmac('sha256', this.config.webhookSecret)
-      .update(payload)
-      .digest('hex');
-    return signature === expectedSignature;
-  }
-
-  parseWebhookEvent(payload: Record<string, unknown>): {
-    type:
-      | 'withdrawal.pending'
-      | 'withdrawal.completed'
-      | 'withdrawal.failed'
-      | 'withdrawal.returned';
-    withdrawalId: string;
-    data: Record<string, unknown>;
-  } {
-    const ycType = payload.type as string;
-    const typeMap: Record<
-      string,
-      | 'withdrawal.pending'
-      | 'withdrawal.completed'
-      | 'withdrawal.failed'
-      | 'withdrawal.returned'
-    > = {
-      'payout.pending': 'withdrawal.pending',
-      'payout.processing': 'withdrawal.pending',
-      'payout.complete': 'withdrawal.completed',
-      'payout.failed': 'withdrawal.failed',
-    };
-
-    const data = payload.data as YellowCardPayout;
-
-    return {
-      type: typeMap[ycType] || 'withdrawal.pending',
-      withdrawalId: data.id,
-      data: data as unknown as Record<string, unknown>,
-    };
-  }
-
-  // ============================================
-  // MOCK IMPLEMENTATIONS
-  // ============================================
-
-  private mockGetChannels(
-    country: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _currency?: string,
-  ): WithdrawalChannel[] {
-    const networksMap: Record<string, readonly string[]> =
-      YELLOWCARD_MOBILE_MONEY_NETWORKS;
-    const defaultNetworks: string[] = ['orange', 'mtn', 'wave'];
-    const networks: readonly string[] = networksMap[country] || defaultNetworks;
-
-    return networks.map((network: string) => ({
-      id: `${network}_${country.toLowerCase()}_offramp`,
-      name: this.getNetworkName(network),
-      type: 'mobile_money' as const,
-      provider: network,
-      country,
-      currency: 'XOF',
-      minAmount: 1, // In USDC
-      maxAmount: 5000,
-      fee: 1.5,
-      feeType: 'percentage' as const,
-      estimatedTime: '5-30 minutes',
-      isActive: true,
-    }));
-  }
-
-  private mockGetRate(
-    sourceCurrency: string,
-    targetCurrency: string,
-    amount: number,
-  ): {
-    rate: number;
-    sourceAmount: number;
-    targetAmount: number;
-    fee: number;
-    expiresAt: Date;
-  } {
-    // USD/USDC to XOF rate
-    let rate = 1;
-    if (
-      (sourceCurrency === 'USD' || sourceCurrency === 'USDC') &&
-      targetCurrency === 'XOF'
-    ) {
-      rate = 600; // 1 USD = 600 XOF (sell rate, slightly lower than buy)
-    }
-
-    const fee = amount * 0.015;
-    const targetAmount = (amount - fee) * rate;
-
-    return {
-      rate,
-      sourceAmount: amount,
-      targetAmount: Math.round(targetAmount),
-      fee,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-    };
-  }
-
-  private mockInitiateWithdrawal(
-    data: InitiateWithdrawalData,
-  ): WithdrawalResult {
-    const providerId = `yc_payout_${uuidv4().slice(0, 8)}`;
-    const rate = 600;
-    const fee = data.amount * 0.015;
-    const targetAmount = (data.amount - fee) * rate;
-
-    const destination = data.destination as MobileMoneyDetails;
-
-    this.logger.log(
-      `[MOCK] Initiated withdrawal: ${providerId} for ${data.amount} USDC to ${destination.phoneNumber}`,
-    );
-
-    return {
-      providerId,
-      status: 'pending',
-      sourceAmount: data.amount,
-      sourceCurrency: 'USDC',
-      targetAmount: Math.round(targetAmount),
-      targetCurrency: data.targetCurrency,
-      rate,
-      fee,
-      destination: data.destination,
-      reference: `WD-${providerId.slice(-8).toUpperCase()}`,
-      createdAt: new Date(),
-      estimatedArrival: new Date(Date.now() + 30 * 60 * 1000),
-    };
-  }
-
-  private mockGetWithdrawalStatus(
-    providerWithdrawalId: string,
-  ): WithdrawalResult {
-    return {
-      providerId: providerWithdrawalId,
-      status: 'pending',
-      sourceAmount: 100,
-      sourceCurrency: 'USDC',
-      targetAmount: 59000,
-      targetCurrency: 'XOF',
-      rate: 600,
-      fee: 1.5,
-      destination: {
-        provider: 'orange',
-        phoneNumber: '+2250701234567',
-        accountName: 'Test User',
-      },
-      reference: `WD-${providerWithdrawalId.slice(-8).toUpperCase()}`,
-      createdAt: new Date(),
-      estimatedArrival: new Date(Date.now() + 30 * 60 * 1000),
-    };
-  }
-
-  private getNetworkName(network: string): string {
-    const names: Record<string, string> = {
-      orange: 'Orange Money',
-      mtn: 'MTN Mobile Money',
-      wave: 'Wave',
-      moov: 'Moov Money',
-      free: 'Free Money',
-    };
-    return names[network] || network;
-  }
-
-  // ============================================
-  // REAL API IMPLEMENTATIONS
-  // ============================================
-
-  private async apiGetChannels(
-    country: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _currency?: string,
   ): Promise<WithdrawalChannel[]> {
     try {
@@ -321,7 +109,7 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
     }
   }
 
-  private async apiGetRate(
+  async getRate(
     sourceCurrency: string,
     targetCurrency: string,
     amount: number,
@@ -350,7 +138,7 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
         (await response.json()) as YellowCardApiResponse<YellowCardRateResponse>;
       const rateData = result.data;
 
-      const rate = rateData.sell; // Use sell rate for off-ramp
+      const rate = rateData.sell;
       const fee = amount * 0.015;
       const targetAmount = (amount - fee) * rate;
 
@@ -369,7 +157,7 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
     }
   }
 
-  private async apiInitiateWithdrawal(
+  async initiateWithdrawal(
     data: InitiateWithdrawalData,
   ): Promise<WithdrawalResult> {
     try {
@@ -415,7 +203,7 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
     }
   }
 
-  private async apiGetWithdrawalStatus(
+  async getWithdrawalStatus(
     providerWithdrawalId: string,
   ): Promise<WithdrawalResult> {
     try {
@@ -443,6 +231,46 @@ export class YellowCardOffRampAdapter implements IOffRampProvider {
       );
       throw error;
     }
+  }
+
+  verifyWebhookSignature(payload: string, signature: string): boolean {
+    const expectedSignature = crypto
+      .createHmac('sha256', this.config.webhookSecret)
+      .update(payload)
+      .digest('hex');
+    return signature === expectedSignature;
+  }
+
+  parseWebhookEvent(payload: Record<string, unknown>): {
+    type:
+      | 'withdrawal.pending'
+      | 'withdrawal.completed'
+      | 'withdrawal.failed'
+      | 'withdrawal.returned';
+    withdrawalId: string;
+    data: Record<string, unknown>;
+  } {
+    const ycType = payload.type as string;
+    const typeMap: Record<
+      string,
+      | 'withdrawal.pending'
+      | 'withdrawal.completed'
+      | 'withdrawal.failed'
+      | 'withdrawal.returned'
+    > = {
+      'payout.pending': 'withdrawal.pending',
+      'payout.processing': 'withdrawal.pending',
+      'payout.complete': 'withdrawal.completed',
+      'payout.failed': 'withdrawal.failed',
+    };
+
+    const data = payload.data as YellowCardPayout;
+
+    return {
+      type: typeMap[ycType] || 'withdrawal.pending',
+      withdrawalId: data.id,
+      data: data as unknown as Record<string, unknown>,
+    };
   }
 
   private mapPayoutToWithdrawal(payout: YellowCardPayout): WithdrawalResult {

@@ -1,0 +1,157 @@
+{
+  "CI": {
+    "onramp": [
+      {
+        "id": "orange_ci_onramp",
+        "name": "Orange Money",
+        "type": "mobile_money",
+        "provider": "orange",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 1000000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "5-15 minutes",
+        "isActive": true
+      },
+      {
+        "id": "mtn_ci_onramp",
+        "name": "MTN Mobile Money",
+        "type": "mobile_money",
+        "provider": "mtn",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 1000000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "5-15 minutes",
+        "isActive": true
+      },
+      {
+        "id": "wave_ci_onramp",
+        "name": "Wave",
+        "type": "mobile_money",
+        "provider": "wave",
+        "currency": "XOF",
+        "minAmount": 100,
+        "maxAmount": 2000000,
+        "fee": 1.0,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      },
+      {
+        "id": "moov_ci_onramp",
+        "name": "Moov Money",
+        "type": "mobile_money",
+        "provider": "moov",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 500000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "5-15 minutes",
+        "isActive": true
+      }
+    ],
+    "offramp": [
+      {
+        "id": "orange_ci_offramp",
+        "name": "Orange Money",
+        "type": "mobile_money",
+        "provider": "orange",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 500000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      },
+      {
+        "id": "mtn_ci_offramp",
+        "name": "MTN Mobile Money",
+        "type": "mobile_money",
+        "provider": "mtn",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 500000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      },
+      {
+        "id": "wave_ci_offramp",
+        "name": "Wave",
+        "type": "mobile_money",
+        "provider": "wave",
+        "currency": "XOF",
+        "minAmount": 100,
+        "maxAmount": 1000000,
+        "fee": 1.0,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      }
+    ]
+  },
+  "SN": {
+    "onramp": [
+      {
+        "id": "orange_sn_onramp",
+        "name": "Orange Money",
+        "type": "mobile_money",
+        "provider": "orange",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 1000000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "5-15 minutes",
+        "isActive": true
+      },
+      {
+        "id": "wave_sn_onramp",
+        "name": "Wave",
+        "type": "mobile_money",
+        "provider": "wave",
+        "currency": "XOF",
+        "minAmount": 100,
+        "maxAmount": 2000000,
+        "fee": 1.0,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      }
+    ],
+    "offramp": [
+      {
+        "id": "orange_sn_offramp",
+        "name": "Orange Money",
+        "type": "mobile_money",
+        "provider": "orange",
+        "currency": "XOF",
+        "minAmount": 500,
+        "maxAmount": 500000,
+        "fee": 1.5,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      },
+      {
+        "id": "wave_sn_offramp",
+        "name": "Wave",
+        "type": "mobile_money",
+        "provider": "wave",
+        "currency": "XOF",
+        "minAmount": 100,
+        "maxAmount": 1000000,
+        "fee": 1.0,
+        "feeType": "percentage",
+        "estimatedTime": "instant",
+        "isActive": true
+      }
+    ]
+  }
+}

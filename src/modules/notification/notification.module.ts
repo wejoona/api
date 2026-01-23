@@ -9,9 +9,14 @@ import { CommandHandlers } from '@modules/notification/application/commands';
 import { OrmEntities } from '@modules/notification/infrastructure/orm-entities';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Services } from '@modules/notification/application/domain/services';
+import { SharedModule } from '@modules/shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([...OrmEntities]), CqrsModule],
+  imports: [
+    TypeOrmModule.forFeature([...OrmEntities]),
+    CqrsModule,
+    SharedModule, // For PUSH_GATEWAY access
+  ],
   providers: [
     ...CommandHandlers,
     ...Queries,
@@ -21,5 +26,6 @@ import { Services } from '@modules/notification/application/domain/services';
     ...Services,
   ],
   controllers: [...Controllers],
+  exports: [...Services], // Export NotificationService for use in other modules
 })
 export class NotificationModule {}

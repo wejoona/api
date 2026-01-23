@@ -1,0 +1,75 @@
+{
+  "templates": {
+    "transfer_received": {
+      "title": "Money Received!",
+      "body": "You received {amount} {currency} from {sender}",
+      "data": {
+        "type": "transfer_received",
+        "screen": "transaction_details"
+      }
+    },
+    "transfer_sent": {
+      "title": "Transfer Successful",
+      "body": "You sent {amount} {currency} to {recipient}",
+      "data": {
+        "type": "transfer_sent",
+        "screen": "transaction_details"
+      }
+    },
+    "deposit_completed": {
+      "title": "Deposit Complete",
+      "body": "Your deposit of {amount} {currency} is now available",
+      "data": {
+        "type": "deposit_completed",
+        "screen": "wallet"
+      }
+    },
+    "withdrawal_completed": {
+      "title": "Withdrawal Complete",
+      "body": "Your withdrawal of {amount} {currency} has been sent",
+      "data": {
+        "type": "withdrawal_completed",
+        "screen": "transaction_details"
+      }
+    },
+    "low_balance_warning": {
+      "title": "Low Balance Alert",
+      "body": "Your balance is below {threshold} {currency}. Consider adding funds.",
+      "data": {
+        "type": "low_balance_warning",
+        "screen": "deposit"
+      }
+    },
+    "security_alert": {
+      "title": "Security Alert",
+      "body": "{message}",
+      "data": {
+        "type": "security_alert",
+        "screen": "security_settings"
+      }
+    },
+    "kyc_approved": {
+      "title": "Verification Complete",
+      "body": "Your identity verification is approved. You now have higher limits.",
+      "data": {
+        "type": "kyc_approved",
+        "screen": "profile"
+      }
+    },
+    "kyc_rejected": {
+      "title": "Verification Issue",
+      "body": "We couldn't verify your identity. Please resubmit your documents.",
+      "data": {
+        "type": "kyc_rejected",
+        "screen": "kyc"
+      }
+    }
+  },
+  "mockDeliveryStatus": "sent",
+  "mockDeliveryStatuses": ["sent", "delivered", "failed"],
+  "priorities": {
+    "high": ["security_alert", "login_alert"],
+    "normal": ["transfer_received", "deposit_completed", "withdrawal_completed"],
+    "low": ["low_balance_warning", "kyc_approved"]
+  }
+}

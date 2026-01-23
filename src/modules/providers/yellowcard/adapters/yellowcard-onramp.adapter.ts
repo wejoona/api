@@ -14,9 +14,7 @@ import {
   YellowCardPayment,
   YellowCardRate,
   YELLOWCARD_COUNTRIES,
-  YELLOWCARD_MOBILE_MONEY_NETWORKS,
 } from '../yellowcard.types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface YellowCardApiResponse<T> {
   data: T;
@@ -26,6 +24,13 @@ interface YellowCardApiError {
   message: string;
 }
 
+/**
+ * Yellow Card On-Ramp Adapter
+ *
+ * Handles deposit operations (XOF → USDC) via Yellow Card API.
+ * This adapter is for real API calls only - mock operations are handled
+ * by MockYellowCardOnRampAdapter.
+ */
 @Injectable()
 export class YellowCardOnRampAdapter implements IOnRampProvider {
   private readonly logger = new Logger(YellowCardOnRampAdapter.name);
@@ -43,240 +48,18 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
       secretKey: this.configService.get<string>('yellowCard.secretKey') || '',
       webhookSecret:
         this.configService.get<string>('yellowCard.webhookSecret') || '',
-      useMock: this.configService.get<boolean>('yellowCard.useMock') ?? true,
+      useMock: false,
     };
 
-    if (this.config.useMock) {
-      this.logger.warn('Yellow Card On-Ramp running in MOCK mode');
+    if (!this.config.apiKey) {
+      this.logger.warn('Yellow Card API key not configured');
+    } else {
+      this.logger.log('Yellow Card On-Ramp adapter initialized');
     }
   }
 
   async getChannels(
     country: string,
-    currency?: string,
-  ): Promise<PaymentChannel[]> {
-    if (this.config.useMock) {
-      return this.mockGetChannels(country, currency);
-    }
-    return this.apiGetChannels(country, currency);
-  }
-
-  async getRate(
-    sourceCurrency: string,
-    targetCurrency: string,
-    amount: number,
-  ): Promise<{
-    rate: number;
-    sourceAmount: number;
-    targetAmount: number;
-    fee: number;
-    expiresAt: Date;
-  }> {
-    if (this.config.useMock) {
-      return this.mockGetRate(sourceCurrency, targetCurrency, amount);
-    }
-    return this.apiGetRate(sourceCurrency, targetCurrency, amount);
-  }
-
-  async initiateDeposit(data: InitiateDepositData): Promise<DepositResult> {
-    if (this.config.useMock) {
-      return this.mockInitiateDeposit(data);
-    }
-    return this.apiInitiateDeposit(data);
-  }
-
-  async getDepositStatus(providerDepositId: string): Promise<DepositResult> {
-    if (this.config.useMock) {
-      return this.mockGetDepositStatus(providerDepositId);
-    }
-    return this.apiGetDepositStatus(providerDepositId);
-  }
-
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (this.config.useMock) {
-      return true;
-    }
-    const expectedSignature = crypto
-      .createHmac('sha256', this.config.webhookSecret)
-      .update(payload)
-      .digest('hex');
-    return signature === expectedSignature;
-  }
-
-  parseWebhookEvent(payload: Record<string, unknown>): {
-    type:
-      | 'deposit.pending'
-      | 'deposit.completed'
-      | 'deposit.failed'
-      | 'deposit.expired';
-    depositId: string;
-    data: Record<string, unknown>;
-  } {
-    const ycType = payload.type as string;
-    const typeMap: Record<
-      string,
-      | 'deposit.pending'
-      | 'deposit.completed'
-      | 'deposit.failed'
-      | 'deposit.expired'
-    > = {
-      'payment.pending': 'deposit.pending',
-      'payment.awaiting_payment': 'deposit.pending',
-      'payment.processing': 'deposit.pending',
-      'payment.complete': 'deposit.completed',
-      'payment.failed': 'deposit.failed',
-      'payment.expired': 'deposit.expired',
-    };
-
-    const data = payload.data as YellowCardPayment;
-
-    return {
-      type: typeMap[ycType] || 'deposit.pending',
-      depositId: data.id,
-      data: data as unknown as Record<string, unknown>,
-    };
-  }
-
-  // ============================================
-  // MOCK IMPLEMENTATIONS
-  // ============================================
-
-  private mockGetChannels(
-    country: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _currency?: string,
-  ): PaymentChannel[] {
-    const networksMap: Record<string, readonly string[]> =
-      YELLOWCARD_MOBILE_MONEY_NETWORKS;
-    const defaultNetworks: string[] = ['orange', 'mtn', 'wave'];
-    const networks: readonly string[] = networksMap[country] || defaultNetworks;
-
-    return networks.map((network: string) => ({
-      id: `${network}_${country.toLowerCase()}_onramp`,
-      name: this.getNetworkName(network),
-      type: 'mobile_money' as const,
-      provider: network,
-      country,
-      currency: 'XOF',
-      minAmount: 500,
-      maxAmount: 1000000,
-      fee: 1.5,
-      feeType: 'percentage' as const,
-      estimatedTime: '5-15 minutes',
-      isActive: true,
-    }));
-  }
-
-  private mockGetRate(
-    sourceCurrency: string,
-    targetCurrency: string,
-    amount: number,
-  ): {
-    rate: number;
-    sourceAmount: number;
-    targetAmount: number;
-    fee: number;
-    expiresAt: Date;
-  } {
-    // XOF to USD rate (approximately 1 USD = 600 XOF)
-    let rate = 1;
-    if (
-      sourceCurrency === 'XOF' &&
-      (targetCurrency === 'USD' || targetCurrency === 'USDC')
-    ) {
-      rate = 0.00166; // 1 XOF = 0.00166 USD
-    } else if (
-      (sourceCurrency === 'USD' || sourceCurrency === 'USDC') &&
-      targetCurrency === 'XOF'
-    ) {
-      rate = 602;
-    }
-
-    const fee = amount * 0.015; // 1.5% fee
-    const targetAmount = (amount - fee) * rate;
-
-    return {
-      rate,
-      sourceAmount: amount,
-      targetAmount: Math.round(targetAmount * 100) / 100,
-      fee,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
-    };
-  }
-
-  private mockInitiateDeposit(data: InitiateDepositData): DepositResult {
-    const providerId = `yc_pay_${uuidv4().slice(0, 8)}`;
-    const rate = 0.00166;
-    const fee = data.amount * 0.015;
-    const targetAmount = (data.amount - fee) * rate;
-
-    this.logger.log(
-      `[MOCK] Initiated deposit: ${providerId} for ${data.amount} ${data.sourceCurrency}`,
-    );
-
-    return {
-      providerId,
-      status: 'awaiting_payment',
-      amount: data.amount,
-      sourceCurrency: data.sourceCurrency,
-      targetAmount: Math.round(targetAmount * 100) / 100,
-      targetCurrency: data.targetCurrency,
-      rate,
-      fee,
-      paymentInstructions: {
-        type: 'mobile_money',
-        provider: 'orange',
-        accountNumber: '+2250700000000',
-        accountName: 'JoonaPay',
-        reference: `DEP-${providerId.slice(-8).toUpperCase()}`,
-        instructions: `Send ${data.amount} XOF to +2250700000000 via Orange Money. Use reference: DEP-${providerId.slice(-8).toUpperCase()}`,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-      },
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    };
-  }
-
-  private mockGetDepositStatus(providerDepositId: string): DepositResult {
-    return {
-      providerId: providerDepositId,
-      status: 'awaiting_payment',
-      amount: 10000,
-      sourceCurrency: 'XOF',
-      targetAmount: 16.45,
-      targetCurrency: 'USDC',
-      rate: 0.00166,
-      fee: 150,
-      paymentInstructions: {
-        type: 'mobile_money',
-        provider: 'orange',
-        reference: `DEP-${providerDepositId.slice(-8).toUpperCase()}`,
-        instructions: 'Payment instructions',
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-      },
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    };
-  }
-
-  private getNetworkName(network: string): string {
-    const names: Record<string, string> = {
-      orange: 'Orange Money',
-      mtn: 'MTN Mobile Money',
-      wave: 'Wave',
-      moov: 'Moov Money',
-      free: 'Free Money',
-    };
-    return names[network] || network;
-  }
-
-  // ============================================
-  // REAL API IMPLEMENTATIONS
-  // ============================================
-
-  private async apiGetChannels(
-    country: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _currency?: string,
   ): Promise<PaymentChannel[]> {
     try {
@@ -320,7 +103,7 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
     }
   }
 
-  private async apiGetRate(
+  async getRate(
     sourceCurrency: string,
     targetCurrency: string,
     amount: number,
@@ -368,9 +151,7 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
     }
   }
 
-  private async apiInitiateDeposit(
-    data: InitiateDepositData,
-  ): Promise<DepositResult> {
+  async initiateDeposit(data: InitiateDepositData): Promise<DepositResult> {
     try {
       const response = await fetch(`${this.config.apiUrl}/payments`, {
         method: 'POST',
@@ -411,9 +192,7 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
     }
   }
 
-  private async apiGetDepositStatus(
-    providerDepositId: string,
-  ): Promise<DepositResult> {
+  async getDepositStatus(providerDepositId: string): Promise<DepositResult> {
     try {
       const response = await fetch(
         `${this.config.apiUrl}/payments/${providerDepositId}`,
@@ -439,6 +218,48 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
       );
       throw error;
     }
+  }
+
+  verifyWebhookSignature(payload: string, signature: string): boolean {
+    const expectedSignature = crypto
+      .createHmac('sha256', this.config.webhookSecret)
+      .update(payload)
+      .digest('hex');
+    return signature === expectedSignature;
+  }
+
+  parseWebhookEvent(payload: Record<string, unknown>): {
+    type:
+      | 'deposit.pending'
+      | 'deposit.completed'
+      | 'deposit.failed'
+      | 'deposit.expired';
+    depositId: string;
+    data: Record<string, unknown>;
+  } {
+    const ycType = payload.type as string;
+    const typeMap: Record<
+      string,
+      | 'deposit.pending'
+      | 'deposit.completed'
+      | 'deposit.failed'
+      | 'deposit.expired'
+    > = {
+      'payment.pending': 'deposit.pending',
+      'payment.awaiting_payment': 'deposit.pending',
+      'payment.processing': 'deposit.pending',
+      'payment.complete': 'deposit.completed',
+      'payment.failed': 'deposit.failed',
+      'payment.expired': 'deposit.expired',
+    };
+
+    const data = payload.data as YellowCardPayment;
+
+    return {
+      type: typeMap[ycType] || 'deposit.pending',
+      depositId: data.id,
+      data: data as unknown as Record<string, unknown>,
+    };
   }
 
   private mapPaymentToDeposit(payment: YellowCardPayment): DepositResult {

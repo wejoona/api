@@ -1,7 +1,11 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ONRAMP_PROVIDER_CI, OFFRAMP_PROVIDER_CI } from '../interfaces';
-import { YellowCardOnRampAdapter, YellowCardOffRampAdapter } from './adapters';
+import {
+  YellowCardProviderFactory,
+  createYellowCardOnRampProvider,
+  createYellowCardOffRampProvider,
+} from './yellowcard.factory';
 
 /**
  * Yellow Card Provider Module
@@ -10,6 +14,12 @@ import { YellowCardOnRampAdapter, YellowCardOffRampAdapter } from './adapters';
  * - On-ramp: XOF (Mobile Money) → USDC
  * - Off-ramp: USDC → XOF (Mobile Money)
  *
+ * Uses factory pattern to switch between mock and real implementations based on config.
+ *
+ * Configuration:
+ * - YELLOW_CARD_USE_MOCK=true or absence of YELLOW_CARD_API_KEY: Uses mock adapters
+ * - YELLOW_CARD_API_KEY present: Uses real Yellow Card API
+ *
  * Yellow Card is ONLY used for fiat conversion, not for wallets or transfers.
  * Circle handles all wallet and transfer operations.
  */
@@ -17,25 +27,27 @@ import { YellowCardOnRampAdapter, YellowCardOffRampAdapter } from './adapters';
 @Module({
   imports: [ConfigModule],
   providers: [
-    // Adapter instances
-    YellowCardOnRampAdapter,
-    YellowCardOffRampAdapter,
+    // Factory for creating providers
+    YellowCardProviderFactory,
 
-    // Bind to provider symbols for Ivory Coast
+    // On-Ramp Provider for Ivory Coast (factory-based)
     {
       provide: ONRAMP_PROVIDER_CI,
-      useExisting: YellowCardOnRampAdapter,
+      useFactory: createYellowCardOnRampProvider,
+      inject: [YellowCardProviderFactory],
     },
+
+    // Off-Ramp Provider for Ivory Coast (factory-based)
     {
       provide: OFFRAMP_PROVIDER_CI,
-      useExisting: YellowCardOffRampAdapter,
+      useFactory: createYellowCardOffRampProvider,
+      inject: [YellowCardProviderFactory],
     },
   ],
   exports: [
     ONRAMP_PROVIDER_CI,
     OFFRAMP_PROVIDER_CI,
-    YellowCardOnRampAdapter,
-    YellowCardOffRampAdapter,
+    YellowCardProviderFactory,
   ],
 })
 export class YellowCardModule {}

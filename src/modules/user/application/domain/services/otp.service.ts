@@ -1,6 +1,10 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import {
+  ISmsGateway,
+  SMS_GATEWAY,
+} from '../../../../shared/domain/gateways/sms.gateway';
 
 @Injectable()
 export class OtpService implements OnModuleDestroy {
@@ -10,7 +14,10 @@ export class OtpService implements OnModuleDestroy {
   private readonly otpLength: number;
   private isRedisConnected = false;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(SMS_GATEWAY) private readonly smsGateway: ISmsGateway,
+  ) {
     this.redis = new Redis({
       host: this.configService.get<string>('redis.host'),
       port: this.configService.get<number>('redis.port'),
@@ -43,6 +50,10 @@ export class OtpService implements OnModuleDestroy {
 
     this.otpExpiry = this.configService.get<number>('otp.expiresIn') || 300;
     this.otpLength = this.configService.get<number>('otp.length') || 6;
+
+    this.logger.log(
+      `OtpService initialized with SMS provider: ${this.smsGateway.providerName}`,
+    );
   }
 
   async onModuleDestroy() {
@@ -67,12 +78,24 @@ export class OtpService implements OnModuleDestroy {
     // Store OTP in Redis with expiry
     await this.redis.setex(key, this.otpExpiry, otp);
 
-    // In production, integrate with SMS provider (e.g., Twilio, Africa's Talking)
-    // For now, log the OTP (NEVER do this in production!)
-    this.logger.debug(`OTP for ${phone}: ${otp}`);
+    // Log OTP in development mode for debugging
+    if (this.configService.get<string>('nodeEnv') !== 'production') {
+      this.logger.debug(`OTP for ${phone}: ${otp}`);
+    }
 
-    // TODO: Integrate with SMS provider
-    // await this.smsService.send(phone, `Your verification code is: ${otp}`);
+    // Send OTP via SMS gateway
+    try {
+      const result = await this.smsGateway.sendOtp(phone, otp);
+      this.logger.log(
+        `OTP sent to ${phone} via ${this.smsGateway.providerName}: ${result.id}`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to send OTP to ${phone}: ${errorMessage}`);
+      // Don't throw - OTP is stored, user can request resend
+      // In production, you might want to throw or implement retry logic
+    }
   }
 
   async verifyOtp(phone: string, otp: string): Promise<boolean> {

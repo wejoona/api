@@ -1,0 +1,36 @@
+{
+  "defaultDeposit": {
+    "status": "awaiting_payment",
+    "paymentInstructions": {
+      "type": "mobile_money",
+      "provider": "orange",
+      "accountNumber": "+2250700000000",
+      "accountName": "JoonaPay CI",
+      "instructions": "Send the amount to the number above using Orange Money. Include the reference in your payment note."
+    }
+  },
+  "statuses": ["pending", "awaiting_payment", "processing", "completed", "failed", "expired"],
+  "statusTransitions": {
+    "pending": ["awaiting_payment", "failed"],
+    "awaiting_payment": ["processing", "expired"],
+    "processing": ["completed", "failed"],
+    "completed": [],
+    "failed": [],
+    "expired": []
+  },
+  "expirationMinutes": 30,
+  "providerAccounts": {
+    "orange_ci": {
+      "accountNumber": "+2250700000000",
+      "accountName": "JoonaPay CI"
+    },
+    "mtn_ci": {
+      "accountNumber": "+2250500000000",
+      "accountName": "JoonaPay CI"
+    },
+    "wave_ci": {
+      "accountNumber": "+2250100000000",
+      "accountName": "JoonaPay"
+    }
+  }
+}

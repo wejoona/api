@@ -11,7 +11,6 @@ import {
   CircleWallet,
   CircleWalletBalance,
 } from '../circle.types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -33,6 +32,13 @@ interface CircleApiError {
   message: string;
 }
 
+/**
+ * Circle Wallet Adapter
+ *
+ * Handles wallet operations via Circle Programmable Wallets API.
+ * This adapter is for real API calls only - mock operations are handled
+ * by MockCircleWalletAdapter.
+ */
 @Injectable()
 export class CircleWalletAdapter implements IWalletProvider {
   private readonly logger = new Logger(CircleWalletAdapter.name);
@@ -44,148 +50,26 @@ export class CircleWalletAdapter implements IWalletProvider {
   constructor(private readonly configService: ConfigService) {
     this.config = {
       apiKey: this.configService.get<string>('circle.apiKey') || '',
-      entitySecret: this.configService.get<string>('circle.entitySecret') || '',
+      entitySecret:
+        this.configService.get<string>('circle.entitySecretCipherText') || '',
       baseUrl:
-        this.configService.get<string>('circle.baseUrl') ||
+        this.configService.get<string>('circle.apiUrl') ||
         'https://api.circle.com/v1/w3s',
       walletSetId: this.configService.get<string>('circle.walletSetId'),
-      useMock: this.configService.get<boolean>('circle.useMock') ?? true,
+      useMock: false,
     };
 
-    // Use testnet by default in non-production
     this.defaultBlockchain =
-      this.configService.get<string>('circle.blockchain') || 'ETH-SEPOLIA';
+      this.configService.get<string>('circle.defaultBlockchain') || 'MATIC';
 
-    if (this.config.useMock) {
-      this.logger.warn('Circle Wallet running in MOCK mode');
+    if (!this.config.apiKey) {
+      this.logger.warn('Circle API key not configured');
+    } else {
+      this.logger.log('Circle Wallet adapter initialized');
     }
   }
 
   async createWallet(data: CreateWalletData): Promise<ProviderWallet> {
-    if (this.config.useMock) {
-      return this.mockCreateWallet(data);
-    }
-    return this.apiCreateWallet(data);
-  }
-
-  async getWallet(providerWalletId: string): Promise<ProviderWallet | null> {
-    if (this.config.useMock) {
-      return this.mockGetWallet(providerWalletId);
-    }
-    return this.apiGetWallet(providerWalletId);
-  }
-
-  async getBalance(providerWalletId: string): Promise<WalletBalance[]> {
-    if (this.config.useMock) {
-      return this.mockGetBalance(providerWalletId);
-    }
-    return this.apiGetBalance(providerWalletId);
-  }
-
-  async getDepositAddress(
-    providerWalletId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _blockchain?: string,
-  ): Promise<string> {
-    const wallet = await this.getWallet(providerWalletId);
-    if (!wallet) {
-      throw new Error('Wallet not found');
-    }
-    return wallet.address;
-  }
-
-  async listWallets(userProviderId: string): Promise<ProviderWallet[]> {
-    if (this.config.useMock) {
-      return this.mockListWallets(userProviderId);
-    }
-    return this.apiListWallets(userProviderId);
-  }
-
-  // ============================================
-  // MOCK IMPLEMENTATIONS
-  // ============================================
-
-  private mockCreateWallet(data: CreateWalletData): ProviderWallet {
-    const providerId = `circle_wallet_${uuidv4().slice(0, 8)}`;
-    const address = `0x${this.generateMockAddress()}`;
-
-    this.logger.log(
-      `[MOCK] Created Circle wallet: ${providerId} for user: ${data.userProviderId}`,
-    );
-
-    return {
-      providerId,
-      address,
-      blockchain: this.defaultBlockchain,
-      balances: [
-        { currency: 'USDC', available: '0', pending: '0', total: '0' },
-      ],
-      status: 'active',
-      createdAt: new Date(),
-    };
-  }
-
-  private mockGetWallet(providerWalletId: string): ProviderWallet {
-    return {
-      providerId: providerWalletId,
-      address: `0x${this.generateMockAddress()}`,
-      blockchain: this.defaultBlockchain,
-      balances: [
-        {
-          currency: 'USDC',
-          available: '100.00',
-          pending: '0',
-          total: '100.00',
-        },
-      ],
-      status: 'active',
-      createdAt: new Date(),
-    };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private mockGetBalance(_providerWalletId: string): WalletBalance[] {
-    return [
-      { currency: 'USDC', available: '100.00', pending: '0', total: '100.00' },
-    ];
-  }
-
-  private mockListWallets(userProviderId: string): ProviderWallet[] {
-    return [
-      {
-        providerId: `circle_wallet_${userProviderId.slice(-8)}`,
-        address: `0x${this.generateMockAddress()}`,
-        blockchain: this.defaultBlockchain,
-        balances: [
-          {
-            currency: 'USDC',
-            available: '100.00',
-            pending: '0',
-            total: '100.00',
-          },
-        ],
-        status: 'active',
-        createdAt: new Date(),
-      },
-    ];
-  }
-
-  private generateMockAddress(): string {
-    const chars = '0123456789abcdef';
-    let result = '';
-    for (let i = 0; i < 40; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
-  }
-
-  // ============================================
-  // REAL API IMPLEMENTATIONS
-  // ============================================
-
-  private async apiCreateWallet(
-    data: CreateWalletData,
-  ): Promise<ProviderWallet> {
     try {
       const response = await fetch(`${this.config.baseUrl}/wallets`, {
         method: 'POST',
@@ -222,9 +106,7 @@ export class CircleWalletAdapter implements IWalletProvider {
     }
   }
 
-  private async apiGetWallet(
-    providerWalletId: string,
-  ): Promise<ProviderWallet | null> {
+  async getWallet(providerWalletId: string): Promise<ProviderWallet | null> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/wallets/${providerWalletId}`,
@@ -255,9 +137,7 @@ export class CircleWalletAdapter implements IWalletProvider {
     }
   }
 
-  private async apiGetBalance(
-    providerWalletId: string,
-  ): Promise<WalletBalance[]> {
+  async getBalance(providerWalletId: string): Promise<WalletBalance[]> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/wallets/${providerWalletId}/balances`,
@@ -291,9 +171,18 @@ export class CircleWalletAdapter implements IWalletProvider {
     }
   }
 
-  private async apiListWallets(
-    userProviderId: string,
-  ): Promise<ProviderWallet[]> {
+  async getDepositAddress(
+    providerWalletId: string,
+    _blockchain?: string,
+  ): Promise<string> {
+    const wallet = await this.getWallet(providerWalletId);
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+    return wallet.address;
+  }
+
+  async listWallets(userProviderId: string): Promise<ProviderWallet[]> {
     try {
       const response = await fetch(
         `${this.config.baseUrl}/wallets?userId=${userProviderId}`,
@@ -327,7 +216,7 @@ export class CircleWalletAdapter implements IWalletProvider {
       providerId: circleWallet.id,
       address: circleWallet.address,
       blockchain: circleWallet.blockchain,
-      balances: [], // Fetch separately
+      balances: [],
       status: circleWallet.state === 'LIVE' ? 'active' : 'frozen',
       createdAt: new Date(circleWallet.createDate),
     };

@@ -1,0 +1,27 @@
+{
+  "templates": {
+    "otp": "Your JoonaPay verification code is: {otp}. Valid for 5 minutes. Do not share this code.",
+    "otp_fr": "Votre code de verification JoonaPay est: {otp}. Valide pendant 5 minutes. Ne partagez pas ce code.",
+    "transfer_sent": "You sent {amount} {currency} to {recipient}. Ref: {reference}",
+    "transfer_sent_fr": "Vous avez envoye {amount} {currency} a {recipient}. Ref: {reference}",
+    "transfer_received": "You received {amount} {currency} from {sender}. Ref: {reference}",
+    "transfer_received_fr": "Vous avez recu {amount} {currency} de {sender}. Ref: {reference}",
+    "deposit_initiated": "Your deposit of {amount} {currency} is being processed. Ref: {reference}",
+    "deposit_completed": "Your deposit of {amount} {currency} is complete. New balance: {balance} USDC",
+    "withdrawal_initiated": "Your withdrawal of {amount} {currency} to {destination} is being processed.",
+    "withdrawal_completed": "Your withdrawal of {amount} {currency} to {destination} is complete.",
+    "login_alert": "New login to your JoonaPay account from {device}. If this wasn't you, secure your account immediately.",
+    "welcome": "Welcome to JoonaPay! Your account is ready. Start by depositing funds to your wallet."
+  },
+  "mockDeliveryStatus": "sent",
+  "mockDeliveryStatuses": ["queued", "sent", "delivered", "failed"],
+  "mockDeliveryDelay": 0,
+  "providers": {
+    "twilio": {
+      "statusCallbackUrl": "/webhooks/sms/twilio/status"
+    },
+    "africas_talking": {
+      "statusCallbackUrl": "/webhooks/sms/at/status"
+    }
+  }
+}

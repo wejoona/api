@@ -1,0 +1,21 @@
+{
+  "defaultTransfer": {
+    "providerId": "transfer_mock_001",
+    "status": "complete",
+    "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+  },
+  "statuses": ["pending", "processing", "complete", "failed"],
+  "internalTransferFee": 0,
+  "externalTransferFee": 0.5,
+  "estimatedTimes": {
+    "internal": "instant",
+    "external_MATIC": "2-5 minutes",
+    "external_ETH": "5-15 minutes",
+    "external_SOL": "< 1 minute"
+  },
+  "mockTransactionHashes": {
+    "MATIC": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+    "ETH": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "SOL": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d7Aw6gZnJTn8LcK4WJT8H"
+  }
+}

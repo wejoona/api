@@ -1,0 +1,32 @@
+{
+  "XOF_USDC": {
+    "rate": 0.00166,
+    "inverseRate": 602.41,
+    "description": "1 XOF = 0.00166 USDC",
+    "fee": 1.5,
+    "feeType": "percentage",
+    "expiresInMinutes": 5
+  },
+  "USDC_XOF": {
+    "rate": 602.41,
+    "inverseRate": 0.00166,
+    "description": "1 USDC = 602.41 XOF",
+    "fee": 1.5,
+    "feeType": "percentage",
+    "expiresInMinutes": 5
+  },
+  "XOF_USD": {
+    "rate": 0.00166,
+    "inverseRate": 602.41,
+    "description": "1 XOF = 0.00166 USD",
+    "fee": 1.5,
+    "feeType": "percentage",
+    "expiresInMinutes": 5
+  },
+  "currencyPairs": [
+    "XOF_USDC",
+    "USDC_XOF",
+    "XOF_USD",
+    "USD_XOF"
+  ]
+}

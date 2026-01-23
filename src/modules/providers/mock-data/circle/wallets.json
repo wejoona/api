@@ -1,0 +1,19 @@
+{
+  "defaultWallet": {
+    "providerId": "wallet_mock_001",
+    "blockchain": "MATIC",
+    "address": "0x1234567890abcdef1234567890abcdef12345678",
+    "balance": "100.00",
+    "currency": "USDC",
+    "status": "active"
+  },
+  "blockchains": ["MATIC", "ETH", "SOL", "AVAX"],
+  "defaultBlockchain": "MATIC",
+  "depositAddressPrefix": "0x",
+  "mockBalances": {
+    "new_user": "0.00",
+    "basic_user": "100.00",
+    "active_user": "1000.00",
+    "whale_user": "50000.00"
+  }
+}
