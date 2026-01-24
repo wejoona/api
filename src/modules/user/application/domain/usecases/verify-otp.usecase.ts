@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
@@ -18,19 +19,27 @@ export interface VerifyOtpInput {
 export interface VerifyOtpOutput {
   user: User;
   accessToken: string;
+  refreshToken: string;
   walletCreated: boolean;
 }
 
 @Injectable()
 export class VerifyOtpUsecase {
   private readonly logger = new Logger(VerifyOtpUsecase.name);
+  private readonly refreshSecret: string;
 
   constructor(
     private readonly userRepository: UserRepository,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
     private readonly createWalletUseCase: CreateWalletUseCase,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.refreshSecret = this.configService.get<string>(
+      'JWT_REFRESH_SECRET',
+      this.configService.get<string>('JWT_SECRET', 'default-secret') + '-refresh',
+    );
+  }
 
   async execute(input: VerifyOtpInput): Promise<VerifyOtpOutput> {
     // Verify OTP
@@ -76,9 +85,22 @@ export class VerifyOtpUsecase {
       phone: updatedUser.phone,
     });
 
+    // Generate refresh token
+    const refreshToken = this.jwtService.sign(
+      {
+        sub: updatedUser.id,
+        type: 'refresh',
+      },
+      {
+        secret: this.refreshSecret,
+        expiresIn: '30d',
+      },
+    );
+
     return {
       user: updatedUser,
       accessToken,
+      refreshToken,
       walletCreated,
     };
   }

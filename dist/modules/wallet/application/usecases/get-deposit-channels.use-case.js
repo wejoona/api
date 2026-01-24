@@ -1,0 +1,39 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GetDepositChannelsUseCase = void 0;
+const common_1 = require("@nestjs/common");
+const wallet_repository_1 = require("../../infrastructure/repositories/wallet.repository");
+const gateways_1 = require("../../../shared/domain/gateways");
+let GetDepositChannelsUseCase = class GetDepositChannelsUseCase {
+    constructor(walletRepository, paymentGateway) {
+        this.walletRepository = walletRepository;
+        this.paymentGateway = paymentGateway;
+    }
+    async execute(input) {
+        const wallet = await this.walletRepository.findByUserId(input.userId);
+        if (!wallet) {
+            throw new common_1.NotFoundException('Wallet not found');
+        }
+        const channels = await this.paymentGateway.getOnRampChannels('CI', input.currency);
+        return { channels };
+    }
+};
+exports.GetDepositChannelsUseCase = GetDepositChannelsUseCase;
+exports.GetDepositChannelsUseCase = GetDepositChannelsUseCase = __decorate([
+    (0, common_1.Injectable)(),
+    __param(1, (0, common_1.Inject)(gateways_1.PAYMENT_GATEWAY)),
+    __metadata("design:paramtypes", [wallet_repository_1.WalletRepository, Object])
+], GetDepositChannelsUseCase);
+//# sourceMappingURL=get-deposit-channels.use-case.js.map

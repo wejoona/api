@@ -57,7 +57,9 @@ export interface IPushGateway {
   /**
    * Send push notification to multiple devices
    */
-  sendMulticast(request: SendMulticastPushRequest): Promise<MulticastPushResponse>;
+  sendMulticast(
+    request: SendMulticastPushRequest,
+  ): Promise<MulticastPushResponse>;
 
   /**
    * Subscribe device to a topic (for topic-based notifications)
@@ -72,7 +74,12 @@ export interface IPushGateway {
   /**
    * Send notification to all devices subscribed to a topic
    */
-  sendToTopic(topic: string, title: string, body: string, data?: Record<string, string>): Promise<{ messageId: string }>;
+  sendToTopic(
+    topic: string,
+    title: string,
+    body: string,
+    data?: Record<string, string>,
+  ): Promise<{ messageId: string }>;
 }
 
 // Injection token for the Push gateway

@@ -5,6 +5,9 @@ export class AuthResponse {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
   accessToken: string;
 
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  refreshToken: string;
+
   @ApiProperty({ type: UserResponse })
   user: UserResponse;
 
@@ -13,6 +16,14 @@ export class AuthResponse {
     description: 'Whether a wallet was auto-created on first verification',
   })
   walletCreated?: boolean;
+}
+
+export class RefreshResponse {
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  accessToken: string;
+
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  refreshToken: string;
 }
 
 export class OtpSentResponse {

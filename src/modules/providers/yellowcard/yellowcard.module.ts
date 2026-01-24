@@ -44,10 +44,6 @@ import {
       inject: [YellowCardProviderFactory],
     },
   ],
-  exports: [
-    ONRAMP_PROVIDER_CI,
-    OFFRAMP_PROVIDER_CI,
-    YellowCardProviderFactory,
-  ],
+  exports: [ONRAMP_PROVIDER_CI, OFFRAMP_PROVIDER_CI, YellowCardProviderFactory],
 })
 export class YellowCardModule {}

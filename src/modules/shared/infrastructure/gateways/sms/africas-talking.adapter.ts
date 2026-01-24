@@ -83,9 +83,7 @@ export class AfricasTalkingSmsAdapter implements ISmsGateway {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Africa's Talking API error: ${response.statusText}`,
-        );
+        throw new Error(`Africa's Talking API error: ${response.statusText}`);
       }
 
       const result = (await response.json()) as ATSmsResponse;
@@ -142,15 +140,17 @@ export class AfricasTalkingSmsAdapter implements ISmsGateway {
   private mapATStatus(
     atStatus: string,
   ): 'queued' | 'sent' | 'delivered' | 'failed' {
-    const statusMap: Record<string, 'queued' | 'sent' | 'delivered' | 'failed'> =
-      {
-        Success: 'sent',
-        Sent: 'sent',
-        Queued: 'queued',
-        Buffered: 'queued',
-        Rejected: 'failed',
-        Failed: 'failed',
-      };
+    const statusMap: Record<
+      string,
+      'queued' | 'sent' | 'delivered' | 'failed'
+    > = {
+      Success: 'sent',
+      Sent: 'sent',
+      Queued: 'queued',
+      Buffered: 'queued',
+      Rejected: 'failed',
+      Failed: 'failed',
+    };
     return statusMap[atStatus] || 'queued';
   }
 }

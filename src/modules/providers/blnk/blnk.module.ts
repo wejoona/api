@@ -7,6 +7,7 @@ import {
   BlnkReconciliationAdapter,
   BlnkIdentityAdapter,
 } from './adapters';
+import { WebhookLedgerListener } from './listeners';
 import {
   LEDGER_PROVIDER,
   BALANCE_MONITOR_PROVIDER,
@@ -44,6 +45,9 @@ import {
     BlnkSearchAdapter,
     BlnkReconciliationAdapter,
     BlnkIdentityAdapter,
+
+    // Event Listeners
+    WebhookLedgerListener,
 
     // Bind to interfaces
     {

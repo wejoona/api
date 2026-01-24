@@ -1,0 +1,34 @@
+import { OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { ILedgerProvider, UserBalanceInfo, RecordDepositParams, RecordWithdrawalParams, RecordP2PTransferParams, RecordExternalTransferParams, TransactionHistoryOptions, LedgerTransactionResult } from '@modules/providers/interfaces';
+import { BlnkSearchAdapter } from './blnk-search.adapter';
+export declare class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
+    private readonly configService;
+    private readonly searchAdapter;
+    private readonly logger;
+    private client;
+    private generalLedgerId;
+    private customerWalletsLedgerId;
+    private readonly USDC_PRECISION;
+    constructor(configService: ConfigService, searchAdapter: BlnkSearchAdapter);
+    onModuleInit(): Promise<void>;
+    initialize(): Promise<void>;
+    private getOrCreateLedger;
+    createUserBalance(userId: string, currency: string): Promise<string>;
+    getUserBalance(userId: string, currency: string): Promise<UserBalanceInfo | null>;
+    getAvailableBalance(userId: string, currency: string): Promise<bigint>;
+    recordDeposit(params: RecordDepositParams): Promise<LedgerTransactionResult>;
+    recordWithdrawal(params: RecordWithdrawalParams): Promise<LedgerTransactionResult>;
+    recordP2PTransfer(params: RecordP2PTransferParams): Promise<LedgerTransactionResult>;
+    recordExternalTransfer(params: RecordExternalTransferParams): Promise<LedgerTransactionResult>;
+    commitTransaction(transactionId: string): Promise<void>;
+    voidTransaction(transactionId: string): Promise<void>;
+    getTransactionByReference(reference: string): Promise<LedgerTransactionResult | null>;
+    getUserTransactionHistory(userId: string, options?: TransactionHistoryOptions): Promise<LedgerTransactionResult[]>;
+    private getUserBalanceId;
+    private recordFeeTransaction;
+    private toBigInt;
+    private toFloat;
+    private mapTransactionResult;
+    private mapStatus;
+}

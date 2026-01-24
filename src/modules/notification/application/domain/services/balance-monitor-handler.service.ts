@@ -60,7 +60,9 @@ export class BalanceMonitorHandlerService {
    * Handle low balance warning
    */
   @OnEvent('balance.monitor.low_balance')
-  async handleLowBalanceWarning(event: BalanceMonitorTriggeredEvent): Promise<void> {
+  async handleLowBalanceWarning(
+    event: BalanceMonitorTriggeredEvent,
+  ): Promise<void> {
     this.logger.warn(`Low balance alert for user: ${event.userId}`);
 
     try {
@@ -99,7 +101,9 @@ export class BalanceMonitorHandlerService {
    * Handle high debit alert (fraud detection)
    */
   @OnEvent('balance.monitor.high_debit')
-  async handleHighDebitAlert(event: BalanceMonitorTriggeredEvent): Promise<void> {
+  async handleHighDebitAlert(
+    event: BalanceMonitorTriggeredEvent,
+  ): Promise<void> {
     this.logger.error(`HIGH DEBIT ALERT for user: ${event.userId}`);
 
     try {
@@ -184,9 +188,7 @@ export class BalanceMonitorHandlerService {
         priority: 'normal',
       });
 
-      this.logger.log(
-        `AML limit notifications sent for user: ${event.userId}`,
-      );
+      this.logger.log(`AML limit notifications sent for user: ${event.userId}`);
     } catch (error) {
       this.logger.error(
         `Failed to send AML limit notifications: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -198,7 +200,9 @@ export class BalanceMonitorHandlerService {
    * Handle low float alert (operations)
    */
   @OnEvent('balance.monitor.low_float')
-  async handleLowFloatAlert(event: BalanceMonitorTriggeredEvent): Promise<void> {
+  async handleLowFloatAlert(
+    event: BalanceMonitorTriggeredEvent,
+  ): Promise<void> {
     this.logger.warn(`LOW FLOAT ALERT - Operations action required`);
 
     try {

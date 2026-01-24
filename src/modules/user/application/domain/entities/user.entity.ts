@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export type KycStatus = 'pending' | 'submitted' | 'approved' | 'rejected';
+export type UserRole = 'user' | 'admin' | 'super_admin';
+export type UserStatus = 'active' | 'suspended' | 'deactivated';
 
 export interface IUser {
   id: string;
@@ -15,6 +17,16 @@ export interface IUser {
   // Circle integration
   circleUserId: string | null;
   circleUserToken: string | null;
+  // Admin fields
+  role: UserRole;
+  status: UserStatus;
+  suspendedAt: Date | null;
+  suspendedReason: string | null;
+  // PIN fields
+  pinHash: string | null;
+  pinSetAt: Date | null;
+  pinAttempts: number;
+  pinLockedUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +55,16 @@ export class User implements IUser {
   // Circle integration
   circleUserId: string | null;
   circleUserToken: string | null;
+  // Admin fields
+  role: UserRole;
+  status: UserStatus;
+  suspendedAt: Date | null;
+  suspendedReason: string | null;
+  // PIN fields
+  pinHash: string | null;
+  pinSetAt: Date | null;
+  pinAttempts: number;
+  pinLockedUntil: Date | null;
   readonly createdAt: Date;
   updatedAt: Date;
 
@@ -58,6 +80,14 @@ export class User implements IUser {
     this.kycProviderId = props.kycProviderId;
     this.circleUserId = props.circleUserId;
     this.circleUserToken = props.circleUserToken;
+    this.role = props.role;
+    this.status = props.status;
+    this.suspendedAt = props.suspendedAt;
+    this.suspendedReason = props.suspendedReason;
+    this.pinHash = props.pinHash;
+    this.pinSetAt = props.pinSetAt;
+    this.pinAttempts = props.pinAttempts;
+    this.pinLockedUntil = props.pinLockedUntil;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
@@ -76,6 +106,14 @@ export class User implements IUser {
       kycProviderId: null,
       circleUserId: null,
       circleUserToken: null,
+      role: 'user',
+      status: 'active',
+      suspendedAt: null,
+      suspendedReason: null,
+      pinHash: null,
+      pinSetAt: null,
+      pinAttempts: 0,
+      pinLockedUntil: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -154,6 +192,122 @@ export class User implements IUser {
   }
 
   get canWithdraw(): boolean {
-    return this.phoneVerified && this.isKycApproved;
+    return this.phoneVerified && this.isKycApproved && this.isActive;
+  }
+
+  get isActive(): boolean {
+    return this.status === 'active';
+  }
+
+  get isSuspended(): boolean {
+    return this.status === 'suspended';
+  }
+
+  get isAdmin(): boolean {
+    return this.role === 'admin' || this.role === 'super_admin';
+  }
+
+  get isSuperAdmin(): boolean {
+    return this.role === 'super_admin';
+  }
+
+  /**
+   * Suspend the user account
+   */
+  suspend(reason: string): void {
+    this.status = 'suspended';
+    this.suspendedAt = new Date();
+    this.suspendedReason = reason;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Unsuspend (reactivate) the user account
+   */
+  unsuspend(): void {
+    this.status = 'active';
+    this.suspendedAt = null;
+    this.suspendedReason = null;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Deactivate the user account (permanent)
+   */
+  deactivate(): void {
+    this.status = 'deactivated';
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Change user role (admin operation)
+   */
+  setRole(role: UserRole): void {
+    this.role = role;
+    this.updatedAt = new Date();
+  }
+
+  // ============================================
+  // PIN METHODS
+  // ============================================
+
+  /**
+   * Set the user's PIN (hashed)
+   */
+  setPin(pinHash: string): void {
+    this.pinHash = pinHash;
+    this.pinSetAt = new Date();
+    this.pinAttempts = 0;
+    this.pinLockedUntil = null;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Check if PIN is set
+   */
+  get hasPin(): boolean {
+    return this.pinHash !== null;
+  }
+
+  /**
+   * Check if PIN is locked due to too many failed attempts
+   */
+  get isPinLocked(): boolean {
+    if (!this.pinLockedUntil) return false;
+    return new Date() < this.pinLockedUntil;
+  }
+
+  /**
+   * Record a failed PIN attempt
+   * Locks the account after 5 failed attempts for 30 minutes
+   */
+  recordFailedPinAttempt(): void {
+    this.pinAttempts += 1;
+    if (this.pinAttempts >= 5) {
+      const lockUntil = new Date();
+      lockUntil.setMinutes(lockUntil.getMinutes() + 30);
+      this.pinLockedUntil = lockUntil;
+    }
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Reset PIN attempts after successful verification
+   */
+  resetPinAttempts(): void {
+    this.pinAttempts = 0;
+    this.pinLockedUntil = null;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Clear the PIN (for reset flow)
+   */
+  clearPin(): void {
+    this.pinHash = null;
+    this.pinSetAt = null;
+    this.pinAttempts = 0;
+    this.pinLockedUntil = null;
+    this.updatedAt = new Date();
   }
 }

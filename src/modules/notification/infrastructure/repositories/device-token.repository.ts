@@ -12,7 +12,9 @@ export interface IDeviceTokenRepository {
   findByUserId(userId: string): Promise<DeviceTokenOrmEntity[]>;
   findActiveByUserId(userId: string): Promise<DeviceTokenOrmEntity[]>;
   findByToken(token: string): Promise<DeviceTokenOrmEntity | null>;
-  save(deviceToken: Partial<DeviceTokenOrmEntity>): Promise<DeviceTokenOrmEntity>;
+  save(
+    deviceToken: Partial<DeviceTokenOrmEntity>,
+  ): Promise<DeviceTokenOrmEntity>;
   deactivateToken(token: string): Promise<void>;
   updateLastUsed(token: string): Promise<void>;
 }

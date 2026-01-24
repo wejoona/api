@@ -72,7 +72,9 @@ export class FcmPushAdapter implements IPushGateway {
     this.baseUrl = `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`;
 
     if (!this.projectId || !this.clientEmail || !this.privateKey) {
-      this.logger.warn('FCM credentials not configured. Push notifications will fail.');
+      this.logger.warn(
+        'FCM credentials not configured. Push notifications will fail.',
+      );
     } else {
       this.logger.log('FCM Push adapter initialized');
     }
@@ -134,8 +136,11 @@ export class FcmPushAdapter implements IPushGateway {
         createdAt: new Date(),
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to send FCM push notification: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send FCM push notification: ${errorMessage}`,
+      );
 
       return {
         id: `error_${Date.now()}`,
@@ -148,7 +153,9 @@ export class FcmPushAdapter implements IPushGateway {
     }
   }
 
-  async sendMulticast(request: SendMulticastPushRequest): Promise<MulticastPushResponse> {
+  async sendMulticast(
+    request: SendMulticastPushRequest,
+  ): Promise<MulticastPushResponse> {
     // FCM HTTP v1 API doesn't support multicast directly
     // We need to send individual requests
     const responses: PushResponse[] = [];
@@ -195,13 +202,17 @@ export class FcmPushAdapter implements IPushGateway {
       this.logger.log(`Device subscribed to topic: ${topic}`);
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to subscribe to topic: ${errorMessage}`);
       return false;
     }
   }
 
-  async unsubscribeFromTopic(deviceToken: string, topic: string): Promise<boolean> {
+  async unsubscribeFromTopic(
+    deviceToken: string,
+    topic: string,
+  ): Promise<boolean> {
     try {
       const token = await this.getAccessToken();
 
@@ -216,13 +227,16 @@ export class FcmPushAdapter implements IPushGateway {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to unsubscribe from topic: ${response.statusText}`);
+        throw new Error(
+          `Failed to unsubscribe from topic: ${response.statusText}`,
+        );
       }
 
       this.logger.log(`Device unsubscribed from topic: ${topic}`);
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to unsubscribe from topic: ${errorMessage}`);
       return false;
     }
@@ -267,8 +281,11 @@ export class FcmPushAdapter implements IPushGateway {
       this.logger.log(`Topic notification sent: ${result.name}`);
       return { messageId: result.name };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to send FCM topic notification: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to send FCM topic notification: ${errorMessage}`,
+      );
       throw error;
     }
   }
@@ -321,7 +338,10 @@ export class FcmPushAdapter implements IPushGateway {
       throw new Error(`Failed to get FCM access token: ${response.statusText}`);
     }
 
-    const data = (await response.json()) as { access_token: string; expires_in: number };
+    const data = (await response.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
     this.accessToken = data.access_token;
     this.tokenExpiry = new Date(Date.now() + data.expires_in * 1000 - 60000); // 1 min buffer
 
@@ -338,8 +358,12 @@ export class FcmPushAdapter implements IPushGateway {
   ): Promise<string> {
     const crypto = await import('crypto');
 
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const encodedClaims = Buffer.from(JSON.stringify(claims)).toString('base64url');
+    const encodedHeader = Buffer.from(JSON.stringify(header)).toString(
+      'base64url',
+    );
+    const encodedClaims = Buffer.from(JSON.stringify(claims)).toString(
+      'base64url',
+    );
     const signatureInput = `${encodedHeader}.${encodedClaims}`;
 
     const sign = crypto.createSign('RSA-SHA256');

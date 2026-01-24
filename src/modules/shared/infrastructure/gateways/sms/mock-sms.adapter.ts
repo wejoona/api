@@ -82,7 +82,8 @@ ${request.message.length > 48 ? `║           ${request.message.substring(48, 9
   }
 
   async sendOtp(phone: string, otp: string): Promise<SmsResponse> {
-    const template = this.mockData.templates.otp || this.mockData.templates.otp_fr;
+    const template =
+      this.mockData.templates.otp || this.mockData.templates.otp_fr;
     const message = template
       ? template.replace('{otp}', otp)
       : `Your verification code is: ${otp}. Valid for 5 minutes.`;

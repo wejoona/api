@@ -1,4 +1,9 @@
-import { User, KycStatus } from '../../application/domain/entities';
+import {
+  User,
+  KycStatus,
+  UserRole,
+  UserStatus,
+} from '../../application/domain/entities';
 import { UserOrmEntity } from '../orm-entities';
 
 export class UserMapper {
@@ -15,6 +20,14 @@ export class UserMapper {
       kycProviderId: orm.kycProviderId,
       circleUserId: orm.circleUserId,
       circleUserToken: orm.circleUserToken,
+      role: (orm.role as UserRole) || 'user',
+      status: (orm.status as UserStatus) || 'active',
+      suspendedAt: orm.suspendedAt,
+      suspendedReason: orm.suspendedReason,
+      pinHash: orm.pinHash,
+      pinSetAt: orm.pinSetAt,
+      pinAttempts: orm.pinAttempts ?? 0,
+      pinLockedUntil: orm.pinLockedUntil,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -33,6 +46,14 @@ export class UserMapper {
     orm.kycProviderId = domain.kycProviderId;
     orm.circleUserId = domain.circleUserId;
     orm.circleUserToken = domain.circleUserToken;
+    orm.role = domain.role;
+    orm.status = domain.status;
+    orm.suspendedAt = domain.suspendedAt;
+    orm.suspendedReason = domain.suspendedReason;
+    orm.pinHash = domain.pinHash;
+    orm.pinSetAt = domain.pinSetAt;
+    orm.pinAttempts = domain.pinAttempts;
+    orm.pinLockedUntil = domain.pinLockedUntil;
     orm.createdAt = domain.createdAt;
     orm.updatedAt = domain.updatedAt;
     return orm;

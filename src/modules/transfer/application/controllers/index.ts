@@ -1,3 +1,6 @@
 import { Type } from '@nestjs/common';
+import { TransferController } from './transfer.controller';
 
-export const Controllers: Type[] = [];
+export * from './transfer.controller';
+
+export const Controllers: Type[] = [TransferController];

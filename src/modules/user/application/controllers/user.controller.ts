@@ -21,13 +21,15 @@ import {
   VerifyOtpDto,
   LoginUserDto,
   UpdateProfileDto,
+  RefreshTokenDto,
 } from '../dto/requests';
-import { UserResponse, AuthResponse, OtpSentResponse } from '../dto/responses';
+import { UserResponse, AuthResponse, OtpSentResponse, RefreshResponse } from '../dto/responses';
 import {
   RegisterUserUsecase,
   VerifyOtpUsecase,
   LoginUserUsecase,
   UpdateProfileUsecase,
+  RefreshTokenUsecase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -37,6 +39,7 @@ export class AuthController {
     private readonly registerUserUsecase: RegisterUserUsecase,
     private readonly verifyOtpUsecase: VerifyOtpUsecase,
     private readonly loginUserUsecase: LoginUserUsecase,
+    private readonly refreshTokenUsecase: RefreshTokenUsecase,
   ) {}
 
   @Post('register')
@@ -68,8 +71,25 @@ export class AuthController {
 
     return {
       accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
       user: UserResponse.fromDomain(result.user),
       walletCreated: result.walletCreated,
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, type: RefreshResponse })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  async refreshToken(@Body() dto: RefreshTokenDto): Promise<RefreshResponse> {
+    const result = await this.refreshTokenUsecase.execute({
+      refreshToken: dto.refreshToken,
+    });
+
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     };
   }
 

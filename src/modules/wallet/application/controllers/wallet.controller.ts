@@ -23,6 +23,8 @@ import {
   ExternalTransferDto,
   GetRateDto,
   SubmitKycDto,
+  VerifyPinDto,
+  SetPinDto,
 } from '../dto/requests';
 import {
   GetBalanceUseCase,
@@ -33,6 +35,8 @@ import {
   GetRateUseCase,
   SubmitKycUseCase,
   GetKycStatusUseCase,
+  VerifyPinUseCase,
+  SetPinUseCase,
 } from '../usecases';
 
 @ApiTags('Wallet')
@@ -49,6 +53,8 @@ export class WalletController {
     private readonly getRateUseCase: GetRateUseCase,
     private readonly submitKycUseCase: SubmitKycUseCase,
     private readonly getKycStatusUseCase: GetKycStatusUseCase,
+    private readonly verifyPinUseCase: VerifyPinUseCase,
+    private readonly setPinUseCase: SetPinUseCase,
   ) {}
 
   // ============================================
@@ -307,6 +313,81 @@ export class WalletController {
       idNumber: dto.idNumber,
       idExpiryDate: dto.idExpiryDate,
       address: dto.address,
+    });
+  }
+
+  // ============================================
+  // PIN MANAGEMENT
+  // ============================================
+
+  @Post('pin/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify PIN for transaction authorization' })
+  @ApiResponse({
+    status: 200,
+    description: 'PIN verified successfully',
+    schema: {
+      example: {
+        valid: true,
+        message: 'PIN verified successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid PIN or PIN not set',
+    schema: {
+      example: {
+        message: 'Invalid PIN',
+        remainingAttempts: 3,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'PIN locked due to too many failed attempts',
+    schema: {
+      example: {
+        message: 'PIN is locked due to too many failed attempts',
+        lockedUntil: '2026-01-18T13:00:00.000Z',
+      },
+    },
+  })
+  async verifyPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: VerifyPinDto,
+  ) {
+    return this.verifyPinUseCase.execute({
+      userId: req.user.id,
+      pin: dto.pin,
+    });
+  }
+
+  @Post('pin/set')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set or update transaction PIN' })
+  @ApiResponse({
+    status: 200,
+    description: 'PIN set successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'PIN set successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid PIN or PINs do not match',
+  })
+  async setPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: SetPinDto,
+  ) {
+    return this.setPinUseCase.execute({
+      userId: req.user.id,
+      pin: dto.pin,
+      confirmPin: dto.confirmPin,
     });
   }
 }

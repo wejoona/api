@@ -59,6 +59,11 @@ import { UserModule } from '../user/user.module';
     GetKycStatusUseCase,
   ],
   controllers: [WalletController],
-  exports: [WalletRepository, CreateWalletUseCase],
+  exports: [
+    WalletRepository,
+    CreateWalletUseCase,
+    InternalTransferUseCase,
+    ExternalTransferUseCase,
+  ],
 })
 export class WalletModule {}

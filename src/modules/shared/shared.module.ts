@@ -48,6 +48,12 @@ import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
       inject: [PushFactory],
     },
   ],
-  exports: [PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY, SmsFactory, PushFactory],
+  exports: [
+    PAYMENT_GATEWAY,
+    SMS_GATEWAY,
+    PUSH_GATEWAY,
+    SmsFactory,
+    PushFactory,
+  ],
 })
 export class SharedModule {}

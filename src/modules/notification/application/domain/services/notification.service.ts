@@ -133,7 +133,9 @@ export class NotificationService {
           (response.failureReason?.includes('invalid') ||
             response.failureReason?.includes('unregistered'))
         ) {
-          await this.deviceTokenRepository.deactivateToken(response.deviceToken);
+          await this.deviceTokenRepository.deactivateToken(
+            response.deviceToken,
+          );
         }
       }
     }

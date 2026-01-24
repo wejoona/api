@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BlnkInit } from '@blnkfinance/blnk-typescript';
 import type { Blnk } from '@blnkfinance/blnk-typescript/dist/src/blnk/endpoints/baseBlnkClient';
@@ -17,6 +17,7 @@ import {
   JOONAPAY_INTERNAL_BALANCES,
   BlnkTransactionStatus,
 } from '../blnk.types';
+import { BlnkSearchAdapter } from './blnk-search.adapter';
 
 // Blnk API Response wrapper
 interface ApiResponse<T> {
@@ -88,7 +89,11 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
   // USDC precision: 6 decimal places (1 USDC = 1,000,000 micro-USDC)
   private readonly USDC_PRECISION = 1000000;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(forwardRef(() => BlnkSearchAdapter))
+    private readonly searchAdapter: BlnkSearchAdapter,
+  ) {
     const blnkUrl = this.configService.get<string>(
       'blnk.url',
       'http://localhost:5001',
@@ -492,32 +497,85 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     });
   }
 
-  getTransactionByReference(
+  async getTransactionByReference(
     reference: string,
   ): Promise<LedgerTransactionResult | null> {
-    // Blnk doesn't have a direct getByRef - would need to use Search API
-    // For now, return null and implement with search later
-    this.logger.warn(
-      `getTransactionByReference not fully implemented for: ${reference}`,
-    );
-    return Promise.resolve(null);
+    this.logger.debug(`Looking up transaction by reference: ${reference}`);
+
+    try {
+      const result = await this.searchAdapter.searchTransactions({
+        query: reference,
+        filterBy: `reference:=${reference}`,
+        perPage: 1,
+      });
+
+      if (result.found > 0 && result.hits.length > 0) {
+        this.logger.debug(`Found transaction for reference: ${reference}`);
+        return result.hits[0];
+      }
+
+      this.logger.debug(`No transaction found for reference: ${reference}`);
+      return null;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to search for transaction by reference ${reference}: ${errorMessage}`,
+      );
+      return null;
+    }
   }
 
   // ==========================================
   // History & Reporting
   // ==========================================
 
-  getUserTransactionHistory(
+  async getUserTransactionHistory(
     userId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: TransactionHistoryOptions,
   ): Promise<LedgerTransactionResult[]> {
-    // This would require Blnk's search API
-    this.logger.warn(
-      `getUserTransactionHistory not fully implemented for user: ${userId}`,
-    );
-    const emptyResult: LedgerTransactionResult[] = [];
-    return Promise.resolve(emptyResult);
+    this.logger.debug(`Fetching transaction history for user: ${userId}`);
+
+    try {
+      const balanceId = this.getUserBalanceId(userId, 'USD');
+
+      // Build filter for transactions involving this user's balance
+      let filterBy = `source:=${balanceId} || destination:=${balanceId}`;
+
+      if (options?.type) {
+        filterBy += ` && meta_data.type:=${options.type}`;
+      }
+
+      if (options?.startDate) {
+        filterBy += ` && created_at:>=${options.startDate.getTime()}`;
+      }
+
+      if (options?.endDate) {
+        filterBy += ` && created_at:<=${options.endDate.getTime()}`;
+      }
+
+      // Convert offset to page number (page = offset / limit + 1)
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const page = Math.floor(offset / limit) + 1;
+
+      const result = await this.searchAdapter.searchTransactions({
+        query: '*',
+        filterBy,
+        sortBy: 'created_at:desc',
+        page,
+        perPage: limit,
+      });
+
+      return result.hits;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to fetch transaction history for user ${userId}: ${errorMessage}`,
+      );
+      return [];
+    }
   }
 
   // ==========================================

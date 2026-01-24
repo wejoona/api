@@ -1,3 +1,7 @@
 import { Type } from '@nestjs/common';
 
-export const Controllers: Type[] = [];
+export * from './notification.controller';
+
+import { NotificationController } from './notification.controller';
+
+export const Controllers: Type[] = [NotificationController];

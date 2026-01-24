@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IIdentityProvider, IWalletProvider, ITransferProvider } from '../interfaces';
+import {
+  IIdentityProvider,
+  IWalletProvider,
+  ITransferProvider,
+} from '../interfaces';
 import { CircleIdentityAdapter } from './adapters/circle-identity.adapter';
 import { CircleWalletAdapter } from './adapters/circle-wallet.adapter';
 import { CircleTransferAdapter } from './adapters/circle-transfer.adapter';

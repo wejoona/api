@@ -116,7 +116,9 @@ export class MockCircleTransferAdapter implements ITransferProvider {
       currency: 'USDC',
       fee: '0',
       fromWalletId: 'mock_wallet',
-      txHash: this.mockData.mockTransactionHashes['MATIC'] || this.generateMockTxHash(),
+      txHash:
+        this.mockData.mockTransactionHashes['MATIC'] ||
+        this.generateMockTxHash(),
       createdAt: new Date(),
       completedAt: new Date(),
     };

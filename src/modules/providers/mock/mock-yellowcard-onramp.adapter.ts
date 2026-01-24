@@ -48,7 +48,16 @@ export class MockYellowCardOnRampAdapter implements IOnRampProvider {
   private readonly ratesMockData: YellowCardRatesMockData;
 
   readonly providerName = 'yellowcard_mock';
-  readonly supportedCountries = ['CI', 'SN', 'ML', 'BF', 'BJ', 'TG', 'NE', 'GW'];
+  readonly supportedCountries = [
+    'CI',
+    'SN',
+    'ML',
+    'BF',
+    'BJ',
+    'TG',
+    'NE',
+    'GW',
+  ];
 
   constructor() {
     this.channelsMockData = this.loadChannelsMockData();

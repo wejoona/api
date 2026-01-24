@@ -1,0 +1,33 @@
+import { ConfigService } from '@nestjs/config';
+import { CreateSubwalletRequest, SubwalletResponse, InitiateDepositRequest, DepositResponse, InternalTransferRequest, ExternalTransferRequest, TransferResponse, BalanceResponse, OnRampChannel, RateRequest, RateResponse } from './yellow-card.types';
+export declare class YellowCardService {
+    private readonly configService;
+    private readonly logger;
+    private readonly config;
+    constructor(configService: ConfigService);
+    createSubwallet(request: CreateSubwalletRequest): Promise<SubwalletResponse>;
+    getBalance(subwalletId: string): Promise<BalanceResponse>;
+    getOnRampChannels(country: string): Promise<OnRampChannel[]>;
+    initiateDeposit(request: InitiateDepositRequest): Promise<DepositResponse>;
+    internalTransfer(request: InternalTransferRequest): Promise<TransferResponse>;
+    externalTransfer(request: ExternalTransferRequest): Promise<TransferResponse>;
+    getRate(request: RateRequest): Promise<RateResponse>;
+    verifyWebhookSignature(payload: string, signature: string): boolean;
+    private mockCreateSubwallet;
+    private mockGetBalance;
+    private mockGetOnRampChannels;
+    private mockInitiateDeposit;
+    private mockInternalTransfer;
+    private mockExternalTransfer;
+    private mockGetRate;
+    private generateMockAddress;
+    private generateSignature;
+    private makeRequest;
+    private apiCreateSubwallet;
+    private apiGetBalance;
+    private apiGetOnRampChannels;
+    private apiInitiateDeposit;
+    private apiInternalTransfer;
+    private apiExternalTransfer;
+    private apiGetRate;
+}

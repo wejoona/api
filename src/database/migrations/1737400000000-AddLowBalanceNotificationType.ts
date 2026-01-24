@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *
  * Adds a new notification type for low balance alerts triggered by balance monitors.
  */
-export class AddLowBalanceNotificationType1737400000000
-  implements MigrationInterface
-{
+export class AddLowBalanceNotificationType1737400000000 implements MigrationInterface {
   name = 'AddLowBalanceNotificationType1737400000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

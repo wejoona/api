@@ -10,7 +10,10 @@ import {
 } from '../../../domain/gateways/push.gateway';
 
 interface PushMockData {
-  templates: Record<string, { title: string; body: string; data: Record<string, string> }>;
+  templates: Record<
+    string,
+    { title: string; body: string; data: Record<string, string> }
+  >;
   mockDeliveryStatus: string;
   priorities: Record<string, string[]>;
 }
@@ -76,7 +79,9 @@ ${request.data ? `║  Data: ${JSON.stringify(request.data).substring(0, 44).pad
     };
   }
 
-  async sendMulticast(request: SendMulticastPushRequest): Promise<MulticastPushResponse> {
+  async sendMulticast(
+    request: SendMulticastPushRequest,
+  ): Promise<MulticastPushResponse> {
     const responses: PushResponse[] = [];
 
     for (const token of request.deviceTokens) {
@@ -100,12 +105,19 @@ ${request.data ? `║  Data: ${JSON.stringify(request.data).substring(0, 44).pad
   }
 
   async subscribeToTopic(deviceToken: string, topic: string): Promise<boolean> {
-    this.logger.log(`[MOCK] Device ${deviceToken.substring(0, 20)}... subscribed to topic: ${topic}`);
+    this.logger.log(
+      `[MOCK] Device ${deviceToken.substring(0, 20)}... subscribed to topic: ${topic}`,
+    );
     return true;
   }
 
-  async unsubscribeFromTopic(deviceToken: string, topic: string): Promise<boolean> {
-    this.logger.log(`[MOCK] Device ${deviceToken.substring(0, 20)}... unsubscribed from topic: ${topic}`);
+  async unsubscribeFromTopic(
+    deviceToken: string,
+    topic: string,
+  ): Promise<boolean> {
+    this.logger.log(
+      `[MOCK] Device ${deviceToken.substring(0, 20)}... unsubscribed from topic: ${topic}`,
+    );
     return true;
   }
 

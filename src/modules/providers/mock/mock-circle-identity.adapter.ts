@@ -17,7 +17,10 @@ interface CircleUsersMockData {
     kycStatus: string;
     kycTier: string;
   };
-  kycLimits: Record<string, { dailyDeposit: number; dailyWithdrawal: number; monthlyVolume: number }>;
+  kycLimits: Record<
+    string,
+    { dailyDeposit: number; dailyWithdrawal: number; monthlyVolume: number }
+  >;
   kycTiers: string[];
   kycStatuses: string[];
 }
@@ -58,8 +61,16 @@ export class MockCircleIdentityAdapter implements IIdentityProvider {
         },
         kycLimits: {
           none: { dailyDeposit: 100, dailyWithdrawal: 50, monthlyVolume: 500 },
-          basic: { dailyDeposit: 1000, dailyWithdrawal: 500, monthlyVolume: 10000 },
-          standard: { dailyDeposit: 10000, dailyWithdrawal: 5000, monthlyVolume: 50000 },
+          basic: {
+            dailyDeposit: 1000,
+            dailyWithdrawal: 500,
+            monthlyVolume: 10000,
+          },
+          standard: {
+            dailyDeposit: 10000,
+            dailyWithdrawal: 5000,
+            monthlyVolume: 50000,
+          },
         },
         kycTiers: ['none', 'basic', 'standard', 'enhanced'],
         kycStatuses: ['none', 'pending', 'approved', 'rejected'],

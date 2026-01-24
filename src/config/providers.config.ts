@@ -123,10 +123,21 @@ function determinePushProvider(): PushProviderType {
  */
 export const PROVIDERS_CONFIG = Symbol('PROVIDERS_CONFIG');
 
+// Gateway/Adapter injection tokens
+export const SMS_GATEWAY = Symbol('SMS_GATEWAY');
+export const PUSH_GATEWAY = Symbol('PUSH_GATEWAY');
+export const IDENTITY_PROVIDER = Symbol('IDENTITY_PROVIDER');
+export const WALLET_PROVIDER = Symbol('WALLET_PROVIDER');
+export const TRANSFER_PROVIDER = Symbol('TRANSFER_PROVIDER');
+export const ONRAMP_PROVIDER = Symbol('ONRAMP_PROVIDER');
+export const OFFRAMP_PROVIDER = Symbol('OFFRAMP_PROVIDER');
+
 /**
  * Helper to check if we're in mock mode for a given provider
  */
-export function isMockMode(provider: 'sms' | 'push' | 'circle' | 'yellowCard'): boolean {
+export function isMockMode(
+  provider: 'sms' | 'push' | 'circle' | 'yellowCard',
+): boolean {
   const config = getProvidersConfig();
 
   switch (provider) {

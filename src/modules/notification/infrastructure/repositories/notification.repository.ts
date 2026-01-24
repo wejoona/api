@@ -16,7 +16,9 @@ export interface INotificationRepository {
   ): Promise<NotificationOrmEntity[]>;
   findUnreadByUserId(userId: string): Promise<NotificationOrmEntity[]>;
   findById(id: string): Promise<NotificationOrmEntity | null>;
-  save(notification: Partial<NotificationOrmEntity>): Promise<NotificationOrmEntity>;
+  save(
+    notification: Partial<NotificationOrmEntity>,
+  ): Promise<NotificationOrmEntity>;
   markAsRead(id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
   countUnread(userId: string): Promise<number>;

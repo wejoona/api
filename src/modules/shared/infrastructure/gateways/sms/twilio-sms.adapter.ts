@@ -112,15 +112,18 @@ export class TwilioSmsAdapter implements ISmsGateway {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/Messages/${messageId}.json`, {
-        headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(`${this.accountSid}:${this.authToken}`).toString(
-              'base64',
-            ),
+      const response = await fetch(
+        `${this.baseUrl}/Messages/${messageId}.json`,
+        {
+          headers: {
+            Authorization:
+              'Basic ' +
+              Buffer.from(`${this.accountSid}:${this.authToken}`).toString(
+                'base64',
+              ),
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to get message status: ${response.statusText}`);
@@ -153,15 +156,17 @@ export class TwilioSmsAdapter implements ISmsGateway {
   private mapTwilioStatus(
     twilioStatus: string,
   ): 'queued' | 'sent' | 'delivered' | 'failed' {
-    const statusMap: Record<string, 'queued' | 'sent' | 'delivered' | 'failed'> =
-      {
-        queued: 'queued',
-        sending: 'queued',
-        sent: 'sent',
-        delivered: 'delivered',
-        undelivered: 'failed',
-        failed: 'failed',
-      };
+    const statusMap: Record<
+      string,
+      'queued' | 'sent' | 'delivered' | 'failed'
+    > = {
+      queued: 'queued',
+      sending: 'queued',
+      sent: 'sent',
+      delivered: 'delivered',
+      undelivered: 'failed',
+      failed: 'failed',
+    };
     return statusMap[twilioStatus] || 'queued';
   }
 }

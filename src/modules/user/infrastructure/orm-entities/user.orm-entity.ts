@@ -61,6 +61,34 @@ export class UserOrmEntity {
   @Column({ name: 'circle_user_token', type: 'text', nullable: true })
   circleUserToken: string | null;
 
+  // Admin fields
+  @Column({ type: 'varchar', length: 20, default: 'user' })
+  @Index()
+  role: string;
+
+  @Column({ type: 'varchar', length: 20, default: 'active' })
+  @Index()
+  status: string;
+
+  @Column({ name: 'suspended_at', type: 'timestamp', nullable: true })
+  suspendedAt: Date | null;
+
+  @Column({ name: 'suspended_reason', type: 'text', nullable: true })
+  suspendedReason: string | null;
+
+  // PIN fields
+  @Column({ name: 'pin_hash', type: 'varchar', length: 255, nullable: true })
+  pinHash: string | null;
+
+  @Column({ name: 'pin_set_at', type: 'timestamp', nullable: true })
+  pinSetAt: Date | null;
+
+  @Column({ name: 'pin_attempts', type: 'integer', default: 0 })
+  pinAttempts: number;
+
+  @Column({ name: 'pin_locked_until', type: 'timestamp', nullable: true })
+  pinLockedUntil: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

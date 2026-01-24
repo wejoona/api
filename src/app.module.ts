@@ -18,6 +18,11 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { TransferModule } from './modules/transfer/transfer.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
+import { ReferralModule } from './modules/referral/referral.module';
+import { AdminModule } from './modules/admin';
+import { ReportsModule } from './modules/reports';
+import { JobsModule } from './modules/jobs';
+import { HealthModule } from './modules/health';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -83,6 +88,11 @@ import { BlnkModule } from './modules/providers/blnk';
     TransferModule,
     NotificationModule,
     WebhookModule,
+    ReferralModule,
+    AdminModule,
+    ReportsModule,
+    JobsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
