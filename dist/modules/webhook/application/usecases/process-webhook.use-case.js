@@ -18,6 +18,7 @@ const common_1 = require("@nestjs/common");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const config_1 = require("@nestjs/config");
 const crypto = require("crypto");
+const ioredis_1 = require("ioredis");
 const payment_gateway_1 = require("../../../shared/domain/gateways/payment.gateway");
 const transaction_repository_1 = require("../../../transaction/infrastructure/repositories/transaction.repository");
 const wallet_repository_1 = require("../../../wallet/infrastructure/repositories/wallet.repository");
@@ -31,23 +32,76 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         this.eventEmitter = eventEmitter;
         this.configService = configService;
         this.logger = new common_1.Logger(ProcessWebhookUseCase_1.name);
+        this.isRedisConnected = false;
         this.circleWebhookSecret = this.configService.get('circle.webhookSecret', '');
+        this.redis = new ioredis_1.default({
+            host: this.configService.get('redis.host'),
+            port: this.configService.get('redis.port'),
+            password: this.configService.get('redis.password'),
+            retryStrategy: (times) => {
+                const delay = Math.min(times * 50, 2000);
+                this.logger.warn(`Redis connection retry attempt ${times}, waiting ${delay}ms`);
+                return delay;
+            },
+            maxRetriesPerRequest: 3,
+        });
+        this.redis.on('connect', () => {
+            this.isRedisConnected = true;
+            this.logger.log('Redis connected successfully for webhook processing');
+        });
+        this.redis.on('error', (error) => {
+            this.isRedisConnected = false;
+            this.logger.error(`Redis connection error: ${error.message}`);
+        });
+        this.redis.on('close', () => {
+            this.isRedisConnected = false;
+            this.logger.warn('Redis connection closed');
+        });
+    }
+    async onModuleDestroy() {
+        if (this.redis) {
+            await this.redis.quit();
+            this.logger.log('Redis connection closed gracefully');
+        }
+    }
+    async checkIdempotency(webhookId) {
+        if (!this.isRedisConnected) {
+            this.logger.warn('Redis unavailable, skipping idempotency check');
+            return false;
+        }
+        const key = `webhook:processed:${webhookId}`;
+        const exists = await this.redis.exists(key);
+        return exists === 1;
+    }
+    async markAsProcessed(webhookId) {
+        if (!this.isRedisConnected) {
+            this.logger.warn('Redis unavailable, skipping idempotency mark');
+            return;
+        }
+        const key = `webhook:processed:${webhookId}`;
+        const ttl = 86400;
+        await this.redis.setex(key, ttl, new Date().toISOString());
     }
     verifyCircleSignature(rawBody, signature) {
         if (!this.circleWebhookSecret) {
-            this.logger.warn('Circle webhook secret not configured');
-            return false;
+            this.logger.error('Circle webhook secret not configured');
+            throw new Error('Circle webhook secret not configured');
         }
         try {
             const expectedSignature = crypto
                 .createHmac('sha256', this.circleWebhookSecret)
                 .update(rawBody)
                 .digest('hex');
-            return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+            const isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+            if (!isValid) {
+                throw new Error('Invalid Circle webhook signature');
+            }
+            return true;
         }
         catch (error) {
-            this.logger.error('Error verifying Circle webhook signature');
-            return false;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Circle webhook signature verification failed: ${errorMessage}`);
+            throw new Error('Invalid webhook signature');
         }
     }
     async execute(input) {
@@ -62,9 +116,12 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         }
     }
     async processYellowCardWebhook(input) {
-        const isValid = this.onRampProvider.verifyWebhookSignature(input.rawBody, input.signature);
-        if (!isValid) {
-            this.logger.warn('Invalid Yellow Card webhook signature');
+        try {
+            this.onRampProvider.verifyWebhookSignature(input.rawBody, input.signature);
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.warn(`Invalid Yellow Card webhook signature: ${errorMessage}`);
             return {
                 success: false,
                 eventType: 'unknown',
@@ -73,7 +130,19 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
             };
         }
         const event = this.onRampProvider.parseWebhookEvent(input.payload);
+        const webhookId = `yellowcard:${event.depositId}:${event.type}`;
         this.logger.log(`Yellow Card webhook: ${event.type} for deposit ${event.depositId}`);
+        const alreadyProcessed = await this.checkIdempotency(webhookId);
+        if (alreadyProcessed) {
+            this.logger.log(`Webhook ${webhookId} already processed, skipping duplicate`);
+            return {
+                success: true,
+                eventType: event.type,
+                processed: false,
+                message: 'Already processed',
+            };
+        }
+        await this.markAsProcessed(webhookId);
         try {
             switch (event.type) {
                 case 'deposit.pending':
@@ -114,8 +183,12 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         }
     }
     async processCircleWebhook(input) {
-        if (!this.verifyCircleSignature(input.rawBody, input.signature)) {
-            this.logger.warn('Invalid Circle webhook signature');
+        try {
+            this.verifyCircleSignature(input.rawBody, input.signature);
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.warn(`Invalid Circle webhook signature: ${errorMessage}`);
             return {
                 success: false,
                 eventType: 'unknown',
@@ -125,7 +198,21 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         }
         const payload = input.payload;
         const notificationType = payload.notificationType;
+        const webhookData = payload.transfer || payload.transaction || payload.inboundTransfer || payload;
+        const entityId = webhookData?.id || 'unknown';
+        const webhookId = `circle:${entityId}:${notificationType}`;
         this.logger.log(`Circle webhook: ${notificationType}`);
+        const alreadyProcessed = await this.checkIdempotency(webhookId);
+        if (alreadyProcessed) {
+            this.logger.log(`Webhook ${webhookId} already processed, skipping duplicate`);
+            return {
+                success: true,
+                eventType: notificationType,
+                processed: false,
+                message: 'Already processed',
+            };
+        }
+        await this.markAsProcessed(webhookId);
         try {
             switch (notificationType) {
                 case 'transfers.complete':
@@ -178,7 +265,19 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
             };
         }
         const event = this.paymentGateway.parseWebhookEvent(input.payload);
+        const webhookId = `generic:${event.referenceId}:${event.type}`;
         this.logger.log(`Processing webhook event: ${event.type} for reference: ${event.referenceId}`);
+        const alreadyProcessed = await this.checkIdempotency(webhookId);
+        if (alreadyProcessed) {
+            this.logger.log(`Webhook ${webhookId} already processed, skipping duplicate`);
+            return {
+                success: true,
+                eventType: event.type,
+                processed: false,
+                message: 'Already processed',
+            };
+        }
+        await this.markAsProcessed(webhookId);
         try {
             switch (event.type) {
                 case 'deposit.pending':

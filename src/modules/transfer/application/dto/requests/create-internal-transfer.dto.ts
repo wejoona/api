@@ -5,6 +5,7 @@ import {
   Min,
   Matches,
   IsOptional,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -44,5 +45,6 @@ export class CreateInternalTransferDto {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(500, { message: 'Note cannot exceed 500 characters' })
   note?: string;
 }

@@ -27,6 +27,12 @@ let AdminService = AdminService_1 = class AdminService {
         this.auditService = auditService;
         this.logger = new common_1.Logger(AdminService_1.name);
     }
+    sanitizeSearchInput(search) {
+        let sanitized = search.replace(/[^a-zA-Z0-9\s@.+\-]/g, '');
+        sanitized = sanitized.trim().substring(0, 100);
+        sanitized = sanitized.replace(/%/g, '\\%').replace(/_/g, '\\_');
+        return sanitized;
+    }
     async listUsers(query) {
         const page = query.page || 1;
         const limit = query.limit || 50;
@@ -48,7 +54,14 @@ let AdminService = AdminService_1 = class AdminService {
             queryBuilder.andWhere('user.role = :role', { role: query.role });
         }
         if (query.search) {
-            queryBuilder.andWhere('(user.phone LIKE :search OR user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)', { search: `%${query.search}%` });
+            if (query.search.length < 3) {
+                throw new common_1.BadRequestException('Search query must be at least 3 characters long');
+            }
+            const sanitizedSearch = this.sanitizeSearchInput(query.search);
+            if (!sanitizedSearch) {
+                throw new common_1.BadRequestException('Search query contains only invalid characters');
+            }
+            queryBuilder.andWhere('(user.phone LIKE :search OR user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)', { search: `%${sanitizedSearch}%` });
         }
         const [users, total] = await queryBuilder.getManyAndCount();
         return { users, total };
@@ -68,13 +81,14 @@ let AdminService = AdminService_1 = class AdminService {
         if (user.role === 'super_admin') {
             throw new common_1.BadRequestException('Cannot suspend a super admin');
         }
+        const sanitizedReason = reason.trim().substring(0, 500);
         user.status = 'suspended';
         user.suspendedAt = new Date();
-        user.suspendedReason = reason;
+        user.suspendedReason = sanitizedReason;
         user.updatedAt = new Date();
         const saved = await this.userRepository.save(user);
-        await this.auditService.logAdminAction(adminId, 'user.suspend', 'user', userId, { reason });
-        this.logger.log(`User ${userId} suspended by admin ${adminId}: ${reason}`);
+        await this.auditService.logAdminAction(adminId, 'user.suspend', 'user', userId, { reason: sanitizedReason });
+        this.logger.log(`User ${userId} suspended by admin ${adminId}: ${sanitizedReason}`);
         return saved;
     }
     async unsuspendUser(userId, adminId) {
@@ -119,12 +133,13 @@ let AdminService = AdminService_1 = class AdminService {
     }
     async rejectKyc(userId, reason, adminId) {
         const user = await this.getUser(userId);
+        const sanitizedReason = reason.trim().substring(0, 500);
         const previousStatus = user.kycStatus;
         user.kycStatus = 'rejected';
         user.updatedAt = new Date();
         const saved = await this.userRepository.save(user);
-        await this.auditService.logAdminAction(adminId, 'user.kyc_reject', 'user', userId, { previousStatus, reason });
-        this.logger.log(`KYC rejected for user ${userId} by admin ${adminId}: ${reason}`);
+        await this.auditService.logAdminAction(adminId, 'user.kyc_reject', 'user', userId, { previousStatus, reason: sanitizedReason });
+        this.logger.log(`KYC rejected for user ${userId} by admin ${adminId}: ${sanitizedReason}`);
         return saved;
     }
     async getDashboardStats() {

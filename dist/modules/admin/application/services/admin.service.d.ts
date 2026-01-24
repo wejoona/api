@@ -37,6 +37,7 @@ export declare class AdminService {
     private readonly auditService;
     private readonly logger;
     constructor(userRepository: Repository<UserOrmEntity>, metricRepository: Repository<SystemMetricEntity>, auditService: AuditService);
+    private sanitizeSearchInput;
     listUsers(query: UserListQuery): Promise<{
         users: UserOrmEntity[];
         total: number;

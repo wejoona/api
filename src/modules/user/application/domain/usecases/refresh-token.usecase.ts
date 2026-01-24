@@ -3,9 +3,11 @@ import {
   UnauthorizedException,
   NotFoundException,
   Logger,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 
@@ -20,10 +22,12 @@ export interface RefreshTokenOutput {
 }
 
 @Injectable()
-export class RefreshTokenUsecase {
+export class RefreshTokenUsecase implements OnModuleDestroy {
   private readonly logger = new Logger(RefreshTokenUsecase.name);
   private readonly refreshSecret: string;
   private readonly refreshExpiresIn: string;
+  private readonly redis: Redis;
+  private isRedisConnected = false;
 
   constructor(
     private readonly userRepository: UserRepository,
@@ -36,10 +40,65 @@ export class RefreshTokenUsecase {
       throw new Error('JWT_REFRESH_SECRET environment variable is required');
     }
     this.refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');
+
+    // Initialize Redis client for token blacklist checking
+    this.redis = new Redis({
+      host: this.configService.get<string>('redis.host'),
+      port: this.configService.get<number>('redis.port'),
+      password: this.configService.get<string>('redis.password'),
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        this.logger.warn(
+          `Redis connection retry attempt ${times}, waiting ${delay}ms`,
+        );
+        return delay;
+      },
+      maxRetriesPerRequest: 3,
+    });
+
+    // Redis connection event handlers
+    this.redis.on('connect', () => {
+      this.isRedisConnected = true;
+      this.logger.log('Redis connected successfully');
+    });
+
+    this.redis.on('error', (error) => {
+      this.isRedisConnected = false;
+      this.logger.error(`Redis connection error: ${error.message}`);
+    });
+
+    this.redis.on('close', () => {
+      this.isRedisConnected = false;
+      this.logger.warn('Redis connection closed');
+    });
+  }
+
+  async onModuleDestroy() {
+    if (this.redis) {
+      await this.redis.quit();
+      this.logger.log('Redis connection closed gracefully');
+    }
+  }
+
+  private ensureConnection(): void {
+    if (!this.isRedisConnected) {
+      throw new Error('Redis connection unavailable. Please try again later.');
+    }
   }
 
   async execute(input: RefreshTokenInput): Promise<RefreshTokenOutput> {
     try {
+      this.ensureConnection();
+
+      // Check if token is blacklisted (logged out)
+      const blacklistKey = `blacklist:${input.refreshToken}`;
+      const isBlacklisted = await this.redis.get(blacklistKey);
+
+      if (isBlacklisted) {
+        this.logger.warn('Attempt to use blacklisted refresh token');
+        throw new UnauthorizedException('Token has been revoked');
+      }
+
       // Verify refresh token
       const payload = this.jwtService.verify(input.refreshToken, {
         secret: this.refreshSecret,
@@ -80,6 +139,12 @@ export class RefreshTokenUsecase {
         },
       );
 
+      // SECURITY: Blacklist the old refresh token to prevent reuse
+      // This prevents "shadow sessions" where attacker can use old token
+      await this.blacklistToken(input.refreshToken, payload.exp);
+
+      this.logger.log(`Tokens refreshed and old token blacklisted for user ${user.id}`);
+
       return {
         user,
         accessToken,
@@ -109,5 +174,32 @@ export class RefreshTokenUsecase {
         expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
       },
     );
+  }
+
+  /**
+   * Blacklist a refresh token to prevent reuse
+   * Token is kept in blacklist until its original expiration time
+   */
+  async blacklistToken(token: string, expirationTimestamp?: number): Promise<void> {
+    try {
+      const blacklistKey = `blacklist:${token}`;
+
+      // Calculate TTL - keep in blacklist until token would have expired
+      let ttl: number;
+      if (expirationTimestamp) {
+        ttl = Math.max(0, expirationTimestamp - Math.floor(Date.now() / 1000));
+      } else {
+        // Default to 7 days if expiration unknown
+        ttl = 7 * 24 * 60 * 60;
+      }
+
+      if (ttl > 0) {
+        await this.redis.set(blacklistKey, '1', 'EX', ttl);
+        this.logger.debug(`Token blacklisted with TTL ${ttl}s`);
+      }
+    } catch (error) {
+      // Log but don't fail the refresh operation if blacklisting fails
+      this.logger.error(`Failed to blacklist token: ${error.message}`);
+    }
   }
 }

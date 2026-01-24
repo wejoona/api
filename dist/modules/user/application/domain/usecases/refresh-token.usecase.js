@@ -14,6 +14,7 @@ exports.RefreshTokenUsecase = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
+const ioredis_1 = require("ioredis");
 const repositories_1 = require("../../../infrastructure/repositories");
 let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
     constructor(userRepository, jwtService, configService) {
@@ -21,14 +22,56 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
         this.jwtService = jwtService;
         this.configService = configService;
         this.logger = new common_1.Logger(RefreshTokenUsecase_1.name);
+        this.isRedisConnected = false;
         this.refreshSecret = this.configService.get('jwt.refreshSecret');
         if (!this.refreshSecret) {
             throw new Error('JWT_REFRESH_SECRET environment variable is required');
         }
         this.refreshExpiresIn = this.configService.get('jwt.refreshExpiresIn', '7d');
+        this.redis = new ioredis_1.default({
+            host: this.configService.get('redis.host'),
+            port: this.configService.get('redis.port'),
+            password: this.configService.get('redis.password'),
+            retryStrategy: (times) => {
+                const delay = Math.min(times * 50, 2000);
+                this.logger.warn(`Redis connection retry attempt ${times}, waiting ${delay}ms`);
+                return delay;
+            },
+            maxRetriesPerRequest: 3,
+        });
+        this.redis.on('connect', () => {
+            this.isRedisConnected = true;
+            this.logger.log('Redis connected successfully');
+        });
+        this.redis.on('error', (error) => {
+            this.isRedisConnected = false;
+            this.logger.error(`Redis connection error: ${error.message}`);
+        });
+        this.redis.on('close', () => {
+            this.isRedisConnected = false;
+            this.logger.warn('Redis connection closed');
+        });
+    }
+    async onModuleDestroy() {
+        if (this.redis) {
+            await this.redis.quit();
+            this.logger.log('Redis connection closed gracefully');
+        }
+    }
+    ensureConnection() {
+        if (!this.isRedisConnected) {
+            throw new Error('Redis connection unavailable. Please try again later.');
+        }
     }
     async execute(input) {
         try {
+            this.ensureConnection();
+            const blacklistKey = `blacklist:${input.refreshToken}`;
+            const isBlacklisted = await this.redis.get(blacklistKey);
+            if (isBlacklisted) {
+                this.logger.warn('Attempt to use blacklisted refresh token');
+                throw new common_1.UnauthorizedException('Token has been revoked');
+            }
             const payload = this.jwtService.verify(input.refreshToken, {
                 secret: this.refreshSecret,
             });

@@ -58,11 +58,31 @@ export class AdminService {
   // User Management
   // ==========================================
 
+  /**
+   * Sanitize search input to prevent SQL injection
+   * - Escape SQL wildcards (% and _)
+   * - Remove special characters except alphanumeric, spaces, @, ., +, -
+   * - Limit length to 100 chars
+   */
+  private sanitizeSearchInput(search: string): string {
+    // Remove any characters that aren't alphanumeric, spaces, @, ., +, or -
+    let sanitized = search.replace(/[^a-zA-Z0-9\s@.+\-]/g, '');
+
+    // Trim and limit length
+    sanitized = sanitized.trim().substring(0, 100);
+
+    // Escape SQL wildcards for LIKE queries
+    sanitized = sanitized.replace(/%/g, '\\%').replace(/_/g, '\\_');
+
+    return sanitized;
+  }
+
   async listUsers(
     query: UserListQuery,
   ): Promise<{ users: UserOrmEntity[]; total: number }> {
     const page = query.page || 1;
-    const limit = query.limit || 50;
+    // SECURITY: Enforce maximum pagination limit to prevent DoS
+    const limit = Math.min(query.limit || 50, 100);
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.userRepository
@@ -86,9 +106,25 @@ export class AdminService {
     }
 
     if (query.search) {
+      // Validate minimum length requirement
+      if (query.search.length < 3) {
+        throw new BadRequestException(
+          'Search query must be at least 3 characters long',
+        );
+      }
+
+      // Sanitize the search input to prevent SQL injection
+      const sanitizedSearch = this.sanitizeSearchInput(query.search);
+
+      if (!sanitizedSearch) {
+        throw new BadRequestException(
+          'Search query contains only invalid characters',
+        );
+      }
+
       queryBuilder.andWhere(
         '(user.phone LIKE :search OR user.email LIKE :search OR user.firstName LIKE :search OR user.lastName LIKE :search)',
-        { search: `%${query.search}%` },
+        { search: `%${sanitizedSearch}%` },
       );
     }
 
@@ -119,9 +155,12 @@ export class AdminService {
       throw new BadRequestException('Cannot suspend a super admin');
     }
 
+    // Sanitize reason before storing (additional safety layer)
+    const sanitizedReason = reason.trim().substring(0, 500);
+
     user.status = 'suspended';
     user.suspendedAt = new Date();
-    user.suspendedReason = reason;
+    user.suspendedReason = sanitizedReason;
     user.updatedAt = new Date();
 
     const saved = await this.userRepository.save(user);
@@ -131,10 +170,12 @@ export class AdminService {
       'user.suspend',
       'user',
       userId,
-      { reason },
+      { reason: sanitizedReason },
     );
 
-    this.logger.log(`User ${userId} suspended by admin ${adminId}: ${reason}`);
+    this.logger.log(
+      `User ${userId} suspended by admin ${adminId}: ${sanitizedReason}`,
+    );
     return saved;
   }
 
@@ -226,6 +267,9 @@ export class AdminService {
   ): Promise<UserOrmEntity> {
     const user = await this.getUser(userId);
 
+    // Sanitize reason before storing (additional safety layer)
+    const sanitizedReason = reason.trim().substring(0, 500);
+
     const previousStatus = user.kycStatus;
     user.kycStatus = 'rejected';
     user.updatedAt = new Date();
@@ -237,11 +281,11 @@ export class AdminService {
       'user.kyc_reject',
       'user',
       userId,
-      { previousStatus, reason },
+      { previousStatus, reason: sanitizedReason },
     );
 
     this.logger.log(
-      `KYC rejected for user ${userId} by admin ${adminId}: ${reason}`,
+      `KYC rejected for user ${userId} by admin ${adminId}: ${sanitizedReason}`,
     );
     return saved;
   }

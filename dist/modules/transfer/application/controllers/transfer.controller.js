@@ -16,6 +16,7 @@ exports.TransferController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const guards_1 = require("../../../../common/guards");
+const interceptors_1 = require("../../../../common/interceptors");
 const requests_1 = require("../dto/requests");
 const responses_1 = require("../dto/responses");
 const transfer_repository_1 = require("../../infrastructure/repositories/transfer.repository");
@@ -100,7 +101,14 @@ exports.TransferController = TransferController;
 __decorate([
     (0, common_1.Post)('internal'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to another user by phone number (P2P)' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Internal transfer initiated successfully',
@@ -144,7 +152,14 @@ __decorate([
 __decorate([
     (0, common_1.Post)('external'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Send USDC to external blockchain address' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'External transfer initiated successfully',

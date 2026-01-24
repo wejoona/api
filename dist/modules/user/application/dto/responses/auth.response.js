@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OtpSentResponse = exports.RefreshResponse = exports.AuthResponse = void 0;
+exports.LogoutResponse = exports.OtpSentResponse = exports.RefreshResponse = exports.AuthResponse = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const user_response_1 = require("./user.response");
 class AuthResponse {
@@ -60,4 +60,15 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 300, description: 'OTP expiry in seconds' }),
     __metadata("design:type", Number)
 ], OtpSentResponse.prototype, "expiresIn", void 0);
+class LogoutResponse {
+}
+exports.LogoutResponse = LogoutResponse;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true }),
+    __metadata("design:type", Boolean)
+], LogoutResponse.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Logged out successfully' }),
+    __metadata("design:type", String)
+], LogoutResponse.prototype, "message", void 0);
 //# sourceMappingURL=auth.response.js.map

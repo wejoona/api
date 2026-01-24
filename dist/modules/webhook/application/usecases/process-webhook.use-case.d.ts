@@ -1,3 +1,4 @@
+import { OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { IPaymentGateway } from '@modules/shared/domain/gateways/payment.gateway';
@@ -16,7 +17,7 @@ export interface ProcessWebhookOutput {
     processed: boolean;
     message?: string;
 }
-export declare class ProcessWebhookUseCase {
+export declare class ProcessWebhookUseCase implements OnModuleDestroy {
     private readonly paymentGateway;
     private readonly onRampProvider;
     private readonly transactionRepository;
@@ -25,7 +26,12 @@ export declare class ProcessWebhookUseCase {
     private readonly configService;
     private readonly logger;
     private readonly circleWebhookSecret;
+    private readonly redis;
+    private isRedisConnected;
     constructor(paymentGateway: IPaymentGateway, onRampProvider: IOnRampProvider, transactionRepository: TransactionRepository, walletRepository: WalletRepository, eventEmitter: EventEmitter2, configService: ConfigService);
+    onModuleDestroy(): Promise<void>;
+    private checkIdempotency;
+    private markAsProcessed;
     private verifyCircleSignature;
     execute(input: ProcessWebhookInput): Promise<ProcessWebhookOutput>;
     private processYellowCardWebhook;

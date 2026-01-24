@@ -20,11 +20,12 @@ const requests_1 = require("../dto/requests");
 const responses_1 = require("../dto/responses");
 const usecases_1 = require("../domain/usecases");
 let AuthController = class AuthController {
-    constructor(registerUserUsecase, verifyOtpUsecase, loginUserUsecase, refreshTokenUsecase) {
+    constructor(registerUserUsecase, verifyOtpUsecase, loginUserUsecase, refreshTokenUsecase, logoutUsecase) {
         this.registerUserUsecase = registerUserUsecase;
         this.verifyOtpUsecase = verifyOtpUsecase;
         this.loginUserUsecase = loginUserUsecase;
         this.refreshTokenUsecase = refreshTokenUsecase;
+        this.logoutUsecase = logoutUsecase;
     }
     async register(dto) {
         const result = await this.registerUserUsecase.execute({
@@ -66,6 +67,16 @@ let AuthController = class AuthController {
             success: result.success,
             message: 'OTP sent successfully',
             expiresIn: result.otpExpiresIn,
+        };
+    }
+    async logout(req, dto) {
+        const result = await this.logoutUsecase.execute({
+            userId: req.user.id,
+            refreshToken: dto.refreshToken,
+        });
+        return {
+            success: result.success,
+            message: result.message,
         };
     }
 };
@@ -111,13 +122,28 @@ __decorate([
     __metadata("design:paramtypes", [requests_1.LoginUserDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('logout'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Logout and invalidate refresh token' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.LogoutResponse }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, requests_1.LogoutDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "logout", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('Authentication'),
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [usecases_1.RegisterUserUsecase,
         usecases_1.VerifyOtpUsecase,
         usecases_1.LoginUserUsecase,
-        usecases_1.RefreshTokenUsecase])
+        usecases_1.RefreshTokenUsecase,
+        usecases_1.LogoutUsecase])
 ], AuthController);
 let UserController = class UserController {
     constructor(updateProfileUsecase) {

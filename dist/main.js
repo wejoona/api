@@ -34,6 +34,7 @@ async function bootstrap() {
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Idempotency-Key'],
+        exposedHeaders: ['X-Idempotency-Key'],
         maxAge: 86400,
     });
     app.setGlobalPrefix(apiPrefix);

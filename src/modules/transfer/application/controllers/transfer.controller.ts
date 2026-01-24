@@ -11,6 +11,9 @@ import {
   HttpStatus,
   ParseIntPipe,
   DefaultValuePipe,
+  UseInterceptors,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,8 +22,11 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
+  ApiHeader,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   CreateInternalTransferDto,
   CreateExternalTransferDto,
@@ -43,7 +49,16 @@ export class TransferController {
 
   @Post('internal')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Rate limit transfers to prevent abuse (10 per minute per user)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Transfer to another user by phone number (P2P)' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   @ApiResponse({
     status: 200,
     description: 'Internal transfer initiated successfully',
@@ -116,7 +131,16 @@ export class TransferController {
 
   @Post('external')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Stricter rate limit for external transfers (5 per minute per user)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Send USDC to external blockchain address' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   @ApiResponse({
     status: 200,
     description: 'External transfer initiated successfully',
@@ -236,7 +260,7 @@ export class TransferController {
     const transfer = await this.transferRepository.findById(id);
 
     if (!transfer) {
-      throw new Error('Transfer not found');
+      throw new NotFoundException('Transfer not found');
     }
 
     // Verify the user has access to this transfer
@@ -244,7 +268,7 @@ export class TransferController {
       transfer.senderId !== req.user.id &&
       transfer.recipientId !== req.user.id
     ) {
-      throw new Error('Unauthorized access to transfer');
+      throw new ForbiddenException('Access denied');
     }
 
     return TransferResponse.fromEntity(transfer);

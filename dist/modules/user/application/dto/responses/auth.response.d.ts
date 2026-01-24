@@ -14,3 +14,7 @@ export declare class OtpSentResponse {
     message: string;
     expiresIn: number;
 }
+export declare class LogoutResponse {
+    success: boolean;
+    message: string;
+}

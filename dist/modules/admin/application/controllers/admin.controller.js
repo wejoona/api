@@ -20,14 +20,7 @@ const roles_guard_1 = require("../../../../common/guards/roles.guard");
 const roles_decorator_1 = require("../../../../common/decorators/roles.decorator");
 const admin_service_1 = require("../services/admin.service");
 const audit_service_1 = require("../services/audit.service");
-class SuspendUserDto {
-}
-class UpdateRoleDto {
-}
-class RejectKycDto {
-}
-class ListUsersQueryDto {
-}
+const dto_1 = require("../dto");
 class AuditLogQueryDto {
 }
 let AdminController = class AdminController {
@@ -184,7 +177,7 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Users list retrieved' }),
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [ListUsersQueryDto]),
+    __metadata("design:paramtypes", [dto_1.ListUsersQueryDto]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "listUsers", null);
 __decorate([
@@ -210,7 +203,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, SuspendUserDto, Object]),
+    __metadata("design:paramtypes", [String, dto_1.SuspendUserDto, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "suspendUser", null);
 __decorate([
@@ -238,7 +231,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, UpdateRoleDto, Object]),
+    __metadata("design:paramtypes", [String, dto_1.UpdateRoleDto, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateUserRole", null);
 __decorate([
@@ -276,7 +269,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, RejectKycDto, Object]),
+    __metadata("design:paramtypes", [String, dto_1.RejectKycDto, Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "rejectKyc", null);
 __decorate([

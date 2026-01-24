@@ -1,27 +1,11 @@
 import { AdminService, DashboardStats } from '../services/admin.service';
 import { AuditService } from '../services/audit.service';
+import { SuspendUserDto, UpdateRoleDto, ListUsersQueryDto, RejectKycDto } from '../dto';
 interface AuthenticatedRequest {
     user: {
         id: string;
         role: string;
     };
-}
-declare class SuspendUserDto {
-    reason: string;
-}
-declare class UpdateRoleDto {
-    role: 'user' | 'admin' | 'super_admin';
-}
-declare class RejectKycDto {
-    reason: string;
-}
-declare class ListUsersQueryDto {
-    page?: number;
-    limit?: number;
-    status?: string;
-    kycStatus?: string;
-    role?: string;
-    search?: string;
 }
 declare class AuditLogQueryDto {
     page?: number;

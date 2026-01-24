@@ -221,11 +221,33 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
   }
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    const expectedSignature = crypto
-      .createHmac('sha256', this.config.webhookSecret)
-      .update(payload)
-      .digest('hex');
-    return signature === expectedSignature;
+    if (!this.config.webhookSecret) {
+      throw new Error('Yellow Card webhook secret not configured');
+    }
+
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', this.config.webhookSecret)
+        .update(payload)
+        .digest('hex');
+
+      // Use constant-time comparison to prevent timing attacks
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature),
+      );
+
+      if (!isValid) {
+        throw new Error('Invalid webhook signature');
+      }
+
+      return true;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Webhook signature verification failed: ${errorMessage}`);
+      throw new Error('Invalid webhook signature');
+    }
   }
 
   parseWebhookEvent(payload: Record<string, unknown>): {

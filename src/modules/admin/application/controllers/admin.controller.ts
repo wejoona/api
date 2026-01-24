@@ -10,6 +10,8 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,31 +28,15 @@ import {
   DashboardStats,
 } from '../services/admin.service';
 import { AuditService, AuditLogQuery } from '../services/audit.service';
+import {
+  SuspendUserDto,
+  UpdateRoleDto,
+  ListUsersQueryDto,
+  RejectKycDto,
+} from '../dto';
 
 interface AuthenticatedRequest {
   user: { id: string; role: string };
-}
-
-// DTOs
-class SuspendUserDto {
-  reason: string;
-}
-
-class UpdateRoleDto {
-  role: 'user' | 'admin' | 'super_admin';
-}
-
-class RejectKycDto {
-  reason: string;
-}
-
-class ListUsersQueryDto {
-  page?: number;
-  limit?: number;
-  status?: string;
-  kycStatus?: string;
-  role?: string;
-  search?: string;
 }
 
 class AuditLogQueryDto {

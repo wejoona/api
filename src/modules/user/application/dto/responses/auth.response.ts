@@ -36,3 +36,11 @@ export class OtpSentResponse {
   @ApiProperty({ example: 300, description: 'OTP expiry in seconds' })
   expiresIn: number;
 }
+
+export class LogoutResponse {
+  @ApiProperty({ example: true })
+  success: boolean;
+
+  @ApiProperty({ example: 'Logged out successfully' })
+  message: string;
+}

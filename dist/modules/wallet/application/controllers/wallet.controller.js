@@ -16,6 +16,7 @@ exports.WalletController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const guards_1 = require("../../../../common/guards");
+const interceptors_1 = require("../../../../common/interceptors");
 const requests_1 = require("../dto/requests");
 const usecases_1 = require("../usecases");
 let WalletController = class WalletController {
@@ -160,7 +161,14 @@ __decorate([
 __decorate([
     (0, common_1.Post)('deposit'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Initiate a deposit (XOF → USD)' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate deposit requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'Returns payment instructions for the deposit',
@@ -194,7 +202,14 @@ __decorate([
 __decorate([
     (0, common_1.Post)('transfer/internal'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to another user by phone number' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Internal transfer completed',
@@ -220,7 +235,14 @@ __decorate([
 __decorate([
     (0, common_1.Post)('transfer/external'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to external wallet address (USDC)' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'External transfer initiated',

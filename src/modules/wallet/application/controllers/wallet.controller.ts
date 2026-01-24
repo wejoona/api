@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,8 +16,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
+import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   InitiateDepositDto,
   InternalTransferDto,
@@ -121,7 +126,14 @@ export class WalletController {
 
   @Post('deposit')
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Initiate a deposit (XOF → USD)' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate deposit requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   @ApiResponse({
     status: 201,
     description: 'Returns payment instructions for the deposit',
@@ -164,7 +176,22 @@ export class WalletController {
 
   @Post('transfer/internal')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Transfer to another user by phone number' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /wallet/pin/verify',
+    required: true,
+    example: 'abc123...',
+  })
   @ApiResponse({
     status: 200,
     description: 'Internal transfer completed',
@@ -178,6 +205,16 @@ export class WalletController {
         currency: 'USD',
         fee: 0,
         status: 'completed',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN verification required',
+    schema: {
+      example: {
+        message: 'PIN verification required for this operation',
+        code: 'PIN_REQUIRED',
       },
     },
   })
@@ -195,7 +232,22 @@ export class WalletController {
 
   @Post('transfer/external')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Transfer to external wallet address (USDC)' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /wallet/pin/verify',
+    required: true,
+    example: 'abc123...',
+  })
   @ApiResponse({
     status: 200,
     description: 'External transfer initiated',
@@ -209,6 +261,16 @@ export class WalletController {
         fee: 1.0,
         status: 'pending',
         estimatedArrival: '5-30 minutes',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN verification required',
+    schema: {
+      example: {
+        message: 'PIN verification required for this operation',
+        code: 'PIN_REQUIRED',
       },
     },
   })
@@ -322,14 +384,17 @@ export class WalletController {
 
   @Post('pin/verify')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Verify PIN for transaction authorization' })
   @ApiResponse({
     status: 200,
-    description: 'PIN verified successfully',
+    description: 'PIN verified successfully. Returns a token valid for 5 minutes.',
     schema: {
       example: {
         valid: true,
         message: 'PIN verified successfully',
+        pinToken: 'abc123...',
+        expiresIn: 300,
       },
     },
   })

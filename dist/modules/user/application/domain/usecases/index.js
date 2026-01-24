@@ -21,4 +21,5 @@ __exportStar(require("./update-profile.usecase"), exports);
 __exportStar(require("./create-user-ledger-identity.usecase"), exports);
 __exportStar(require("./setup-user-balance-monitors.usecase"), exports);
 __exportStar(require("./refresh-token.usecase"), exports);
+__exportStar(require("./logout.usecase"), exports);
 //# sourceMappingURL=index.js.map

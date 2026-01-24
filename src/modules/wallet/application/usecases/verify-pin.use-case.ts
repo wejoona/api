@@ -3,8 +3,12 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { UserRepository } from '../../../user/infrastructure/repositories';
 
 export interface VerifyPinInput {
@@ -15,13 +19,21 @@ export interface VerifyPinInput {
 export interface VerifyPinOutput {
   valid: boolean;
   message: string;
+  pinToken?: string;
+  expiresIn?: number;
   remainingAttempts?: number;
   lockedUntil?: Date;
 }
 
 @Injectable()
 export class VerifyPinUseCase {
-  constructor(private readonly userRepository: UserRepository) {}
+  // PIN token validity: 5 minutes
+  private readonly PIN_TOKEN_TTL = 5 * 60;
+
+  constructor(
+    private readonly userRepository: UserRepository,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async execute(input: VerifyPinInput): Promise<VerifyPinOutput> {
     const user = await this.userRepository.findById(input.userId);
@@ -70,9 +82,21 @@ export class VerifyPinUseCase {
     user.resetPinAttempts();
     await this.userRepository.save(user);
 
+    // Generate PIN verification token for subsequent transfer operations
+    const pinToken = crypto.randomBytes(32).toString('hex');
+    const cacheKey = `pin_token:${input.userId}:${pinToken}`;
+
+    await this.cacheManager.set(
+      cacheKey,
+      { verified: true, timestamp: Date.now() },
+      this.PIN_TOKEN_TTL,
+    );
+
     return {
       valid: true,
       message: 'PIN verified successfully',
+      pinToken,
+      expiresIn: this.PIN_TOKEN_TTL,
     };
   }
 }

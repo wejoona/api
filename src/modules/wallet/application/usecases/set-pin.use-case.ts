@@ -19,7 +19,9 @@ export interface SetPinOutput {
 
 @Injectable()
 export class SetPinUseCase {
-  private readonly SALT_ROUNDS = 10;
+  // SECURITY: Increased salt rounds for better protection against brute-force
+  // Since PINs are only 4-6 digits, higher rounds provide more security
+  private readonly SALT_ROUNDS = 12;
 
   constructor(private readonly userRepository: UserRepository) {}
 

@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
   Index,
   ManyToOne,
   JoinColumn,
@@ -59,6 +60,10 @@ export class WalletOrmEntity {
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: string;
+
+  // Optimistic locking version column
+  @VersionColumn()
+  version: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

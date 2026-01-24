@@ -22,6 +22,7 @@ import {
   CreateUserLedgerIdentityUseCase,
   SetupUserBalanceMonitorsUseCase,
   RefreshTokenUsecase,
+  LogoutUsecase,
 } from './application/domain/usecases';
 
 // Controllers
@@ -66,6 +67,7 @@ import { WalletModule } from '../wallet/wallet.module';
     CreateUserLedgerIdentityUseCase,
     SetupUserBalanceMonitorsUseCase,
     RefreshTokenUsecase,
+    LogoutUsecase,
     // Strategy
     JwtStrategy,
   ],

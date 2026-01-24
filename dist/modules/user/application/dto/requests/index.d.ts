@@ -3,3 +3,4 @@ export * from './verify-otp.dto';
 export * from './login-user.dto';
 export * from './update-profile.dto';
 export * from './refresh-token.dto';
+export * from './logout.dto';

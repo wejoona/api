@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import {
   RegisterUserDto,
@@ -22,14 +23,16 @@ import {
   LoginUserDto,
   UpdateProfileDto,
   RefreshTokenDto,
+  LogoutDto,
 } from '../dto/requests';
-import { UserResponse, AuthResponse, OtpSentResponse, RefreshResponse } from '../dto/responses';
+import { UserResponse, AuthResponse, OtpSentResponse, RefreshResponse, LogoutResponse } from '../dto/responses';
 import {
   RegisterUserUsecase,
   VerifyOtpUsecase,
   LoginUserUsecase,
   UpdateProfileUsecase,
   RefreshTokenUsecase,
+  LogoutUsecase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -40,10 +43,13 @@ export class AuthController {
     private readonly verifyOtpUsecase: VerifyOtpUsecase,
     private readonly loginUserUsecase: LoginUserUsecase,
     private readonly refreshTokenUsecase: RefreshTokenUsecase,
+    private readonly logoutUsecase: LogoutUsecase,
   ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  // SECURITY: Strict rate limit to prevent account enumeration
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, type: OtpSentResponse })
   async register(@Body() dto: RegisterUserDto): Promise<OtpSentResponse> {
@@ -61,6 +67,8 @@ export class AuthController {
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Strict rate limit to prevent OTP brute force attacks (5 attempts per minute)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Verify OTP and get access token' })
   @ApiResponse({ status: 200, type: AuthResponse })
   async verifyOtp(@Body() dto: VerifyOtpDto): Promise<AuthResponse> {
@@ -79,6 +87,8 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Rate limit token refresh to prevent abuse (10 per minute)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, type: RefreshResponse })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
@@ -95,6 +105,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Strict rate limit to prevent login brute force
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Request login OTP' })
   @ApiResponse({ status: 200, type: OtpSentResponse })
   async login(@Body() dto: LoginUserDto): Promise<OtpSentResponse> {
@@ -106,6 +118,28 @@ export class AuthController {
       success: result.success,
       message: 'OTP sent successfully',
       expiresIn: result.otpExpiresIn,
+    };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout and invalidate refresh token' })
+  @ApiResponse({ status: 200, type: LogoutResponse })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async logout(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: LogoutDto,
+  ): Promise<LogoutResponse> {
+    const result = await this.logoutUsecase.execute({
+      userId: req.user.id,
+      refreshToken: dto.refreshToken,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
     };
   }
 }
