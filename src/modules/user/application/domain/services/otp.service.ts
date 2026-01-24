@@ -100,9 +100,12 @@ export class OtpService implements OnModuleDestroy {
     pipeline.expire(rateLimitKey, this.rateLimitWindow);
     await pipeline.exec();
 
-    // Log OTP in development mode for debugging
-    if (this.configService.get<string>('nodeEnv') !== 'production') {
-      this.logger.debug(`OTP for ${phone}: ${otp}`);
+    // SECURITY: Only log OTP with explicit flag AND in development mode
+    // This double-check prevents accidental OTP exposure in staging/test environments
+    const enableOtpLogging = this.configService.get<boolean>('otp.enableDebugLogging', false);
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    if (enableOtpLogging && nodeEnv === 'development') {
+      this.logger.debug(`[DEV ONLY] OTP for ${phone.slice(-4).padStart(phone.length, '*')}: ${otp}`);
     }
 
     // Send OTP via SMS gateway
@@ -125,10 +128,28 @@ export class OtpService implements OnModuleDestroy {
 
     const key = this.getKey(phone);
     const attemptsKey = `${key}:attempts`;
+    const lockoutKey = `${key}:lockout`;
+
+    // SECURITY: Check if in lockout period (exponential backoff)
+    const lockoutUntil = await this.redis.get(lockoutKey);
+    if (lockoutUntil) {
+      const lockoutTime = parseInt(lockoutUntil, 10);
+      const now = Date.now();
+      if (now < lockoutTime) {
+        const remainingSeconds = Math.ceil((lockoutTime - now) / 1000);
+        throw new BadRequestException(
+          `Too many failed attempts. Please wait ${remainingSeconds} seconds before trying again.`
+        );
+      }
+      // Lockout expired, clear it
+      await this.redis.del(lockoutKey);
+    }
 
     // Check if locked out due to too many attempts
     const attempts = await this.redis.get(attemptsKey);
-    if (attempts && parseInt(attempts, 10) >= this.maxAttempts) {
+    const attemptCount = attempts ? parseInt(attempts, 10) : 0;
+
+    if (attemptCount >= this.maxAttempts) {
       throw new BadRequestException('Too many failed attempts. Please request a new OTP.');
     }
 
@@ -146,13 +167,24 @@ export class OtpService implements OnModuleDestroy {
 
     if (!isValid) {
       // Increment failed attempts
-      await this.redis.incr(attemptsKey);
+      const newAttempts = await this.redis.incr(attemptsKey);
+
+      // SECURITY: Implement exponential backoff
+      // 1st fail: 5s, 2nd: 15s, 3rd: 45s lockout
+      if (newAttempts >= 1) {
+        const backoffSeconds = Math.min(5 * Math.pow(3, newAttempts - 1), 300); // Max 5 minutes
+        const lockoutUntilMs = Date.now() + (backoffSeconds * 1000);
+        await this.redis.setex(lockoutKey, backoffSeconds + 60, lockoutUntilMs.toString());
+        this.logger.debug(`OTP lockout applied for ${phone}: ${backoffSeconds}s after attempt ${newAttempts}`);
+      }
+
       return false;
     }
 
-    // Delete OTP and attempts after successful verification
+    // Delete OTP, attempts, and lockout after successful verification
     await this.redis.del(key);
     await this.redis.del(attemptsKey);
+    await this.redis.del(lockoutKey);
     return true;
   }
 
