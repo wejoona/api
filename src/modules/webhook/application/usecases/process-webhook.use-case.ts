@@ -1,5 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import {
   PAYMENT_GATEWAY,
   IPaymentGateway,
@@ -37,6 +39,7 @@ export interface ProcessWebhookOutput {
 @Injectable()
 export class ProcessWebhookUseCase {
   private readonly logger = new Logger(ProcessWebhookUseCase.name);
+  private readonly circleWebhookSecret: string;
 
   constructor(
     @Inject(PAYMENT_GATEWAY)
@@ -46,7 +49,36 @@ export class ProcessWebhookUseCase {
     private readonly transactionRepository: TransactionRepository,
     private readonly walletRepository: WalletRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.circleWebhookSecret = this.configService.get<string>('circle.webhookSecret', '');
+  }
+
+  /**
+   * Verify Circle webhook signature using HMAC-SHA256
+   */
+  private verifyCircleSignature(rawBody: string, signature: string): boolean {
+    if (!this.circleWebhookSecret) {
+      this.logger.warn('Circle webhook secret not configured');
+      return false;
+    }
+
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', this.circleWebhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      // Use constant-time comparison to prevent timing attacks
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature),
+      );
+    } catch (error) {
+      this.logger.error('Error verifying Circle webhook signature');
+      return false;
+    }
+  }
 
   async execute(input: ProcessWebhookInput): Promise<ProcessWebhookOutput> {
     const provider = input.provider || 'generic';
@@ -124,11 +156,12 @@ export class ProcessWebhookUseCase {
         `Error processing Yellow Card webhook: ${errorMessage}`,
         errorStack,
       );
+      // Return generic error to external callers - don't leak internal details
       return {
         success: false,
         eventType: event.type,
         processed: false,
-        message: errorMessage,
+        message: 'Internal processing error',
       };
     }
   }
@@ -139,6 +172,17 @@ export class ProcessWebhookUseCase {
   private async processCircleWebhook(
     input: ProcessWebhookInput,
   ): Promise<ProcessWebhookOutput> {
+    // Verify Circle webhook signature BEFORE processing
+    if (!this.verifyCircleSignature(input.rawBody, input.signature)) {
+      this.logger.warn('Invalid Circle webhook signature');
+      return {
+        success: false,
+        eventType: 'unknown',
+        processed: false,
+        message: 'Invalid signature',
+      };
+    }
+
     // Circle webhook structure
     const payload = input.payload;
     const notificationType = payload.notificationType as string;
@@ -190,11 +234,12 @@ export class ProcessWebhookUseCase {
         `Error processing Circle webhook: ${errorMessage}`,
         errorStack,
       );
+      // Return generic error to external callers - don't leak internal details
       return {
         success: false,
         eventType: notificationType,
         processed: false,
-        message: errorMessage,
+        message: 'Internal processing error',
       };
     }
   }
@@ -273,11 +318,12 @@ export class ProcessWebhookUseCase {
         `Error processing webhook: ${errorMessage}`,
         errorStack,
       );
+      // Return generic error to external callers - don't leak internal details
       return {
         success: false,
         eventType: event.type,
         processed: false,
-        message: errorMessage,
+        message: 'Internal processing error',
       };
     }
   }

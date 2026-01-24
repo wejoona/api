@@ -25,7 +25,11 @@ let VerifyOtpUsecase = VerifyOtpUsecase_1 = class VerifyOtpUsecase {
         this.createWalletUseCase = createWalletUseCase;
         this.configService = configService;
         this.logger = new common_1.Logger(VerifyOtpUsecase_1.name);
-        this.refreshSecret = this.configService.get('JWT_REFRESH_SECRET', this.configService.get('JWT_SECRET', 'default-secret') + '-refresh');
+        this.refreshSecret = this.configService.get('jwt.refreshSecret');
+        if (!this.refreshSecret) {
+            throw new Error('JWT_REFRESH_SECRET environment variable is required');
+        }
+        this.refreshExpiresIn = this.configService.get('jwt.refreshExpiresIn', '7d');
     }
     async execute(input) {
         const isValid = await this.otpService.verifyOtp(input.phone, input.otp);
@@ -60,7 +64,7 @@ let VerifyOtpUsecase = VerifyOtpUsecase_1 = class VerifyOtpUsecase {
             type: 'refresh',
         }, {
             secret: this.refreshSecret,
-            expiresIn: '30d',
+            expiresIn: this.refreshExpiresIn,
         });
         return {
             user: updatedUser,

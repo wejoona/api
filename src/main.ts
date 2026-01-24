@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -11,11 +13,37 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 3000;
   const apiPrefix = configService.get<string>('apiPrefix') || 'api/v1';
+  const nodeEnv = configService.get<string>('nodeEnv') || 'development';
 
-  // Enable CORS
+  // Security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: nodeEnv === 'production',
+      crossOriginEmbedderPolicy: nodeEnv === 'production',
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    }),
+  );
+
+  // Request body size limits (prevent DoS)
+  app.use(json({ limit: '10kb' }));
+  app.use(urlencoded({ extended: true, limit: '10kb' }));
+
+  // CORS - Restrict to allowed origins in production
+  const allowedOrigins = configService
+    .get<string>('ALLOWED_ORIGINS', 'http://localhost:3001,http://localhost:8080')
+    .split(',')
+    .map((origin) => origin.trim());
+
   app.enableCors({
-    origin: true,
+    origin: nodeEnv === 'production' ? allowedOrigins : true,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Idempotency-Key'],
+    maxAge: 86400,
   });
 
   // Global prefix

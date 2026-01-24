@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -41,7 +42,7 @@ import { BlnkModule } from './modules/providers/blnk';
       },
     }),
 
-    // Database
+    // Database - NEVER use synchronize in production, always use migrations
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -53,18 +54,22 @@ import { BlnkModule } from './modules/providers/blnk';
         username: configService.get<string>('database.user'),
         password: configService.get<string>('database.password'),
         autoLoadEntities: true,
-        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        synchronize: false, // SECURITY: Always use migrations, never auto-sync
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
     }),
 
-    // Rate limiting
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    // Rate limiting - configured via environment
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ([
+        {
+          ttl: configService.get<number>('rateLimit.ttl', 60) * 1000,
+          limit: configService.get<number>('rateLimit.limit', 100),
+        },
+      ]),
+    }),
 
     // CQRS
     CqrsModule,
@@ -95,6 +100,13 @@ import { BlnkModule } from './modules/providers/blnk';
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Apply rate limiting globally to all endpoints
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

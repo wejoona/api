@@ -19,6 +19,7 @@ declare const _default: () => {
     };
     jwt: {
         secret: string;
+        refreshSecret: string;
         expiresIn: string;
         refreshExpiresIn: string;
     };

@@ -22,6 +22,7 @@ export declare class VerifyOtpUsecase {
     private readonly configService;
     private readonly logger;
     private readonly refreshSecret;
+    private readonly refreshExpiresIn;
     constructor(userRepository: UserRepository, otpService: OtpService, jwtService: JwtService, createWalletUseCase: CreateWalletUseCase, configService: ConfigService);
     execute(input: VerifyOtpInput): Promise<VerifyOtpOutput>;
 }

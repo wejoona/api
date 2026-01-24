@@ -23,16 +23,19 @@ export interface RefreshTokenOutput {
 export class RefreshTokenUsecase {
   private readonly logger = new Logger(RefreshTokenUsecase.name);
   private readonly refreshSecret: string;
+  private readonly refreshExpiresIn: string;
 
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    this.refreshSecret = this.configService.get<string>(
-      'JWT_REFRESH_SECRET',
-      this.configService.get<string>('JWT_SECRET', 'default-secret') + '-refresh',
-    );
+    // Use separate secret for refresh tokens - no fallback for security
+    this.refreshSecret = this.configService.get<string>('jwt.refreshSecret');
+    if (!this.refreshSecret) {
+      throw new Error('JWT_REFRESH_SECRET environment variable is required');
+    }
+    this.refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');
   }
 
   async execute(input: RefreshTokenInput): Promise<RefreshTokenOutput> {
@@ -73,7 +76,7 @@ export class RefreshTokenUsecase {
         },
         {
           secret: this.refreshSecret,
-          expiresIn: '30d',
+          expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
         },
       );
 
@@ -103,7 +106,7 @@ export class RefreshTokenUsecase {
       },
       {
         secret: this.refreshSecret,
-        expiresIn: '30d',
+        expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
       },
     );
   }

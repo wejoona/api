@@ -4,6 +4,8 @@ const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const swagger_1 = require("@nestjs/swagger");
+const helmet_1 = require("helmet");
+const express_1 = require("express");
 const app_module_1 = require("./app.module");
 async function bootstrap() {
     const logger = new common_1.Logger('Bootstrap');
@@ -11,9 +13,28 @@ async function bootstrap() {
     const configService = app.get(config_1.ConfigService);
     const port = configService.get('port') || 3000;
     const apiPrefix = configService.get('apiPrefix') || 'api/v1';
+    const nodeEnv = configService.get('nodeEnv') || 'development';
+    app.use((0, helmet_1.default)({
+        contentSecurityPolicy: nodeEnv === 'production',
+        crossOriginEmbedderPolicy: nodeEnv === 'production',
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true,
+        },
+    }));
+    app.use((0, express_1.json)({ limit: '10kb' }));
+    app.use((0, express_1.urlencoded)({ extended: true, limit: '10kb' }));
+    const allowedOrigins = configService
+        .get('ALLOWED_ORIGINS', 'http://localhost:3001,http://localhost:8080')
+        .split(',')
+        .map((origin) => origin.trim());
     app.enableCors({
-        origin: true,
+        origin: nodeEnv === 'production' ? allowedOrigins : true,
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Idempotency-Key'],
+        maxAge: 86400,
     });
     app.setGlobalPrefix(apiPrefix);
     app.useGlobalPipes(new common_1.ValidationPipe({

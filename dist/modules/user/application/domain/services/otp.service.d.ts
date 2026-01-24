@@ -8,6 +8,9 @@ export declare class OtpService implements OnModuleDestroy {
     private readonly redis;
     private readonly otpExpiry;
     private readonly otpLength;
+    private readonly maxAttempts;
+    private readonly rateLimitWindow;
+    private readonly maxOtpRequestsPerHour;
     private isRedisConnected;
     constructor(configService: ConfigService, smsGateway: ISmsGateway);
     onModuleDestroy(): Promise<void>;

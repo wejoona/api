@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Inject, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import * as crypto from 'crypto';
 import {
   ISmsGateway,
   SMS_GATEWAY,
@@ -12,6 +13,9 @@ export class OtpService implements OnModuleDestroy {
   private readonly redis: Redis;
   private readonly otpExpiry: number;
   private readonly otpLength: number;
+  private readonly maxAttempts: number;
+  private readonly rateLimitWindow: number = 3600; // 1 hour window for rate limiting
+  private readonly maxOtpRequestsPerHour: number = 5;
   private isRedisConnected = false;
 
   constructor(
@@ -50,6 +54,7 @@ export class OtpService implements OnModuleDestroy {
 
     this.otpExpiry = this.configService.get<number>('otp.expiresIn') || 300;
     this.otpLength = this.configService.get<number>('otp.length') || 6;
+    this.maxAttempts = this.configService.get<number>('otp.maxAttempts') || 3;
 
     this.logger.log(
       `OtpService initialized with SMS provider: ${this.smsGateway.providerName}`,
@@ -72,11 +77,28 @@ export class OtpService implements OnModuleDestroy {
   async sendOtp(phone: string): Promise<void> {
     this.ensureConnection();
 
+    // Rate limiting: check how many OTPs requested in the last hour
+    const rateLimitKey = `otp_rate:${phone}`;
+    const requestCount = await this.redis.get(rateLimitKey);
+
+    if (requestCount && parseInt(requestCount, 10) >= this.maxOtpRequestsPerHour) {
+      throw new BadRequestException('Too many OTP requests. Please try again later.');
+    }
+
     const otp = this.generateOtp();
     const key = this.getKey(phone);
 
     // Store OTP in Redis with expiry
     await this.redis.setex(key, this.otpExpiry, otp);
+
+    // Reset attempts counter for this OTP
+    await this.redis.setex(`${key}:attempts`, this.otpExpiry, '0');
+
+    // Increment rate limit counter
+    const pipeline = this.redis.pipeline();
+    pipeline.incr(rateLimitKey);
+    pipeline.expire(rateLimitKey, this.rateLimitWindow);
+    await pipeline.exec();
 
     // Log OTP in development mode for debugging
     if (this.configService.get<string>('nodeEnv') !== 'production') {
@@ -102,18 +124,35 @@ export class OtpService implements OnModuleDestroy {
     this.ensureConnection();
 
     const key = this.getKey(phone);
+    const attemptsKey = `${key}:attempts`;
+
+    // Check if locked out due to too many attempts
+    const attempts = await this.redis.get(attemptsKey);
+    if (attempts && parseInt(attempts, 10) >= this.maxAttempts) {
+      throw new BadRequestException('Too many failed attempts. Please request a new OTP.');
+    }
+
     const storedOtp = await this.redis.get(key);
 
     if (!storedOtp) {
       return false;
     }
 
-    if (storedOtp !== otp) {
+    // Use constant-time comparison to prevent timing attacks
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(storedOtp),
+      Buffer.from(otp.padEnd(storedOtp.length)),
+    ) && storedOtp.length === otp.length;
+
+    if (!isValid) {
+      // Increment failed attempts
+      await this.redis.incr(attemptsKey);
       return false;
     }
 
-    // Delete OTP after successful verification
+    // Delete OTP and attempts after successful verification
     await this.redis.del(key);
+    await this.redis.del(attemptsKey);
     return true;
   }
 
@@ -127,10 +166,12 @@ export class OtpService implements OnModuleDestroy {
   }
 
   private generateOtp(): string {
-    const digits = '0123456789';
+    // Use cryptographically secure random number generation
+    const bytes = crypto.randomBytes(this.otpLength);
     let otp = '';
     for (let i = 0; i < this.otpLength; i++) {
-      otp += digits[Math.floor(Math.random() * 10)];
+      // Use modulo to get a digit 0-9 from each byte
+      otp += (bytes[i] % 10).toString();
     }
     return otp;
   }

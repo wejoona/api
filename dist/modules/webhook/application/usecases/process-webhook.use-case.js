@@ -16,18 +16,39 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessWebhookUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const event_emitter_1 = require("@nestjs/event-emitter");
+const config_1 = require("@nestjs/config");
+const crypto = require("crypto");
 const payment_gateway_1 = require("../../../shared/domain/gateways/payment.gateway");
 const transaction_repository_1 = require("../../../transaction/infrastructure/repositories/transaction.repository");
 const wallet_repository_1 = require("../../../wallet/infrastructure/repositories/wallet.repository");
 const interfaces_1 = require("../../../providers/interfaces");
 let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCase {
-    constructor(paymentGateway, onRampProvider, transactionRepository, walletRepository, eventEmitter) {
+    constructor(paymentGateway, onRampProvider, transactionRepository, walletRepository, eventEmitter, configService) {
         this.paymentGateway = paymentGateway;
         this.onRampProvider = onRampProvider;
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.eventEmitter = eventEmitter;
+        this.configService = configService;
         this.logger = new common_1.Logger(ProcessWebhookUseCase_1.name);
+        this.circleWebhookSecret = this.configService.get('circle.webhookSecret', '');
+    }
+    verifyCircleSignature(rawBody, signature) {
+        if (!this.circleWebhookSecret) {
+            this.logger.warn('Circle webhook secret not configured');
+            return false;
+        }
+        try {
+            const expectedSignature = crypto
+                .createHmac('sha256', this.circleWebhookSecret)
+                .update(rawBody)
+                .digest('hex');
+            return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+        }
+        catch (error) {
+            this.logger.error('Error verifying Circle webhook signature');
+            return false;
+        }
     }
     async execute(input) {
         const provider = input.provider || 'generic';
@@ -88,11 +109,20 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 success: false,
                 eventType: event.type,
                 processed: false,
-                message: errorMessage,
+                message: 'Internal processing error',
             };
         }
     }
     async processCircleWebhook(input) {
+        if (!this.verifyCircleSignature(input.rawBody, input.signature)) {
+            this.logger.warn('Invalid Circle webhook signature');
+            return {
+                success: false,
+                eventType: 'unknown',
+                processed: false,
+                message: 'Invalid signature',
+            };
+        }
         const payload = input.payload;
         const notificationType = payload.notificationType;
         this.logger.log(`Circle webhook: ${notificationType}`);
@@ -132,7 +162,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 success: false,
                 eventType: notificationType,
                 processed: false,
-                message: errorMessage,
+                message: 'Internal processing error',
             };
         }
     }
@@ -196,7 +226,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 success: false,
                 eventType: event.type,
                 processed: false,
-                message: errorMessage,
+                message: 'Internal processing error',
             };
         }
     }
@@ -403,6 +433,7 @@ exports.ProcessWebhookUseCase = ProcessWebhookUseCase = ProcessWebhookUseCase_1 
     __param(1, (0, common_1.Inject)(interfaces_1.ONRAMP_PROVIDER_CI)),
     __metadata("design:paramtypes", [Object, Object, transaction_repository_1.TransactionRepository,
         wallet_repository_1.WalletRepository,
-        event_emitter_1.EventEmitter2])
+        event_emitter_1.EventEmitter2,
+        config_1.ConfigService])
 ], ProcessWebhookUseCase);
 //# sourceMappingURL=process-webhook.use-case.js.map

@@ -23,13 +23,12 @@ export default () => ({
     db: parseInt(process.env.REDIS_DB, 10) || 0,
   },
 
-  // Authentication
+  // Authentication - No fallback secrets for security
   jwt: {
-    secret:
-      process.env.JWT_SECRET ||
-      'your-super-secret-jwt-key-change-in-production',
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    secret: process.env.JWT_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m', // Shorter token lifetime
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
   // Circle Provider (Identity, Wallets, Transfers)

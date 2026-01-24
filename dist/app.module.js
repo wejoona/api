@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
 const throttler_1 = require("@nestjs/throttler");
@@ -57,16 +58,20 @@ exports.AppModule = AppModule = __decorate([
                     username: configService.get('database.user'),
                     password: configService.get('database.password'),
                     autoLoadEntities: true,
-                    synchronize: configService.get('NODE_ENV') === 'development',
+                    synchronize: false,
                     logging: configService.get('NODE_ENV') === 'development',
                 }),
             }),
-            throttler_1.ThrottlerModule.forRoot([
-                {
-                    ttl: 60000,
-                    limit: 100,
-                },
-            ]),
+            throttler_1.ThrottlerModule.forRootAsync({
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: (configService) => ([
+                    {
+                        ttl: configService.get('rateLimit.ttl', 60) * 1000,
+                        limit: configService.get('rateLimit.limit', 100),
+                    },
+                ]),
+            }),
             cqrs_1.CqrsModule,
             event_emitter_1.EventEmitterModule.forRoot(),
             schedule_1.ScheduleModule.forRoot(),
@@ -87,7 +92,13 @@ exports.AppModule = AppModule = __decorate([
             health_1.HealthModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

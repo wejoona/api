@@ -1,3 +1,4 @@
+import { DataSource } from 'typeorm';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
@@ -22,7 +23,9 @@ export declare class InternalTransferUseCase {
     private readonly walletRepository;
     private readonly transactionRepository;
     private readonly userRepository;
+    private readonly dataSource;
     private readonly paymentGateway;
-    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, paymentGateway: IPaymentGateway);
+    private readonly logger;
+    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, dataSource: DataSource, paymentGateway: IPaymentGateway);
     execute(input: InternalTransferInput): Promise<InternalTransferOutput>;
 }

@@ -16,6 +16,7 @@ export declare class RefreshTokenUsecase {
     private readonly configService;
     private readonly logger;
     private readonly refreshSecret;
+    private readonly refreshExpiresIn;
     constructor(userRepository: UserRepository, jwtService: JwtService, configService: ConfigService);
     execute(input: RefreshTokenInput): Promise<RefreshTokenOutput>;
     generateRefreshToken(userId: string): string;

@@ -1,4 +1,5 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { IPaymentGateway } from '@modules/shared/domain/gateways/payment.gateway';
 import { TransactionRepository } from '@modules/transaction/infrastructure/repositories/transaction.repository';
 import { WalletRepository } from '@modules/wallet/infrastructure/repositories/wallet.repository';
@@ -21,8 +22,11 @@ export declare class ProcessWebhookUseCase {
     private readonly transactionRepository;
     private readonly walletRepository;
     private readonly eventEmitter;
+    private readonly configService;
     private readonly logger;
-    constructor(paymentGateway: IPaymentGateway, onRampProvider: IOnRampProvider, transactionRepository: TransactionRepository, walletRepository: WalletRepository, eventEmitter: EventEmitter2);
+    private readonly circleWebhookSecret;
+    constructor(paymentGateway: IPaymentGateway, onRampProvider: IOnRampProvider, transactionRepository: TransactionRepository, walletRepository: WalletRepository, eventEmitter: EventEmitter2, configService: ConfigService);
+    private verifyCircleSignature;
     execute(input: ProcessWebhookInput): Promise<ProcessWebhookOutput>;
     private processYellowCardWebhook;
     private processCircleWebhook;
