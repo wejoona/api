@@ -25,6 +25,7 @@ import { ReportsModule } from './modules/reports';
 import { JobsModule } from './modules/jobs';
 import { HealthModule } from './modules/health';
 import { SecurityModule } from './modules/security';
+import { LegalModule } from './modules/legal/legal.module';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -100,6 +101,7 @@ import { BlnkModule } from './modules/providers/blnk';
     JobsModule,
     HealthModule,
     SecurityModule,
+    LegalModule,
   ],
   controllers: [AppController],
   providers: [
