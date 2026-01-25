@@ -54,6 +54,7 @@ __decorate([
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(500, { message: 'Note cannot exceed 500 characters' }),
     __metadata("design:type", String)
 ], CreateInternalTransferDto.prototype, "note", void 0);
 //# sourceMappingURL=create-internal-transfer.dto.js.map

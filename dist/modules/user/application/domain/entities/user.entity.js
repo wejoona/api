@@ -7,6 +7,7 @@ class User {
         this.id = props.id;
         this.phone = props.phone;
         this.phoneVerified = props.phoneVerified;
+        this.username = props.username;
         this.firstName = props.firstName;
         this.lastName = props.lastName;
         this.email = props.email;
@@ -32,6 +33,7 @@ class User {
             id: (0, uuid_1.v4)(),
             phone: props.phone,
             phoneVerified: false,
+            username: null,
             firstName: null,
             lastName: null,
             email: null,
@@ -60,6 +62,8 @@ class User {
         this.updatedAt = new Date();
     }
     updateProfile(props) {
+        if (props.username !== undefined)
+            this.username = props.username;
         if (props.firstName !== undefined)
             this.firstName = props.firstName;
         if (props.lastName !== undefined)
@@ -67,6 +71,17 @@ class User {
         if (props.email !== undefined)
             this.email = props.email;
         this.updatedAt = new Date();
+    }
+    setUsername(username) {
+        this.username = username;
+        this.updatedAt = new Date();
+    }
+    get displayName() {
+        if (this.username)
+            return `@${this.username}`;
+        if (this.fullName)
+            return this.fullName;
+        return this.phone;
     }
     submitKyc(kycProviderId) {
         this.kycStatus = 'submitted';
@@ -79,6 +94,10 @@ class User {
     }
     rejectKyc() {
         this.kycStatus = 'rejected';
+        this.updatedAt = new Date();
+    }
+    updateKycStatus(status) {
+        this.kycStatus = status;
         this.updatedAt = new Date();
     }
     linkToCircle(circleUserId, userToken) {

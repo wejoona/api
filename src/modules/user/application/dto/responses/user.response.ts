@@ -11,6 +11,9 @@ export class UserResponse {
   @ApiProperty({ example: true })
   phoneVerified: boolean;
 
+  @ApiProperty({ example: 'amadou_diallo', nullable: true })
+  username: string | null;
+
   @ApiProperty({ example: 'Amadou', nullable: true })
   firstName: string | null;
 
@@ -43,6 +46,7 @@ export class UserResponse {
     response.id = user.id;
     response.phone = user.phone;
     response.phoneVerified = user.phoneVerified;
+    response.username = user.username;
     response.firstName = user.firstName;
     response.lastName = user.lastName;
     response.email = user.email;

@@ -12,9 +12,26 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateProfileDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
+const class_transformer_1 = require("class-transformer");
 class UpdateProfileDto {
 }
 exports.UpdateProfileDto = UpdateProfileDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Unique username/handle (3-20 chars, alphanumeric and underscores only)',
+        example: 'amadou_diallo',
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(20),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9_]+$/, {
+        message: 'Username can only contain letters, numbers, and underscores',
+    }),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? value.toLowerCase().replace(/^@/, '') : value),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "username", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'User first name',

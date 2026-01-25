@@ -5,6 +5,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
+import { MetricsInterceptor, LoggingInterceptor } from './common/interceptors';
+import { MetricsService } from './modules/metrics/metrics.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -49,6 +51,13 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix(apiPrefix);
+
+  // Global interceptors for monitoring and logging
+  const metricsService = app.get(MetricsService);
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new MetricsInterceptor(metricsService),
+  );
 
   // Validation pipe
   app.useGlobalPipes(

@@ -4,6 +4,7 @@ import { PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY } from './domain/gateways';
 import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
 import { SmsFactory, createSmsGateway } from './infrastructure/gateways/sms';
 import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
+import { CacheInvalidationService } from './infrastructure/services';
 
 /**
  * SharedModule provides global access to external service gateways.
@@ -26,6 +27,8 @@ import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
 @Module({
   imports: [ConfigModule],
   providers: [
+    // Cache Service
+    CacheInvalidationService,
     // Payment Gateway (Yellow Card implementation)
     {
       provide: PAYMENT_GATEWAY,
@@ -54,6 +57,7 @@ import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
     PUSH_GATEWAY,
     SmsFactory,
     PushFactory,
+    CacheInvalidationService,
   ],
 })
 export class SharedModule {}

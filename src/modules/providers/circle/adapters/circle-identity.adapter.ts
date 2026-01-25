@@ -8,6 +8,12 @@ import {
   IdentityProviderUser,
 } from '../../interfaces';
 import { CircleConfig, CircleUser } from '../circle.types';
+import {
+  CircuitBreaker,
+  fetchWithTimeout,
+  RequestTimeoutError,
+  CircuitOpenError,
+} from '@common/utils';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -20,6 +26,9 @@ interface CircleUserResponse {
 interface CircleApiError {
   message: string;
 }
+
+/** Default timeout for Circle API calls (5 seconds) */
+const CIRCLE_API_TIMEOUT = 5000;
 
 /**
  * Circle Identity Adapter
@@ -38,6 +47,7 @@ interface CircleApiError {
 export class CircleIdentityAdapter implements IIdentityProvider {
   private readonly logger = new Logger(CircleIdentityAdapter.name);
   private readonly config: CircleConfig;
+  private readonly circuitBreaker: CircuitBreaker;
 
   readonly providerName = 'circle';
 
@@ -53,6 +63,14 @@ export class CircleIdentityAdapter implements IIdentityProvider {
       useMock: false, // This adapter is for real API only
     };
 
+    // Initialize circuit breaker for API resilience
+    // Opens after 5 consecutive failures, resets after 30 seconds
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'circle-identity',
+      failureThreshold: 5,
+      resetTimeout: 30000,
+    });
+
     if (!this.config.apiKey) {
       this.logger.warn('Circle API key not configured');
     } else {
@@ -60,9 +78,47 @@ export class CircleIdentityAdapter implements IIdentityProvider {
     }
   }
 
+  /**
+   * Execute a fetch request with timeout and circuit breaker protection
+   * @param url The URL to fetch
+   * @param options Fetch options
+   * @returns The fetch Response
+   */
+  private async secureFetch(
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> {
+    return this.circuitBreaker.execute(async () => {
+      return fetchWithTimeout(url, {
+        ...options,
+        timeout: CIRCLE_API_TIMEOUT,
+        logger: this.logger,
+      });
+    });
+  }
+
+  /**
+   * Handle API errors with proper logging based on error type
+   */
+  private handleApiError(error: unknown, operation: string): void {
+    if (error instanceof RequestTimeoutError) {
+      this.logger.error(
+        `Circle API timeout during ${operation}: ${error.message}`,
+      );
+    } else if (error instanceof CircuitOpenError) {
+      this.logger.warn(
+        `Circuit breaker open for Circle API during ${operation}: ${error.message}`,
+      );
+    } else {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to ${operation}: ${errorMessage}`);
+    }
+  }
+
   async createUser(data: CreateUserData): Promise<IdentityProviderUser> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/users`, {
+      const response = await this.secureFetch(`${this.config.baseUrl}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,16 +147,14 @@ export class CircleIdentityAdapter implements IIdentityProvider {
         createdAt: new Date(circleUser.createDate),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to create Circle user: ${errorMessage}`);
+      this.handleApiError(error, 'create Circle user');
       throw error;
     }
   }
 
   async getUser(providerId: string): Promise<IdentityProviderUser | null> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/users/${providerId}`,
         {
           headers: {
@@ -130,9 +184,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
         createdAt: new Date(circleUser.createDate),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get Circle user: ${errorMessage}`);
+      this.handleApiError(error, 'get Circle user');
       throw error;
     }
   }
@@ -177,9 +229,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
       // in the local database and merged with this data
       return user;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to update Circle user: ${errorMessage}`);
+      this.handleApiError(error, 'update Circle user');
       throw error;
     }
   }
@@ -193,7 +243,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
     status: 'ENABLED' | 'DISABLED',
   ): Promise<IdentityProviderUser> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/users/${providerId}/status`,
         {
           method: 'PUT',
@@ -222,9 +272,7 @@ export class CircleIdentityAdapter implements IIdentityProvider {
         createdAt: new Date(circleUser.createDate),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to update Circle user status: ${errorMessage}`);
+      this.handleApiError(error, 'update Circle user status');
       throw error;
     }
   }

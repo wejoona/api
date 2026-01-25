@@ -67,7 +67,7 @@ export interface IOnRampProvider {
     getDepositStatus(providerDepositId: string): Promise<DepositResult>;
     verifyWebhookSignature(payload: string, signature: string): boolean;
     parseWebhookEvent(payload: Record<string, unknown>): {
-        type: 'deposit.pending' | 'deposit.completed' | 'deposit.failed' | 'deposit.expired';
+        type: 'deposit.pending' | 'deposit.completed' | 'deposit.failed' | 'deposit.expired' | 'withdrawal.pending' | 'withdrawal.completed' | 'withdrawal.failed';
         depositId: string;
         data: Record<string, unknown>;
     };

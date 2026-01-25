@@ -12,6 +12,12 @@ import {
   CircleTransfer,
   CIRCLE_USDC_TOKENS,
 } from '../circle.types';
+import {
+  CircuitBreaker,
+  fetchWithTimeout,
+  RequestTimeoutError,
+  CircuitOpenError,
+} from '@common/utils';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -44,12 +50,16 @@ interface CircleApiError {
  * This adapter is for real API calls only - mock operations are handled
  * by MockCircleTransferAdapter.
  */
+/** Default timeout for Circle API calls (5 seconds) */
+const CIRCLE_API_TIMEOUT = 5000;
+
 @Injectable()
 export class CircleTransferAdapter implements ITransferProvider {
   private readonly logger = new Logger(CircleTransferAdapter.name);
   private readonly config: CircleConfig;
   private readonly defaultBlockchain: string;
   private readonly usdcTokenId: string;
+  private readonly circuitBreaker: CircuitBreaker;
 
   readonly providerName = 'circle';
 
@@ -71,6 +81,14 @@ export class CircleTransferAdapter implements ITransferProvider {
     this.usdcTokenId =
       tokenMap[this.defaultBlockchain] || CIRCLE_USDC_TOKENS['ETH-SEPOLIA'];
 
+    // Initialize circuit breaker for API resilience
+    // Opens after 5 consecutive failures, resets after 30 seconds
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'circle-transfer',
+      failureThreshold: 5,
+      resetTimeout: 30000,
+    });
+
     if (!this.config.apiKey) {
       this.logger.warn('Circle API key not configured');
     } else {
@@ -78,12 +96,31 @@ export class CircleTransferAdapter implements ITransferProvider {
     }
   }
 
+  /**
+   * Execute a fetch request with timeout and circuit breaker protection
+   * @param url The URL to fetch
+   * @param options Fetch options
+   * @returns The fetch Response
+   */
+  private async secureFetch(
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> {
+    return this.circuitBreaker.execute(async () => {
+      return fetchWithTimeout(url, {
+        ...options,
+        timeout: CIRCLE_API_TIMEOUT,
+        logger: this.logger,
+      });
+    });
+  }
+
   async internalTransfer(data: InternalTransferData): Promise<TransferResult> {
     try {
       // For internal transfers between Circle wallets, we need to:
       // 1. Get the destination wallet's address
       // 2. Execute a transfer to that address
-      const destWalletResponse = await fetch(
+      const destWalletResponse = await this.secureFetch(
         `${this.config.baseUrl}/wallets/${data.toWalletId}`,
         {
           headers: {
@@ -101,7 +138,7 @@ export class CircleTransferAdapter implements ITransferProvider {
       const destAddress = destWalletResult.data.wallet.address;
 
       // Execute transfer
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/transactions/transfer`,
         {
           method: 'POST',
@@ -134,16 +171,14 @@ export class CircleTransferAdapter implements ITransferProvider {
         (await response.json()) as CircleApiResponse<CircleTransferResponse>;
       return this.mapCircleTransfer(result.data.transfer);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to execute internal transfer: ${errorMessage}`);
+      this.handleApiError(error, 'execute internal transfer');
       throw error;
     }
   }
 
   async externalTransfer(data: ExternalTransferData): Promise<TransferResult> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/transactions/transfer`,
         {
           method: 'POST',
@@ -176,16 +211,14 @@ export class CircleTransferAdapter implements ITransferProvider {
         (await response.json()) as CircleApiResponse<CircleTransferResponse>;
       return this.mapCircleTransfer(result.data.transfer);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to execute external transfer: ${errorMessage}`);
+      this.handleApiError(error, 'execute external transfer');
       throw error;
     }
   }
 
   async getTransferStatus(providerTransferId: string): Promise<TransferResult> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/transactions/${providerTransferId}`,
         {
           headers: {
@@ -203,9 +236,7 @@ export class CircleTransferAdapter implements ITransferProvider {
         (await response.json()) as CircleApiResponse<CircleTransactionResponse>;
       return this.mapCircleTransfer(result.data.transaction);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get transfer status: ${errorMessage}`);
+      this.handleApiError(error, 'get transfer status');
       throw error;
     }
   }
@@ -214,7 +245,7 @@ export class CircleTransferAdapter implements ITransferProvider {
     data: Partial<ExternalTransferData>,
   ): Promise<{ fee: string; currency: string }> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/transactions/transfer/estimateFee`,
         {
           method: 'POST',
@@ -249,11 +280,28 @@ export class CircleTransferAdapter implements ITransferProvider {
         currency: 'USDC',
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to estimate fee: ${errorMessage}`);
+      this.handleApiError(error, 'estimate fee');
       // Return default fee on error
       return { fee: '1.00', currency: 'USDC' };
+    }
+  }
+
+  /**
+   * Handle API errors with proper logging based on error type
+   */
+  private handleApiError(error: unknown, operation: string): void {
+    if (error instanceof RequestTimeoutError) {
+      this.logger.error(
+        `Circle API timeout during ${operation}: ${error.message}`,
+      );
+    } else if (error instanceof CircuitOpenError) {
+      this.logger.warn(
+        `Circuit breaker open for Circle API during ${operation}: ${error.message}`,
+      );
+    } else {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to ${operation}: ${errorMessage}`);
     }
   }
 

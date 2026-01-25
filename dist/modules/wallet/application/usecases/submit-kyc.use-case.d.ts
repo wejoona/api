@@ -1,5 +1,6 @@
 import { IPaymentGateway } from '../../../shared/domain/gateways/payment.gateway';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
+import { UploadService } from '../../../upload/application/services/upload.service';
 export interface SubmitKycInput {
     userId: string;
     firstName: string;
@@ -16,6 +17,9 @@ export interface SubmitKycInput {
         postalCode?: string;
         country: string;
     };
+    documentFrontKey?: string;
+    documentBackKey?: string;
+    selfieKey?: string;
 }
 export interface SubmitKycOutput {
     walletId: string;
@@ -26,6 +30,7 @@ export interface SubmitKycOutput {
 export declare class SubmitKycUseCase {
     private readonly paymentGateway;
     private readonly walletRepository;
-    constructor(paymentGateway: IPaymentGateway, walletRepository: WalletRepository);
+    private readonly uploadService;
+    constructor(paymentGateway: IPaymentGateway, walletRepository: WalletRepository, uploadService: UploadService);
     execute(input: SubmitKycInput): Promise<SubmitKycOutput>;
 }

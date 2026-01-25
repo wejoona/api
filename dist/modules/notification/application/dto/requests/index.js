@@ -17,5 +17,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Requests = void 0;
 __exportStar(require("./register-device-token.request"), exports);
 __exportStar(require("./get-notifications.request"), exports);
+__exportStar(require("./register-fcm-token.request"), exports);
 exports.Requests = [];
 //# sourceMappingURL=index.js.map

@@ -12,6 +12,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const orm_entities_1 = require("../transaction/infrastructure/orm-entities");
 const scheduled_job_entity_1 = require("../admin/infrastructure/persistence/typeorm/entities/scheduled-job.entity");
 const audit_log_entity_1 = require("../admin/infrastructure/persistence/typeorm/entities/audit-log.entity");
+const fcm_1 = require("../notification/infrastructure/fcm");
+const orm_entities_2 = require("../notification/infrastructure/orm-entities");
 const scheduled_jobs_service_1 = require("./services/scheduled-jobs.service");
 let JobsModule = class JobsModule {
 };
@@ -23,6 +25,8 @@ exports.JobsModule = JobsModule = __decorate([
                 orm_entities_1.TransactionOrmEntity,
                 scheduled_job_entity_1.ScheduledJobEntity,
                 audit_log_entity_1.AuditLogEntity,
+                fcm_1.FcmTokenOrmEntity,
+                orm_entities_2.NotificationOrmEntity,
             ]),
         ],
         providers: [scheduled_jobs_service_1.ScheduledJobsService],

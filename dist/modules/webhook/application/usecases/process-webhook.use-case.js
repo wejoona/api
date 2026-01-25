@@ -23,14 +23,18 @@ const payment_gateway_1 = require("../../../shared/domain/gateways/payment.gatew
 const transaction_repository_1 = require("../../../transaction/infrastructure/repositories/transaction.repository");
 const wallet_repository_1 = require("../../../wallet/infrastructure/repositories/wallet.repository");
 const interfaces_1 = require("../../../providers/interfaces");
+const webhook_deadletter_service_1 = require("../domain/services/webhook-deadletter.service");
+const services_1 = require("../../../shared/infrastructure/services");
 let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCase {
-    constructor(paymentGateway, onRampProvider, transactionRepository, walletRepository, eventEmitter, configService) {
+    constructor(paymentGateway, onRampProvider, transactionRepository, walletRepository, eventEmitter, configService, deadLetterService, cacheInvalidationService) {
         this.paymentGateway = paymentGateway;
         this.onRampProvider = onRampProvider;
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.eventEmitter = eventEmitter;
         this.configService = configService;
+        this.deadLetterService = deadLetterService;
+        this.cacheInvalidationService = cacheInvalidationService;
         this.logger = new common_1.Logger(ProcessWebhookUseCase_1.name);
         this.isRedisConnected = false;
         this.circleWebhookSecret = this.configService.get('circle.webhookSecret', '');
@@ -122,12 +126,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             this.logger.warn(`Invalid Yellow Card webhook signature: ${errorMessage}`);
-            return {
-                success: false,
-                eventType: 'unknown',
-                processed: false,
-                message: 'Invalid signature',
-            };
+            throw new common_1.UnauthorizedException('Invalid webhook signature');
         }
         const event = this.onRampProvider.parseWebhookEvent(input.payload);
         const webhookId = `yellowcard:${event.depositId}:${event.type}`;
@@ -142,7 +141,6 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 message: 'Already processed',
             };
         }
-        await this.markAsProcessed(webhookId);
         try {
             switch (event.type) {
                 case 'deposit.pending':
@@ -157,6 +155,15 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 case 'deposit.expired':
                     await this.handleYcDepositExpired(event.depositId);
                     break;
+                case 'withdrawal.pending':
+                    await this.handleYcWithdrawalPending(event.depositId, event.data);
+                    break;
+                case 'withdrawal.completed':
+                    await this.handleYcWithdrawalCompleted(event.depositId, event.data);
+                    break;
+                case 'withdrawal.failed':
+                    await this.handleYcWithdrawalFailed(event.depositId, event.data);
+                    break;
                 default: {
                     const unhandledType = event.type;
                     this.logger.warn(`Unhandled Yellow Card event: ${unhandledType}`);
@@ -168,18 +175,21 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                     };
                 }
             }
+            await this.markAsProcessed(webhookId);
             return { success: true, eventType: event.type, processed: true };
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorStack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`Error processing Yellow Card webhook: ${errorMessage}`, errorStack);
-            return {
-                success: false,
+            await this.deadLetterService.log({
+                provider: 'yellowcard',
                 eventType: event.type,
-                processed: false,
-                message: 'Internal processing error',
-            };
+                webhookId,
+                payload: input.payload,
+                error: error instanceof Error ? error : new Error(errorMessage),
+            });
+            throw error;
         }
     }
     async processCircleWebhook(input) {
@@ -189,12 +199,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             this.logger.warn(`Invalid Circle webhook signature: ${errorMessage}`);
-            return {
-                success: false,
-                eventType: 'unknown',
-                processed: false,
-                message: 'Invalid signature',
-            };
+            throw new common_1.UnauthorizedException('Invalid webhook signature');
         }
         const payload = input.payload;
         const notificationType = payload.notificationType;
@@ -212,7 +217,6 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 message: 'Already processed',
             };
         }
-        await this.markAsProcessed(webhookId);
         try {
             switch (notificationType) {
                 case 'transfers.complete':
@@ -239,30 +243,28 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                         message: 'Notification type not handled',
                     };
             }
+            await this.markAsProcessed(webhookId);
             return { success: true, eventType: notificationType, processed: true };
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorStack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`Error processing Circle webhook: ${errorMessage}`, errorStack);
-            return {
-                success: false,
+            await this.deadLetterService.log({
+                provider: 'circle',
                 eventType: notificationType,
-                processed: false,
-                message: 'Internal processing error',
-            };
+                webhookId,
+                payload: input.payload,
+                error: error instanceof Error ? error : new Error(errorMessage),
+            });
+            throw error;
         }
     }
     async processGenericWebhook(input) {
         const isValid = this.paymentGateway.verifyWebhookSignature(input.rawBody, input.signature);
         if (!isValid) {
             this.logger.warn('Invalid webhook signature received');
-            return {
-                success: false,
-                eventType: 'unknown',
-                processed: false,
-                message: 'Invalid signature',
-            };
+            throw new common_1.UnauthorizedException('Invalid webhook signature');
         }
         const event = this.paymentGateway.parseWebhookEvent(input.payload);
         const webhookId = `generic:${event.referenceId}:${event.type}`;
@@ -277,7 +279,6 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 message: 'Already processed',
             };
         }
-        await this.markAsProcessed(webhookId);
         try {
             switch (event.type) {
                 case 'deposit.pending':
@@ -315,18 +316,21 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                     };
                 }
             }
+            await this.markAsProcessed(webhookId);
             return { success: true, eventType: event.type, processed: true };
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorStack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`Error processing webhook: ${errorMessage}`, errorStack);
-            return {
-                success: false,
+            await this.deadLetterService.log({
+                provider: 'generic',
                 eventType: event.type,
-                processed: false,
-                message: 'Internal processing error',
-            };
+                webhookId,
+                payload: input.payload,
+                error: error instanceof Error ? error : new Error(errorMessage),
+            });
+            throw error;
         }
     }
     async handleYcDepositPending(depositId, _data) {
@@ -369,6 +373,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 currency: 'USDC',
                 reference: depositId,
             });
+            await this.cacheInvalidationService.invalidateBalance(wallet.userId);
         }
         this.logger.log(`YC Deposit ${depositId} completed`);
     }
@@ -398,6 +403,73 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
             await this.transactionRepository.save(transaction);
             this.logger.log(`YC Deposit ${depositId} expired`);
         }
+    }
+    async handleYcWithdrawalPending(withdrawalId, _data) {
+        const transaction = await this.transactionRepository.findByProviderRef(withdrawalId);
+        if (transaction) {
+            transaction.updateStatus('processing');
+            await this.transactionRepository.save(transaction);
+            this.logger.log(`YC Withdrawal ${withdrawalId} now processing`);
+        }
+    }
+    async handleYcWithdrawalCompleted(withdrawalId, data) {
+        const transaction = await this.transactionRepository.findByProviderRef(withdrawalId);
+        if (!transaction) {
+            this.logger.warn(`Transaction not found for YC withdrawal: ${withdrawalId}`);
+            return;
+        }
+        transaction.complete();
+        await this.transactionRepository.save(transaction);
+        const wallet = await this.walletRepository.findById(transaction.walletId);
+        if (wallet?.userId) {
+            this.eventEmitter.emit('webhook.withdrawal.completed', {
+                userId: wallet.userId,
+                walletId: wallet.id,
+                withdrawalId,
+                amount: String(transaction.amount),
+                reference: `withdrawal-${withdrawalId}`,
+                provider: 'yellowcard',
+                data,
+            });
+            this.eventEmitter.emit('withdrawal.completed', {
+                userId: wallet.userId,
+                amount: String(transaction.amount),
+                currency: 'USDC',
+                reference: withdrawalId,
+            });
+            await this.cacheInvalidationService.invalidateBalance(wallet.userId);
+        }
+        this.logger.log(`YC Withdrawal ${withdrawalId} completed`);
+    }
+    async handleYcWithdrawalFailed(withdrawalId, data) {
+        const transaction = await this.transactionRepository.findByProviderRef(withdrawalId);
+        if (!transaction) {
+            this.logger.warn(`Transaction not found for failed YC withdrawal: ${withdrawalId}`);
+            return;
+        }
+        const reason = typeof data.reason === 'string' ? data.reason : 'Withdrawal failed';
+        transaction.fail(reason);
+        await this.transactionRepository.save(transaction);
+        const wallet = await this.walletRepository.findById(transaction.walletId);
+        if (wallet?.userId) {
+            this.eventEmitter.emit('webhook.withdrawal.failed', {
+                userId: wallet.userId,
+                walletId: wallet.id,
+                withdrawalId,
+                amount: String(transaction.amount),
+                reference: `withdrawal-${withdrawalId}`,
+                provider: 'yellowcard',
+                reason,
+            });
+            this.eventEmitter.emit('withdrawal.failed', {
+                userId: wallet.userId,
+                amount: String(transaction.amount),
+                currency: 'USDC',
+                reference: withdrawalId,
+                error: reason,
+            });
+        }
+        this.logger.log(`YC Withdrawal ${withdrawalId} failed: ${reason}`);
     }
     handleCircleTransferComplete(payload) {
         const transfer = payload.transfer;
@@ -456,6 +528,7 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
                 currency: 'USDC',
                 reference: inbound?.id || 'circle_inbound',
             });
+            await this.cacheInvalidationService.invalidateBalance(wallet.userId);
         }
     }
     async handleDepositPending(event) {
@@ -474,6 +547,9 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
             if (wallet && event.data?.amount) {
                 wallet.credit(Number(event.data.amount));
                 await this.walletRepository.save(wallet);
+                if (wallet.userId) {
+                    await this.cacheInvalidationService.invalidateBalance(wallet.userId);
+                }
             }
         }
     }
@@ -533,6 +609,8 @@ exports.ProcessWebhookUseCase = ProcessWebhookUseCase = ProcessWebhookUseCase_1 
     __metadata("design:paramtypes", [Object, Object, transaction_repository_1.TransactionRepository,
         wallet_repository_1.WalletRepository,
         event_emitter_1.EventEmitter2,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        webhook_deadletter_service_1.WebhookDeadletterService,
+        services_1.CacheInvalidationService])
 ], ProcessWebhookUseCase);
 //# sourceMappingURL=process-webhook.use-case.js.map

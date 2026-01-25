@@ -20,4 +20,5 @@ __exportStar(require("./login-user.dto"), exports);
 __exportStar(require("./update-profile.dto"), exports);
 __exportStar(require("./refresh-token.dto"), exports);
 __exportStar(require("./logout.dto"), exports);
+__exportStar(require("./username.dto"), exports);
 //# sourceMappingURL=index.js.map

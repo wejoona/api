@@ -1,5 +1,15 @@
-# Backend API CI/CD Pipeline with Security Scanning
-name: CI/CD
+# =============================================================================
+# JoonaPay USDC Wallet - CI Pipeline
+# =============================================================================
+# Runs on all PRs and pushes to main/develop branches
+# - Security scanning
+# - Linting and type checking
+# - Unit tests with coverage
+# - Build verification
+# - Docker image build and scan
+# =============================================================================
+
+name: CI
 
 on:
   push:
@@ -9,14 +19,25 @@ on:
 
 env:
   NODE_VERSION: '20.x'
+  DOCKER_REGISTRY: ghcr.io
+  DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # Security scanning job - runs first
+  # ===========================================================================
+  # Security Scanning
+  # ===========================================================================
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,7 +52,7 @@ jobs:
         run: npm audit --audit-level=high
         continue-on-error: true
 
-      - name: Run Snyk to check for vulnerabilities
+      - name: Run Snyk security scan
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
@@ -44,12 +65,23 @@ jobs:
         with:
           extra_args: --only-verified
 
-  # Lint and type checking
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  # ===========================================================================
+  # Lint and Type Check
+  # ===========================================================================
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -66,7 +98,12 @@ jobs:
       - name: Run TypeScript type check
         run: npx tsc --noEmit
 
-  # Unit tests
+      - name: Check Prettier formatting
+        run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
+
+  # ===========================================================================
+  # Unit Tests
+  # ===========================================================================
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -77,7 +114,7 @@ jobs:
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
+          POSTGRES_DB: test_db
         ports:
           - 5432:5432
         options: >-
@@ -85,6 +122,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
       redis:
         image: redis:7-alpine
         ports:
@@ -96,7 +134,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -107,29 +146,71 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Run unit tests with coverage
         run: npm run test:cov
         env:
           NODE_ENV: test
-          DATABASE_URL: postgres://test:test@localhost:5432/test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-secret-key-for-ci-minimum-32-chars
-          JWT_REFRESH_SECRET: test-refresh-secret-key-ci-32-chars
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USER: test
+          DATABASE_PASSWORD: test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key-for-ci-minimum-32-characters-long
+          JWT_REFRESH_SECRET: test-refresh-secret-key-ci-minimum-32-characters
 
-      - name: Upload coverage reports
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           fail_ci_if_error: false
+          verbose: true
 
-  # Build check
-  build:
-    name: Build
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ===========================================================================
+  # E2E Tests (Optional - runs on main only)
+  # ===========================================================================
+  test-e2e:
+    name: E2E Tests
     runs-on: ubuntu-latest
-    needs: [test, security]
+    needs: [test]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -140,47 +221,145 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_NAME: test_db
+          DATABASE_USER: test
+          DATABASE_PASSWORD: test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key-for-ci-minimum-32-characters-long
+          JWT_REFRESH_SECRET: test-refresh-secret-key-ci-minimum-32-characters
+
+  # ===========================================================================
+  # Build Application
+  # ===========================================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
         run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist
+          path: dist/
           retention-days: 7
 
-  # Docker build (for production deployments)
+  # ===========================================================================
+  # Docker Build and Scan
+  # ===========================================================================
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
           push: false
-          tags: joonapay/api:${{ github.sha }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: joonapay/api:${{ github.sha }}
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          exit-code: '0'
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # PR Status Check
+  # ===========================================================================
+  pr-check:
+    name: PR Status
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security]
+    if: always()
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "One or more required jobs failed"
+            exit 1
+          fi
+          echo "All required checks passed!"

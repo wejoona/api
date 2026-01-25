@@ -21,6 +21,8 @@ export interface IWallet {
 export interface CreateWalletProps {
   userId: string;
   yellowCardWalletId?: string;
+  circleWalletId?: string;
+  circleWalletAddress?: string;
   currency?: string;
 }
 
@@ -58,8 +60,8 @@ export class WalletEntity implements IWallet {
       id: uuidv4(),
       userId: props.userId,
       yellowCardWalletId: props.yellowCardWalletId || null,
-      circleWalletId: null,
-      circleWalletAddress: null,
+      circleWalletId: props.circleWalletId || null,
+      circleWalletAddress: props.circleWalletAddress || null,
       currency: props.currency || 'USDC',
       balance: 0,
       kycStatus: 'none',

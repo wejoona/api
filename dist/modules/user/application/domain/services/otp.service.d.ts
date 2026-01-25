@@ -19,5 +19,13 @@ export declare class OtpService implements OnModuleDestroy {
     verifyOtp(phone: string, otp: string): Promise<boolean>;
     resendOtp(phone: string): Promise<void>;
     private generateOtp;
+    getOtp(phone: string): Promise<string | null>;
+    getOtpDebugInfo(phone: string): Promise<{
+        otp: string | null;
+        ttl: number;
+        attempts: number;
+        isLocked: boolean;
+        lockoutRemaining: number | null;
+    }>;
     private getKey;
 }

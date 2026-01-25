@@ -1,6 +1,6 @@
 import { WalletEntity } from '../../domain/entities/wallet.entity';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
-import { IPaymentGateway } from '../../../shared/domain/gateways';
+import { IIdentityProvider, IWalletProvider, ILedgerProvider } from '../../../providers/interfaces';
 export interface CreateWalletInput {
     userId: string;
     userName?: string;
@@ -10,7 +10,10 @@ export interface CreateWalletInput {
 }
 export declare class CreateWalletUseCase {
     private readonly repository;
-    private readonly paymentGateway;
-    constructor(repository: WalletRepository, paymentGateway: IPaymentGateway);
+    private readonly identityProvider;
+    private readonly walletProvider;
+    private readonly ledgerProvider;
+    private readonly logger;
+    constructor(repository: WalletRepository, identityProvider: IIdentityProvider, walletProvider: IWalletProvider, ledgerProvider: ILedgerProvider);
     execute(input: CreateWalletInput): Promise<WalletEntity>;
 }

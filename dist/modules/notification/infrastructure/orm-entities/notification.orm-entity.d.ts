@@ -1,4 +1,4 @@
-export type NotificationType = 'transfer_received' | 'transfer_sent' | 'transfer_failed' | 'deposit_completed' | 'deposit_failed' | 'withdrawal_completed' | 'withdrawal_failed' | 'kyc_approved' | 'kyc_rejected' | 'low_balance' | 'system' | 'promotional';
+export type NotificationType = 'transfer_received' | 'transfer_sent' | 'transfer_failed' | 'transfer_complete' | 'deposit_completed' | 'deposit_complete' | 'deposit_failed' | 'withdrawal_completed' | 'withdrawal_complete' | 'withdrawal_failed' | 'withdrawal_pending' | 'kyc_approved' | 'kyc_rejected' | 'kyc_update' | 'low_balance' | 'system' | 'promotional' | 'new_device_login' | 'large_transaction' | 'address_whitelisted' | 'security_alert' | 'price_alert' | 'weekly_summary';
 export type NotificationStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 export declare class NotificationOrmEntity {
     id: string;

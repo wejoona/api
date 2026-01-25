@@ -24,14 +24,29 @@ import {
   GetRateUseCase,
   SubmitKycUseCase,
   GetKycStatusUseCase,
+  VerifyPinUseCase,
+  SetPinUseCase,
+  ExportTransactionsUseCase,
 } from './application/usecases';
 
 // Controllers
 import { WalletController } from './application/controllers/wallet.controller';
+import { KycUploadController } from './application/controllers/kyc-upload.controller';
+import { ExportController } from './application/controllers/export.controller';
 
 // Other modules needed
 import { TransactionModule } from '../transaction/transaction.module';
 import { UserModule } from '../user/user.module';
+import { UploadModule } from '../upload';
+import { CircleModule } from '../providers/circle/circle.module';
+import { BlnkModule } from '../providers/blnk/blnk.module';
+import { RiskModule } from '../risk/risk.module';
+
+// Guards
+import {
+  PinVerificationGuard,
+  PinTokenService,
+} from '../../common/guards/pin-verification.guard';
 
 @Module({
   imports: [
@@ -39,12 +54,19 @@ import { UserModule } from '../user/user.module';
     CqrsModule,
     forwardRef(() => TransactionModule),
     forwardRef(() => UserModule),
+    UploadModule,
+    CircleModule,
+    BlnkModule,
+    RiskModule, // Circle Compliance Engine for address screening
   ],
   providers: [
     // Repositories
     WalletRepository,
     // Mappers
     WalletMapper,
+    // Guards & Services
+    PinVerificationGuard,
+    PinTokenService,
     // Use Cases
     CreateWalletUseCase,
     UpdateWalletUseCase,
@@ -57,8 +79,11 @@ import { UserModule } from '../user/user.module';
     GetRateUseCase,
     SubmitKycUseCase,
     GetKycStatusUseCase,
+    VerifyPinUseCase,
+    SetPinUseCase,
+    ExportTransactionsUseCase,
   ],
-  controllers: [WalletController],
+  controllers: [WalletController, KycUploadController, ExportController],
   exports: [
     WalletRepository,
     CreateWalletUseCase,

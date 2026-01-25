@@ -16,6 +16,11 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controllers = void 0;
 __exportStar(require("./notification.controller"), exports);
+__exportStar(require("./push-notification.controller"), exports);
 const notification_controller_1 = require("./notification.controller");
-exports.Controllers = [notification_controller_1.NotificationController];
+const push_notification_controller_1 = require("./push-notification.controller");
+exports.Controllers = [
+    notification_controller_1.NotificationController,
+    push_notification_controller_1.PushNotificationController,
+];
 //# sourceMappingURL=index.js.map

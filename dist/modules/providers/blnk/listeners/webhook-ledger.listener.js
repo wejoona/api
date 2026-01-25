@@ -92,6 +92,42 @@ let WebhookLedgerListener = WebhookLedgerListener_1 = class WebhookLedgerListene
     async handleDepositFailedNotification(payload) {
         this.logger.debug(`Deposit failed notification for user ${payload.userId}: ${payload.error}`);
     }
+    async handleWithdrawalCompleted(payload) {
+        try {
+            this.logger.log(`Committing withdrawal for user ${payload.userId}: ${payload.amount} USDC via ${payload.provider}`);
+            const transaction = await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+            if (transaction) {
+                await this.blnkLedgerAdapter.commitTransaction(transaction.transactionId);
+                this.logger.log(`Successfully committed withdrawal ${payload.withdrawalId} (txn: ${transaction.transactionId})`);
+            }
+            else {
+                this.logger.warn(`No inflight transaction found for withdrawal ${payload.withdrawalId}. ` +
+                    `It may have already been committed or the reference format differs.`);
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Failed to commit withdrawal ${payload.withdrawalId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+        }
+    }
+    async handleWithdrawalFailed(payload) {
+        try {
+            this.logger.log(`Voiding failed withdrawal ${payload.withdrawalId}: ${payload.reason}`);
+            const transaction = await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+            if (transaction) {
+                await this.blnkLedgerAdapter.voidTransaction(transaction.transactionId);
+                this.logger.log(`Successfully voided failed withdrawal ${payload.withdrawalId} (txn: ${transaction.transactionId})`);
+            }
+            else {
+                this.logger.warn(`No inflight transaction found for failed withdrawal ${payload.withdrawalId}. ` +
+                    `It may have already been voided or the reference format differs.`);
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Failed to void withdrawal ${payload.withdrawalId}: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
+        }
+    }
 };
 exports.WebhookLedgerListener = WebhookLedgerListener;
 __decorate([
@@ -124,6 +160,18 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], WebhookLedgerListener.prototype, "handleDepositFailedNotification", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('webhook.withdrawal.completed'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WebhookLedgerListener.prototype, "handleWithdrawalCompleted", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('webhook.withdrawal.failed'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WebhookLedgerListener.prototype, "handleWithdrawalFailed", null);
 exports.WebhookLedgerListener = WebhookLedgerListener = WebhookLedgerListener_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [blnk_ledger_adapter_1.BlnkLedgerAdapter])

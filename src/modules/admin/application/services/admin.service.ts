@@ -3,11 +3,15 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { UserOrmEntity } from '@modules/user/infrastructure/orm-entities';
 import { SystemMetricEntity } from '../../infrastructure/persistence/typeorm/entities/system-metric.entity';
+import { TransactionRepository } from '@modules/transaction/infrastructure/repositories/transaction.repository';
 import { AuditService } from './audit.service';
 
 export interface UserListQuery {
@@ -38,20 +42,42 @@ export interface DashboardStats {
   totalTransactions: number;
   pendingTransactions: number;
   completedTransactions: number;
+  failedTransactions: number;
   totalVolume: number;
   todayVolume: number;
+}
+
+export interface EnhancedDashboardStats extends DashboardStats {
+  transactionTimeSeries: {
+    date: string;
+    count: number;
+    volume: number;
+  }[];
+  userGrowthTimeSeries: {
+    date: string;
+    newUsers: number;
+    totalUsers: number;
+  }[];
+  transactionsByType: Record<string, number>;
+  transactionsByStatus: Record<string, number>;
 }
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
+  private readonly CACHE_TTL = 60; // 1 minute in seconds
+  private readonly DASHBOARD_CACHE_KEY = 'admin:dashboard:stats';
+  private readonly ENHANCED_DASHBOARD_CACHE_KEY = 'admin:dashboard:enhanced';
 
   constructor(
     @InjectRepository(UserOrmEntity)
     private readonly userRepository: Repository<UserOrmEntity>,
     @InjectRepository(SystemMetricEntity)
     private readonly metricRepository: Repository<SystemMetricEntity>,
+    private readonly transactionRepository: TransactionRepository,
     private readonly auditService: AuditService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   // ==========================================
@@ -294,7 +320,95 @@ export class AdminService {
   // Dashboard & Metrics
   // ==========================================
 
+  /**
+   * Get basic dashboard statistics with caching
+   * Cache TTL: 1 minute
+   */
   async getDashboardStats(): Promise<DashboardStats> {
+    // Try to get from cache first
+    const cached = await this.cacheManager.get<DashboardStats>(
+      this.DASHBOARD_CACHE_KEY,
+    );
+    if (cached) {
+      this.logger.debug('Returning cached dashboard stats');
+      return cached;
+    }
+
+    // Fetch fresh data
+    const [userStats, transactionStats] = await Promise.all([
+      this.getUserStats(),
+      this.transactionRepository.getTransactionStats(),
+    ]);
+
+    const stats: DashboardStats = {
+      ...userStats,
+      totalTransactions: transactionStats.total,
+      pendingTransactions: transactionStats.pending,
+      completedTransactions: transactionStats.completed,
+      failedTransactions: transactionStats.failed,
+      totalVolume: transactionStats.totalVolume,
+      todayVolume: transactionStats.todayVolume,
+    };
+
+    // Cache for 1 minute
+    await this.cacheManager.set(this.DASHBOARD_CACHE_KEY, stats, this.CACHE_TTL * 1000);
+
+    return stats;
+  }
+
+  /**
+   * Get enhanced dashboard statistics with time-series data
+   * Includes charts and detailed breakdowns
+   */
+  async getEnhancedDashboardStats(days = 30): Promise<EnhancedDashboardStats> {
+    const cacheKey = `${this.ENHANCED_DASHBOARD_CACHE_KEY}:${days}`;
+
+    // Try to get from cache first
+    const cached = await this.cacheManager.get<EnhancedDashboardStats>(cacheKey);
+    if (cached) {
+      this.logger.debug('Returning cached enhanced dashboard stats');
+      return cached;
+    }
+
+    // Fetch all data in parallel for performance
+    const [
+      basicStats,
+      transactionTimeSeries,
+      userGrowthTimeSeries,
+      transactionsByType,
+      transactionsByStatus,
+    ] = await Promise.all([
+      this.getDashboardStats(),
+      this.transactionRepository.getTransactionTimeSeries(days),
+      this.getUserGrowthTimeSeries(days),
+      this.transactionRepository.getTransactionCountByType(),
+      this.transactionRepository.getTransactionCountByStatus(),
+    ]);
+
+    const enhancedStats: EnhancedDashboardStats = {
+      ...basicStats,
+      transactionTimeSeries,
+      userGrowthTimeSeries,
+      transactionsByType,
+      transactionsByStatus,
+    };
+
+    // Cache for 1 minute
+    await this.cacheManager.set(cacheKey, enhancedStats, this.CACHE_TTL * 1000);
+
+    return enhancedStats;
+  }
+
+  /**
+   * Get user statistics (private helper)
+   */
+  private async getUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    suspendedUsers: number;
+    kycPendingUsers: number;
+    kycApprovedUsers: number;
+  }> {
     const [
       totalUsers,
       activeUsers,
@@ -309,20 +423,68 @@ export class AdminService {
       this.userRepository.count({ where: { kycStatus: 'approved' } }),
     ]);
 
-    // TODO: Get transaction stats from transaction repository
-    // For now, return placeholder values
     return {
       totalUsers,
       activeUsers,
       suspendedUsers,
       kycPendingUsers,
       kycApprovedUsers,
-      totalTransactions: 0,
-      pendingTransactions: 0,
-      completedTransactions: 0,
-      totalVolume: 0,
-      todayVolume: 0,
     };
+  }
+
+  /**
+   * Get user growth time-series data
+   * Returns daily new user count and running total
+   */
+  async getUserGrowthTimeSeries(
+    days: number,
+  ): Promise<{ date: string; newUsers: number; totalUsers: number }[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get daily new user counts
+    const result = await this.userRepository
+      .createQueryBuilder('user')
+      .select('DATE(user.createdAt)', 'date')
+      .addSelect('COUNT(*)', 'newUsers')
+      .where('user.createdAt >= :startDate', { startDate })
+      .groupBy('DATE(user.createdAt)')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    // Calculate running total for each day
+    let runningTotal = 0;
+    const usersBeforeStartDate = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.createdAt < :startDate', { startDate })
+      .getCount();
+
+    runningTotal = usersBeforeStartDate;
+
+    return result.map((row) => {
+      const newUsers = parseInt(row.newUsers, 10);
+      runningTotal += newUsers;
+      return {
+        date: row.date,
+        newUsers,
+        totalUsers: runningTotal,
+      };
+    });
+  }
+
+  /**
+   * Invalidate dashboard cache
+   * Call this when significant data changes occur
+   */
+  async invalidateDashboardCache(): Promise<void> {
+    await Promise.all([
+      this.cacheManager.del(this.DASHBOARD_CACHE_KEY),
+      // Delete all enhanced dashboard cache entries (different day ranges)
+      this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:7`),
+      this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:30`),
+      this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:90`),
+    ]);
+    this.logger.log('Dashboard cache invalidated');
   }
 
   async recordMetric(

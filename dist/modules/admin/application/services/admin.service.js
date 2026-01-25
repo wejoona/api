@@ -17,15 +17,22 @@ exports.AdminService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const cache_manager_1 = require("@nestjs/cache-manager");
 const orm_entities_1 = require("../../../user/infrastructure/orm-entities");
 const system_metric_entity_1 = require("../../infrastructure/persistence/typeorm/entities/system-metric.entity");
+const transaction_repository_1 = require("../../../transaction/infrastructure/repositories/transaction.repository");
 const audit_service_1 = require("./audit.service");
 let AdminService = AdminService_1 = class AdminService {
-    constructor(userRepository, metricRepository, auditService) {
+    constructor(userRepository, metricRepository, transactionRepository, auditService, cacheManager) {
         this.userRepository = userRepository;
         this.metricRepository = metricRepository;
+        this.transactionRepository = transactionRepository;
         this.auditService = auditService;
+        this.cacheManager = cacheManager;
         this.logger = new common_1.Logger(AdminService_1.name);
+        this.CACHE_TTL = 60;
+        this.DASHBOARD_CACHE_KEY = 'admin:dashboard:stats';
+        this.ENHANCED_DASHBOARD_CACHE_KEY = 'admin:dashboard:enhanced';
     }
     sanitizeSearchInput(search) {
         let sanitized = search.replace(/[^a-zA-Z0-9\s@.+\-]/g, '');
@@ -35,7 +42,7 @@ let AdminService = AdminService_1 = class AdminService {
     }
     async listUsers(query) {
         const page = query.page || 1;
-        const limit = query.limit || 50;
+        const limit = Math.min(query.limit || 50, 100);
         const skip = (page - 1) * limit;
         const queryBuilder = this.userRepository
             .createQueryBuilder('user')
@@ -143,6 +150,52 @@ let AdminService = AdminService_1 = class AdminService {
         return saved;
     }
     async getDashboardStats() {
+        const cached = await this.cacheManager.get(this.DASHBOARD_CACHE_KEY);
+        if (cached) {
+            this.logger.debug('Returning cached dashboard stats');
+            return cached;
+        }
+        const [userStats, transactionStats] = await Promise.all([
+            this.getUserStats(),
+            this.transactionRepository.getTransactionStats(),
+        ]);
+        const stats = {
+            ...userStats,
+            totalTransactions: transactionStats.total,
+            pendingTransactions: transactionStats.pending,
+            completedTransactions: transactionStats.completed,
+            failedTransactions: transactionStats.failed,
+            totalVolume: transactionStats.totalVolume,
+            todayVolume: transactionStats.todayVolume,
+        };
+        await this.cacheManager.set(this.DASHBOARD_CACHE_KEY, stats, this.CACHE_TTL * 1000);
+        return stats;
+    }
+    async getEnhancedDashboardStats(days = 30) {
+        const cacheKey = `${this.ENHANCED_DASHBOARD_CACHE_KEY}:${days}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            this.logger.debug('Returning cached enhanced dashboard stats');
+            return cached;
+        }
+        const [basicStats, transactionTimeSeries, userGrowthTimeSeries, transactionsByType, transactionsByStatus,] = await Promise.all([
+            this.getDashboardStats(),
+            this.transactionRepository.getTransactionTimeSeries(days),
+            this.getUserGrowthTimeSeries(days),
+            this.transactionRepository.getTransactionCountByType(),
+            this.transactionRepository.getTransactionCountByStatus(),
+        ]);
+        const enhancedStats = {
+            ...basicStats,
+            transactionTimeSeries,
+            userGrowthTimeSeries,
+            transactionsByType,
+            transactionsByStatus,
+        };
+        await this.cacheManager.set(cacheKey, enhancedStats, this.CACHE_TTL * 1000);
+        return enhancedStats;
+    }
+    async getUserStats() {
         const [totalUsers, activeUsers, suspendedUsers, kycPendingUsers, kycApprovedUsers,] = await Promise.all([
             this.userRepository.count(),
             this.userRepository.count({ where: { status: 'active' } }),
@@ -156,12 +209,43 @@ let AdminService = AdminService_1 = class AdminService {
             suspendedUsers,
             kycPendingUsers,
             kycApprovedUsers,
-            totalTransactions: 0,
-            pendingTransactions: 0,
-            completedTransactions: 0,
-            totalVolume: 0,
-            todayVolume: 0,
         };
+    }
+    async getUserGrowthTimeSeries(days) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        const result = await this.userRepository
+            .createQueryBuilder('user')
+            .select('DATE(user.createdAt)', 'date')
+            .addSelect('COUNT(*)', 'newUsers')
+            .where('user.createdAt >= :startDate', { startDate })
+            .groupBy('DATE(user.createdAt)')
+            .orderBy('date', 'ASC')
+            .getRawMany();
+        let runningTotal = 0;
+        const usersBeforeStartDate = await this.userRepository
+            .createQueryBuilder('user')
+            .where('user.createdAt < :startDate', { startDate })
+            .getCount();
+        runningTotal = usersBeforeStartDate;
+        return result.map((row) => {
+            const newUsers = parseInt(row.newUsers, 10);
+            runningTotal += newUsers;
+            return {
+                date: row.date,
+                newUsers,
+                totalUsers: runningTotal,
+            };
+        });
+    }
+    async invalidateDashboardCache() {
+        await Promise.all([
+            this.cacheManager.del(this.DASHBOARD_CACHE_KEY),
+            this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:7`),
+            this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:30`),
+            this.cacheManager.del(`${this.ENHANCED_DASHBOARD_CACHE_KEY}:90`),
+        ]);
+        this.logger.log('Dashboard cache invalidated');
     }
     async recordMetric(name, value, type = 'gauge', dimensions) {
         const metric = this.metricRepository.create({
@@ -218,8 +302,10 @@ exports.AdminService = AdminService = AdminService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(orm_entities_1.UserOrmEntity)),
     __param(1, (0, typeorm_1.InjectRepository)(system_metric_entity_1.SystemMetricEntity)),
+    __param(4, (0, common_1.Inject)(cache_manager_1.CACHE_MANAGER)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        audit_service_1.AuditService])
+        transaction_repository_1.TransactionRepository,
+        audit_service_1.AuditService, Object])
 ], AdminService);
 //# sourceMappingURL=admin.service.js.map

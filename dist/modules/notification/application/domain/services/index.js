@@ -17,10 +17,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Services = void 0;
 const balance_monitor_handler_service_1 = require("./balance-monitor-handler.service");
 const notification_service_1 = require("./notification.service");
+const push_notification_service_1 = require("./push-notification.service");
 __exportStar(require("./balance-monitor-handler.service"), exports);
 __exportStar(require("./notification.service"), exports);
+__exportStar(require("./push-notification.service"), exports);
 exports.Services = [
     notification_service_1.NotificationService,
     balance_monitor_handler_service_1.BalanceMonitorHandlerService,
+    push_notification_service_1.PushNotificationService,
 ];
 //# sourceMappingURL=index.js.map

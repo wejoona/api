@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UseCases = exports.SetPinUseCase = exports.VerifyPinUseCase = exports.GetKycStatusUseCase = exports.SubmitKycUseCase = exports.GetRateUseCase = exports.ExternalTransferUseCase = exports.InternalTransferUseCase = exports.InitiateDepositUseCase = exports.GetDepositChannelsUseCase = exports.GetBalanceUseCase = exports.DeleteWalletUseCase = exports.UpdateWalletUseCase = exports.CreateWalletUseCase = void 0;
+exports.UseCases = exports.ExportTransactionsUseCase = exports.SetPinUseCase = exports.VerifyPinUseCase = exports.GetKycStatusUseCase = exports.SubmitKycUseCase = exports.GetRateUseCase = exports.ExternalTransferUseCase = exports.InternalTransferUseCase = exports.InitiateDepositUseCase = exports.GetDepositChannelsUseCase = exports.GetBalanceUseCase = exports.DeleteWalletUseCase = exports.UpdateWalletUseCase = exports.CreateWalletUseCase = void 0;
 const create_wallet_use_case_1 = require("./create-wallet.use-case");
 Object.defineProperty(exports, "CreateWalletUseCase", { enumerable: true, get: function () { return create_wallet_use_case_1.CreateWalletUseCase; } });
 const update_wallet_use_case_1 = require("./update-wallet.use-case");
@@ -27,6 +27,8 @@ const verify_pin_use_case_1 = require("./verify-pin.use-case");
 Object.defineProperty(exports, "VerifyPinUseCase", { enumerable: true, get: function () { return verify_pin_use_case_1.VerifyPinUseCase; } });
 const set_pin_use_case_1 = require("./set-pin.use-case");
 Object.defineProperty(exports, "SetPinUseCase", { enumerable: true, get: function () { return set_pin_use_case_1.SetPinUseCase; } });
+const export_transactions_use_case_1 = require("./export-transactions.use-case");
+Object.defineProperty(exports, "ExportTransactionsUseCase", { enumerable: true, get: function () { return export_transactions_use_case_1.ExportTransactionsUseCase; } });
 exports.UseCases = [
     create_wallet_use_case_1.CreateWalletUseCase,
     update_wallet_use_case_1.UpdateWalletUseCase,
@@ -41,5 +43,6 @@ exports.UseCases = [
     get_kyc_status_use_case_1.GetKycStatusUseCase,
     verify_pin_use_case_1.VerifyPinUseCase,
     set_pin_use_case_1.SetPinUseCase,
+    export_transactions_use_case_1.ExportTransactionsUseCase,
 ];
 //# sourceMappingURL=index.js.map

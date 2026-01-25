@@ -1,0 +1,163 @@
+groups:
+  - name: usdc_wallet_alerts
+    interval: 30s
+    rules:
+      # API Health
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(usdc_wallet_http_request_errors_total[5m])) by (path)
+            /
+            sum(rate(usdc_wallet_http_requests_total[5m])) by (path)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.path }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.path }}"
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(usdc_wallet_http_request_errors_total[5m])) by (path)
+            /
+            sum(rate(usdc_wallet_http_requests_total[5m])) by (path)
+          ) > 0.20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate on {{ $labels.path }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.path }}"
+
+      # API Latency
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(usdc_wallet_http_request_duration_seconds_bucket[5m])) by (path, le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on {{ $labels.path }}"
+          description: "95th percentile latency is {{ $value }}s on {{ $labels.path }}"
+
+      # Database
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(usdc_wallet_db_query_duration_seconds_bucket[5m])) by (table, operation, le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries on {{ $labels.table }}"
+          description: "95th percentile query time is {{ $value }}s for {{ $labels.operation }} on {{ $labels.table }}"
+
+      - alert: DatabaseErrors
+        expr: rate(usdc_wallet_db_errors_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database errors detected"
+          description: "Database error rate is {{ $value }} errors/sec"
+
+      # External APIs
+      - alert: ExternalAPIErrors
+        expr: |
+          (
+            sum(rate(usdc_wallet_external_api_errors_total[5m])) by (provider)
+            /
+            sum(rate(usdc_wallet_external_api_calls_total[5m])) by (provider)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate from {{ $labels.provider }}"
+          description: "{{ $labels.provider }} error rate is {{ $value | humanizePercentage }}"
+
+      - alert: ExternalAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(usdc_wallet_external_api_latency_seconds_bucket[5m])) by (provider, le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency from {{ $labels.provider }}"
+          description: "95th percentile latency is {{ $value }}s for {{ $labels.provider }}"
+
+      # Cache
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            sum(rate(usdc_wallet_cache_hits_total[5m]))
+            /
+            (sum(rate(usdc_wallet_cache_hits_total[5m])) + sum(rate(usdc_wallet_cache_misses_total[5m])))
+          ) < 0.70
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+      # Transactions
+      - alert: HighPendingTransactions
+        expr: usdc_wallet_pending_transactions_gauge > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of pending transactions"
+          description: "There are {{ $value }} pending transactions"
+
+      - alert: TransactionFailureRate
+        expr: |
+          (
+            sum(rate(usdc_wallet_transactions_total{status="failed"}[5m]))
+            /
+            sum(rate(usdc_wallet_transactions_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High transaction failure rate"
+          description: "Transaction failure rate is {{ $value | humanizePercentage }}"
+
+      # Webhooks
+      - alert: WebhookFailures
+        expr: rate(usdc_wallet_webhook_failures_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhook failures detected"
+          description: "Webhook failure rate is {{ $value }} failures/sec for {{ $labels.event }}"
+
+      # System Resources
+      - alert: HighMemoryUsage
+        expr: |
+          (usdc_wallet_nodejs_heap_size_used_bytes / usdc_wallet_nodejs_heap_size_total_bytes) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: ServiceDown
+        expr: up{job="usdc-wallet-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "USDC Wallet API is down"
+          description: "The USDC Wallet API has been down for more than 1 minute"

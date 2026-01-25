@@ -28,6 +28,11 @@ __decorate([
     __metadata("design:type", Boolean)
 ], UserOrmEntity.prototype, "phoneVerified", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 30, nullable: true, unique: true }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", String)
+], UserOrmEntity.prototype, "username", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'first_name', type: 'varchar', length: 100, nullable: true }),
     __metadata("design:type", String)
 ], UserOrmEntity.prototype, "firstName", void 0);

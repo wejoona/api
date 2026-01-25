@@ -14,4 +14,7 @@ export declare class SubmitKycDto {
     idNumber: string;
     idExpiryDate?: string;
     address?: AddressDto;
+    documentFrontKey?: string;
+    documentBackKey?: string;
+    selfieKey?: string;
 }

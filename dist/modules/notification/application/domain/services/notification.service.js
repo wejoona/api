@@ -119,6 +119,105 @@ let NotificationService = NotificationService_1 = class NotificationService {
     async getUnreadCount(userId) {
         return this.notificationRepository.countUnread(userId);
     }
+    async sendNewDeviceLoginAlert(userId, deviceName, location) {
+        await this.sendToUser({
+            userId,
+            type: 'new_device_login',
+            title: 'New Device Login',
+            body: `A new device "${deviceName}" just logged into your account${location ? ` from ${location}` : ''}.`,
+            data: {
+                deviceName,
+                location: location || 'Unknown',
+            },
+            priority: 'high',
+        });
+    }
+    async sendLargeTransactionAlert(userId, amount, currency, transactionId, recipientName) {
+        const bodyText = recipientName
+            ? `A large transaction of ${amount} ${currency} to ${recipientName} has been initiated.`
+            : `A large transaction of ${amount} ${currency} has been initiated.`;
+        await this.sendToUser({
+            userId,
+            type: 'large_transaction',
+            title: 'Large Transaction Alert',
+            body: bodyText,
+            data: {
+                amount: amount.toString(),
+                currency,
+                transactionId,
+                recipientName: recipientName || '',
+            },
+            referenceType: 'transaction',
+            referenceId: transactionId,
+            priority: 'high',
+        });
+    }
+    async sendAddressWhitelistedNotification(userId, label, address) {
+        await this.sendToUser({
+            userId,
+            type: 'address_whitelisted',
+            title: 'Address Whitelisted',
+            body: `"${label}" (${address.substring(0, 6)}...${address.slice(-4)}) has been added to your trusted addresses.`,
+            data: {
+                label,
+                address,
+            },
+        });
+    }
+    async sendSecurityAlert(userId, title, message, data) {
+        await this.sendToUser({
+            userId,
+            type: 'security_alert',
+            title,
+            body: message,
+            data,
+            priority: 'high',
+        });
+    }
+    async sendWithdrawalPendingNotification(userId, amount, currency, hoursUntilProcessed, transactionId) {
+        await this.sendToUser({
+            userId,
+            type: 'withdrawal_pending',
+            title: 'Withdrawal Pending',
+            body: `Your withdrawal of ${amount} ${currency} to a new address will be processed in ${hoursUntilProcessed} hours.`,
+            data: {
+                amount: amount.toString(),
+                currency,
+                hoursUntilProcessed: hoursUntilProcessed.toString(),
+                transactionId,
+            },
+            referenceType: 'transaction',
+            referenceId: transactionId,
+        });
+    }
+    async sendPriceAlert(userId, rate, threshold, direction) {
+        await this.sendToUser({
+            userId,
+            type: 'price_alert',
+            title: 'Price Alert',
+            body: `USDC/XOF rate is now ${rate}, ${direction} your threshold of ${threshold}.`,
+            data: {
+                rate,
+                threshold,
+                direction,
+            },
+        });
+    }
+    async sendWeeklySummary(userId, totalSpent, totalReceived, currency, transactionCount, comparisonText) {
+        await this.sendToUser({
+            userId,
+            type: 'weekly_summary',
+            title: 'Weekly Summary',
+            body: `This week: Sent ${totalSpent} ${currency}, Received ${totalReceived} ${currency} (${transactionCount} transactions).${comparisonText ? ` ${comparisonText}` : ''}`,
+            data: {
+                totalSpent: totalSpent.toString(),
+                totalReceived: totalReceived.toString(),
+                currency,
+                transactionCount: transactionCount.toString(),
+                comparison: comparisonText || '',
+            },
+        });
+    }
 };
 exports.NotificationService = NotificationService;
 exports.NotificationService = NotificationService = NotificationService_1 = __decorate([

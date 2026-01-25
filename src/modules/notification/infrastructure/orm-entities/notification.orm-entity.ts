@@ -10,15 +10,28 @@ export type NotificationType =
   | 'transfer_received'
   | 'transfer_sent'
   | 'transfer_failed'
+  | 'transfer_complete'
   | 'deposit_completed'
+  | 'deposit_complete'
   | 'deposit_failed'
   | 'withdrawal_completed'
+  | 'withdrawal_complete'
   | 'withdrawal_failed'
+  | 'withdrawal_pending'
   | 'kyc_approved'
   | 'kyc_rejected'
+  | 'kyc_update'
   | 'low_balance'
   | 'system'
-  | 'promotional';
+  | 'promotional'
+  // Security notifications
+  | 'new_device_login'
+  | 'large_transaction'
+  | 'address_whitelisted'
+  | 'security_alert'
+  // Insights
+  | 'price_alert'
+  | 'weekly_summary';
 
 export type NotificationStatus =
   | 'pending'
@@ -42,15 +55,26 @@ export class NotificationOrmEntity {
       'transfer_received',
       'transfer_sent',
       'transfer_failed',
+      'transfer_complete',
       'deposit_completed',
+      'deposit_complete',
       'deposit_failed',
       'withdrawal_completed',
+      'withdrawal_complete',
       'withdrawal_failed',
+      'withdrawal_pending',
       'kyc_approved',
       'kyc_rejected',
+      'kyc_update',
       'low_balance',
       'system',
       'promotional',
+      'new_device_login',
+      'large_transaction',
+      'address_whitelisted',
+      'security_alert',
+      'price_alert',
+      'weekly_summary',
     ],
   })
   @Index()

@@ -6,10 +6,13 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 import { configuration, envValidationSchema } from './config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CustomTypeOrmLogger } from './common/logger';
 
 // Core Modules
 import { SharedModule } from './modules/shared/shared.module';
@@ -26,6 +29,16 @@ import { JobsModule } from './modules/jobs';
 import { HealthModule } from './modules/health';
 import { SecurityModule } from './modules/security';
 import { LegalModule } from './modules/legal/legal.module';
+import { ContactsModule } from './modules/contacts/contacts.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
+import { MetricsModule } from './modules/metrics';
+import { KycModule } from './modules/kyc/kyc.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { LivenessModule } from './modules/liveness/liveness.module';
+import { MerchantModule } from './modules/merchant/merchant.module';
+import { BillPaymentsModule } from './modules/bill-payments/bill-payments.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -44,6 +57,28 @@ import { BlnkModule } from './modules/providers/blnk';
       },
     }),
 
+    // Cache - Global Redis cache configuration
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const store = await redisStore({
+          socket: {
+            host: configService.get<string>('redis.host'),
+            port: configService.get<number>('redis.port'),
+          },
+          password: configService.get<string>('redis.password'),
+          database: configService.get<number>('redis.db'),
+        });
+
+        return {
+          store,
+          ttl: 300, // Default TTL: 5 minutes (in seconds)
+        };
+      },
+    }),
+
     // Database - NEVER use synchronize in production, always use migrations
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -57,7 +92,17 @@ import { BlnkModule } from './modules/providers/blnk';
         password: configService.get<string>('database.password'),
         autoLoadEntities: true,
         synchronize: false, // SECURITY: Always use migrations, never auto-sync
-        logging: configService.get<string>('NODE_ENV') === 'development',
+        logging: true,
+        logger: new CustomTypeOrmLogger(),
+        // PERFORMANCE: Connection pooling for better concurrency and resource management
+        extra: {
+          max: 20, // Maximum pool size
+          min: 5, // Minimum pool size (always-ready connections)
+          idleTimeoutMillis: 30000, // Close idle connections after 30s
+          connectionTimeoutMillis: 2000, // Fail fast if can't get connection in 2s
+        },
+        // PERFORMANCE: Log slow queries in development for optimization
+        maxQueryExecutionTime: 1000, // Log queries taking longer than 1s
       }),
     }),
 
@@ -100,8 +145,18 @@ import { BlnkModule } from './modules/providers/blnk';
     ReportsModule,
     JobsModule,
     HealthModule,
+    MetricsModule,
     SecurityModule,
     LegalModule,
+    ContactsModule,
+    UserPreferencesModule,
+    UploadModule, // S3 document upload
+    KycModule, // KYC verification flow
+    LivenessModule, // Challenge-based liveness detection
+    MerchantModule, // Merchant QR payment system
+    BillPaymentsModule, // Bill payments for West African utilities
+    MonitoringModule, // Transaction monitoring and alerts
+    ComplianceModule, // BCEAO compliance and AML/CFT
   ],
   controllers: [AppController],
   providers: [

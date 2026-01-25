@@ -11,6 +11,7 @@ import { SubmitKycUseCase } from './submit-kyc.use-case';
 import { GetKycStatusUseCase } from './get-kyc-status.use-case';
 import { VerifyPinUseCase } from './verify-pin.use-case';
 import { SetPinUseCase } from './set-pin.use-case';
+import { ExportTransactionsUseCase } from './export-transactions.use-case';
 
 export {
   CreateWalletUseCase,
@@ -26,6 +27,7 @@ export {
   GetKycStatusUseCase,
   VerifyPinUseCase,
   SetPinUseCase,
+  ExportTransactionsUseCase,
 };
 
 export const UseCases = [
@@ -42,4 +44,5 @@ export const UseCases = [
   GetKycStatusUseCase,
   VerifyPinUseCase,
   SetPinUseCase,
+  ExportTransactionsUseCase,
 ];

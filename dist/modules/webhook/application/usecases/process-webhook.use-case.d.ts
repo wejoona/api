@@ -5,6 +5,8 @@ import { IPaymentGateway } from '@modules/shared/domain/gateways/payment.gateway
 import { TransactionRepository } from '@modules/transaction/infrastructure/repositories/transaction.repository';
 import { WalletRepository } from '@modules/wallet/infrastructure/repositories/wallet.repository';
 import { IOnRampProvider } from '@modules/providers/interfaces';
+import { WebhookDeadletterService } from '../domain/services/webhook-deadletter.service';
+import { CacheInvalidationService } from '@modules/shared/infrastructure/services';
 export interface ProcessWebhookInput {
     payload: Record<string, unknown>;
     signature: string;
@@ -24,11 +26,13 @@ export declare class ProcessWebhookUseCase implements OnModuleDestroy {
     private readonly walletRepository;
     private readonly eventEmitter;
     private readonly configService;
+    private readonly deadLetterService;
+    private readonly cacheInvalidationService;
     private readonly logger;
     private readonly circleWebhookSecret;
     private readonly redis;
     private isRedisConnected;
-    constructor(paymentGateway: IPaymentGateway, onRampProvider: IOnRampProvider, transactionRepository: TransactionRepository, walletRepository: WalletRepository, eventEmitter: EventEmitter2, configService: ConfigService);
+    constructor(paymentGateway: IPaymentGateway, onRampProvider: IOnRampProvider, transactionRepository: TransactionRepository, walletRepository: WalletRepository, eventEmitter: EventEmitter2, configService: ConfigService, deadLetterService: WebhookDeadletterService, cacheInvalidationService: CacheInvalidationService);
     onModuleDestroy(): Promise<void>;
     private checkIdempotency;
     private markAsProcessed;
@@ -41,6 +45,9 @@ export declare class ProcessWebhookUseCase implements OnModuleDestroy {
     private handleYcDepositCompleted;
     private handleYcDepositFailed;
     private handleYcDepositExpired;
+    private handleYcWithdrawalPending;
+    private handleYcWithdrawalCompleted;
+    private handleYcWithdrawalFailed;
     private handleCircleTransferComplete;
     private handleCircleTransferFailed;
     private handleCircleTransactionComplete;

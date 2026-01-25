@@ -16,7 +16,7 @@ const repositories_1 = require("../../../user/infrastructure/repositories");
 let SetPinUseCase = class SetPinUseCase {
     constructor(userRepository) {
         this.userRepository = userRepository;
-        this.SALT_ROUNDS = 10;
+        this.SALT_ROUNDS = 12;
     }
     async execute(input) {
         const user = await this.userRepository.findById(input.userId);

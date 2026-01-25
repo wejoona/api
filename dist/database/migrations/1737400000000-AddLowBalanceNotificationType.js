@@ -10,8 +10,7 @@ class AddLowBalanceNotificationType1737400000000 {
       ALTER TYPE "notification_type_enum" ADD VALUE IF NOT EXISTS 'low_balance'
     `);
     }
-    async down(queryRunner) {
-        console.log('Note: Rollback does not remove low_balance from notification_type_enum');
+    async down(_queryRunner) {
     }
 }
 exports.AddLowBalanceNotificationType1737400000000 = AddLowBalanceNotificationType1737400000000;

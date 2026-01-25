@@ -31,6 +31,26 @@ interface WebhookTransferFailedPayload {
   errorMessage: string;
 }
 
+interface WebhookWithdrawalCompletedPayload {
+  userId: string;
+  walletId: string;
+  withdrawalId: string;
+  amount: string;
+  reference: string;
+  provider: 'yellowcard' | 'circle';
+  data?: Record<string, unknown>;
+}
+
+interface WebhookWithdrawalFailedPayload {
+  userId: string;
+  walletId: string;
+  withdrawalId: string;
+  amount: string;
+  reference: string;
+  provider: 'yellowcard' | 'circle';
+  reason: string;
+}
+
 interface DepositCompletedPayload {
   userId: string;
   amount: string;
@@ -262,5 +282,91 @@ export class WebhookLedgerListener {
     );
     // This event is for notification services, email, push notifications, etc.
     // No ledger operation needed here since deposit never happened
+  }
+
+  /**
+   * Handle completed withdrawal from payment providers
+   *
+   * When a withdrawal completes successfully, we need to commit the inflight
+   * transaction that was created when the withdrawal was initiated.
+   *
+   * @param payload - Withdrawal completion details from webhook
+   */
+  @OnEvent('webhook.withdrawal.completed')
+  async handleWithdrawalCompleted(
+    payload: WebhookWithdrawalCompletedPayload,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `Committing withdrawal for user ${payload.userId}: ${payload.amount} USDC via ${payload.provider}`,
+      );
+
+      // Look up the inflight transaction by reference
+      const transaction =
+        await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+
+      if (transaction) {
+        // Commit the inflight transaction to finalize it
+        await this.blnkLedgerAdapter.commitTransaction(transaction.transactionId);
+        this.logger.log(
+          `Successfully committed withdrawal ${payload.withdrawalId} (txn: ${transaction.transactionId})`,
+        );
+      } else {
+        this.logger.warn(
+          `No inflight transaction found for withdrawal ${payload.withdrawalId}. ` +
+            `It may have already been committed or the reference format differs.`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to commit withdrawal ${payload.withdrawalId}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /**
+   * Handle failed withdrawal from payment providers
+   *
+   * When a withdrawal fails, we need to void the inflight transaction
+   * to return the funds to the user's available balance.
+   *
+   * @param payload - Withdrawal failure details from webhook
+   */
+  @OnEvent('webhook.withdrawal.failed')
+  async handleWithdrawalFailed(
+    payload: WebhookWithdrawalFailedPayload,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `Voiding failed withdrawal ${payload.withdrawalId}: ${payload.reason}`,
+      );
+
+      // Look up the inflight transaction by reference
+      const transaction =
+        await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+
+      if (transaction) {
+        // Void the inflight transaction to return funds to user
+        await this.blnkLedgerAdapter.voidTransaction(transaction.transactionId);
+        this.logger.log(
+          `Successfully voided failed withdrawal ${payload.withdrawalId} (txn: ${transaction.transactionId})`,
+        );
+      } else {
+        this.logger.warn(
+          `No inflight transaction found for failed withdrawal ${payload.withdrawalId}. ` +
+            `It may have already been voided or the reference format differs.`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to void withdrawal ${payload.withdrawalId}: ${errorMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 }

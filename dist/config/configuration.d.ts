@@ -31,6 +31,7 @@ declare const _default: () => {
         defaultBlockchain: string;
         webhookSecret: string;
         useMock: boolean;
+        complianceEnabled: boolean;
     };
     yellowCard: {
         apiUrl: string;
@@ -53,6 +54,9 @@ declare const _default: () => {
         expiresIn: number;
         length: number;
         maxAttempts: number;
+        useDevOtp: boolean;
+        devOtp: string;
+        enableDebugLogging: boolean;
     };
     rateLimit: {
         ttl: number;
@@ -62,6 +66,19 @@ declare const _default: () => {
         projectId: string;
         clientEmail: string;
         privateKey: string;
+        useMock: boolean;
+    };
+    kyc: {
+        autoApprovalEnabled: boolean;
+        autoApprovalThreshold: number;
+        autoRejectThreshold: number;
+        provider: string;
+    };
+    aws: {
+        region: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+        s3Bucket: string;
         useMock: boolean;
     };
     app: {
@@ -75,6 +92,23 @@ declare const _default: () => {
         maxTransferAmount: number;
         internalTransferFeePercent: number;
         externalTransferFeePercent: number;
+    };
+    compliance: {
+        bceaoEnabled: boolean;
+        largeTransactionThreshold: number;
+        dailyReportTime: string;
+        reportRetentionDays: number;
+        autoFlagVelocityThreshold: number;
+        structuringTimeWindow: number;
+        crossBorderAlertEnabled: boolean;
+        autoGenerateSar: boolean;
+        sarAutoGenerationThreshold: number;
+        bceaoApiUrl: string;
+        bceaoApiKey: string;
+        bceaoInstitutionId: string;
+        xofToUsdcRate: number;
+        pepScreeningEnabled: boolean;
+        pepScreeningProvider: string;
     };
 };
 export default _default;

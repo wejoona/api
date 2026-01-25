@@ -1,0 +1,27 @@
+{
+  "apiUrl": "http://localhost:3000/api/v1",
+  "testToken": "your-test-token-here",
+  "scenarios": {
+    "userJourney": {
+      "enabled": true,
+      "description": "Realistic user journey simulation",
+      "thresholds": {
+        "http_req_duration_p95": 500,
+        "http_req_failed_rate": 0.01
+      }
+    },
+    "stressTest": {
+      "enabled": false,
+      "description": "High load stress testing",
+      "thresholds": {
+        "http_req_duration_p99": 1000,
+        "http_req_failed_rate": 0.05
+      }
+    }
+  },
+  "notes": [
+    "Copy this file to config.json and update with your test environment details",
+    "Never commit config.json with real tokens to version control",
+    "Use environment variables for CI/CD pipelines"
+  ]
+}

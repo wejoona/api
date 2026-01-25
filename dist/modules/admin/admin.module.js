@@ -10,6 +10,9 @@ exports.AdminModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const orm_entities_1 = require("../user/infrastructure/orm-entities");
+const transaction_orm_entity_1 = require("../transaction/infrastructure/orm-entities/transaction.orm-entity");
+const transaction_repository_1 = require("../transaction/infrastructure/repositories/transaction.repository");
+const transaction_mapper_1 = require("../transaction/infrastructure/mappers/transaction.mapper");
 const audit_log_entity_1 = require("./infrastructure/persistence/typeorm/entities/audit-log.entity");
 const system_metric_entity_1 = require("./infrastructure/persistence/typeorm/entities/system-metric.entity");
 const scheduled_job_entity_1 = require("./infrastructure/persistence/typeorm/entities/scheduled-job.entity");
@@ -24,13 +27,19 @@ exports.AdminModule = AdminModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([
                 orm_entities_1.UserOrmEntity,
+                transaction_orm_entity_1.TransactionOrmEntity,
                 audit_log_entity_1.AuditLogEntity,
                 system_metric_entity_1.SystemMetricEntity,
                 scheduled_job_entity_1.ScheduledJobEntity,
             ]),
         ],
         controllers: [admin_controller_1.AdminController],
-        providers: [admin_service_1.AdminService, audit_service_1.AuditService],
+        providers: [
+            admin_service_1.AdminService,
+            audit_service_1.AuditService,
+            transaction_repository_1.TransactionRepository,
+            transaction_mapper_1.TransactionMapper,
+        ],
         exports: [admin_service_1.AdminService, audit_service_1.AuditService],
     })
 ], AdminModule);

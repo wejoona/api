@@ -23,22 +23,28 @@ let GetTransactionsUseCase = class GetTransactionsUseCase {
         if (!wallet) {
             throw new common_1.NotFoundException('Wallet not found');
         }
-        const transactions = await this.transactionRepository.findByWalletId(wallet.id);
-        let filtered = transactions;
-        if (input.type) {
-            filtered = filtered.filter((t) => t.type === input.type);
-        }
-        if (input.status) {
-            filtered = filtered.filter((t) => t.status === input.status);
-        }
         const limit = input.limit || 20;
         const offset = input.offset || 0;
-        const paginated = filtered.slice(offset, offset + limit);
-        return {
-            transactions: paginated,
-            total: filtered.length,
+        const filters = {
+            type: input.type,
+            status: input.status,
+            startDate: input.startDate ? new Date(input.startDate) : undefined,
+            endDate: input.endDate ? new Date(input.endDate) : undefined,
+            minAmount: input.minAmount,
+            maxAmount: input.maxAmount,
+            search: input.search,
+            sortBy: input.sortBy || 'createdAt',
+            sortOrder: input.sortOrder || 'DESC',
             limit,
             offset,
+        };
+        const result = await this.transactionRepository.findByWalletIdFiltered(wallet.id, filters);
+        return {
+            transactions: result.transactions,
+            total: result.total,
+            limit,
+            offset,
+            hasMore: offset + result.transactions.length < result.total,
         };
     }
 };

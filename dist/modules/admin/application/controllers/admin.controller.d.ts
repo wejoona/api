@@ -1,4 +1,4 @@
-import { AdminService, DashboardStats } from '../services/admin.service';
+import { AdminService, DashboardStats, EnhancedDashboardStats } from '../services/admin.service';
 import { AuditService } from '../services/audit.service';
 import { SuspendUserDto, UpdateRoleDto, ListUsersQueryDto, RejectKycDto } from '../dto';
 interface AuthenticatedRequest {
@@ -22,6 +22,10 @@ export declare class AdminController {
     private readonly auditService;
     constructor(adminService: AdminService, auditService: AuditService);
     getDashboard(): Promise<DashboardStats>;
+    getEnhancedDashboard(days?: number): Promise<EnhancedDashboardStats>;
+    invalidateDashboardCache(): Promise<{
+        message: string;
+    }>;
     listUsers(query: ListUsersQueryDto): Promise<{
         users: {
             id: string;
@@ -118,6 +122,13 @@ export declare class AdminController {
         data: {
             date: string;
             count: number;
+        }[];
+    }>;
+    getUserGrowthTimeSeries(days?: number): Promise<{
+        data: {
+            date: string;
+            newUsers: number;
+            totalUsers: number;
         }[];
     }>;
     getKycStatusReport(): Promise<{

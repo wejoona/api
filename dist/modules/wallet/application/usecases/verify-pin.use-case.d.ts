@@ -1,3 +1,4 @@
+import { Cache } from 'cache-manager';
 import { UserRepository } from '../../../user/infrastructure/repositories';
 export interface VerifyPinInput {
     userId: string;
@@ -6,11 +7,15 @@ export interface VerifyPinInput {
 export interface VerifyPinOutput {
     valid: boolean;
     message: string;
+    pinToken?: string;
+    expiresIn?: number;
     remainingAttempts?: number;
     lockedUntil?: Date;
 }
 export declare class VerifyPinUseCase {
     private readonly userRepository;
-    constructor(userRepository: UserRepository);
+    private readonly cacheManager;
+    private readonly PIN_TOKEN_TTL;
+    constructor(userRepository: UserRepository, cacheManager: Cache);
     execute(input: VerifyPinInput): Promise<VerifyPinOutput>;
 }

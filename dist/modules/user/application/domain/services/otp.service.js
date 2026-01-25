@@ -81,8 +81,10 @@ let OtpService = OtpService_1 = class OtpService {
         pipeline.incr(rateLimitKey);
         pipeline.expire(rateLimitKey, this.rateLimitWindow);
         await pipeline.exec();
-        if (this.configService.get('nodeEnv') !== 'production') {
-            this.logger.debug(`OTP for ${phone}: ${otp}`);
+        const enableOtpLogging = this.configService.get('otp.enableDebugLogging', false);
+        const nodeEnv = this.configService.get('nodeEnv');
+        if (enableOtpLogging && nodeEnv === 'development') {
+            this.logger.debug(`[DEV ONLY] OTP for ${phone.slice(-4).padStart(phone.length, '*')}: ${otp}`);
         }
         try {
             const result = await this.smsGateway.sendOtp(phone, otp);
@@ -97,8 +99,20 @@ let OtpService = OtpService_1 = class OtpService {
         this.ensureConnection();
         const key = this.getKey(phone);
         const attemptsKey = `${key}:attempts`;
+        const lockoutKey = `${key}:lockout`;
+        const lockoutUntil = await this.redis.get(lockoutKey);
+        if (lockoutUntil) {
+            const lockoutTime = parseInt(lockoutUntil, 10);
+            const now = Date.now();
+            if (now < lockoutTime) {
+                const remainingSeconds = Math.ceil((lockoutTime - now) / 1000);
+                throw new common_1.BadRequestException(`Too many failed attempts. Please wait ${remainingSeconds} seconds before trying again.`);
+            }
+            await this.redis.del(lockoutKey);
+        }
         const attempts = await this.redis.get(attemptsKey);
-        if (attempts && parseInt(attempts, 10) >= this.maxAttempts) {
+        const attemptCount = attempts ? parseInt(attempts, 10) : 0;
+        if (attemptCount >= this.maxAttempts) {
             throw new common_1.BadRequestException('Too many failed attempts. Please request a new OTP.');
         }
         const storedOtp = await this.redis.get(key);
@@ -107,11 +121,18 @@ let OtpService = OtpService_1 = class OtpService {
         }
         const isValid = crypto.timingSafeEqual(Buffer.from(storedOtp), Buffer.from(otp.padEnd(storedOtp.length))) && storedOtp.length === otp.length;
         if (!isValid) {
-            await this.redis.incr(attemptsKey);
+            const newAttempts = await this.redis.incr(attemptsKey);
+            if (newAttempts >= 1) {
+                const backoffSeconds = Math.min(5 * Math.pow(3, newAttempts - 1), 300);
+                const lockoutUntilMs = Date.now() + (backoffSeconds * 1000);
+                await this.redis.setex(lockoutKey, backoffSeconds + 60, lockoutUntilMs.toString());
+                this.logger.debug(`OTP lockout applied for ${phone}: ${backoffSeconds}s after attempt ${newAttempts}`);
+            }
             return false;
         }
         await this.redis.del(key);
         await this.redis.del(attemptsKey);
+        await this.redis.del(lockoutKey);
         return true;
     }
     async resendOtp(phone) {
@@ -121,12 +142,59 @@ let OtpService = OtpService_1 = class OtpService {
         await this.sendOtp(phone);
     }
     generateOtp() {
+        const nodeEnv = this.configService.get('nodeEnv');
+        const useDevOtp = this.configService.get('otp.useDevOtp', false);
+        if (nodeEnv === 'development' || useDevOtp) {
+            const devOtp = this.configService.get('otp.devOtp', '123456');
+            this.logger.warn(`[DEV MODE] Using fixed OTP: ${devOtp}`);
+            return devOtp;
+        }
         const bytes = crypto.randomBytes(this.otpLength);
         let otp = '';
         for (let i = 0; i < this.otpLength; i++) {
             otp += (bytes[i] % 10).toString();
         }
         return otp;
+    }
+    async getOtp(phone) {
+        const nodeEnv = this.configService.get('nodeEnv');
+        if (nodeEnv !== 'development') {
+            throw new Error('getOtp is only available in development mode');
+        }
+        this.ensureConnection();
+        const key = this.getKey(phone);
+        return this.redis.get(key);
+    }
+    async getOtpDebugInfo(phone) {
+        const nodeEnv = this.configService.get('nodeEnv');
+        if (nodeEnv !== 'development') {
+            throw new Error('getOtpDebugInfo is only available in development mode');
+        }
+        this.ensureConnection();
+        const key = this.getKey(phone);
+        const attemptsKey = `${key}:attempts`;
+        const lockoutKey = `${key}:lockout`;
+        const [otp, ttl, attempts, lockoutUntil] = await Promise.all([
+            this.redis.get(key),
+            this.redis.ttl(key),
+            this.redis.get(attemptsKey),
+            this.redis.get(lockoutKey),
+        ]);
+        let lockoutRemaining = null;
+        if (lockoutUntil) {
+            const lockoutTime = parseInt(lockoutUntil, 10);
+            const now = Date.now();
+            if (now < lockoutTime) {
+                lockoutRemaining = Math.ceil((lockoutTime - now) / 1000);
+            }
+        }
+        return {
+            otp,
+            ttl,
+            attempts: attempts ? parseInt(attempts, 10) : 0,
+            isLocked: lockoutRemaining !== null && lockoutRemaining > 0,
+            lockoutRemaining,
+        };
     }
     getKey(phone) {
         return `otp:${phone}`;

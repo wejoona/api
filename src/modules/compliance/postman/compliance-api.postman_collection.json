@@ -1,0 +1,565 @@
+{
+  "info": {
+    "name": "BCEAO Compliance Engine API",
+    "description": "Compliance endpoints for JoonaPay USDC Wallet",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/dashboard?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "dashboard"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Health Score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/dashboard/health",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "dashboard", "health"]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/dashboard/activity?hours=24",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "dashboard", "activity"],
+              "query": [
+                {
+                  "key": "hours",
+                  "value": "24"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/dashboard/pending",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "dashboard", "pending"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "List Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/reports?type=daily&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "daily"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/reports/:reportId",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports", ":reportId"],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Ad-Hoc Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"endDate\": \"2026-01-31T23:59:59.999Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/reports/generate",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Approve Report",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Report reviewed and approved for submission\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/reports/:reportId/approve",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports", ":reportId", "approve"],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/reports/:reportId/submit",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports", ":reportId", "submit"],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/reports/:reportId/export",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "reports", ":reportId", "export"],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SARs",
+      "item": [
+        {
+          "name": "List SARs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/sars?status=under_investigation&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "under_investigation"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get SAR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Manual SAR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"transactionIds\": [\"tx-uuid-1\", \"tx-uuid-2\"],\n  \"narrative\": \"User conducted multiple transactions just below reporting threshold within 24 hours. Pattern suggests deliberate structuring to evade BCEAO reporting requirements.\",\n  \"riskScore\": 85\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/sars",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars"]
+            }
+          }
+        },
+        {
+          "name": "Update Investigation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Contacted user for explanation. Unable to provide legitimate business justification. Recommend proceeding with BCEAO filing.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId/investigation",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId", "investigation"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit SAR",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId/submit",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId", "submit"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Close SAR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"SAR filed with BCEAO. Reference: SAR-BCEAO-2026-01-00123. Investigation complete.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId/close",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId", "close"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dismiss SAR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"False positive. User provided documentation proving legitimate business activity.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId/dismiss",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId", "dismiss"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export SAR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/sars/:sarId/export",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "sars", ":sarId", "export"],
+              "variable": [
+                {
+                  "key": "sarId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/alerts?severity=high&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "alerts"],
+              "query": [
+                {
+                  "key": "severity",
+                  "value": "high"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Acknowledge Alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/alerts/:alertId/acknowledge",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "alerts", ":alertId", "acknowledge"],
+              "variable": [
+                {
+                  "key": "alertId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolution\": \"Verified legitimate business transaction. No further action required.\",\n  \"escalateToSar\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/alerts/:alertId/resolve",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "alerts", ":alertId", "resolve"],
+              "variable": [
+                {
+                  "key": "alertId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Risk Assessment",
+      "item": [
+        {
+          "name": "Get User Risk Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/users/:userId/risk-profile",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "users", ":userId", "risk-profile"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analyze User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/users/:userId/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "users", ":userId", "analyze"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Run Batch Analysis",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compliance/analysis/batch?daysBack=7",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "analysis", "batch"],
+              "query": [
+                {
+                  "key": "daysBack",
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "item": [
+        {
+          "name": "Export Compliance Summary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"endDate\": \"2026-01-31T23:59:59.999Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/compliance/export/summary",
+              "host": ["{{base_url}}"],
+              "path": ["compliance", "export", "summary"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

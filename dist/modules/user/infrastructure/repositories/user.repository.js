@@ -15,21 +15,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const cache_manager_1 = require("@nestjs/cache-manager");
 const typeorm_2 = require("typeorm");
 const orm_entities_1 = require("../orm-entities");
 const mappers_1 = require("../mappers");
 let UserRepository = class UserRepository {
-    constructor(ormRepository) {
+    constructor(ormRepository, cacheManager) {
         this.ormRepository = ormRepository;
+        this.cacheManager = cacheManager;
+        this.CACHE_TTL = 600;
     }
     async save(user) {
         const ormEntity = mappers_1.UserMapper.toOrm(user);
         const saved = await this.ormRepository.save(ormEntity);
-        return mappers_1.UserMapper.toDomain(saved);
+        const domainUser = mappers_1.UserMapper.toDomain(saved);
+        await this.invalidateUserCache(domainUser.id);
+        return domainUser;
     }
     async findById(id) {
+        const cacheKey = `user:${id}`;
+        const cachedUser = await this.cacheManager.get(cacheKey);
+        if (cachedUser) {
+            return cachedUser;
+        }
         const orm = await this.ormRepository.findOne({ where: { id } });
-        return orm ? mappers_1.UserMapper.toDomain(orm) : null;
+        if (!orm) {
+            return null;
+        }
+        const user = mappers_1.UserMapper.toDomain(orm);
+        await this.cacheManager.set(cacheKey, user, this.CACHE_TTL);
+        return user;
     }
     async findByPhone(phone) {
         const orm = await this.ormRepository.findOne({ where: { phone } });
@@ -39,6 +54,31 @@ let UserRepository = class UserRepository {
         const count = await this.ormRepository.count({ where: { phone } });
         return count > 0;
     }
+    async findByUsername(username) {
+        const normalizedUsername = username.toLowerCase().replace(/^@/, '');
+        const orm = await this.ormRepository.findOne({
+            where: { username: normalizedUsername },
+        });
+        return orm ? mappers_1.UserMapper.toDomain(orm) : null;
+    }
+    async existsByUsername(username) {
+        const normalizedUsername = username.toLowerCase().replace(/^@/, '');
+        const count = await this.ormRepository.count({
+            where: { username: normalizedUsername },
+        });
+        return count > 0;
+    }
+    async searchByUsername(query, limit = 10) {
+        const normalizedQuery = query.toLowerCase().replace(/^@/, '');
+        const orms = await this.ormRepository
+            .createQueryBuilder('user')
+            .where('LOWER(user.username) LIKE :query', {
+            query: `${normalizedQuery}%`,
+        })
+            .take(limit)
+            .getMany();
+        return orms.map((orm) => mappers_1.UserMapper.toDomain(orm));
+    }
     async findAll() {
         const orms = await this.ormRepository.find({
             order: { createdAt: 'DESC' },
@@ -47,12 +87,18 @@ let UserRepository = class UserRepository {
     }
     async delete(id) {
         await this.ormRepository.delete(id);
+        await this.invalidateUserCache(id);
+    }
+    async invalidateUserCache(userId) {
+        const cacheKey = `user:${userId}`;
+        await this.cacheManager.del(cacheKey);
     }
 };
 exports.UserRepository = UserRepository;
 exports.UserRepository = UserRepository = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(orm_entities_1.UserOrmEntity)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, common_1.Inject)(cache_manager_1.CACHE_MANAGER)),
+    __metadata("design:paramtypes", [typeorm_2.Repository, Object])
 ], UserRepository);
 //# sourceMappingURL=user.repository.js.map

@@ -121,14 +121,18 @@ export interface IOnRampProvider {
 
   /**
    * Parse webhook event
+   * Note: Yellow Card uses a unified webhook for both deposits and withdrawals
    */
   parseWebhookEvent(payload: Record<string, unknown>): {
     type:
       | 'deposit.pending'
       | 'deposit.completed'
       | 'deposit.failed'
-      | 'deposit.expired';
-    depositId: string;
+      | 'deposit.expired'
+      | 'withdrawal.pending'
+      | 'withdrawal.completed'
+      | 'withdrawal.failed';
+    depositId: string; // For deposits this is depositId, for withdrawals it's withdrawalId
     data: Record<string, unknown>;
   };
 }

@@ -40,17 +40,12 @@ export class WebhookController {
     },
   })
   @ApiResponse({
-    status: 200,
-    description:
-      'Webhook received but not processed (invalid signature or unhandled event)',
-    schema: {
-      example: {
-        success: false,
-        eventType: 'unknown',
-        processed: false,
-        message: 'Invalid signature',
-      },
-    },
+    status: 401,
+    description: 'Invalid webhook signature',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error processing webhook',
   })
   async handlePaymentWebhook(
     @Req() req: RawBodyRequest<Request>,
@@ -62,6 +57,9 @@ export class WebhookController {
     // Get raw body for signature verification
     const rawBody = req.rawBody?.toString() || JSON.stringify(payload);
 
+    // Let errors propagate - they will return proper HTTP status codes
+    // UnauthorizedException -> 401
+    // Other errors -> 500
     return this.processWebhookUseCase.execute({
       payload,
       signature: signature || '',
@@ -83,6 +81,14 @@ export class WebhookController {
     status: 200,
     description: 'Webhook processed successfully',
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid webhook signature',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error processing webhook',
+  })
   async handleYellowCardWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Body() payload: Record<string, unknown>,
@@ -92,6 +98,9 @@ export class WebhookController {
 
     const rawBody = req.rawBody?.toString() || JSON.stringify(payload);
 
+    // Let errors propagate - they will return proper HTTP status codes
+    // UnauthorizedException -> 401
+    // Other errors -> 500 (provider will retry)
     return this.processWebhookUseCase.execute({
       payload,
       signature: signature || '',
@@ -121,6 +130,14 @@ export class WebhookController {
       },
     },
   })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid webhook signature',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error processing webhook',
+  })
   async handleCircleWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Body() payload: Record<string, unknown>,
@@ -130,6 +147,9 @@ export class WebhookController {
 
     const rawBody = req.rawBody?.toString() || JSON.stringify(payload);
 
+    // Let errors propagate - they will return proper HTTP status codes
+    // UnauthorizedException -> 401
+    // Other errors -> 500 (provider will retry)
     return this.processWebhookUseCase.execute({
       payload,
       signature: signature || '',

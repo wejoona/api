@@ -13,6 +13,7 @@ const gateways_1 = require("./domain/gateways");
 const payment_1 = require("./infrastructure/gateways/payment");
 const sms_1 = require("./infrastructure/gateways/sms");
 const push_1 = require("./infrastructure/gateways/push");
+const services_1 = require("./infrastructure/services");
 let SharedModule = class SharedModule {
 };
 exports.SharedModule = SharedModule;
@@ -21,6 +22,7 @@ exports.SharedModule = SharedModule = __decorate([
     (0, common_1.Module)({
         imports: [config_1.ConfigModule],
         providers: [
+            services_1.CacheInvalidationService,
             {
                 provide: gateways_1.PAYMENT_GATEWAY,
                 useClass: payment_1.YellowCardPaymentAdapter,
@@ -44,6 +46,7 @@ exports.SharedModule = SharedModule = __decorate([
             gateways_1.PUSH_GATEWAY,
             sms_1.SmsFactory,
             push_1.PushFactory,
+            services_1.CacheInvalidationService,
         ],
     })
 ], SharedModule);

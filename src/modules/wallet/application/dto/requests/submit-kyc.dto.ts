@@ -86,4 +86,28 @@ export class SubmitKycDto {
   @Type(() => AddressDto)
   @IsOptional()
   address?: AddressDto;
+
+  @ApiPropertyOptional({
+    example: 'kyc/user-123/id_front-1234567890.jpg',
+    description: 'S3 key for front of ID document',
+  })
+  @IsString()
+  @IsOptional()
+  documentFrontKey?: string;
+
+  @ApiPropertyOptional({
+    example: 'kyc/user-123/id_back-1234567890.jpg',
+    description: 'S3 key for back of ID document',
+  })
+  @IsString()
+  @IsOptional()
+  documentBackKey?: string;
+
+  @ApiPropertyOptional({
+    example: 'kyc/user-123/selfie-1234567890.jpg',
+    description: 'S3 key for selfie photo',
+  })
+  @IsString()
+  @IsOptional()
+  selfieKey?: string;
 }

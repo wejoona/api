@@ -16,6 +16,8 @@ export interface IWallet {
 export interface CreateWalletProps {
     userId: string;
     yellowCardWalletId?: string;
+    circleWalletId?: string;
+    circleWalletAddress?: string;
     currency?: string;
 }
 export declare class WalletEntity implements IWallet {

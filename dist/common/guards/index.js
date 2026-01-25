@@ -17,4 +17,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./jwt-auth.guard"), exports);
 __exportStar(require("./jwt.strategy"), exports);
 __exportStar(require("./roles.guard"), exports);
+__exportStar(require("./pin-verification.guard"), exports);
 //# sourceMappingURL=index.js.map

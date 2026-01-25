@@ -375,6 +375,9 @@ export class WalletController {
       idNumber: dto.idNumber,
       idExpiryDate: dto.idExpiryDate,
       address: dto.address,
+      documentFrontKey: dto.documentFrontKey,
+      documentBackKey: dto.documentBackKey,
+      selfieKey: dto.selfieKey,
     });
   }
 

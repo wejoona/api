@@ -11,7 +11,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
@@ -20,6 +19,7 @@ import {
   GetTransactionUseCase,
   GetDepositStatusUseCase,
 } from '../usecases';
+import { GetTransactionsQueryDto } from '../dto/requests';
 
 @ApiTags('Transactions')
 @Controller('wallet/transactions')
@@ -33,22 +33,14 @@ export class TransactionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get transaction history' })
-  @ApiQuery({
-    name: 'type',
-    required: false,
-    enum: ['deposit', 'transfer_internal', 'transfer_external'],
+  @ApiOperation({
+    summary: 'Get transaction history with advanced filtering',
+    description:
+      'Returns paginated transaction history with support for type, status, date range, amount range, and text search filters.',
   })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: ['pending', 'processing', 'completed', 'failed'],
-  })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
-  @ApiQuery({ name: 'offset', required: false, example: 0 })
   @ApiResponse({
     status: 200,
-    description: 'Returns transaction history',
+    description: 'Returns filtered and paginated transaction history',
     schema: {
       example: {
         transactions: [
@@ -63,25 +55,30 @@ export class TransactionController {
             completedAt: '2026-01-18T12:05:00.000Z',
           },
         ],
-        total: 1,
+        total: 50,
         limit: 20,
         offset: 0,
+        hasMore: true,
       },
     },
   })
   async getTransactions(
     @Request() req: AuthenticatedRequest,
-    @Query('type') type?: 'deposit' | 'transfer_internal' | 'transfer_external',
-    @Query('status') status?: 'pending' | 'processing' | 'completed' | 'failed',
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query() query: GetTransactionsQueryDto,
   ) {
     return this.getTransactionsUseCase.execute({
       userId: req.user.id,
-      type,
-      status,
-      limit,
-      offset,
+      type: query.type,
+      status: query.status,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      minAmount: query.minAmount,
+      maxAmount: query.maxAmount,
+      search: query.search,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      limit: query.limit,
+      offset: query.offset,
     });
   }
 

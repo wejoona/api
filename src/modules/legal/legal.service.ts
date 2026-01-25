@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { LegalDocumentDto, LegalConsentDto } from './legal.dto';
+import { maskUserId } from '@common/utils/pii-sanitizer';
 
 export enum LegalDocumentType {
   TERMS_OF_SERVICE = 'terms_of_service',
@@ -8,6 +9,8 @@ export enum LegalDocumentType {
 
 @Injectable()
 export class LegalService {
+  private readonly logger = new Logger(LegalService.name);
+
   // In production, these would come from a database or CMS
   private readonly documents: Record<string, LegalDocumentDto> = {
     terms_of_service_en: {
@@ -72,14 +75,16 @@ export class LegalService {
 
   async recordConsent(consent: LegalConsentDto, userId?: string): Promise<void> {
     // In production, store this in database
-    console.log('Legal consent recorded:', {
-      userId,
+    // SECURITY: PII (ipAddress, deviceId) intentionally excluded from logs
+    // to comply with data protection regulations (GDPR, CCPA)
+    // @see CWE-532: Insertion of Sensitive Information into Log File
+    this.logger.log('Legal consent recorded', {
+      userId: maskUserId(userId),
       documentId: consent.document_id,
       documentVersion: consent.document_version,
       documentType: consent.document_type,
       consentedAt: consent.consented_at,
-      ipAddress: consent.ip_address,
-      deviceId: consent.device_id,
+      // ipAddress and deviceId intentionally omitted - PII should not be logged
     });
   }
 

@@ -10,12 +10,20 @@ import { OrmEntities } from '@modules/notification/infrastructure/orm-entities';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Services } from '@modules/notification/application/domain/services';
 import { SharedModule } from '@modules/shared/shared.module';
+import { UserPreferencesModule } from '@modules/user-preferences/user-preferences.module';
+
+// FCM Token Infrastructure
+import { FcmTokenOrmEntity, FcmTokenRepository } from '@modules/notification/infrastructure/fcm';
+
+// Event Listeners
+import { NotificationEventListener } from '@modules/notification/application/domain/event-listeners';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([...OrmEntities]),
+    TypeOrmModule.forFeature([...OrmEntities, FcmTokenOrmEntity]),
     CqrsModule,
     SharedModule, // For PUSH_GATEWAY access
+    UserPreferencesModule, // For notification preferences
   ],
   providers: [
     ...CommandHandlers,
@@ -24,8 +32,12 @@ import { SharedModule } from '@modules/shared/shared.module';
     ...Mappers,
     ...UseCases,
     ...Services,
+    // FCM Token Repository
+    FcmTokenRepository,
+    // Event Listeners
+    NotificationEventListener,
   ],
   controllers: [...Controllers],
-  exports: [...Services], // Export NotificationService for use in other modules
+  exports: [...Services], // Export NotificationService and PushNotificationService for use in other modules
 })
 export class NotificationModule {}

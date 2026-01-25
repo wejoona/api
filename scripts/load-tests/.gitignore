@@ -1,0 +1,10 @@
+# Ignore config with real tokens
+config.json
+
+# Ignore test results
+*.json
+!config.example.json
+
+# Ignore k6 output files
+*.csv
+*.html

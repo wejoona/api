@@ -14,6 +14,8 @@ exports.CircleTransferAdapter = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const circle_types_1 = require("../circle.types");
+const utils_1 = require("../../../../common/utils");
+const CIRCLE_API_TIMEOUT = 5000;
 let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapter {
     constructor(configService) {
         this.configService = configService;
@@ -32,6 +34,11 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
         const tokenMap = circle_types_1.CIRCLE_USDC_TOKENS;
         this.usdcTokenId =
             tokenMap[this.defaultBlockchain] || circle_types_1.CIRCLE_USDC_TOKENS['ETH-SEPOLIA'];
+        this.circuitBreaker = new utils_1.CircuitBreaker({
+            name: 'circle-transfer',
+            failureThreshold: 5,
+            resetTimeout: 30000,
+        });
         if (!this.config.apiKey) {
             this.logger.warn('Circle API key not configured');
         }
@@ -39,9 +46,18 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             this.logger.log('Circle Transfer adapter initialized');
         }
     }
+    async secureFetch(url, options = {}) {
+        return this.circuitBreaker.execute(async () => {
+            return (0, utils_1.fetchWithTimeout)(url, {
+                ...options,
+                timeout: CIRCLE_API_TIMEOUT,
+                logger: this.logger,
+            });
+        });
+    }
     async internalTransfer(data) {
         try {
-            const destWalletResponse = await fetch(`${this.config.baseUrl}/wallets/${data.toWalletId}`, {
+            const destWalletResponse = await this.secureFetch(`${this.config.baseUrl}/wallets/${data.toWalletId}`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -51,7 +67,7 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             }
             const destWalletResult = (await destWalletResponse.json());
             const destAddress = destWalletResult.data.wallet.address;
-            const response = await fetch(`${this.config.baseUrl}/transactions/transfer`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/transactions/transfer`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -79,14 +95,13 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             return this.mapCircleTransfer(result.data.transfer);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to execute internal transfer: ${errorMessage}`);
+            this.handleApiError(error, 'execute internal transfer');
             throw error;
         }
     }
     async externalTransfer(data) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/transactions/transfer`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/transactions/transfer`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -114,14 +129,13 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             return this.mapCircleTransfer(result.data.transfer);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to execute external transfer: ${errorMessage}`);
+            this.handleApiError(error, 'execute external transfer');
             throw error;
         }
     }
     async getTransferStatus(providerTransferId) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/transactions/${providerTransferId}`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/transactions/${providerTransferId}`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -134,14 +148,13 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             return this.mapCircleTransfer(result.data.transaction);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to get transfer status: ${errorMessage}`);
+            this.handleApiError(error, 'get transfer status');
             throw error;
         }
     }
     async estimateFee(data) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/transactions/transfer/estimateFee`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/transactions/transfer/estimateFee`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -170,9 +183,20 @@ let CircleTransferAdapter = CircleTransferAdapter_1 = class CircleTransferAdapte
             };
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to estimate fee: ${errorMessage}`);
+            this.handleApiError(error, 'estimate fee');
             return { fee: '1.00', currency: 'USDC' };
+        }
+    }
+    handleApiError(error, operation) {
+        if (error instanceof utils_1.RequestTimeoutError) {
+            this.logger.error(`Circle API timeout during ${operation}: ${error.message}`);
+        }
+        else if (error instanceof utils_1.CircuitOpenError) {
+            this.logger.warn(`Circuit breaker open for Circle API during ${operation}: ${error.message}`);
+        }
+        else {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Failed to ${operation}: ${errorMessage}`);
         }
     }
     mapCircleTransfer(transfer) {

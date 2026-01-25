@@ -1,3 +1,4 @@
+import { Cache } from 'cache-manager';
 import { IPaymentGateway, RateResponse } from '../../../shared/domain/gateways';
 export interface GetRateInput {
     sourceCurrency: string;
@@ -7,6 +8,8 @@ export interface GetRateInput {
 }
 export declare class GetRateUseCase {
     private readonly paymentGateway;
-    constructor(paymentGateway: IPaymentGateway);
+    private readonly cacheManager;
+    private readonly CACHE_TTL;
+    constructor(paymentGateway: IPaymentGateway, cacheManager: Cache);
     execute(input: GetRateInput): Promise<RateResponse>;
 }

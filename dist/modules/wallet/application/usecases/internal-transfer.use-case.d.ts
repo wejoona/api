@@ -3,6 +3,7 @@ import { WalletRepository } from '../../infrastructure/repositories/wallet.repos
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { IPaymentGateway } from '../../../shared/domain/gateways';
+import { CacheInvalidationService } from '../../../shared/infrastructure/services';
 export interface InternalTransferInput {
     fromUserId: string;
     toPhone: string;
@@ -25,7 +26,14 @@ export declare class InternalTransferUseCase {
     private readonly userRepository;
     private readonly dataSource;
     private readonly paymentGateway;
+    private readonly cacheInvalidationService;
     private readonly logger;
-    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, dataSource: DataSource, paymentGateway: IPaymentGateway);
+    private readonly MAX_RETRIES;
+    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, dataSource: DataSource, paymentGateway: IPaymentGateway, cacheInvalidationService: CacheInvalidationService);
     execute(input: InternalTransferInput): Promise<InternalTransferOutput>;
+    private validateTransferRequest;
+    private validateRecipient;
+    private checkDailyLimits;
+    private executeTransferTransaction;
+    private executeWithRetry;
 }

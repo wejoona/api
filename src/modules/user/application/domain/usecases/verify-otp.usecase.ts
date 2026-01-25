@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
-import { CreateWalletUseCase } from '../../../../wallet/application/usecases';
+import { KycService } from '../../../../kyc/application/services/kyc.service';
 
 export interface VerifyOtpInput {
   phone: string;
@@ -20,7 +20,7 @@ export interface VerifyOtpOutput {
   user: User;
   accessToken: string;
   refreshToken: string;
-  walletCreated: boolean;
+  kycStatus: string;
 }
 
 @Injectable()
@@ -33,7 +33,7 @@ export class VerifyOtpUsecase {
     private readonly userRepository: UserRepository,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
-    private readonly createWalletUseCase: CreateWalletUseCase,
+    private readonly kycService: KycService,
     private readonly configService: ConfigService,
   ) {
     // Use separate secret for refresh tokens - no fallback for security
@@ -64,21 +64,30 @@ export class VerifyOtpUsecase {
     user.verifyPhone();
     const updatedUser = await this.userRepository.save(user);
 
-    // Auto-create wallet on first phone verification
-    let walletCreated = false;
+    // Create KYC record on first phone verification
+    // Wallet will be created automatically when KYC is approved
+    let kycStatus = 'documents_pending';
     if (isFirstVerification) {
       try {
-        this.logger.log(`Auto-creating wallet for user ${updatedUser.id}`);
-        await this.createWalletUseCase.execute({ userId: updatedUser.id });
-        walletCreated = true;
+        this.logger.log(`Creating KYC record for user ${updatedUser.id}`);
+        const kyc = await this.kycService.createForUser(updatedUser.id);
+        kycStatus = kyc.status;
         this.logger.log(
-          `Wallet created successfully for user ${updatedUser.id}`,
+          `KYC record created for user ${updatedUser.id}: status=${kycStatus}`,
         );
       } catch (error) {
-        // Log but don't fail - wallet can be created later
+        // Log but don't fail - KYC record can be created later
         this.logger.error(
-          `Failed to auto-create wallet for user ${updatedUser.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Failed to create KYC record for user ${updatedUser.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
+      }
+    } else {
+      // Get existing KYC status for returning users
+      try {
+        const existingKyc = await this.kycService.getStatus(updatedUser.id);
+        kycStatus = existingKyc.status;
+      } catch {
+        // Ignore - use default status
       }
     }
 
@@ -104,7 +113,7 @@ export class VerifyOtpUsecase {
       user: updatedUser,
       accessToken,
       refreshToken,
-      walletCreated,
+      kycStatus,
     };
   }
 }

@@ -5,6 +5,8 @@ import { Repository, LessThan, In } from 'typeorm';
 import { TransactionOrmEntity } from '@modules/transaction/infrastructure/orm-entities';
 import { ScheduledJobEntity } from '@modules/admin/infrastructure/persistence/typeorm/entities/scheduled-job.entity';
 import { AuditLogEntity } from '@modules/admin/infrastructure/persistence/typeorm/entities/audit-log.entity';
+import { FcmTokenOrmEntity } from '@modules/notification/infrastructure/fcm';
+import { NotificationOrmEntity } from '@modules/notification/infrastructure/orm-entities';
 
 @Injectable()
 export class ScheduledJobsService {
@@ -17,6 +19,10 @@ export class ScheduledJobsService {
     private readonly jobRepository: Repository<ScheduledJobEntity>,
     @InjectRepository(AuditLogEntity)
     private readonly auditLogRepository: Repository<AuditLogEntity>,
+    @InjectRepository(FcmTokenOrmEntity)
+    private readonly fcmTokenRepository: Repository<FcmTokenOrmEntity>,
+    @InjectRepository(NotificationOrmEntity)
+    private readonly notificationRepository: Repository<NotificationOrmEntity>,
   ) {}
 
   // ==========================================
@@ -234,6 +240,81 @@ export class ScheduledJobsService {
   }
 
   // ==========================================
+  // Notification Cleanup Jobs
+  // ==========================================
+
+  /**
+   * Cleanup inactive FCM tokens
+   * Runs daily at 4 AM
+   *
+   * Removes FCM tokens that have been inactive for more than 30 days.
+   * These are tokens that:
+   * - Have been marked inactive
+   * - Haven't been used in 30+ days
+   */
+  @Cron('0 4 * * *')
+  async cleanupInactiveFcmTokens(): Promise<void> {
+    const jobName = 'cleanup_fcm_tokens';
+    const job = await this.startJob(jobName);
+
+    try {
+      this.logger.log('Starting FCM token cleanup job');
+
+      // Delete inactive tokens older than 30 days
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 30);
+
+      const result = await this.fcmTokenRepository
+        .createQueryBuilder()
+        .delete()
+        .where('is_active = :isActive', { isActive: false })
+        .andWhere('updated_at < :cutoffDate', { cutoffDate })
+        .execute();
+
+      await this.completeJob(job.id, result.affected || 0);
+      this.logger.log(`Cleaned up ${result.affected} inactive FCM tokens`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await this.failJob(job.id, message);
+      this.logger.error(`FCM token cleanup failed: ${message}`);
+    }
+  }
+
+  /**
+   * Cleanup old notifications
+   * Runs weekly on Saturday at 3 AM
+   *
+   * Removes read notifications older than 90 days.
+   */
+  @Cron('0 3 * * 6')
+  async cleanupOldNotifications(): Promise<void> {
+    const jobName = 'cleanup_notifications';
+    const job = await this.startJob(jobName);
+
+    try {
+      this.logger.log('Starting notification cleanup job');
+
+      // Delete read notifications older than 90 days
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+      const result = await this.notificationRepository
+        .createQueryBuilder()
+        .delete()
+        .where('read_at IS NOT NULL')
+        .andWhere('created_at < :cutoffDate', { cutoffDate })
+        .execute();
+
+      await this.completeJob(job.id, result.affected || 0);
+      this.logger.log(`Cleaned up ${result.affected} old notifications`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await this.failJob(job.id, message);
+      this.logger.error(`Notification cleanup failed: ${message}`);
+    }
+  }
+
+  // ==========================================
   // Health Check Jobs
   // ==========================================
 
@@ -310,6 +391,8 @@ export class ScheduledJobsService {
       | 'expire_stale_transactions'
       | 'cleanup_transaction_metadata'
       | 'cleanup_audit_logs'
+      | 'cleanup_fcm_tokens'
+      | 'cleanup_notifications'
       | 'daily_reconciliation',
   ): Promise<{ message: string }> {
     switch (jobName) {
@@ -321,6 +404,12 @@ export class ScheduledJobsService {
         break;
       case 'cleanup_audit_logs':
         await this.cleanupAuditLogs();
+        break;
+      case 'cleanup_fcm_tokens':
+        await this.cleanupInactiveFcmTokens();
+        break;
+      case 'cleanup_notifications':
+        await this.cleanupOldNotifications();
         break;
       case 'daily_reconciliation':
         await this.dailyReconciliation();

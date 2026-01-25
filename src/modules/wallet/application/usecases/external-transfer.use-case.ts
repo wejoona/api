@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm';
@@ -16,6 +17,8 @@ import {
   PAYMENT_GATEWAY,
   IPaymentGateway,
 } from '../../../shared/domain/gateways';
+import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { TransactionRiskService } from '../../../risk/application/services/transaction-risk.service';
 
 // SECURITY: KYC-based daily transfer limits (shared with internal transfers)
 const DAILY_TRANSFER_LIMITS = {
@@ -62,6 +65,8 @@ export class ExternalTransferUseCase {
     private readonly dataSource: DataSource,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly riskService: TransactionRiskService,
   ) {}
 
   async execute(input: ExternalTransferInput): Promise<ExternalTransferOutput> {
@@ -71,6 +76,15 @@ export class ExternalTransferUseCase {
     if (!this.isValidAddress(input.toAddress)) {
       throw new BadRequestException('Invalid wallet address format');
     }
+
+    // CRITICAL SECURITY: Circle Compliance Engine - Address Screening
+    // This screens the destination address against:
+    // - OFAC sanctions list
+    // - Terrorist financing databases
+    // - Known hacking/fraud addresses
+    // - Human trafficking networks
+    // - Other illicit activity
+    await this.screenDestinationAddress(input.toAddress, input.network);
 
     // Validate amount
     if (input.amount <= 0) {
@@ -124,6 +138,9 @@ export class ExternalTransferUseCase {
       this.logger.log(
         `External transfer completed: ${transactionId}, amount: ${input.amount}, fee: ${fee}`,
       );
+
+      // Invalidate balance cache for sender
+      await this.cacheInvalidationService.invalidateBalance(input.userId);
 
       return {
         transactionId,
@@ -420,5 +437,66 @@ export class ExternalTransferUseCase {
       );
       return true;
     }
+  }
+
+  /**
+   * CRITICAL SECURITY: Screen destination address via Circle Compliance Engine
+   *
+   * This is an additional security layer that screens the destination address against:
+   * - OFAC sanctions list
+   * - Terrorist financing databases
+   * - Known hacking/fraud addresses
+   * - Human trafficking networks
+   * - CSAM-related addresses
+   * - Other illicit activity
+   *
+   * If the address is flagged, the transfer is BLOCKED - no override possible.
+   */
+  private async screenDestinationAddress(
+    address: string,
+    network?: string,
+  ): Promise<void> {
+    const blockchain = this.mapNetworkToBlockchain(network);
+
+    this.logger.log(`[COMPLIANCE] Screening address: ${address} on ${blockchain}`);
+
+    const result = await this.riskService.isAddressSafe(address, blockchain);
+
+    if (!result.safe) {
+      this.logger.warn(`[COMPLIANCE] Address blocked: ${address}`, {
+        reason: result.reason,
+        riskSignals: result.riskSignals,
+      });
+
+      throw new ForbiddenException(
+        `Transfer blocked: This destination address has been flagged by our compliance system. ` +
+        `Reason: ${result.reason || 'Compliance check failed'}`,
+      );
+    }
+
+    this.logger.log(`[COMPLIANCE] Address approved: ${address}`);
+  }
+
+  /**
+   * Map network name to Circle blockchain identifier
+   */
+  private mapNetworkToBlockchain(network?: string): 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL' {
+    const networkMap: Record<string, 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL'> = {
+      ethereum: 'ETH',
+      eth: 'ETH',
+      polygon: 'MATIC',
+      matic: 'MATIC',
+      arbitrum: 'ARB',
+      arb: 'ARB',
+      avalanche: 'AVAX',
+      avax: 'AVAX',
+      base: 'BASE',
+      optimism: 'OP',
+      op: 'OP',
+      solana: 'SOL',
+      sol: 'SOL',
+    };
+
+    return networkMap[network?.toLowerCase() || 'polygon'] || 'MATIC';
   }
 }

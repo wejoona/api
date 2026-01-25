@@ -6,8 +6,10 @@ export declare class CircleTransferAdapter implements ITransferProvider {
     private readonly config;
     private readonly defaultBlockchain;
     private readonly usdcTokenId;
+    private readonly circuitBreaker;
     readonly providerName = "circle";
     constructor(configService: ConfigService);
+    private secureFetch;
     internalTransfer(data: InternalTransferData): Promise<TransferResult>;
     externalTransfer(data: ExternalTransferData): Promise<TransferResult>;
     getTransferStatus(providerTransferId: string): Promise<TransferResult>;
@@ -15,5 +17,6 @@ export declare class CircleTransferAdapter implements ITransferProvider {
         fee: string;
         currency: string;
     }>;
+    private handleApiError;
     private mapCircleTransfer;
 }

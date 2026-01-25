@@ -5,6 +5,8 @@ import { ExternalTransferUseCase, ExternalTransferInput } from './external-trans
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
+import { CacheInvalidationService } from '../../../shared/infrastructure/services/cache-invalidation.service';
+import { TransactionRiskService } from '../../../risk/application/services/transaction-risk.service';
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../shared/domain/gateways';
 import {
   createMockRepository,
@@ -22,6 +24,8 @@ describe('ExternalTransferUseCase', () => {
   let userRepository: ReturnType<typeof createMockRepository>;
   let mockDataSource: MockDataSource;
   let paymentGateway: jest.Mocked<IPaymentGateway>;
+  let cacheInvalidationService: jest.Mocked<CacheInvalidationService>;
+  let riskService: any;
 
   const userId = 'user-id';
   const validAddress = '0x' + 'a'.repeat(40); // Valid lowercase Ethereum address
@@ -33,6 +37,28 @@ describe('ExternalTransferUseCase', () => {
     userRepository = createMockRepository();
     mockDataSource = createMockDataSource();
     paymentGateway = createMockPaymentGateway();
+    cacheInvalidationService = {
+      invalidateBalance: jest.fn().mockResolvedValue(undefined),
+      invalidateUserProfile: jest.fn().mockResolvedValue(undefined),
+      invalidateRate: jest.fn().mockResolvedValue(undefined),
+      invalidateMultipleBalances: jest.fn().mockResolvedValue(undefined),
+      clearAll: jest.fn().mockResolvedValue(undefined),
+    } as any;
+    riskService = {
+      assessTransaction: jest.fn().mockResolvedValue({
+        riskScore: 10,
+        riskLevel: 'low',
+        factors: [],
+        requiresReview: false,
+        requiresStepUp: false,
+      }),
+      recordTransactionOutcome: jest.fn().mockResolvedValue(undefined),
+      isAddressSafe: jest.fn().mockResolvedValue({
+        safe: true,
+        reason: null,
+        riskSignals: [],
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +68,8 @@ describe('ExternalTransferUseCase', () => {
         { provide: UserRepository, useValue: userRepository },
         { provide: DataSource, useValue: mockDataSource },
         { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
+        { provide: CacheInvalidationService, useValue: cacheInvalidationService },
+        { provide: TransactionRiskService, useValue: riskService },
       ],
     }).compile();
 

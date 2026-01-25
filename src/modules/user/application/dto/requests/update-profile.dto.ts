@@ -1,7 +1,33 @@
-import { IsString, IsOptional, IsEmail, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  MaxLength,
+  MinLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class UpdateProfileDto {
+  @ApiProperty({
+    description:
+      'Unique username/handle (3-20 chars, alphanumeric and underscores only)',
+    example: 'amadou_diallo',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(20)
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'Username can only contain letters, numbers, and underscores',
+  })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase().replace(/^@/, '') : value,
+  )
+  username?: string;
+
   @ApiProperty({
     description: 'User first name',
     example: 'Amadou',

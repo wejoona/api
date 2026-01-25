@@ -4,7 +4,8 @@ export type TransactionType =
   | 'deposit'
   | 'transfer_internal'
   | 'transfer_external'
-  | 'withdrawal';
+  | 'withdrawal'
+  | 'bill_payment';
 export type TransactionStatus =
   | 'pending'
   | 'processing'
@@ -52,6 +53,13 @@ export interface CreateExternalTransferProps {
   recipientAddress: string;
   currency?: string;
   yellowCardRef?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CreateBillPaymentProps {
+  walletId: string;
+  amount: number;
+  currency?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -149,6 +157,25 @@ export class TransactionEntity implements ITransaction {
     });
   }
 
+  static createBillPayment(props: CreateBillPaymentProps): TransactionEntity {
+    return new TransactionEntity({
+      id: uuidv4(),
+      walletId: props.walletId,
+      type: 'bill_payment',
+      amount: props.amount,
+      currency: props.currency || 'XOF',
+      status: 'pending',
+      yellowCardRef: null,
+      recipientAddress: null,
+      recipientPhone: null,
+      recipientWalletId: null,
+      metadata: props.metadata || null,
+      failureReason: null,
+      createdAt: new Date(),
+      completedAt: null,
+    });
+  }
+
   static reconstitute(props: ITransaction): TransactionEntity {
     return new TransactionEntity(props);
   }
@@ -224,5 +251,9 @@ export class TransactionEntity implements ITransaction {
     return (
       this.type === 'transfer_internal' || this.type === 'transfer_external'
     );
+  }
+
+  get isBillPayment(): boolean {
+    return this.type === 'bill_payment';
   }
 }

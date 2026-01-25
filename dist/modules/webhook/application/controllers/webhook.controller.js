@@ -74,16 +74,12 @@ __decorate([
         },
     }),
     (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Webhook received but not processed (invalid signature or unhandled event)',
-        schema: {
-            example: {
-                success: false,
-                eventType: 'unknown',
-                processed: false,
-                message: 'Invalid signature',
-            },
-        },
+        status: 401,
+        description: 'Invalid webhook signature',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error processing webhook',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -106,6 +102,14 @@ __decorate([
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'Webhook processed successfully',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Invalid webhook signature',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error processing webhook',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -135,6 +139,14 @@ __decorate([
                 processed: true,
             },
         },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 401,
+        description: 'Invalid webhook signature',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error processing webhook',
     }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),

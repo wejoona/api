@@ -4,8 +4,11 @@ export declare class CircleIdentityAdapter implements IIdentityProvider {
     private readonly configService;
     private readonly logger;
     private readonly config;
+    private readonly circuitBreaker;
     readonly providerName = "circle";
     constructor(configService: ConfigService);
+    private secureFetch;
+    private handleApiError;
     createUser(data: CreateUserData): Promise<IdentityProviderUser>;
     getUser(providerId: string): Promise<IdentityProviderUser | null>;
     submitKyc(_providerId: string, _data: KycData): Promise<KycResult>;

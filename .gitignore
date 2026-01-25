@@ -12,6 +12,11 @@ build/
 .env
 .env.*
 !.env.example
+!.env.production.example
+
+# Kubernetes secrets (templates are OK)
+k8s/secrets.yaml
+!k8s/secrets.yaml.template
 
 # IDE
 .idea/

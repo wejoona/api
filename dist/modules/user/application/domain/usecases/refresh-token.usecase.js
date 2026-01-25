@@ -97,6 +97,8 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
                 secret: this.refreshSecret,
                 expiresIn: this.refreshExpiresIn,
             });
+            await this.blacklistToken(input.refreshToken, payload.exp);
+            this.logger.log(`Tokens refreshed and old token blacklisted for user ${user.id}`);
             return {
                 user,
                 accessToken,
@@ -119,6 +121,25 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
             secret: this.refreshSecret,
             expiresIn: this.refreshExpiresIn,
         });
+    }
+    async blacklistToken(token, expirationTimestamp) {
+        try {
+            const blacklistKey = `blacklist:${token}`;
+            let ttl;
+            if (expirationTimestamp) {
+                ttl = Math.max(0, expirationTimestamp - Math.floor(Date.now() / 1000));
+            }
+            else {
+                ttl = 7 * 24 * 60 * 60;
+            }
+            if (ttl > 0) {
+                await this.redis.set(blacklistKey, '1', 'EX', ttl);
+                this.logger.debug(`Token blacklisted with TTL ${ttl}s`);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Failed to blacklist token: ${error.message}`);
+        }
     }
 };
 exports.RefreshTokenUsecase = RefreshTokenUsecase;

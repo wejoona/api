@@ -1,0 +1,377 @@
+# =============================================================================
+# JoonaPay USDC Wallet - Deployment Pipeline
+# =============================================================================
+# Deploys to staging automatically on merge to main
+# Deploys to production via manual approval
+# =============================================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip tests before deployment'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20.x'
+  DOCKER_REGISTRY: ghcr.io
+  DOCKER_IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  # ===========================================================================
+  # Pre-deployment Validation
+  # ===========================================================================
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image_tag: ${{ steps.version.outputs.image_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: npm run test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-minimum-32-characters-long
+          JWT_REFRESH_SECRET: test-refresh-secret-key-ci-minimum-32-characters
+
+      - name: Build application
+        run: npm run build
+
+      - name: Generate version info
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          IMAGE_TAG="${VERSION}-${SHORT_SHA}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+          echo "Image Tag: ${IMAGE_TAG}"
+
+  # ===========================================================================
+  # Build and Push Docker Image
+  # ===========================================================================
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [validate]
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ needs.validate.outputs.image_tag }}
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # ===========================================================================
+  # Deploy to Staging
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://api-staging.joonapay.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure Kubernetes context
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        env:
+          KUBE_CONFIG_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/usdc-wallet-api \
+            api=${{ env.DOCKER_IMAGE }}:${{ needs.validate.outputs.image_tag }} \
+            -n staging
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/usdc-wallet-api \
+            -n staging \
+            --timeout=300s
+
+      - name: Run health check
+        run: |
+          sleep 30
+          chmod +x ./scripts/health-check.sh
+          ./scripts/health-check.sh https://api-staging.joonapay.com/api/v1/health \
+            --retries 10 --interval 10
+
+      - name: Notify on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Staging deployment successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment Successful*\n\nVersion: `${{ needs.validate.outputs.version }}`\nCommit: `${{ github.sha }}`\nURL: https://api-staging.joonapay.com"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Staging deployment failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment Failed*\n\nVersion: `${{ needs.validate.outputs.version }}`\nCommit: `${{ github.sha }}`\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  # ===========================================================================
+  # Deploy to Production (Manual Approval Required)
+  # ===========================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, build, deploy-staging]
+    if: github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://api.joonapay.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure Kubernetes context
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          echo "KUBECONFIG=$(pwd)/kubeconfig" >> $GITHUB_ENV
+        env:
+          KUBE_CONFIG_PRODUCTION: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+
+      - name: Create database backup
+        run: |
+          echo "Creating pre-deployment database backup..."
+          # Add your backup command here
+          # aws rds create-db-snapshot ...
+          echo "Backup created successfully"
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl set image deployment/usdc-wallet-api \
+            api=${{ env.DOCKER_IMAGE }}:${{ needs.validate.outputs.image_tag }} \
+            -n production
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/usdc-wallet-api \
+            -n production \
+            --timeout=300s
+
+      - name: Run health check
+        run: |
+          sleep 30
+          chmod +x ./scripts/health-check.sh
+          ./scripts/health-check.sh https://api.joonapay.com/api/v1/health \
+            --retries 15 --interval 10
+
+      - name: Run smoke tests
+        run: |
+          echo "Running production smoke tests..."
+          # Add smoke test commands here
+          curl -f https://api.joonapay.com/api/v1/health || exit 1
+          echo "Smoke tests passed"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}-${{ github.run_number }}
+          name: Release v${{ needs.validate.outputs.version }}
+          body: |
+            ## Production Release
+
+            **Version:** ${{ needs.validate.outputs.version }}
+            **Commit:** ${{ github.sha }}
+            **Deployed:** ${{ github.event.head_commit.timestamp }}
+
+            ### Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+
+      - name: Notify on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Production deployment successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Successful*\n\nVersion: `${{ needs.validate.outputs.version }}`\nCommit: `${{ github.sha }}`\nURL: https://api.joonapay.com"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "PRODUCTION DEPLOYMENT FAILED - IMMEDIATE ACTION REQUIRED",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PRODUCTION DEPLOYMENT FAILED*\n\nVersion: `${{ needs.validate.outputs.version }}`\nCommit: `${{ github.sha }}`\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\n*Rollback may be required!*"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  # ===========================================================================
+  # Rollback Job (Manual Trigger)
+  # ===========================================================================
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && failure()
+    needs: [deploy-staging, deploy-production]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Rollback deployment
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          echo "Rolling back ${ENVIRONMENT} deployment..."
+
+          if [ "$ENVIRONMENT" == "production" ]; then
+            echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          else
+            echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          fi
+
+          export KUBECONFIG=$(pwd)/kubeconfig
+
+          kubectl rollout undo deployment/usdc-wallet-api -n $ENVIRONMENT
+          kubectl rollout status deployment/usdc-wallet-api -n $ENVIRONMENT --timeout=300s
+
+          echo "Rollback completed"

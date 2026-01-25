@@ -16,6 +16,7 @@ import {
   PAYMENT_GATEWAY,
   IPaymentGateway,
 } from '../../../shared/domain/gateways';
+import { CacheInvalidationService } from '../../../shared/infrastructure/services';
 
 export interface InternalTransferInput {
   fromUserId: string;
@@ -55,12 +56,32 @@ export class InternalTransferUseCase {
     private readonly dataSource: DataSource,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {}
 
   async execute(input: InternalTransferInput): Promise<InternalTransferOutput> {
     const currency = input.currency || 'USD';
 
-    // Validate amount early
+    // Step 1: Validate transfer request
+    this.validateTransferRequest(input);
+
+    // Step 2: Validate and find recipient
+    const recipient = await this.validateRecipient(input.toPhone);
+
+    // Step 3: Check daily limits based on KYC status
+    await this.checkDailyLimits(input.fromUserId, input.amount);
+
+    // Step 4: Execute transfer with retry logic
+    return this.executeWithRetry(input, recipient, currency);
+  }
+
+  /**
+   * Validates the transfer request input
+   * - Amount must be positive and above minimum threshold
+   * - Amount must have valid precision (max 2 decimal places)
+   */
+  private validateTransferRequest(input: InternalTransferInput): void {
+    // Validate amount is positive
     if (input.amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
@@ -74,25 +95,25 @@ export class InternalTransferUseCase {
     if (!Number.isFinite(input.amount) || Math.round(input.amount * 100) / 100 !== input.amount) {
       throw new BadRequestException('Invalid amount precision');
     }
+  }
 
-    // Find recipient by phone first (outside transaction to fail fast)
-    const recipient = await this.userRepository.findByPhone(input.toPhone);
+  /**
+   * Validates and retrieves recipient user by phone number
+   * Fails fast if recipient doesn't exist (outside transaction)
+   */
+  private async validateRecipient(phone: string): Promise<{ id: string; fullName: string }> {
+    const recipient = await this.userRepository.findByPhone(phone);
     if (!recipient) {
       throw new NotFoundException('Recipient not found. They must register first.');
     }
-
-    // SECURITY: Check KYC-based transfer limits
-    await this.checkTransferLimits(input.fromUserId, input.amount);
-
-    // Execute with optimistic locking and retry on conflict
-    return this.executeWithRetry(input, recipient, currency);
+    return recipient;
   }
 
   /**
    * SECURITY: Check if user has exceeded their daily transfer limit based on KYC status
    * Note: Blnk provides ledger-level tracking, this is additional application-level security
    */
-  private async checkTransferLimits(userId: string, amount: number): Promise<void> {
+  private async checkDailyLimits(userId: string, amount: number): Promise<void> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -130,6 +151,137 @@ export class InternalTransferUseCase {
     );
   }
 
+  /**
+   * Executes the transfer transaction within a database transaction
+   * Uses optimistic locking to handle concurrent modifications
+   */
+  private async executeTransferTransaction(
+    input: InternalTransferInput,
+    recipient: { id: string; fullName: string },
+    currency: string,
+    attempt: number,
+  ): Promise<InternalTransferOutput> {
+    return await this.dataSource.transaction(async (manager) => {
+      // Get sender's wallet (no lock - using optimistic locking via version column)
+      const fromWalletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { userId: input.fromUserId },
+      });
+
+      if (!fromWalletOrm) {
+        throw new NotFoundException('Sender wallet not found');
+      }
+
+      if (fromWalletOrm.status !== 'active') {
+        throw new BadRequestException('Sender wallet is not active');
+      }
+
+      // Check balance BEFORE transfer (critical security check)
+      if (Number(fromWalletOrm.balance) < input.amount) {
+        throw new BadRequestException('Insufficient balance');
+      }
+
+      // Get recipient's wallet (no lock - using optimistic locking)
+      const toWalletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { userId: recipient.id },
+      });
+
+      if (!toWalletOrm) {
+        throw new NotFoundException('Recipient wallet not found');
+      }
+
+      if (toWalletOrm.status !== 'active') {
+        throw new BadRequestException('Recipient wallet is not active');
+      }
+
+      // Cannot transfer to yourself
+      if (fromWalletOrm.id === toWalletOrm.id) {
+        throw new BadRequestException('Cannot transfer to yourself');
+      }
+
+      this.logger.log(
+        `Processing internal transfer: ${input.fromUserId} -> ${recipient.id}, amount: ${input.amount} (attempt ${attempt})`,
+      );
+
+      // Execute transfer via payment gateway
+      const transferResponse = await this.paymentGateway.internalTransfer({
+        fromSubwalletId: fromWalletOrm.yellowCardWalletId,
+        toSubwalletId: toWalletOrm.yellowCardWalletId,
+        amount: input.amount,
+        currency,
+      });
+
+      // Update balances - version column auto-increments on save
+      // If another transaction modified the wallet, save() will throw OptimisticLockVersionMismatchError
+      fromWalletOrm.balance = Number(fromWalletOrm.balance) - input.amount;
+      toWalletOrm.balance = Number(toWalletOrm.balance) + input.amount;
+
+      await manager.save(fromWalletOrm);
+      await manager.save(toWalletOrm);
+
+      // Create transaction record for sender (debit)
+      const senderTransaction = TransactionEntity.createInternalTransfer({
+        walletId: fromWalletOrm.id,
+        amount: -input.amount, // Negative for debit
+        recipientWalletId: toWalletOrm.id,
+        recipientPhone: input.toPhone,
+        currency,
+        metadata: {
+          transferId: transferResponse.id,
+          direction: 'outbound',
+          recipientName: recipient.fullName,
+        },
+      });
+
+      // Create transaction record for recipient (credit)
+      const recipientTransaction = TransactionEntity.createInternalTransfer({
+        walletId: toWalletOrm.id,
+        amount: input.amount, // Positive for credit
+        recipientWalletId: fromWalletOrm.id,
+        recipientPhone: input.toPhone,
+        currency,
+        metadata: {
+          transferId: transferResponse.id,
+          direction: 'inbound',
+          senderWalletId: fromWalletOrm.id,
+        },
+      });
+
+      // Mark as completed (internal transfers are instant)
+      senderTransaction.complete();
+      recipientTransaction.complete();
+
+      await Promise.all([
+        this.transactionRepository.save(senderTransaction),
+        this.transactionRepository.save(recipientTransaction),
+      ]);
+
+      this.logger.log(
+        `Internal transfer completed: ${senderTransaction.id}, amount: ${input.amount}`,
+      );
+
+      // Invalidate balance cache for both sender and recipient
+      await this.cacheInvalidationService.invalidateMultipleBalances([
+        input.fromUserId,
+        recipient.id,
+      ]);
+
+      return {
+        transactionId: senderTransaction.id,
+        fromWalletId: fromWalletOrm.id,
+        toWalletId: toWalletOrm.id,
+        toPhone: input.toPhone,
+        amount: input.amount,
+        currency,
+        fee: transferResponse.fee,
+        status: 'completed',
+      };
+    });
+  }
+
+  /**
+   * Executes transfer with retry logic for optimistic lock conflicts
+   * Retries up to MAX_RETRIES times with exponential backoff
+   */
   private async executeWithRetry(
     input: InternalTransferInput,
     recipient: { id: string; fullName: string },
@@ -137,115 +289,7 @@ export class InternalTransferUseCase {
     attempt = 1,
   ): Promise<InternalTransferOutput> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
-        // Get sender's wallet (no lock - using optimistic locking via version column)
-        const fromWalletOrm = await manager.findOne(WalletOrmEntity, {
-          where: { userId: input.fromUserId },
-        });
-
-        if (!fromWalletOrm) {
-          throw new NotFoundException('Sender wallet not found');
-        }
-
-        if (fromWalletOrm.status !== 'active') {
-          throw new BadRequestException('Sender wallet is not active');
-        }
-
-        // Check balance BEFORE transfer (critical security check)
-        if (Number(fromWalletOrm.balance) < input.amount) {
-          throw new BadRequestException('Insufficient balance');
-        }
-
-        // Get recipient's wallet (no lock - using optimistic locking)
-        const toWalletOrm = await manager.findOne(WalletOrmEntity, {
-          where: { userId: recipient.id },
-        });
-
-        if (!toWalletOrm) {
-          throw new NotFoundException('Recipient wallet not found');
-        }
-
-        if (toWalletOrm.status !== 'active') {
-          throw new BadRequestException('Recipient wallet is not active');
-        }
-
-        // Cannot transfer to yourself
-        if (fromWalletOrm.id === toWalletOrm.id) {
-          throw new BadRequestException('Cannot transfer to yourself');
-        }
-
-        this.logger.log(
-          `Processing internal transfer: ${input.fromUserId} -> ${recipient.id}, amount: ${input.amount} (attempt ${attempt})`,
-        );
-
-        // Execute transfer via payment gateway
-        const transferResponse = await this.paymentGateway.internalTransfer({
-          fromSubwalletId: fromWalletOrm.yellowCardWalletId,
-          toSubwalletId: toWalletOrm.yellowCardWalletId,
-          amount: input.amount,
-          currency,
-        });
-
-        // Update balances - version column auto-increments on save
-        // If another transaction modified the wallet, save() will throw OptimisticLockVersionMismatchError
-        fromWalletOrm.balance = Number(fromWalletOrm.balance) - input.amount;
-        toWalletOrm.balance = Number(toWalletOrm.balance) + input.amount;
-
-        await manager.save(fromWalletOrm);
-        await manager.save(toWalletOrm);
-
-        // Create transaction record for sender (debit)
-        const senderTransaction = TransactionEntity.createInternalTransfer({
-          walletId: fromWalletOrm.id,
-          amount: -input.amount, // Negative for debit
-          recipientWalletId: toWalletOrm.id,
-          recipientPhone: input.toPhone,
-          currency,
-          metadata: {
-            transferId: transferResponse.id,
-            direction: 'outbound',
-            recipientName: recipient.fullName,
-          },
-        });
-
-        // Create transaction record for recipient (credit)
-        const recipientTransaction = TransactionEntity.createInternalTransfer({
-          walletId: toWalletOrm.id,
-          amount: input.amount, // Positive for credit
-          recipientWalletId: fromWalletOrm.id,
-          recipientPhone: input.toPhone,
-          currency,
-          metadata: {
-            transferId: transferResponse.id,
-            direction: 'inbound',
-            senderWalletId: fromWalletOrm.id,
-          },
-        });
-
-        // Mark as completed (internal transfers are instant)
-        senderTransaction.complete();
-        recipientTransaction.complete();
-
-        await Promise.all([
-          this.transactionRepository.save(senderTransaction),
-          this.transactionRepository.save(recipientTransaction),
-        ]);
-
-        this.logger.log(
-          `Internal transfer completed: ${senderTransaction.id}, amount: ${input.amount}`,
-        );
-
-        return {
-          transactionId: senderTransaction.id,
-          fromWalletId: fromWalletOrm.id,
-          toWalletId: toWalletOrm.id,
-          toPhone: input.toPhone,
-          amount: input.amount,
-          currency,
-          fee: transferResponse.fee,
-          status: 'completed',
-        };
-      });
+      return await this.executeTransferTransaction(input, recipient, currency, attempt);
     } catch (error) {
       // Handle optimistic lock conflict - retry with fresh data
       if (

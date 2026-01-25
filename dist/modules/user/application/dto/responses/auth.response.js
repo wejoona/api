@@ -29,11 +29,11 @@ __decorate([
 ], AuthResponse.prototype, "user", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        example: true,
-        description: 'Whether a wallet was auto-created on first verification',
+        example: 'documents_pending',
+        description: 'Current KYC verification status. Wallet is created after KYC approval.',
     }),
-    __metadata("design:type", Boolean)
-], AuthResponse.prototype, "walletCreated", void 0);
+    __metadata("design:type", String)
+], AuthResponse.prototype, "kycStatus", void 0);
 class RefreshResponse {
 }
 exports.RefreshResponse = RefreshResponse;

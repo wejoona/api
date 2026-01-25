@@ -14,6 +14,8 @@ import {
   ONRAMP_PROVIDER_CI,
   IOnRampProvider,
 } from '@modules/providers/interfaces';
+import { WebhookDeadletterService } from '../domain/services/webhook-deadletter.service';
+import { CacheInvalidationService } from '@modules/shared/infrastructure/services';
 
 export interface ProcessWebhookInput {
   payload: Record<string, unknown>;
@@ -53,6 +55,8 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     private readonly walletRepository: WalletRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
+    private readonly deadLetterService: WebhookDeadletterService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
     this.circleWebhookSecret = this.configService.get<string>('circle.webhookSecret', '');
 
@@ -213,9 +217,6 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       };
     }
 
-    // Mark as being processed (before actual processing to prevent race conditions)
-    await this.markAsProcessed(webhookId);
-
     try {
       switch (event.type) {
         case 'deposit.pending':
@@ -230,6 +231,15 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         case 'deposit.expired':
           await this.handleYcDepositExpired(event.depositId);
           break;
+        case 'withdrawal.pending':
+          await this.handleYcWithdrawalPending(event.depositId, event.data);
+          break;
+        case 'withdrawal.completed':
+          await this.handleYcWithdrawalCompleted(event.depositId, event.data);
+          break;
+        case 'withdrawal.failed':
+          await this.handleYcWithdrawalFailed(event.depositId, event.data);
+          break;
         default: {
           const unhandledType: string = event.type;
           this.logger.warn(`Unhandled Yellow Card event: ${unhandledType}`);
@@ -242,6 +252,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         }
       }
 
+      // Mark as processed only AFTER successful processing
+      await this.markAsProcessed(webhookId);
+
       return { success: true, eventType: event.type, processed: true };
     } catch (error) {
       const errorMessage =
@@ -251,13 +264,18 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         `Error processing Yellow Card webhook: ${errorMessage}`,
         errorStack,
       );
-      // Return generic error to external callers - don't leak internal details
-      return {
-        success: false,
+
+      // Log to dead-letter queue for later investigation/retry
+      await this.deadLetterService.log({
+        provider: 'yellowcard',
         eventType: event.type,
-        processed: false,
-        message: 'Internal processing error',
-      };
+        webhookId,
+        payload: input.payload,
+        error: error instanceof Error ? error : new Error(errorMessage),
+      });
+
+      // Re-throw so provider will retry the webhook
+      throw error;
     }
   }
 
@@ -304,9 +322,6 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       };
     }
 
-    // Mark as being processed (before actual processing to prevent race conditions)
-    await this.markAsProcessed(webhookId);
-
     try {
       // Circle sends different notification types
       switch (notificationType) {
@@ -343,6 +358,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
           };
       }
 
+      // Mark as processed only AFTER successful processing
+      await this.markAsProcessed(webhookId);
+
       return { success: true, eventType: notificationType, processed: true };
     } catch (error) {
       const errorMessage =
@@ -352,13 +370,18 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         `Error processing Circle webhook: ${errorMessage}`,
         errorStack,
       );
-      // Return generic error to external callers - don't leak internal details
-      return {
-        success: false,
+
+      // Log to dead-letter queue for later investigation/retry
+      await this.deadLetterService.log({
+        provider: 'circle',
         eventType: notificationType,
-        processed: false,
-        message: 'Internal processing error',
-      };
+        webhookId,
+        payload: input.payload,
+        error: error instanceof Error ? error : new Error(errorMessage),
+      });
+
+      // Re-throw so provider will retry the webhook
+      throw error;
     }
   }
 
@@ -401,9 +424,6 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       };
     }
 
-    // Mark as being processed (before actual processing to prevent race conditions)
-    await this.markAsProcessed(webhookId);
-
     try {
       switch (event.type) {
         case 'deposit.pending':
@@ -442,6 +462,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         }
       }
 
+      // Mark as processed only AFTER successful processing
+      await this.markAsProcessed(webhookId);
+
       return { success: true, eventType: event.type, processed: true };
     } catch (error) {
       const errorMessage =
@@ -451,13 +474,18 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         `Error processing webhook: ${errorMessage}`,
         errorStack,
       );
-      // Return generic error to external callers - don't leak internal details
-      return {
-        success: false,
+
+      // Log to dead-letter queue for later investigation/retry
+      await this.deadLetterService.log({
+        provider: 'generic',
         eventType: event.type,
-        processed: false,
-        message: 'Internal processing error',
-      };
+        webhookId,
+        payload: input.payload,
+        error: error instanceof Error ? error : new Error(errorMessage),
+      });
+
+      // Re-throw so provider will retry the webhook
+      throw error;
     }
   }
 
@@ -524,6 +552,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         currency: 'USDC',
         reference: depositId,
       });
+
+      // Invalidate balance cache after successful deposit
+      await this.cacheInvalidationService.invalidateBalance(wallet.userId);
     }
 
     this.logger.log(`YC Deposit ${depositId} completed`);
@@ -564,6 +595,108 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       await this.transactionRepository.save(transaction);
       this.logger.log(`YC Deposit ${depositId} expired`);
     }
+  }
+
+  // ========================================
+  // Yellow Card Withdrawal Handlers
+  // ========================================
+
+  private async handleYcWithdrawalPending(
+    withdrawalId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _data: Record<string, unknown>,
+  ): Promise<void> {
+    const transaction =
+      await this.transactionRepository.findByProviderRef(withdrawalId);
+    if (transaction) {
+      transaction.updateStatus('processing');
+      await this.transactionRepository.save(transaction);
+      this.logger.log(`YC Withdrawal ${withdrawalId} now processing`);
+    }
+  }
+
+  private async handleYcWithdrawalCompleted(
+    withdrawalId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const transaction =
+      await this.transactionRepository.findByProviderRef(withdrawalId);
+    if (!transaction) {
+      this.logger.warn(`Transaction not found for YC withdrawal: ${withdrawalId}`);
+      return;
+    }
+
+    transaction.complete();
+    await this.transactionRepository.save(transaction);
+
+    // Find wallet and emit event for ledger service to commit the transaction
+    const wallet = await this.walletRepository.findById(transaction.walletId);
+    if (wallet?.userId) {
+      this.eventEmitter.emit('webhook.withdrawal.completed', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        withdrawalId,
+        amount: String(transaction.amount),
+        reference: `withdrawal-${withdrawalId}`,
+        provider: 'yellowcard',
+        data,
+      });
+
+      // Also emit notification event
+      this.eventEmitter.emit('withdrawal.completed', {
+        userId: wallet.userId,
+        amount: String(transaction.amount),
+        currency: 'USDC',
+        reference: withdrawalId,
+      });
+
+      // Invalidate balance cache after successful withdrawal
+      await this.cacheInvalidationService.invalidateBalance(wallet.userId);
+    }
+
+    this.logger.log(`YC Withdrawal ${withdrawalId} completed`);
+  }
+
+  private async handleYcWithdrawalFailed(
+    withdrawalId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const transaction =
+      await this.transactionRepository.findByProviderRef(withdrawalId);
+    if (!transaction) {
+      this.logger.warn(`Transaction not found for failed YC withdrawal: ${withdrawalId}`);
+      return;
+    }
+
+    const reason =
+      typeof data.reason === 'string' ? data.reason : 'Withdrawal failed';
+    transaction.fail(reason);
+    await this.transactionRepository.save(transaction);
+
+    // Find wallet and emit event for ledger service to void/refund
+    const wallet = await this.walletRepository.findById(transaction.walletId);
+    if (wallet?.userId) {
+      this.eventEmitter.emit('webhook.withdrawal.failed', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        withdrawalId,
+        amount: String(transaction.amount),
+        reference: `withdrawal-${withdrawalId}`,
+        provider: 'yellowcard',
+        reason,
+      });
+
+      // Also emit notification event
+      this.eventEmitter.emit('withdrawal.failed', {
+        userId: wallet.userId,
+        amount: String(transaction.amount),
+        currency: 'USDC',
+        reference: withdrawalId,
+        error: reason,
+      });
+    }
+
+    this.logger.log(`YC Withdrawal ${withdrawalId} failed: ${reason}`);
   }
 
   // ========================================
@@ -653,6 +786,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         currency: 'USDC',
         reference: (inbound?.id as string) || 'circle_inbound',
       });
+
+      // Invalidate balance cache after Circle inbound transfer
+      await this.cacheInvalidationService.invalidateBalance(wallet.userId);
     }
   }
 
@@ -682,6 +818,11 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       if (wallet && event.data?.amount) {
         wallet.credit(Number(event.data.amount));
         await this.walletRepository.save(wallet);
+
+        // Invalidate balance cache after deposit completion
+        if (wallet.userId) {
+          await this.cacheInvalidationService.invalidateBalance(wallet.userId);
+        }
       }
     }
   }

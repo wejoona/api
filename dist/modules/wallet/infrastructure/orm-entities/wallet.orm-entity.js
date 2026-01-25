@@ -72,6 +72,10 @@ __decorate([
     __metadata("design:type", String)
 ], WalletOrmEntity.prototype, "status", void 0);
 __decorate([
+    (0, typeorm_1.VersionColumn)(),
+    __metadata("design:type", Number)
+], WalletOrmEntity.prototype, "version", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)
 ], WalletOrmEntity.prototype, "createdAt", void 0);

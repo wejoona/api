@@ -11,6 +11,12 @@ import {
   CircleWallet,
   CircleWalletBalance,
 } from '../circle.types';
+import {
+  CircuitBreaker,
+  fetchWithTimeout,
+  RequestTimeoutError,
+  CircuitOpenError,
+} from '@common/utils';
 
 interface CircleApiResponse<T> {
   data: T;
@@ -32,6 +38,9 @@ interface CircleApiError {
   message: string;
 }
 
+/** Default timeout for Circle API calls (5 seconds) */
+const CIRCLE_API_TIMEOUT = 5000;
+
 /**
  * Circle Wallet Adapter
  *
@@ -44,6 +53,7 @@ export class CircleWalletAdapter implements IWalletProvider {
   private readonly logger = new Logger(CircleWalletAdapter.name);
   private readonly config: CircleConfig;
   private readonly defaultBlockchain: string;
+  private readonly circuitBreaker: CircuitBreaker;
 
   readonly providerName = 'circle';
 
@@ -62,6 +72,14 @@ export class CircleWalletAdapter implements IWalletProvider {
     this.defaultBlockchain =
       this.configService.get<string>('circle.defaultBlockchain') || 'MATIC';
 
+    // Initialize circuit breaker for API resilience
+    // Opens after 5 consecutive failures, resets after 30 seconds
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'circle-wallet',
+      failureThreshold: 5,
+      resetTimeout: 30000,
+    });
+
     if (!this.config.apiKey) {
       this.logger.warn('Circle API key not configured');
     } else {
@@ -69,9 +87,47 @@ export class CircleWalletAdapter implements IWalletProvider {
     }
   }
 
+  /**
+   * Execute a fetch request with timeout and circuit breaker protection
+   * @param url The URL to fetch
+   * @param options Fetch options
+   * @returns The fetch Response
+   */
+  private async secureFetch(
+    url: string,
+    options: RequestInit = {},
+  ): Promise<Response> {
+    return this.circuitBreaker.execute(async () => {
+      return fetchWithTimeout(url, {
+        ...options,
+        timeout: CIRCLE_API_TIMEOUT,
+        logger: this.logger,
+      });
+    });
+  }
+
+  /**
+   * Handle API errors with proper logging based on error type
+   */
+  private handleApiError(error: unknown, operation: string): void {
+    if (error instanceof RequestTimeoutError) {
+      this.logger.error(
+        `Circle API timeout during ${operation}: ${error.message}`,
+      );
+    } else if (error instanceof CircuitOpenError) {
+      this.logger.warn(
+        `Circuit breaker open for Circle API during ${operation}: ${error.message}`,
+      );
+    } else {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to ${operation}: ${errorMessage}`);
+    }
+  }
+
   async createWallet(data: CreateWalletData): Promise<ProviderWallet> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/wallets`, {
+      const response = await this.secureFetch(`${this.config.baseUrl}/wallets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,16 +155,14 @@ export class CircleWalletAdapter implements IWalletProvider {
 
       return this.mapCircleWallet(circleWallet);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to create Circle wallet: ${errorMessage}`);
+      this.handleApiError(error, 'create Circle wallet');
       throw error;
     }
   }
 
   async getWallet(providerWalletId: string): Promise<ProviderWallet | null> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/wallets/${providerWalletId}`,
         {
           headers: {
@@ -130,16 +184,14 @@ export class CircleWalletAdapter implements IWalletProvider {
         (await response.json()) as CircleApiResponse<CircleWalletResponse>;
       return this.mapCircleWallet(result.data.wallet);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get Circle wallet: ${errorMessage}`);
+      this.handleApiError(error, 'get Circle wallet');
       throw error;
     }
   }
 
   async getBalance(providerWalletId: string): Promise<WalletBalance[]> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/wallets/${providerWalletId}/balances`,
         {
           headers: {
@@ -164,9 +216,7 @@ export class CircleWalletAdapter implements IWalletProvider {
         total: b.amount,
       }));
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to get Circle wallet balance: ${errorMessage}`);
+      this.handleApiError(error, 'get Circle wallet balance');
       throw error;
     }
   }
@@ -184,7 +234,7 @@ export class CircleWalletAdapter implements IWalletProvider {
 
   async listWallets(userProviderId: string): Promise<ProviderWallet[]> {
     try {
-      const response = await fetch(
+      const response = await this.secureFetch(
         `${this.config.baseUrl}/wallets?userId=${userProviderId}`,
         {
           headers: {
@@ -204,9 +254,7 @@ export class CircleWalletAdapter implements IWalletProvider {
 
       return wallets.map((w) => this.mapCircleWallet(w));
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to list Circle wallets: ${errorMessage}`);
+      this.handleApiError(error, 'list Circle wallets');
       throw error;
     }
   }

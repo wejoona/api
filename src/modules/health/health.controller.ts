@@ -5,31 +5,21 @@ import {
   HealthCheck,
   TypeOrmHealthIndicator,
   HealthCheckResult,
-  HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator } from './health-indicators';
 
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
-  private redis: Redis;
-
   constructor(
     private readonly health: HealthCheckService,
     private readonly db: TypeOrmHealthIndicator,
     private readonly configService: ConfigService,
-  ) {
-    // Create Redis connection for health checks
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host', 'localhost'),
-      port: this.configService.get<number>('redis.port', 6379),
-      password: this.configService.get<string>('redis.password'),
-      maxRetriesPerRequest: 1,
-      connectTimeout: 5000,
-      lazyConnect: true,
-    });
-  }
+    private readonly circleHealth: CircleHealthIndicator,
+    private readonly blnkHealth: BlnkHealthIndicator,
+    private readonly redisHealth: RedisHealthIndicator,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Basic health check' })
@@ -64,8 +54,9 @@ export class HealthController {
   async readiness(): Promise<HealthCheckResult> {
     return this.health.check([
       () => this.db.pingCheck('database'),
-      () => this.checkRedis(),
-      () => this.checkBlnk(),
+      () => this.redisHealth.isHealthy('redis'),
+      () => this.blnkHealth.isHealthy('blnk'),
+      () => this.circleHealth.isHealthy('circle'),
     ]);
   }
 
@@ -89,13 +80,66 @@ export class HealthController {
     description: 'Detailed health status',
   })
   async detailed() {
-    const checks = {
+    const services: Record<string, any> = {
+      database: { status: 'unknown' },
+      redis: { status: 'unknown' },
+      blnk: { status: 'unknown' },
+      circle: { status: 'unknown' },
+    };
+
+    // Check database
+    try {
+      const startDb = Date.now();
+      await this.db.pingCheck('database');
+      services.database = { status: 'up', latency: `${Date.now() - startDb}ms` };
+    } catch (error) {
+      services.database = {
+        status: 'down',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+
+    // Check Redis
+    try {
+      const result = await this.redisHealth.isHealthy('redis');
+      services.redis = { status: 'up', ...result.redis };
+    } catch (error: any) {
+      services.redis = {
+        status: 'down',
+        error: error.message || 'Unknown error',
+      };
+    }
+
+    // Check Blnk
+    try {
+      const result = await this.blnkHealth.isHealthy('blnk');
+      services.blnk = { status: 'up', ...result.blnk };
+    } catch (error: any) {
+      services.blnk = {
+        status: 'down',
+        error: error.message || 'Unknown error',
+      };
+    }
+
+    // Check Circle
+    try {
+      const result = await this.circleHealth.isHealthy('circle');
+      services.circle = { status: 'up', ...result.circle };
+    } catch (error: any) {
+      services.circle = {
+        status: 'down',
+        error: error.message || 'Unknown error',
+      };
+    }
+
+    const allHealthy = Object.values(services).every(
+      (service) => service.status === 'up',
+    );
+
+    return {
+      status: allHealthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
-      services: {
-        database: await this.checkDatabaseDetailed(),
-        redis: await this.checkRedisDetailed(),
-        blnk: await this.checkBlnkDetailed(),
-      },
+      services,
       environment: {
         nodeEnv: this.configService.get('NODE_ENV', 'development'),
         version: process.env.npm_package_version || '0.0.1',
@@ -103,111 +147,5 @@ export class HealthController {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
     };
-
-    const allHealthy = Object.values(checks.services).every(
-      (service) => service.status === 'up',
-    );
-
-    return {
-      status: allHealthy ? 'ok' : 'degraded',
-      ...checks,
-    };
-  }
-
-  // ============================================
-  // Private Health Check Methods
-  // ============================================
-
-  private async checkRedis(): Promise<HealthIndicatorResult> {
-    try {
-      await this.redis.connect();
-      const pong = await this.redis.ping();
-      await this.redis.disconnect();
-
-      if (pong === 'PONG') {
-        return { redis: { status: 'up' } };
-      }
-      throw new Error('Redis ping failed');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { redis: { status: 'down', message: errorMessage } };
-    }
-  }
-
-  private async checkBlnk(): Promise<HealthIndicatorResult> {
-    try {
-      const blnkUrl = this.configService.get<string>('blnk.url', 'http://localhost:5001');
-      const response = await fetch(`${blnkUrl}/`, {
-        signal: AbortSignal.timeout(5000)
-      });
-
-      if (response.ok) {
-        return { blnk: { status: 'up' } };
-      }
-      return { blnk: { status: 'down', message: `HTTP ${response.status}` } };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { blnk: { status: 'down', message: errorMessage } };
-    }
-  }
-
-  private async checkDatabaseDetailed() {
-    try {
-      const start = Date.now();
-      await this.db.pingCheck('database');
-      const latency = Date.now() - start;
-      return { status: 'up', latency: `${latency}ms` };
-    } catch (error) {
-      return {
-        status: 'down',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  private async checkRedisDetailed() {
-    try {
-      await this.redis.connect();
-      const start = Date.now();
-      const pong = await this.redis.ping();
-      const latency = Date.now() - start;
-      await this.redis.disconnect();
-
-      if (pong === 'PONG') {
-        return { status: 'up', latency: `${latency}ms` };
-      }
-      return { status: 'down', error: 'Ping failed' };
-    } catch (error) {
-      return {
-        status: 'down',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  private async checkBlnkDetailed() {
-    try {
-      const blnkUrl = this.configService.get<string>('blnk.url', 'http://localhost:5001');
-      const start = Date.now();
-      const response = await fetch(`${blnkUrl}/`, {
-        signal: AbortSignal.timeout(5000)
-      });
-      const latency = Date.now() - start;
-
-      if (response.ok) {
-        return { status: 'up', latency: `${latency}ms`, url: blnkUrl };
-      }
-      return {
-        status: 'down',
-        error: `HTTP ${response.status}`,
-        url: blnkUrl,
-      };
-    } catch (error) {
-      return {
-        status: 'down',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        url: this.configService.get<string>('blnk.url', 'http://localhost:5001'),
-      };
-    }
   }
 }

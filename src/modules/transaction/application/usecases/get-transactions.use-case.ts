@@ -2,11 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TransactionRepository } from '../../infrastructure/repositories/transaction.repository';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
+import { TransactionFilters } from '../dto/requests';
 
 export interface GetTransactionsInput {
   userId: string;
-  type?: 'deposit' | 'transfer_internal' | 'transfer_external';
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  type?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
+  sortBy?: 'createdAt' | 'amount';
+  sortOrder?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
 }
@@ -16,6 +24,7 @@ export interface GetTransactionsOutput {
   total: number;
   limit: number;
   offset: number;
+  hasMore: boolean;
 }
 
 @Injectable()
@@ -31,29 +40,36 @@ export class GetTransactionsUseCase {
       throw new NotFoundException('Wallet not found');
     }
 
-    const transactions = await this.transactionRepository.findByWalletId(
-      wallet.id,
-    );
-
-    // Apply filters
-    let filtered = transactions;
-    if (input.type) {
-      filtered = filtered.filter((t) => t.type === input.type);
-    }
-    if (input.status) {
-      filtered = filtered.filter((t) => t.status === input.status);
-    }
-
-    // Apply pagination
+    // Build filters
     const limit = input.limit || 20;
     const offset = input.offset || 0;
-    const paginated = filtered.slice(offset, offset + limit);
 
-    return {
-      transactions: paginated,
-      total: filtered.length,
+    const filters: TransactionFilters = {
+      type: input.type,
+      status: input.status,
+      startDate: input.startDate ? new Date(input.startDate) : undefined,
+      endDate: input.endDate ? new Date(input.endDate) : undefined,
+      minAmount: input.minAmount,
+      maxAmount: input.maxAmount,
+      search: input.search,
+      sortBy: input.sortBy || 'createdAt',
+      sortOrder: input.sortOrder || 'DESC',
       limit,
       offset,
+    };
+
+    // Use the new filtered query method
+    const result = await this.transactionRepository.findByWalletIdFiltered(
+      wallet.id,
+      filters,
+    );
+
+    return {
+      transactions: result.transactions,
+      total: result.total,
+      limit,
+      offset,
+      hasMore: offset + result.transactions.length < result.total,
     };
   }
 }

@@ -3,8 +3,15 @@ import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 export interface GetTransactionsInput {
     userId: string;
-    type?: 'deposit' | 'transfer_internal' | 'transfer_external';
-    status?: 'pending' | 'processing' | 'completed' | 'failed';
+    type?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    search?: string;
+    sortBy?: 'createdAt' | 'amount';
+    sortOrder?: 'ASC' | 'DESC';
     limit?: number;
     offset?: number;
 }
@@ -13,6 +20,7 @@ export interface GetTransactionsOutput {
     total: number;
     limit: number;
     offset: number;
+    hasMore: boolean;
 }
 export declare class GetTransactionsUseCase {
     private readonly transactionRepository;

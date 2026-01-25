@@ -19,6 +19,24 @@ interface WebhookTransferFailedPayload {
     errorCode?: string;
     errorMessage: string;
 }
+interface WebhookWithdrawalCompletedPayload {
+    userId: string;
+    walletId: string;
+    withdrawalId: string;
+    amount: string;
+    reference: string;
+    provider: 'yellowcard' | 'circle';
+    data?: Record<string, unknown>;
+}
+interface WebhookWithdrawalFailedPayload {
+    userId: string;
+    walletId: string;
+    withdrawalId: string;
+    amount: string;
+    reference: string;
+    provider: 'yellowcard' | 'circle';
+    reason: string;
+}
 interface DepositCompletedPayload {
     userId: string;
     amount: string;
@@ -41,5 +59,7 @@ export declare class WebhookLedgerListener {
     handleTransferFailed(payload: WebhookTransferFailedPayload): Promise<void>;
     handleDepositCompletedNotification(payload: DepositCompletedPayload): Promise<void>;
     handleDepositFailedNotification(payload: DepositFailedPayload): Promise<void>;
+    handleWithdrawalCompleted(payload: WebhookWithdrawalCompletedPayload): Promise<void>;
+    handleWithdrawalFailed(payload: WebhookWithdrawalFailedPayload): Promise<void>;
 }
 export {};

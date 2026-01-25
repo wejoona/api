@@ -16,10 +16,12 @@ exports.SubmitKycUseCase = void 0;
 const common_1 = require("@nestjs/common");
 const payment_gateway_1 = require("../../../shared/domain/gateways/payment.gateway");
 const wallet_repository_1 = require("../../infrastructure/repositories/wallet.repository");
+const upload_service_1 = require("../../../upload/application/services/upload.service");
 let SubmitKycUseCase = class SubmitKycUseCase {
-    constructor(paymentGateway, walletRepository) {
+    constructor(paymentGateway, walletRepository, uploadService) {
         this.paymentGateway = paymentGateway;
         this.walletRepository = walletRepository;
+        this.uploadService = uploadService;
     }
     async execute(input) {
         const wallet = await this.walletRepository.findByUserId(input.userId);
@@ -35,6 +37,21 @@ let SubmitKycUseCase = class SubmitKycUseCase {
         if (wallet.kycStatus === 'verified') {
             throw new common_1.BadRequestException('KYC already verified');
         }
+        if (!input.documentFrontKey || !input.documentBackKey || !input.selfieKey) {
+            const missingDocs = [];
+            if (!input.documentFrontKey)
+                missingDocs.push('ID front');
+            if (!input.documentBackKey)
+                missingDocs.push('ID back');
+            if (!input.selfieKey)
+                missingDocs.push('selfie');
+            throw new common_1.BadRequestException(`All KYC documents are required. Missing: ${missingDocs.join(', ')}`);
+        }
+        const [documentFrontUrl, documentBackUrl, selfieUrl] = await Promise.all([
+            this.uploadService.getSignedUrl(input.documentFrontKey, 3600),
+            this.uploadService.getSignedUrl(input.documentBackKey, 3600),
+            this.uploadService.getSignedUrl(input.selfieKey, 3600),
+        ]);
         const kycResponse = await this.paymentGateway.submitKyc({
             subwalletId: wallet.providerWalletId,
             firstName: input.firstName,
@@ -45,6 +62,9 @@ let SubmitKycUseCase = class SubmitKycUseCase {
             idNumber: input.idNumber,
             idExpiryDate: input.idExpiryDate,
             address: input.address,
+            documentFrontUrl,
+            documentBackUrl,
+            selfieUrl,
         });
         wallet.updateKycStatus('pending');
         await this.walletRepository.save(wallet);
@@ -60,6 +80,7 @@ exports.SubmitKycUseCase = SubmitKycUseCase;
 exports.SubmitKycUseCase = SubmitKycUseCase = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(payment_gateway_1.PAYMENT_GATEWAY)),
-    __metadata("design:paramtypes", [Object, wallet_repository_1.WalletRepository])
+    __metadata("design:paramtypes", [Object, wallet_repository_1.WalletRepository,
+        upload_service_1.UploadService])
 ], SubmitKycUseCase);
 //# sourceMappingURL=submit-kyc.use-case.js.map

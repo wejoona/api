@@ -3,6 +3,7 @@ export declare class UserResponse {
     id: string;
     phone: string;
     phoneVerified: boolean;
+    username: string | null;
     firstName: string | null;
     lastName: string | null;
     email: string | null;

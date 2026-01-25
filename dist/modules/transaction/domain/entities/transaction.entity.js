@@ -73,6 +73,24 @@ class TransactionEntity {
             completedAt: null,
         });
     }
+    static createBillPayment(props) {
+        return new TransactionEntity({
+            id: (0, uuid_1.v4)(),
+            walletId: props.walletId,
+            type: 'bill_payment',
+            amount: props.amount,
+            currency: props.currency || 'XOF',
+            status: 'pending',
+            yellowCardRef: null,
+            recipientAddress: null,
+            recipientPhone: null,
+            recipientWalletId: null,
+            metadata: props.metadata || null,
+            failureReason: null,
+            createdAt: new Date(),
+            completedAt: null,
+        });
+    }
     static reconstitute(props) {
         return new TransactionEntity(props);
     }
@@ -129,6 +147,9 @@ class TransactionEntity {
     }
     get isTransfer() {
         return (this.type === 'transfer_internal' || this.type === 'transfer_external');
+    }
+    get isBillPayment() {
+        return this.type === 'bill_payment';
     }
 }
 exports.TransactionEntity = TransactionEntity;

@@ -5,6 +5,7 @@ export interface IUser {
     id: string;
     phone: string;
     phoneVerified: boolean;
+    username: string | null;
     firstName: string | null;
     lastName: string | null;
     email: string | null;
@@ -29,6 +30,7 @@ export interface CreateUserProps {
     countryCode?: string;
 }
 export interface UpdateUserProps {
+    username?: string;
     firstName?: string;
     lastName?: string;
     email?: string;
@@ -37,6 +39,7 @@ export declare class User implements IUser {
     readonly id: string;
     readonly phone: string;
     phoneVerified: boolean;
+    username: string | null;
     firstName: string | null;
     lastName: string | null;
     email: string | null;
@@ -60,9 +63,12 @@ export declare class User implements IUser {
     static reconstitute(props: IUser): User;
     verifyPhone(): void;
     updateProfile(props: UpdateUserProps): void;
+    setUsername(username: string | null): void;
+    get displayName(): string;
     submitKyc(kycProviderId: string): void;
     approveKyc(): void;
     rejectKyc(): void;
+    updateKycStatus(status: KycStatus): void;
     linkToCircle(circleUserId: string, userToken?: string): void;
     updateCircleUserToken(userToken: string): void;
     get isLinkedToCircle(): boolean;

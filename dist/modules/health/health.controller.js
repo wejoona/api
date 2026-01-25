@@ -14,20 +14,15 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const terminus_1 = require("@nestjs/terminus");
 const config_1 = require("@nestjs/config");
-const ioredis_1 = require("ioredis");
+const health_indicators_1 = require("./health-indicators");
 let HealthController = class HealthController {
-    constructor(health, db, configService) {
+    constructor(health, db, configService, circleHealth, blnkHealth, redisHealth) {
         this.health = health;
         this.db = db;
         this.configService = configService;
-        this.redis = new ioredis_1.default({
-            host: this.configService.get('redis.host', 'localhost'),
-            port: this.configService.get('redis.port', 6379),
-            password: this.configService.get('redis.password'),
-            maxRetriesPerRequest: 1,
-            connectTimeout: 5000,
-            lazyConnect: true,
-        });
+        this.circleHealth = circleHealth;
+        this.blnkHealth = blnkHealth;
+        this.redisHealth = redisHealth;
     }
     check() {
         return this.health.check([
@@ -37,8 +32,9 @@ let HealthController = class HealthController {
     async readiness() {
         return this.health.check([
             () => this.db.pingCheck('database'),
-            () => this.checkRedis(),
-            () => this.checkBlnk(),
+            () => this.redisHealth.isHealthy('redis'),
+            () => this.blnkHealth.isHealthy('blnk'),
+            () => this.circleHealth.isHealthy('circle'),
         ]);
     }
     live() {
@@ -48,13 +44,58 @@ let HealthController = class HealthController {
         };
     }
     async detailed() {
-        const checks = {
+        const services = {
+            database: { status: 'unknown' },
+            redis: { status: 'unknown' },
+            blnk: { status: 'unknown' },
+            circle: { status: 'unknown' },
+        };
+        try {
+            const startDb = Date.now();
+            await this.db.pingCheck('database');
+            services.database = { status: 'up', latency: `${Date.now() - startDb}ms` };
+        }
+        catch (error) {
+            services.database = {
+                status: 'down',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+        }
+        try {
+            const result = await this.redisHealth.isHealthy('redis');
+            services.redis = { status: 'up', ...result.redis };
+        }
+        catch (error) {
+            services.redis = {
+                status: 'down',
+                error: error.message || 'Unknown error',
+            };
+        }
+        try {
+            const result = await this.blnkHealth.isHealthy('blnk');
+            services.blnk = { status: 'up', ...result.blnk };
+        }
+        catch (error) {
+            services.blnk = {
+                status: 'down',
+                error: error.message || 'Unknown error',
+            };
+        }
+        try {
+            const result = await this.circleHealth.isHealthy('circle');
+            services.circle = { status: 'up', ...result.circle };
+        }
+        catch (error) {
+            services.circle = {
+                status: 'down',
+                error: error.message || 'Unknown error',
+            };
+        }
+        const allHealthy = Object.values(services).every((service) => service.status === 'up');
+        return {
+            status: allHealthy ? 'ok' : 'degraded',
             timestamp: new Date().toISOString(),
-            services: {
-                database: await this.checkDatabaseDetailed(),
-                redis: await this.checkRedisDetailed(),
-                blnk: await this.checkBlnkDetailed(),
-            },
+            services,
             environment: {
                 nodeEnv: this.configService.get('NODE_ENV', 'development'),
                 version: process.env.npm_package_version || '0.0.1',
@@ -62,100 +103,6 @@ let HealthController = class HealthController {
             uptime: process.uptime(),
             memory: process.memoryUsage(),
         };
-        const allHealthy = Object.values(checks.services).every((service) => service.status === 'up');
-        return {
-            status: allHealthy ? 'ok' : 'degraded',
-            ...checks,
-        };
-    }
-    async checkRedis() {
-        try {
-            await this.redis.connect();
-            const pong = await this.redis.ping();
-            await this.redis.disconnect();
-            if (pong === 'PONG') {
-                return { redis: { status: 'up' } };
-            }
-            throw new Error('Redis ping failed');
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            return { redis: { status: 'down', message: errorMessage } };
-        }
-    }
-    async checkBlnk() {
-        try {
-            const blnkUrl = this.configService.get('blnk.url', 'http://localhost:5001');
-            const response = await fetch(`${blnkUrl}/`, {
-                signal: AbortSignal.timeout(5000)
-            });
-            if (response.ok) {
-                return { blnk: { status: 'up' } };
-            }
-            return { blnk: { status: 'down', message: `HTTP ${response.status}` } };
-        }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            return { blnk: { status: 'down', message: errorMessage } };
-        }
-    }
-    async checkDatabaseDetailed() {
-        try {
-            const start = Date.now();
-            await this.db.pingCheck('database');
-            const latency = Date.now() - start;
-            return { status: 'up', latency: `${latency}ms` };
-        }
-        catch (error) {
-            return {
-                status: 'down',
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
-        }
-    }
-    async checkRedisDetailed() {
-        try {
-            await this.redis.connect();
-            const start = Date.now();
-            const pong = await this.redis.ping();
-            const latency = Date.now() - start;
-            await this.redis.disconnect();
-            if (pong === 'PONG') {
-                return { status: 'up', latency: `${latency}ms` };
-            }
-            return { status: 'down', error: 'Ping failed' };
-        }
-        catch (error) {
-            return {
-                status: 'down',
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
-        }
-    }
-    async checkBlnkDetailed() {
-        try {
-            const blnkUrl = this.configService.get('blnk.url', 'http://localhost:5001');
-            const start = Date.now();
-            const response = await fetch(`${blnkUrl}/`, {
-                signal: AbortSignal.timeout(5000)
-            });
-            const latency = Date.now() - start;
-            if (response.ok) {
-                return { status: 'up', latency: `${latency}ms`, url: blnkUrl };
-            }
-            return {
-                status: 'down',
-                error: `HTTP ${response.status}`,
-                url: blnkUrl,
-            };
-        }
-        catch (error) {
-            return {
-                status: 'down',
-                error: error instanceof Error ? error.message : 'Unknown error',
-                url: this.configService.get('blnk.url', 'http://localhost:5001'),
-            };
-        }
     }
 };
 exports.HealthController = HealthController;
@@ -220,6 +167,9 @@ exports.HealthController = HealthController = __decorate([
     (0, common_1.Controller)('health'),
     __metadata("design:paramtypes", [terminus_1.HealthCheckService,
         terminus_1.TypeOrmHealthIndicator,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        health_indicators_1.CircleHealthIndicator,
+        health_indicators_1.BlnkHealthIndicator,
+        health_indicators_1.RedisHealthIndicator])
 ], HealthController);
 //# sourceMappingURL=health.controller.js.map

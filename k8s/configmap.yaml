@@ -1,0 +1,167 @@
+# =============================================================================
+# JoonaPay USDC Wallet API - Kubernetes ConfigMap
+# =============================================================================
+# Non-sensitive configuration values
+# Secrets should be stored in secrets.yaml or a secrets manager
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: usdc-wallet-config
+  labels:
+    app: usdc-wallet-api
+data:
+  # Server Configuration
+  NODE_ENV: "production"
+  PORT: "3000"
+  API_PREFIX: "api/v1"
+
+  # Database Configuration (non-sensitive)
+  DATABASE_PORT: "5432"
+  DATABASE_SYNCHRONIZE: "false"
+  DATABASE_LOGGING: "false"
+  DATABASE_SSL: "true"
+  DATABASE_POOL_SIZE: "20"
+  DATABASE_CONNECTION_TIMEOUT: "10000"
+
+  # Redis Configuration (non-sensitive)
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_TLS: "true"
+
+  # JWT Configuration (non-sensitive)
+  JWT_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+
+  # Rate Limiting
+  RATE_LIMIT_TTL: "60"
+  RATE_LIMIT_MAX: "60"
+
+  # Provider URLs
+  CIRCLE_API_URL: "https://api.circle.com"
+  CIRCLE_DEFAULT_BLOCKCHAIN: "MATIC"
+  YELLOW_CARD_API_URL: "https://api.yellowcard.io"
+
+  # Mock Modes (disabled in production)
+  CIRCLE_USE_MOCK: "false"
+  YELLOW_CARD_USE_MOCK: "false"
+  FCM_USE_MOCK: "false"
+
+  # SMS Configuration
+  SMS_PROVIDER: "twilio"
+  SMS_SENDER_ID: "JoonaPay"
+
+  # OTP Configuration
+  OTP_EXPIRES_IN: "300"
+  OTP_LENGTH: "6"
+  OTP_MAX_ATTEMPTS: "3"
+
+  # App Configuration
+  DEFAULT_COUNTRY: "CI"
+  DEFAULT_CURRENCY: "USDC"
+  SUPPORTED_COUNTRIES: "CI,SN,ML,BF,BJ,TG,NE,US"
+  SUPPORTED_CURRENCIES: "USDC,XOF,USD"
+
+  # Transaction Limits
+  MIN_DEPOSIT_AMOUNT: "1000"
+  MAX_DEPOSIT_AMOUNT: "5000000"
+  MIN_TRANSFER_AMOUNT: "1"
+  MAX_TRANSFER_AMOUNT: "50000"
+
+  # Fee Configuration
+  INTERNAL_TRANSFER_FEE_PERCENT: "0"
+  EXTERNAL_TRANSFER_FEE_PERCENT: "0.5"
+
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # Security
+  HSTS_MAX_AGE: "31536000"
+  CSP_ENABLED: "true"
+
+  # Health Check
+  HEALTH_CHECK_PATH: "/api/v1/health"
+  HEALTH_CHECK_INTERVAL: "30000"
+
+---
+# =============================================================================
+# Staging ConfigMap
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: usdc-wallet-config
+  namespace: staging
+  labels:
+    app: usdc-wallet-api
+    environment: staging
+data:
+  # Server Configuration
+  NODE_ENV: "staging"
+  PORT: "3000"
+  API_PREFIX: "api/v1"
+
+  # Database Configuration
+  DATABASE_PORT: "5432"
+  DATABASE_SYNCHRONIZE: "false"
+  DATABASE_LOGGING: "true"
+  DATABASE_SSL: "true"
+  DATABASE_POOL_SIZE: "10"
+
+  # Redis Configuration
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_TLS: "true"
+
+  # JWT Configuration
+  JWT_EXPIRES_IN: "30m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+
+  # Rate Limiting (relaxed for staging)
+  RATE_LIMIT_TTL: "60"
+  RATE_LIMIT_MAX: "100"
+
+  # Provider URLs (sandbox)
+  CIRCLE_API_URL: "https://api-sandbox.circle.com"
+  CIRCLE_DEFAULT_BLOCKCHAIN: "MATIC"
+  YELLOW_CARD_API_URL: "https://sandbox.yellowcard.io"
+
+  # Mock Modes (can be enabled for testing)
+  CIRCLE_USE_MOCK: "false"
+  YELLOW_CARD_USE_MOCK: "false"
+  FCM_USE_MOCK: "true"
+
+  # SMS Configuration
+  SMS_PROVIDER: "mock"
+  SMS_SENDER_ID: "JoonaPay"
+
+  # OTP Configuration
+  OTP_EXPIRES_IN: "600"
+  OTP_LENGTH: "6"
+  OTP_MAX_ATTEMPTS: "10"
+
+  # App Configuration
+  DEFAULT_COUNTRY: "CI"
+  DEFAULT_CURRENCY: "USDC"
+  SUPPORTED_COUNTRIES: "CI,SN,ML,BF,BJ,TG,NE,US"
+  SUPPORTED_CURRENCIES: "USDC,XOF,USD"
+
+  # Transaction Limits (lower for staging)
+  MIN_DEPOSIT_AMOUNT: "500"
+  MAX_DEPOSIT_AMOUNT: "1000000"
+  MIN_TRANSFER_AMOUNT: "1"
+  MAX_TRANSFER_AMOUNT: "10000"
+
+  # Fee Configuration
+  INTERNAL_TRANSFER_FEE_PERCENT: "0"
+  EXTERNAL_TRANSFER_FEE_PERCENT: "0.5"
+
+  # Logging
+  LOG_LEVEL: "debug"
+  LOG_FORMAT: "json"
+
+  # Security
+  HSTS_MAX_AGE: "86400"
+  CSP_ENABLED: "true"

@@ -16,13 +16,13 @@ const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const repositories_1 = require("../../../infrastructure/repositories");
 const services_1 = require("../services");
-const usecases_1 = require("../../../../wallet/application/usecases");
+const kyc_service_1 = require("../../../../kyc/application/services/kyc.service");
 let VerifyOtpUsecase = VerifyOtpUsecase_1 = class VerifyOtpUsecase {
-    constructor(userRepository, otpService, jwtService, createWalletUseCase, configService) {
+    constructor(userRepository, otpService, jwtService, kycService, configService) {
         this.userRepository = userRepository;
         this.otpService = otpService;
         this.jwtService = jwtService;
-        this.createWalletUseCase = createWalletUseCase;
+        this.kycService = kycService;
         this.configService = configService;
         this.logger = new common_1.Logger(VerifyOtpUsecase_1.name);
         this.refreshSecret = this.configService.get('jwt.refreshSecret');
@@ -43,16 +43,24 @@ let VerifyOtpUsecase = VerifyOtpUsecase_1 = class VerifyOtpUsecase {
         const isFirstVerification = !user.isPhoneVerified;
         user.verifyPhone();
         const updatedUser = await this.userRepository.save(user);
-        let walletCreated = false;
+        let kycStatus = 'documents_pending';
         if (isFirstVerification) {
             try {
-                this.logger.log(`Auto-creating wallet for user ${updatedUser.id}`);
-                await this.createWalletUseCase.execute({ userId: updatedUser.id });
-                walletCreated = true;
-                this.logger.log(`Wallet created successfully for user ${updatedUser.id}`);
+                this.logger.log(`Creating KYC record for user ${updatedUser.id}`);
+                const kyc = await this.kycService.createForUser(updatedUser.id);
+                kycStatus = kyc.status;
+                this.logger.log(`KYC record created for user ${updatedUser.id}: status=${kycStatus}`);
             }
             catch (error) {
-                this.logger.error(`Failed to auto-create wallet for user ${updatedUser.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                this.logger.error(`Failed to create KYC record for user ${updatedUser.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        }
+        else {
+            try {
+                const existingKyc = await this.kycService.getStatus(updatedUser.id);
+                kycStatus = existingKyc.status;
+            }
+            catch {
             }
         }
         const accessToken = this.jwtService.sign({
@@ -70,7 +78,7 @@ let VerifyOtpUsecase = VerifyOtpUsecase_1 = class VerifyOtpUsecase {
             user: updatedUser,
             accessToken,
             refreshToken,
-            walletCreated,
+            kycStatus,
         };
     }
 };
@@ -80,7 +88,7 @@ exports.VerifyOtpUsecase = VerifyOtpUsecase = VerifyOtpUsecase_1 = __decorate([
     __metadata("design:paramtypes", [repositories_1.UserRepository,
         services_1.OtpService,
         jwt_1.JwtService,
-        usecases_1.CreateWalletUseCase,
+        kyc_service_1.KycService,
         config_1.ConfigService])
 ], VerifyOtpUsecase);
 //# sourceMappingURL=verify-otp.usecase.js.map

@@ -3,6 +3,7 @@ import { Repository, MoreThanOrEqual, In } from 'typeorm';
 import { TransactionMapper } from '../mappers/transaction.mapper';
 import { TransactionOrmEntity } from '../orm-entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
+import { TransactionFilters } from '../../application/dto/requests';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -128,5 +129,304 @@ export class TransactionRepository {
       .getRawOne();
 
     return parseFloat(result?.totalVolume || '0');
+  }
+
+  /**
+   * PERFORMANCE: Find transactions by wallet ID with database-level pagination
+   * Fixes N+1 query issue by applying filters and pagination at the database level
+   * Uses composite index: idx_transactions_wallet_date for optimal performance
+   */
+  async findByWalletIdPaginated(
+    walletId: string,
+    options: {
+      type?: string;
+      status?: string;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{ transactions: TransactionEntity[]; total: number }> {
+    const query = this.repository
+      .createQueryBuilder('transaction')
+      .where('transaction.walletId = :walletId', { walletId })
+      .orderBy('transaction.createdAt', 'DESC');
+
+    // Apply optional filters
+    if (options.type) {
+      query.andWhere('transaction.type = :type', { type: options.type });
+    }
+    if (options.status) {
+      query.andWhere('transaction.status = :status', { status: options.status });
+    }
+
+    // Execute paginated query with count
+    const [ormEntities, total] = await query
+      .take(options.limit)
+      .skip(options.offset)
+      .getManyAndCount();
+
+    return {
+      transactions: ormEntities.map((orm) => this.mapper.toDomainEntity(orm)),
+      total,
+    };
+  }
+
+  /**
+   * PERFORMANCE: Find transactions by wallet ID with advanced filtering
+   * Supports type, status, date range, amount range, text search, and sorting
+   * Uses database-level filtering and pagination for optimal performance
+   */
+  async findByWalletIdFiltered(
+    walletId: string,
+    filters: TransactionFilters,
+  ): Promise<{ transactions: TransactionEntity[]; total: number }> {
+    const query = this.repository
+      .createQueryBuilder('tx')
+      .where('tx.walletId = :walletId', { walletId });
+
+    // Apply type filter
+    if (filters.type) {
+      query.andWhere('tx.type = :type', { type: filters.type });
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      query.andWhere('tx.status = :status', { status: filters.status });
+    }
+
+    // Apply date range filters
+    if (filters.startDate) {
+      query.andWhere('tx.createdAt >= :startDate', {
+        startDate: filters.startDate,
+      });
+    }
+    if (filters.endDate) {
+      query.andWhere('tx.createdAt <= :endDate', {
+        endDate: filters.endDate,
+      });
+    }
+
+    // Apply amount range filters
+    if (filters.minAmount !== undefined && filters.minAmount !== null) {
+      query.andWhere('ABS(tx.amount) >= :minAmount', {
+        minAmount: filters.minAmount,
+      });
+    }
+    if (filters.maxAmount !== undefined && filters.maxAmount !== null) {
+      query.andWhere('ABS(tx.amount) <= :maxAmount', {
+        maxAmount: filters.maxAmount,
+      });
+    }
+
+    // Apply text search (ILIKE for case-insensitive search)
+    if (filters.search) {
+      const searchPattern = `%${filters.search}%`;
+      query.andWhere(
+        '(tx.yellowCardRef ILIKE :search OR tx.recipientPhone ILIKE :search OR tx.recipientAddress ILIKE :search)',
+        { search: searchPattern },
+      );
+    }
+
+    // Apply sorting
+    const sortBy = filters.sortBy || 'createdAt';
+    const sortOrder = filters.sortOrder || 'DESC';
+    query.orderBy(`tx.${sortBy}`, sortOrder);
+
+    // Execute paginated query with count
+    const [ormEntities, total] = await query
+      .take(filters.limit)
+      .skip(filters.offset)
+      .getManyAndCount();
+
+    return {
+      transactions: ormEntities.map((orm) => this.mapper.toDomainEntity(orm)),
+      total,
+    };
+  }
+
+  /**
+   * Find transactions by wallet ID with optional date range filtering
+   * Used for export functionality
+   */
+  async findByWalletIdWithDateRange(
+    walletId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<TransactionEntity[]> {
+    const query = this.repository
+      .createQueryBuilder('transaction')
+      .where('transaction.walletId = :walletId', { walletId })
+      .orderBy('transaction.createdAt', 'DESC');
+
+    if (startDate) {
+      query.andWhere('transaction.createdAt >= :startDate', { startDate });
+    }
+
+    if (endDate) {
+      query.andWhere('transaction.createdAt <= :endDate', { endDate });
+    }
+
+    const ormEntities = await query.getMany();
+    return ormEntities.map((orm) => this.mapper.toDomainEntity(orm));
+  }
+
+  /**
+   * ADMIN: Get comprehensive transaction statistics
+   * Used for admin dashboard metrics
+   */
+  async getTransactionStats(): Promise<{
+    total: number;
+    pending: number;
+    completed: number;
+    failed: number;
+    totalVolume: number;
+    todayVolume: number;
+  }> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Get all stats in parallel for performance
+    const [countStats, volumeStats, todayVolumeStats] = await Promise.all([
+      // Count by status
+      this.repository
+        .createQueryBuilder('transaction')
+        .select('transaction.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('transaction.status')
+        .getRawMany(),
+
+      // Total volume (all completed transactions)
+      this.repository
+        .createQueryBuilder('transaction')
+        .select('COALESCE(SUM(ABS(transaction.amount)), 0)', 'totalVolume')
+        .where('transaction.status = :status', { status: 'completed' })
+        .getRawOne(),
+
+      // Today's volume
+      this.repository
+        .createQueryBuilder('transaction')
+        .select('COALESCE(SUM(ABS(transaction.amount)), 0)', 'todayVolume')
+        .where('transaction.status = :status', { status: 'completed' })
+        .andWhere('transaction.createdAt >= :todayStart', { todayStart })
+        .getRawOne(),
+    ]);
+
+    // Aggregate counts by status
+    const statusCounts = countStats.reduce(
+      (acc, row) => {
+        acc[row.status] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    const total = (Object.values(statusCounts) as number[]).reduce(
+      (sum: number, count: number) => sum + count,
+      0,
+    );
+    const pending = statusCounts['pending'] || 0;
+    const completed = statusCounts['completed'] || 0;
+    const failed = statusCounts['failed'] || 0;
+    const totalVolume = parseFloat(volumeStats?.totalVolume || '0');
+    const todayVolume = parseFloat(todayVolumeStats?.todayVolume || '0');
+
+    return {
+      total,
+      pending,
+      completed,
+      failed,
+      totalVolume,
+      todayVolume,
+    };
+  }
+
+  /**
+   * ADMIN: Get total transaction volume for a date range
+   * Used for time-series analytics
+   */
+  async getVolumeByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder('transaction')
+      .select('COALESCE(SUM(ABS(transaction.amount)), 0)', 'volume')
+      .where('transaction.status = :status', { status: 'completed' })
+      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawOne();
+
+    return parseFloat(result?.volume || '0');
+  }
+
+  /**
+   * ADMIN: Get transaction count grouped by status
+   * Used for status distribution charts
+   */
+  async getTransactionCountByStatus(): Promise<Record<string, number>> {
+    const result = await this.repository
+      .createQueryBuilder('transaction')
+      .select('transaction.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('transaction.status')
+      .getRawMany();
+
+    return result.reduce(
+      (acc, row) => {
+        acc[row.status] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }
+
+  /**
+   * ADMIN: Get transaction time-series data for charts
+   * Returns daily transaction count and volume for the last N days
+   */
+  async getTransactionTimeSeries(
+    days: number,
+  ): Promise<{ date: string; count: number; volume: number }[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const result = await this.repository
+      .createQueryBuilder('transaction')
+      .select('DATE(transaction.createdAt)', 'date')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect(
+        'COALESCE(SUM(CASE WHEN transaction.status = :status THEN ABS(transaction.amount) ELSE 0 END), 0)',
+        'volume',
+      )
+      .where('transaction.createdAt >= :startDate', { startDate })
+      .setParameter('status', 'completed')
+      .groupBy('DATE(transaction.createdAt)')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    return result.map((row) => ({
+      date: row.date,
+      count: parseInt(row.count, 10),
+      volume: parseFloat(row.volume || '0'),
+    }));
+  }
+
+  /**
+   * ADMIN: Get transaction count by type
+   * Used for transaction type distribution
+   */
+  async getTransactionCountByType(): Promise<Record<string, number>> {
+    const result = await this.repository
+      .createQueryBuilder('transaction')
+      .select('transaction.type', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('transaction.type')
+      .getRawMany();
+
+    return result.reduce(
+      (acc, row) => {
+        acc[row.type] = parseInt(row.count, 10);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 }

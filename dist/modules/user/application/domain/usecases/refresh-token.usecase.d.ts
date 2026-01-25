@@ -25,4 +25,5 @@ export declare class RefreshTokenUsecase implements OnModuleDestroy {
     private ensureConnection;
     execute(input: RefreshTokenInput): Promise<RefreshTokenOutput>;
     generateRefreshToken(userId: string): string;
+    blacklistToken(token: string, expirationTimestamp?: number): Promise<void>;
 }

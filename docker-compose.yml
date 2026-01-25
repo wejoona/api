@@ -1,38 +1,236 @@
+# =============================================================================
+# JoonaPay USDC Wallet - Docker Compose (Local Development)
+# =============================================================================
+# Usage:
+#   Start all services:     docker-compose up -d
+#   Start API only:         docker-compose up -d api
+#   View logs:              docker-compose logs -f api
+#   Stop all:               docker-compose down
+#   Clean restart:          docker-compose down -v && docker-compose up -d
+# =============================================================================
+
 version: '3.8'
 
 services:
+  # ===========================================================================
+  # API Service (NestJS Application)
+  # ===========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: usdc_wallet_api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      API_PREFIX: ${API_PREFIX:-api/v1}
+      # Database
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-usdc_wallet}
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_SYNCHRONIZE: ${DATABASE_SYNCHRONIZE:-false}
+      DATABASE_LOGGING: ${DATABASE_LOGGING:-true}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_change_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      # CORS
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:8080}
+      # Circle
+      CIRCLE_API_URL: ${CIRCLE_API_URL:-https://api.circle.com}
+      CIRCLE_API_KEY: ${CIRCLE_API_KEY:-}
+      CIRCLE_ENTITY_SECRET: ${CIRCLE_ENTITY_SECRET:-}
+      CIRCLE_WALLET_SET_ID: ${CIRCLE_WALLET_SET_ID:-}
+      CIRCLE_DEFAULT_BLOCKCHAIN: ${CIRCLE_DEFAULT_BLOCKCHAIN:-MATIC}
+      CIRCLE_WEBHOOK_SECRET: ${CIRCLE_WEBHOOK_SECRET:-}
+      CIRCLE_USE_MOCK: ${CIRCLE_USE_MOCK:-true}
+      # Yellow Card
+      YELLOW_CARD_API_URL: ${YELLOW_CARD_API_URL:-https://sandbox.yellowcard.io}
+      YELLOW_CARD_API_KEY: ${YELLOW_CARD_API_KEY:-}
+      YELLOW_CARD_SECRET_KEY: ${YELLOW_CARD_SECRET_KEY:-}
+      YELLOW_CARD_WEBHOOK_SECRET: ${YELLOW_CARD_WEBHOOK_SECRET:-}
+      YELLOW_CARD_USE_MOCK: ${YELLOW_CARD_USE_MOCK:-true}
+      # Firebase
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_CLIENT_EMAIL: ${FCM_CLIENT_EMAIL:-}
+      FCM_PRIVATE_KEY: ${FCM_PRIVATE_KEY:-}
+      FCM_USE_MOCK: ${FCM_USE_MOCK:-true}
+      # SMS
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_API_SECRET: ${SMS_API_SECRET:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-JoonaPay}
+      # OTP
+      OTP_EXPIRES_IN: ${OTP_EXPIRES_IN:-300}
+      OTP_LENGTH: ${OTP_LENGTH:-6}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-3}
+      # Rate Limiting
+      RATE_LIMIT_TTL: ${RATE_LIMIT_TTL:-60}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      # App Settings
+      DEFAULT_COUNTRY: ${DEFAULT_COUNTRY:-CI}
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USDC}
+      SUPPORTED_COUNTRIES: ${SUPPORTED_COUNTRIES:-CI,SN,ML,BF,BJ,TG,NE,US}
+      SUPPORTED_CURRENCIES: ${SUPPORTED_CURRENCIES:-USDC,XOF,USD}
+      MIN_DEPOSIT_AMOUNT: ${MIN_DEPOSIT_AMOUNT:-500}
+      MAX_DEPOSIT_AMOUNT: ${MAX_DEPOSIT_AMOUNT:-1000000}
+      MIN_TRANSFER_AMOUNT: ${MIN_TRANSFER_AMOUNT:-1}
+      MAX_TRANSFER_AMOUNT: ${MAX_TRANSFER_AMOUNT:-10000}
+      INTERNAL_TRANSFER_FEE_PERCENT: ${INTERNAL_TRANSFER_FEE_PERCENT:-0}
+      EXTERNAL_TRANSFER_FEE_PERCENT: ${EXTERNAL_TRANSFER_FEE_PERCENT:-0.5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - usdc_wallet_network
+    volumes:
+      # Mount for local development hot-reload (remove in production)
+      - ./src:/app/src:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
   # PostgreSQL Database
+  # ===========================================================================
   postgres:
     image: postgres:16-alpine
     container_name: usdc_wallet_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: usdc_wallet
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${DATABASE_NAME:-usdc_wallet}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-usdc_wallet}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================================================
   # Redis Cache
+  # ===========================================================================
   redis:
     image: redis:7-alpine
     container_name: usdc_wallet_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ===========================================================================
+  # pgAdmin (Optional - Web-based Database Administration)
+  # ===========================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: usdc_wallet_pgadmin
+    restart: unless-stopped
+    profiles:
+      - admin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@joonapay.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Redis Commander (Optional - Web-based Redis Administration)
+  # ===========================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: usdc_wallet_redis_commander
+    restart: unless-stopped
+    profiles:
+      - admin
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  usdc_wallet_network:
+    driver: bridge
+    name: usdc_wallet_network
+
+# =============================================================================
+# Volumes
+# =============================================================================
 volumes:
   postgres_data:
+    name: usdc_wallet_postgres_data
   redis_data:
+    name: usdc_wallet_redis_data
+  pgadmin_data:
+    name: usdc_wallet_pgadmin_data

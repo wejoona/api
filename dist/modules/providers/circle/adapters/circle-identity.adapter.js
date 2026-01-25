@@ -13,6 +13,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CircleIdentityAdapter = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const utils_1 = require("../../../../common/utils");
+const CIRCLE_API_TIMEOUT = 5000;
 let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapter {
     constructor(configService) {
         this.configService = configService;
@@ -26,6 +28,11 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             walletSetId: this.configService.get('circle.walletSetId'),
             useMock: false,
         };
+        this.circuitBreaker = new utils_1.CircuitBreaker({
+            name: 'circle-identity',
+            failureThreshold: 5,
+            resetTimeout: 30000,
+        });
         if (!this.config.apiKey) {
             this.logger.warn('Circle API key not configured');
         }
@@ -33,9 +40,30 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             this.logger.log('Circle Identity adapter initialized');
         }
     }
+    async secureFetch(url, options = {}) {
+        return this.circuitBreaker.execute(async () => {
+            return (0, utils_1.fetchWithTimeout)(url, {
+                ...options,
+                timeout: CIRCLE_API_TIMEOUT,
+                logger: this.logger,
+            });
+        });
+    }
+    handleApiError(error, operation) {
+        if (error instanceof utils_1.RequestTimeoutError) {
+            this.logger.error(`Circle API timeout during ${operation}: ${error.message}`);
+        }
+        else if (error instanceof utils_1.CircuitOpenError) {
+            this.logger.warn(`Circuit breaker open for Circle API during ${operation}: ${error.message}`);
+        }
+        else {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Failed to ${operation}: ${errorMessage}`);
+        }
+    }
     async createUser(data) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/users`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -61,14 +89,13 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             };
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to create Circle user: ${errorMessage}`);
+            this.handleApiError(error, 'create Circle user');
             throw error;
         }
     }
     async getUser(providerId) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/users/${providerId}`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/users/${providerId}`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -91,8 +118,7 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             };
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to get Circle user: ${errorMessage}`);
+            this.handleApiError(error, 'get Circle user');
             throw error;
         }
     }
@@ -112,14 +138,13 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             return user;
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to update Circle user: ${errorMessage}`);
+            this.handleApiError(error, 'update Circle user');
             throw error;
         }
     }
     async updateUserStatus(providerId, status) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/users/${providerId}/status`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/users/${providerId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -142,8 +167,7 @@ let CircleIdentityAdapter = CircleIdentityAdapter_1 = class CircleIdentityAdapte
             };
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to update Circle user status: ${errorMessage}`);
+            this.handleApiError(error, 'update Circle user status');
             throw error;
         }
     }

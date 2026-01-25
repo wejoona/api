@@ -6,3 +6,4 @@ export * from './create-user-ledger-identity.usecase';
 export * from './setup-user-balance-monitors.usecase';
 export * from './refresh-token.usecase';
 export * from './logout.usecase';
+export * from './username.usecase';

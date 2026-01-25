@@ -13,6 +13,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CircleWalletAdapter = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const utils_1 = require("../../../../common/utils");
+const CIRCLE_API_TIMEOUT = 5000;
 let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
     constructor(configService) {
         this.configService = configService;
@@ -28,6 +30,11 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
         };
         this.defaultBlockchain =
             this.configService.get('circle.defaultBlockchain') || 'MATIC';
+        this.circuitBreaker = new utils_1.CircuitBreaker({
+            name: 'circle-wallet',
+            failureThreshold: 5,
+            resetTimeout: 30000,
+        });
         if (!this.config.apiKey) {
             this.logger.warn('Circle API key not configured');
         }
@@ -35,9 +42,30 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
             this.logger.log('Circle Wallet adapter initialized');
         }
     }
+    async secureFetch(url, options = {}) {
+        return this.circuitBreaker.execute(async () => {
+            return (0, utils_1.fetchWithTimeout)(url, {
+                ...options,
+                timeout: CIRCLE_API_TIMEOUT,
+                logger: this.logger,
+            });
+        });
+    }
+    handleApiError(error, operation) {
+        if (error instanceof utils_1.RequestTimeoutError) {
+            this.logger.error(`Circle API timeout during ${operation}: ${error.message}`);
+        }
+        else if (error instanceof utils_1.CircuitOpenError) {
+            this.logger.warn(`Circuit breaker open for Circle API during ${operation}: ${error.message}`);
+        }
+        else {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.logger.error(`Failed to ${operation}: ${errorMessage}`);
+        }
+    }
     async createWallet(data) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/wallets`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/wallets`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,14 +90,13 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
             return this.mapCircleWallet(circleWallet);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to create Circle wallet: ${errorMessage}`);
+            this.handleApiError(error, 'create Circle wallet');
             throw error;
         }
     }
     async getWallet(providerWalletId) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/wallets/${providerWalletId}`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/wallets/${providerWalletId}`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -85,14 +112,13 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
             return this.mapCircleWallet(result.data.wallet);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to get Circle wallet: ${errorMessage}`);
+            this.handleApiError(error, 'get Circle wallet');
             throw error;
         }
     }
     async getBalance(providerWalletId) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/wallets/${providerWalletId}/balances`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/wallets/${providerWalletId}/balances`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -111,8 +137,7 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
             }));
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to get Circle wallet balance: ${errorMessage}`);
+            this.handleApiError(error, 'get Circle wallet balance');
             throw error;
         }
     }
@@ -125,7 +150,7 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
     }
     async listWallets(userProviderId) {
         try {
-            const response = await fetch(`${this.config.baseUrl}/wallets?userId=${userProviderId}`, {
+            const response = await this.secureFetch(`${this.config.baseUrl}/wallets?userId=${userProviderId}`, {
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
                 },
@@ -139,8 +164,7 @@ let CircleWalletAdapter = CircleWalletAdapter_1 = class CircleWalletAdapter {
             return wallets.map((w) => this.mapCircleWallet(w));
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.logger.error(`Failed to list Circle wallets: ${errorMessage}`);
+            this.handleApiError(error, 'list Circle wallets');
             throw error;
         }
     }

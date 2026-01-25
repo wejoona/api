@@ -11,5 +11,6 @@ import { SubmitKycUseCase } from './submit-kyc.use-case';
 import { GetKycStatusUseCase } from './get-kyc-status.use-case';
 import { VerifyPinUseCase } from './verify-pin.use-case';
 import { SetPinUseCase } from './set-pin.use-case';
-export { CreateWalletUseCase, UpdateWalletUseCase, DeleteWalletUseCase, GetBalanceUseCase, GetDepositChannelsUseCase, InitiateDepositUseCase, InternalTransferUseCase, ExternalTransferUseCase, GetRateUseCase, SubmitKycUseCase, GetKycStatusUseCase, VerifyPinUseCase, SetPinUseCase, };
-export declare const UseCases: (typeof CreateWalletUseCase | typeof UpdateWalletUseCase | typeof DeleteWalletUseCase | typeof GetBalanceUseCase | typeof GetDepositChannelsUseCase | typeof InitiateDepositUseCase | typeof InternalTransferUseCase | typeof ExternalTransferUseCase | typeof GetRateUseCase | typeof SubmitKycUseCase | typeof GetKycStatusUseCase | typeof VerifyPinUseCase | typeof SetPinUseCase)[];
+import { ExportTransactionsUseCase } from './export-transactions.use-case';
+export { CreateWalletUseCase, UpdateWalletUseCase, DeleteWalletUseCase, GetBalanceUseCase, GetDepositChannelsUseCase, InitiateDepositUseCase, InternalTransferUseCase, ExternalTransferUseCase, GetRateUseCase, SubmitKycUseCase, GetKycStatusUseCase, VerifyPinUseCase, SetPinUseCase, ExportTransactionsUseCase, };
+export declare const UseCases: (typeof CreateWalletUseCase | typeof UpdateWalletUseCase | typeof DeleteWalletUseCase | typeof GetBalanceUseCase | typeof GetDepositChannelsUseCase | typeof InitiateDepositUseCase | typeof InternalTransferUseCase | typeof ExternalTransferUseCase | typeof GetRateUseCase | typeof SubmitKycUseCase | typeof GetKycStatusUseCase | typeof VerifyPinUseCase | typeof SetPinUseCase | typeof ExportTransactionsUseCase)[];

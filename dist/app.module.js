@@ -15,9 +15,12 @@ const throttler_1 = require("@nestjs/throttler");
 const cqrs_1 = require("@nestjs/cqrs");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const schedule_1 = require("@nestjs/schedule");
+const cache_manager_1 = require("@nestjs/cache-manager");
+const cache_manager_redis_yet_1 = require("cache-manager-redis-yet");
 const config_2 = require("./config");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
+const logger_1 = require("./common/logger");
 const shared_module_1 = require("./modules/shared/shared.module");
 const user_module_1 = require("./modules/user/user.module");
 const wallet_module_1 = require("./modules/wallet/wallet.module");
@@ -30,6 +33,18 @@ const admin_1 = require("./modules/admin");
 const reports_1 = require("./modules/reports");
 const jobs_1 = require("./modules/jobs");
 const health_1 = require("./modules/health");
+const security_1 = require("./modules/security");
+const legal_module_1 = require("./modules/legal/legal.module");
+const contacts_module_1 = require("./modules/contacts/contacts.module");
+const user_preferences_module_1 = require("./modules/user-preferences/user-preferences.module");
+const metrics_1 = require("./modules/metrics");
+const kyc_module_1 = require("./modules/kyc/kyc.module");
+const upload_module_1 = require("./modules/upload/upload.module");
+const liveness_module_1 = require("./modules/liveness/liveness.module");
+const merchant_module_1 = require("./modules/merchant/merchant.module");
+const bill_payments_module_1 = require("./modules/bill-payments/bill-payments.module");
+const monitoring_module_1 = require("./modules/monitoring/monitoring.module");
+const compliance_module_1 = require("./modules/compliance/compliance.module");
 const circle_1 = require("./modules/providers/circle");
 const yellowcard_1 = require("./modules/providers/yellowcard");
 const blnk_1 = require("./modules/providers/blnk");
@@ -47,6 +62,25 @@ exports.AppModule = AppModule = __decorate([
                     abortEarly: false,
                 },
             }),
+            cache_manager_1.CacheModule.registerAsync({
+                isGlobal: true,
+                imports: [config_1.ConfigModule],
+                inject: [config_1.ConfigService],
+                useFactory: async (configService) => {
+                    const store = await (0, cache_manager_redis_yet_1.redisStore)({
+                        socket: {
+                            host: configService.get('redis.host'),
+                            port: configService.get('redis.port'),
+                        },
+                        password: configService.get('redis.password'),
+                        database: configService.get('redis.db'),
+                    });
+                    return {
+                        store,
+                        ttl: 300,
+                    };
+                },
+            }),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
@@ -59,7 +93,15 @@ exports.AppModule = AppModule = __decorate([
                     password: configService.get('database.password'),
                     autoLoadEntities: true,
                     synchronize: false,
-                    logging: configService.get('NODE_ENV') === 'development',
+                    logging: true,
+                    logger: new logger_1.CustomTypeOrmLogger(),
+                    extra: {
+                        max: 20,
+                        min: 5,
+                        idleTimeoutMillis: 30000,
+                        connectionTimeoutMillis: 2000,
+                    },
+                    maxQueryExecutionTime: 1000,
                 }),
             }),
             throttler_1.ThrottlerModule.forRootAsync({
@@ -90,6 +132,18 @@ exports.AppModule = AppModule = __decorate([
             reports_1.ReportsModule,
             jobs_1.JobsModule,
             health_1.HealthModule,
+            metrics_1.MetricsModule,
+            security_1.SecurityModule,
+            legal_module_1.LegalModule,
+            contacts_module_1.ContactsModule,
+            user_preferences_module_1.UserPreferencesModule,
+            upload_module_1.UploadModule,
+            kyc_module_1.KycModule,
+            liveness_module_1.LivenessModule,
+            merchant_module_1.MerchantModule,
+            bill_payments_module_1.BillPaymentsModule,
+            monitoring_module_1.MonitoringModule,
+            compliance_module_1.ComplianceModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

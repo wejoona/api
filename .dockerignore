@@ -1,0 +1,74 @@
+# =============================================================================
+# Docker Ignore File
+# =============================================================================
+# Excludes files from Docker build context for faster builds and smaller images
+# =============================================================================
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist
+build
+coverage
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Environment files (NEVER include in image)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Test files
+test
+*.spec.ts
+*.test.ts
+jest.config.js
+jest-e2e.json
+
+# Development files
+docker-compose*.yml
+Makefile
+.prettierrc
+.eslintrc*
+eslint.config.mjs
+tsconfig*.json
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+
+# Kubernetes
+k8s
+
+# Scripts (deployment scripts not needed in container)
+scripts
+
+# Misc
+.DS_Store
+*.log
+*.tmp
+tmp
+temp
+
+# Load testing
+load-tests
+*.k6.js

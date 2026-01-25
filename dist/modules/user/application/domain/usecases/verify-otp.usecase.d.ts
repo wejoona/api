@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
-import { CreateWalletUseCase } from '../../../../wallet/application/usecases';
+import { KycService } from '../../../../kyc/application/services/kyc.service';
 export interface VerifyOtpInput {
     phone: string;
     otp: string;
@@ -12,17 +12,17 @@ export interface VerifyOtpOutput {
     user: User;
     accessToken: string;
     refreshToken: string;
-    walletCreated: boolean;
+    kycStatus: string;
 }
 export declare class VerifyOtpUsecase {
     private readonly userRepository;
     private readonly otpService;
     private readonly jwtService;
-    private readonly createWalletUseCase;
+    private readonly kycService;
     private readonly configService;
     private readonly logger;
     private readonly refreshSecret;
     private readonly refreshExpiresIn;
-    constructor(userRepository: UserRepository, otpService: OtpService, jwtService: JwtService, createWalletUseCase: CreateWalletUseCase, configService: ConfigService);
+    constructor(userRepository: UserRepository, otpService: OtpService, jwtService: JwtService, kycService: KycService, configService: ConfigService);
     execute(input: VerifyOtpInput): Promise<VerifyOtpOutput>;
 }

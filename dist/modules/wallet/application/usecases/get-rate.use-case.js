@@ -14,24 +14,35 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetRateUseCase = void 0;
 const common_1 = require("@nestjs/common");
+const cache_manager_1 = require("@nestjs/cache-manager");
 const gateways_1 = require("../../../shared/domain/gateways");
 let GetRateUseCase = class GetRateUseCase {
-    constructor(paymentGateway) {
+    constructor(paymentGateway, cacheManager) {
         this.paymentGateway = paymentGateway;
+        this.cacheManager = cacheManager;
+        this.CACHE_TTL = 300;
     }
     async execute(input) {
-        return this.paymentGateway.getRate({
+        const cacheKey = `rate:${input.sourceCurrency}:${input.targetCurrency}`;
+        const cachedRate = await this.cacheManager.get(cacheKey);
+        if (cachedRate) {
+            return cachedRate;
+        }
+        const rateResponse = await this.paymentGateway.getRate({
             sourceCurrency: input.sourceCurrency,
             targetCurrency: input.targetCurrency,
             amount: input.amount,
             direction: input.direction || 'buy',
         });
+        await this.cacheManager.set(cacheKey, rateResponse, this.CACHE_TTL);
+        return rateResponse;
     }
 };
 exports.GetRateUseCase = GetRateUseCase;
 exports.GetRateUseCase = GetRateUseCase = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)(gateways_1.PAYMENT_GATEWAY)),
-    __metadata("design:paramtypes", [Object])
+    __param(1, (0, common_1.Inject)(cache_manager_1.CACHE_MANAGER)),
+    __metadata("design:paramtypes", [Object, Object])
 ], GetRateUseCase);
 //# sourceMappingURL=get-rate.use-case.js.map

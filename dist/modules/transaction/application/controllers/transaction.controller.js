@@ -17,19 +17,27 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const guards_1 = require("../../../../common/guards");
 const usecases_1 = require("../usecases");
+const requests_1 = require("../dto/requests");
 let TransactionController = class TransactionController {
     constructor(getTransactionsUseCase, getTransactionUseCase, getDepositStatusUseCase) {
         this.getTransactionsUseCase = getTransactionsUseCase;
         this.getTransactionUseCase = getTransactionUseCase;
         this.getDepositStatusUseCase = getDepositStatusUseCase;
     }
-    async getTransactions(req, type, status, limit, offset) {
+    async getTransactions(req, query) {
         return this.getTransactionsUseCase.execute({
             userId: req.user.id,
-            type,
-            status,
-            limit,
-            offset,
+            type: query.type,
+            status: query.status,
+            startDate: query.startDate,
+            endDate: query.endDate,
+            minAmount: query.minAmount,
+            maxAmount: query.maxAmount,
+            search: query.search,
+            sortBy: query.sortBy,
+            sortOrder: query.sortOrder,
+            limit: query.limit,
+            offset: query.offset,
         });
     }
     async getTransaction(req, id) {
@@ -48,22 +56,13 @@ let TransactionController = class TransactionController {
 exports.TransactionController = TransactionController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get transaction history' }),
-    (0, swagger_1.ApiQuery)({
-        name: 'type',
-        required: false,
-        enum: ['deposit', 'transfer_internal', 'transfer_external'],
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get transaction history with advanced filtering',
+        description: 'Returns paginated transaction history with support for type, status, date range, amount range, and text search filters.',
     }),
-    (0, swagger_1.ApiQuery)({
-        name: 'status',
-        required: false,
-        enum: ['pending', 'processing', 'completed', 'failed'],
-    }),
-    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, example: 20 }),
-    (0, swagger_1.ApiQuery)({ name: 'offset', required: false, example: 0 }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'Returns transaction history',
+        description: 'Returns filtered and paginated transaction history',
         schema: {
             example: {
                 transactions: [
@@ -78,19 +77,17 @@ __decorate([
                         completedAt: '2026-01-18T12:05:00.000Z',
                     },
                 ],
-                total: 1,
+                total: 50,
                 limit: 20,
                 offset: 0,
+                hasMore: true,
             },
         },
     }),
     __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Query)('type')),
-    __param(2, (0, common_1.Query)('status')),
-    __param(3, (0, common_1.Query)('limit')),
-    __param(4, (0, common_1.Query)('offset')),
+    __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, Number, Number]),
+    __metadata("design:paramtypes", [Object, requests_1.GetTransactionsQueryDto]),
     __metadata("design:returntype", Promise)
 ], TransactionController.prototype, "getTransactions", null);
 __decorate([

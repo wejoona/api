@@ -15,7 +15,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WalletController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const throttler_1 = require("@nestjs/throttler");
 const guards_1 = require("../../../../common/guards");
+const pin_verification_guard_1 = require("../../../../common/guards/pin-verification.guard");
 const interceptors_1 = require("../../../../common/interceptors");
 const requests_1 = require("../dto/requests");
 const usecases_1 = require("../usecases");
@@ -88,6 +90,9 @@ let WalletController = class WalletController {
             idNumber: dto.idNumber,
             idExpiryDate: dto.idExpiryDate,
             address: dto.address,
+            documentFrontKey: dto.documentFrontKey,
+            documentBackKey: dto.documentBackKey,
+            selfieKey: dto.selfieKey,
         });
     }
     async verifyPin(req, dto) {
@@ -202,13 +207,21 @@ __decorate([
 __decorate([
     (0, common_1.Post)('transfer/internal'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(pin_verification_guard_1.PinVerificationGuard),
     (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 10 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to another user by phone number' }),
     (0, swagger_1.ApiHeader)({
         name: 'X-Idempotency-Key',
         description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
         required: false,
         example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Pin-Token',
+        description: 'PIN verification token from POST /wallet/pin/verify',
+        required: true,
+        example: 'abc123...',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -226,6 +239,16 @@ __decorate([
             },
         },
     }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'PIN verification required',
+        schema: {
+            example: {
+                message: 'PIN verification required for this operation',
+                code: 'PIN_REQUIRED',
+            },
+        },
+    }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -235,13 +258,21 @@ __decorate([
 __decorate([
     (0, common_1.Post)('transfer/external'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(pin_verification_guard_1.PinVerificationGuard),
     (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to external wallet address (USDC)' }),
     (0, swagger_1.ApiHeader)({
         name: 'X-Idempotency-Key',
         description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
         required: false,
         example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Pin-Token',
+        description: 'PIN verification token from POST /wallet/pin/verify',
+        required: true,
+        example: 'abc123...',
     }),
     (0, swagger_1.ApiResponse)({
         status: 200,
@@ -256,6 +287,16 @@ __decorate([
                 fee: 1.0,
                 status: 'pending',
                 estimatedArrival: '5-30 minutes',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'PIN verification required',
+        schema: {
+            example: {
+                message: 'PIN verification required for this operation',
+                code: 'PIN_REQUIRED',
             },
         },
     }),
@@ -340,14 +381,17 @@ __decorate([
 __decorate([
     (0, common_1.Post)('pin/verify'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Verify PIN for transaction authorization' }),
     (0, swagger_1.ApiResponse)({
         status: 200,
-        description: 'PIN verified successfully',
+        description: 'PIN verified successfully. Returns a token valid for 5 minutes.',
         schema: {
             example: {
                 valid: true,
                 message: 'PIN verified successfully',
+                pinToken: 'abc123...',
+                expiresIn: 300,
             },
         },
     }),

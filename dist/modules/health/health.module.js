@@ -10,6 +10,7 @@ exports.HealthModule = void 0;
 const common_1 = require("@nestjs/common");
 const terminus_1 = require("@nestjs/terminus");
 const health_controller_1 = require("./health.controller");
+const health_indicators_1 = require("./health-indicators");
 let HealthModule = class HealthModule {
 };
 exports.HealthModule = HealthModule;
@@ -17,6 +18,7 @@ exports.HealthModule = HealthModule = __decorate([
     (0, common_1.Module)({
         imports: [terminus_1.TerminusModule],
         controllers: [health_controller_1.HealthController],
+        providers: [health_indicators_1.CircleHealthIndicator, health_indicators_1.BlnkHealthIndicator, health_indicators_1.RedisHealthIndicator],
     })
 ], HealthModule);
 //# sourceMappingURL=health.module.js.map

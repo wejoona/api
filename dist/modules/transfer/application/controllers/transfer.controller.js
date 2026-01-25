@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransferController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const throttler_1 = require("@nestjs/throttler");
 const guards_1 = require("../../../../common/guards");
 const interceptors_1 = require("../../../../common/interceptors");
 const requests_1 = require("../dto/requests");
@@ -88,11 +89,11 @@ let TransferController = class TransferController {
     async getTransferById(req, id) {
         const transfer = await this.transferRepository.findById(id);
         if (!transfer) {
-            throw new Error('Transfer not found');
+            throw new common_1.NotFoundException('Transfer not found');
         }
         if (transfer.senderId !== req.user.id &&
             transfer.recipientId !== req.user.id) {
-            throw new Error('Unauthorized access to transfer');
+            throw new common_1.ForbiddenException('Access denied');
         }
         return responses_1.TransferResponse.fromEntity(transfer);
     }
@@ -101,8 +102,16 @@ exports.TransferController = TransferController;
 __decorate([
     (0, common_1.Post)('internal'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.PinVerificationGuard),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 10 } }),
     (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Transfer to another user by phone number (P2P)' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Pin-Token',
+        description: 'PIN verification token from POST /wallet/pin/verify',
+        required: true,
+        example: 'abc123...',
+    }),
     (0, swagger_1.ApiHeader)({
         name: 'X-Idempotency-Key',
         description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
@@ -137,7 +146,18 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
-        description: 'Bad request - invalid input or insufficient balance',
+        description: 'Bad request - invalid input, insufficient balance, or PIN verification required',
+        schema: {
+            example: {
+                message: 'PIN verification required for this operation',
+                code: 'PIN_REQUIRED',
+                hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 403,
+        description: 'Invalid or expired PIN verification',
     }),
     (0, swagger_1.ApiResponse)({
         status: 404,
@@ -152,8 +172,16 @@ __decorate([
 __decorate([
     (0, common_1.Post)('external'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.PinVerificationGuard),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
     (0, swagger_1.ApiOperation)({ summary: 'Send USDC to external blockchain address' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Pin-Token',
+        description: 'PIN verification token from POST /wallet/pin/verify',
+        required: true,
+        example: 'abc123...',
+    }),
     (0, swagger_1.ApiHeader)({
         name: 'X-Idempotency-Key',
         description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
@@ -186,7 +214,18 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 400,
-        description: 'Bad request - invalid address or amount',
+        description: 'Bad request - invalid address, amount, or PIN verification required',
+        schema: {
+            example: {
+                message: 'PIN verification required for this operation',
+                code: 'PIN_REQUIRED',
+                hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 403,
+        description: 'Invalid or expired PIN verification',
     }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),

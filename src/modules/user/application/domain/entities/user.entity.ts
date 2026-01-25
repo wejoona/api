@@ -8,6 +8,7 @@ export interface IUser {
   id: string;
   phone: string;
   phoneVerified: boolean;
+  username: string | null;
   firstName: string | null;
   lastName: string | null;
   email: string | null;
@@ -37,6 +38,7 @@ export interface CreateUserProps {
 }
 
 export interface UpdateUserProps {
+  username?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -46,6 +48,7 @@ export class User implements IUser {
   readonly id: string;
   readonly phone: string;
   phoneVerified: boolean;
+  username: string | null;
   firstName: string | null;
   lastName: string | null;
   email: string | null;
@@ -72,6 +75,7 @@ export class User implements IUser {
     this.id = props.id;
     this.phone = props.phone;
     this.phoneVerified = props.phoneVerified;
+    this.username = props.username;
     this.firstName = props.firstName;
     this.lastName = props.lastName;
     this.email = props.email;
@@ -98,6 +102,7 @@ export class User implements IUser {
       id: uuidv4(),
       phone: props.phone,
       phoneVerified: false,
+      username: null,
       firstName: null,
       lastName: null,
       email: null,
@@ -129,10 +134,28 @@ export class User implements IUser {
   }
 
   updateProfile(props: UpdateUserProps): void {
+    if (props.username !== undefined) this.username = props.username;
     if (props.firstName !== undefined) this.firstName = props.firstName;
     if (props.lastName !== undefined) this.lastName = props.lastName;
     if (props.email !== undefined) this.email = props.email;
     this.updatedAt = new Date();
+  }
+
+  /**
+   * Set username (@handle)
+   */
+  setUsername(username: string | null): void {
+    this.username = username;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Get display name (username if set, otherwise full name or phone)
+   */
+  get displayName(): string {
+    if (this.username) return `@${this.username}`;
+    if (this.fullName) return this.fullName;
+    return this.phone;
   }
 
   submitKyc(kycProviderId: string): void {
@@ -148,6 +171,14 @@ export class User implements IUser {
 
   rejectKyc(): void {
     this.kycStatus = 'rejected';
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Update KYC status (used by KYC approval listener)
+   */
+  updateKycStatus(status: KycStatus): void {
+    this.kycStatus = status;
     this.updatedAt = new Date();
   }
 

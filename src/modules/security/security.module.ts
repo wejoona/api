@@ -1,23 +1,54 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BlacklistedDeviceOrmEntity } from './infrastructure/orm-entities/blacklisted-device.orm-entity';
-import { DeviceBlacklistService } from './application/services/device-blacklist.service';
+
+// ORM Entities
+import {
+  BlacklistedDeviceOrmEntity,
+  WhitelistedAddressOrmEntity,
+} from './infrastructure/orm-entities';
+
+// Repositories
+import { WhitelistedAddressRepository } from './infrastructure/repositories';
+
+// Services
+import {
+  DeviceBlacklistService,
+  WhitelistedAddressService,
+} from './application/services';
+
+// Controllers
+import {
+  DeviceBlacklistController,
+  WhitelistedAddressController,
+} from './application/controllers';
+
+// Guards
 import { DeviceBlacklistGuard } from './application/guards/device-blacklist.guard';
-import { DeviceBlacklistController } from './application/controllers/device-blacklist.controller';
+
+// Other modules
+import { UserModule } from '../user/user.module';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BlacklistedDeviceOrmEntity]),
+    TypeOrmModule.forFeature([
+      BlacklistedDeviceOrmEntity,
+      WhitelistedAddressOrmEntity,
+    ]),
+    forwardRef(() => UserModule),
   ],
-  controllers: [DeviceBlacklistController],
+  controllers: [DeviceBlacklistController, WhitelistedAddressController],
   providers: [
     DeviceBlacklistService,
     DeviceBlacklistGuard,
+    WhitelistedAddressRepository,
+    WhitelistedAddressService,
   ],
   exports: [
     DeviceBlacklistService,
     DeviceBlacklistGuard,
+    WhitelistedAddressService,
+    WhitelistedAddressRepository,
   ],
 })
 export class SecurityModule {}

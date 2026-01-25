@@ -33,6 +33,7 @@ exports.default = () => ({
         defaultBlockchain: process.env.CIRCLE_DEFAULT_BLOCKCHAIN || 'MATIC',
         webhookSecret: process.env.CIRCLE_WEBHOOK_SECRET || '',
         useMock: process.env.CIRCLE_USE_MOCK === 'true' || !process.env.CIRCLE_API_KEY,
+        complianceEnabled: process.env.CIRCLE_COMPLIANCE_ENABLED === 'true',
     },
     yellowCard: {
         apiUrl: process.env.YELLOW_CARD_API_URL || 'https://sandbox.yellowcard.io',
@@ -56,6 +57,9 @@ exports.default = () => ({
         expiresIn: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300,
         length: parseInt(process.env.OTP_LENGTH, 10) || 6,
         maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 3,
+        useDevOtp: process.env.OTP_USE_DEV === 'true' || process.env.NODE_ENV === 'development',
+        devOtp: process.env.OTP_DEV_CODE || '123456',
+        enableDebugLogging: process.env.OTP_DEBUG_LOGGING === 'true',
     },
     rateLimit: {
         ttl: parseInt(process.env.RATE_LIMIT_TTL, 10) || 60,
@@ -66,6 +70,19 @@ exports.default = () => ({
         clientEmail: process.env.FCM_CLIENT_EMAIL || '',
         privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
         useMock: process.env.FCM_USE_MOCK === 'true' || !process.env.FCM_PROJECT_ID,
+    },
+    kyc: {
+        autoApprovalEnabled: process.env.KYC_AUTO_APPROVAL_ENABLED !== 'false',
+        autoApprovalThreshold: parseInt(process.env.KYC_AUTO_APPROVAL_THRESHOLD, 10) || 80,
+        autoRejectThreshold: parseInt(process.env.KYC_AUTO_REJECT_THRESHOLD, 10) || 40,
+        provider: process.env.KYC_PROVIDER || 'mock',
+    },
+    aws: {
+        region: process.env.AWS_REGION || 'eu-west-1',
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        s3Bucket: process.env.AWS_S3_BUCKET || 'joonapay-kyc-documents',
+        useMock: process.env.AWS_USE_MOCK === 'true' || !process.env.AWS_ACCESS_KEY_ID,
     },
     app: {
         defaultCountry: process.env.DEFAULT_COUNTRY || 'CI',
@@ -78,6 +95,23 @@ exports.default = () => ({
         maxTransferAmount: parseFloat(process.env.MAX_TRANSFER_AMOUNT) || 10000,
         internalTransferFeePercent: parseFloat(process.env.INTERNAL_TRANSFER_FEE_PERCENT) || 0,
         externalTransferFeePercent: parseFloat(process.env.EXTERNAL_TRANSFER_FEE_PERCENT) || 0.5,
+    },
+    compliance: {
+        bceaoEnabled: process.env.BCEAO_COMPLIANCE_ENABLED !== 'false',
+        largeTransactionThreshold: parseFloat(process.env.LARGE_TRANSACTION_THRESHOLD) || 1_000_000,
+        dailyReportTime: process.env.DAILY_REPORT_TIME || '00:00',
+        reportRetentionDays: parseInt(process.env.REPORT_RETENTION_DAYS, 10) || 2555,
+        autoFlagVelocityThreshold: parseInt(process.env.AUTO_FLAG_VELOCITY_THRESHOLD, 10) || 5,
+        structuringTimeWindow: parseInt(process.env.STRUCTURING_TIME_WINDOW, 10) || 24,
+        crossBorderAlertEnabled: process.env.CROSS_BORDER_ALERT_ENABLED !== 'false',
+        autoGenerateSar: process.env.AUTO_GENERATE_SAR === 'true',
+        sarAutoGenerationThreshold: parseInt(process.env.SAR_AUTO_GENERATION_THRESHOLD, 10) || 85,
+        bceaoApiUrl: process.env.BCEAO_API_URL || '',
+        bceaoApiKey: process.env.BCEAO_API_KEY || '',
+        bceaoInstitutionId: process.env.BCEAO_INSTITUTION_ID || '',
+        xofToUsdcRate: parseFloat(process.env.XOF_TO_USDC_RATE) || 600,
+        pepScreeningEnabled: process.env.PEP_SCREENING_ENABLED === 'true',
+        pepScreeningProvider: process.env.PEP_SCREENING_PROVIDER || '',
     },
 });
 //# sourceMappingURL=configuration.js.map

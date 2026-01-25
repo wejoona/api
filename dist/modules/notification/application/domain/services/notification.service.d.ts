@@ -35,4 +35,11 @@ export declare class NotificationService {
     markAsRead(notificationId: string): Promise<void>;
     markAllAsRead(userId: string): Promise<void>;
     getUnreadCount(userId: string): Promise<number>;
+    sendNewDeviceLoginAlert(userId: string, deviceName: string, location?: string): Promise<void>;
+    sendLargeTransactionAlert(userId: string, amount: number, currency: string, transactionId: string, recipientName?: string): Promise<void>;
+    sendAddressWhitelistedNotification(userId: string, label: string, address: string): Promise<void>;
+    sendSecurityAlert(userId: string, title: string, message: string, data?: Record<string, string>): Promise<void>;
+    sendWithdrawalPendingNotification(userId: string, amount: number, currency: string, hoursUntilProcessed: number, transactionId: string): Promise<void>;
+    sendPriceAlert(userId: string, rate: string, threshold: string, direction: 'above' | 'below'): Promise<void>;
+    sendWeeklySummary(userId: string, totalSpent: number, totalReceived: number, currency: string, transactionCount: number, comparisonText?: string): Promise<void>;
 }

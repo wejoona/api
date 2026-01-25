@@ -9,6 +9,7 @@ import {
   IPaymentGateway,
 } from '../../../shared/domain/gateways/payment.gateway';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
+import { UploadService } from '../../../upload/application/services/upload.service';
 
 export interface SubmitKycInput {
   userId: string;
@@ -26,6 +27,10 @@ export interface SubmitKycInput {
     postalCode?: string;
     country: string;
   };
+  // Document S3 keys (from KYC upload)
+  documentFrontKey?: string;
+  documentBackKey?: string;
+  selfieKey?: string;
 }
 
 export interface SubmitKycOutput {
@@ -41,6 +46,7 @@ export class SubmitKycUseCase {
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
     private readonly walletRepository: WalletRepository,
+    private readonly uploadService: UploadService,
   ) {}
 
   async execute(input: SubmitKycInput): Promise<SubmitKycOutput> {
@@ -65,6 +71,25 @@ export class SubmitKycUseCase {
       throw new BadRequestException('KYC already verified');
     }
 
+    // Validate that all KYC documents have been uploaded
+    if (!input.documentFrontKey || !input.documentBackKey || !input.selfieKey) {
+      const missingDocs: string[] = [];
+      if (!input.documentFrontKey) missingDocs.push('ID front');
+      if (!input.documentBackKey) missingDocs.push('ID back');
+      if (!input.selfieKey) missingDocs.push('selfie');
+
+      throw new BadRequestException(
+        `All KYC documents are required. Missing: ${missingDocs.join(', ')}`,
+      );
+    }
+
+    // Get signed URLs for documents (valid for 1 hour for provider to fetch)
+    const [documentFrontUrl, documentBackUrl, selfieUrl] = await Promise.all([
+      this.uploadService.getSignedUrl(input.documentFrontKey, 3600),
+      this.uploadService.getSignedUrl(input.documentBackKey, 3600),
+      this.uploadService.getSignedUrl(input.selfieKey, 3600),
+    ]);
+
     // Submit KYC to payment provider
     const kycResponse = await this.paymentGateway.submitKyc({
       subwalletId: wallet.providerWalletId,
@@ -76,6 +101,9 @@ export class SubmitKycUseCase {
       idNumber: input.idNumber,
       idExpiryDate: input.idExpiryDate,
       address: input.address,
+      documentFrontUrl,
+      documentBackUrl,
+      selfieUrl,
     });
 
     // Update wallet KYC status

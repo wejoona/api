@@ -26,6 +26,7 @@ import {
   AdminService,
   UserListQuery,
   DashboardStats,
+  EnhancedDashboardStats,
 } from '../services/admin.service';
 import { AuditService, AuditLogQuery } from '../services/audit.service';
 import {
@@ -33,6 +34,8 @@ import {
   UpdateRoleDto,
   ListUsersQueryDto,
   RejectKycDto,
+  DashboardStatsDto,
+  EnhancedDashboardStatsDto,
 } from '../dto';
 
 interface AuthenticatedRequest {
@@ -66,10 +69,39 @@ export class AdminController {
 
   @Get('dashboard')
   @Roles('admin')
-  @ApiOperation({ summary: 'Get dashboard statistics' })
-  @ApiResponse({ status: 200, description: 'Dashboard stats retrieved' })
+  @ApiOperation({ summary: 'Get basic dashboard statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard stats retrieved',
+    type: DashboardStatsDto,
+  })
   async getDashboard(): Promise<DashboardStats> {
     return this.adminService.getDashboardStats();
+  }
+
+  @Get('dashboard/enhanced')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get enhanced dashboard with time-series data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Enhanced dashboard stats with charts data retrieved',
+    type: EnhancedDashboardStatsDto,
+  })
+  async getEnhancedDashboard(
+    @Query('days') days?: number,
+  ): Promise<EnhancedDashboardStats> {
+    const daysToFetch = days && days > 0 ? Math.min(days, 365) : 30;
+    return this.adminService.getEnhancedDashboardStats(daysToFetch);
+  }
+
+  @Post('dashboard/cache/invalidate')
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Invalidate dashboard cache' })
+  @ApiResponse({ status: 200, description: 'Cache invalidated' })
+  async invalidateDashboardCache() {
+    await this.adminService.invalidateDashboardCache();
+    return { message: 'Dashboard cache invalidated' };
   }
 
   // ==========================================
@@ -318,7 +350,7 @@ export class AdminController {
 
   @Get('reports/user-growth')
   @Roles('admin')
-  @ApiOperation({ summary: 'Get user growth report' })
+  @ApiOperation({ summary: 'Get user growth report (legacy)' })
   @ApiResponse({ status: 200, description: 'User growth report retrieved' })
   async getUserGrowthReport(
     @Query('startDate') startDate: string,
@@ -327,6 +359,16 @@ export class AdminController {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const data = await this.adminService.getUserGrowthReport(start, end);
+    return { data };
+  }
+
+  @Get('reports/user-growth-timeseries')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get user growth time-series with running totals' })
+  @ApiResponse({ status: 200, description: 'User growth time-series retrieved' })
+  async getUserGrowthTimeSeries(@Query('days') days?: number) {
+    const daysToFetch = days && days > 0 ? Math.min(days, 365) : 30;
+    const data = await this.adminService.getUserGrowthTimeSeries(daysToFetch);
     return { data };
   }
 

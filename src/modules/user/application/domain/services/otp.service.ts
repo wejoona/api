@@ -198,6 +198,16 @@ export class OtpService implements OnModuleDestroy {
   }
 
   private generateOtp(): string {
+    // In development mode, use a fixed OTP for easy testing
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    const useDevOtp = this.configService.get<boolean>('otp.useDevOtp', false);
+
+    if (nodeEnv === 'development' || useDevOtp) {
+      const devOtp = this.configService.get<string>('otp.devOtp', '123456');
+      this.logger.warn(`[DEV MODE] Using fixed OTP: ${devOtp}`);
+      return devOtp;
+    }
+
     // Use cryptographically secure random number generation
     const bytes = crypto.randomBytes(this.otpLength);
     let otp = '';
@@ -206,6 +216,66 @@ export class OtpService implements OnModuleDestroy {
       otp += (bytes[i] % 10).toString();
     }
     return otp;
+  }
+
+  /**
+   * Get the current OTP for a phone number (DEV ONLY)
+   * This should NEVER be exposed in production
+   */
+  async getOtp(phone: string): Promise<string | null> {
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    if (nodeEnv !== 'development') {
+      throw new Error('getOtp is only available in development mode');
+    }
+
+    this.ensureConnection();
+    const key = this.getKey(phone);
+    return this.redis.get(key);
+  }
+
+  /**
+   * Get OTP info for debugging (DEV ONLY)
+   */
+  async getOtpDebugInfo(phone: string): Promise<{
+    otp: string | null;
+    ttl: number;
+    attempts: number;
+    isLocked: boolean;
+    lockoutRemaining: number | null;
+  }> {
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    if (nodeEnv !== 'development') {
+      throw new Error('getOtpDebugInfo is only available in development mode');
+    }
+
+    this.ensureConnection();
+    const key = this.getKey(phone);
+    const attemptsKey = `${key}:attempts`;
+    const lockoutKey = `${key}:lockout`;
+
+    const [otp, ttl, attempts, lockoutUntil] = await Promise.all([
+      this.redis.get(key),
+      this.redis.ttl(key),
+      this.redis.get(attemptsKey),
+      this.redis.get(lockoutKey),
+    ]);
+
+    let lockoutRemaining: number | null = null;
+    if (lockoutUntil) {
+      const lockoutTime = parseInt(lockoutUntil, 10);
+      const now = Date.now();
+      if (now < lockoutTime) {
+        lockoutRemaining = Math.ceil((lockoutTime - now) / 1000);
+      }
+    }
+
+    return {
+      otp,
+      ttl,
+      attempts: attempts ? parseInt(attempts, 10) : 0,
+      isLocked: lockoutRemaining !== null && lockoutRemaining > 0,
+      lockoutRemaining,
+    };
   }
 
   private getKey(phone: string): string {

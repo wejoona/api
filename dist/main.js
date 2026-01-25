@@ -7,6 +7,8 @@ const swagger_1 = require("@nestjs/swagger");
 const helmet_1 = require("helmet");
 const express_1 = require("express");
 const app_module_1 = require("./app.module");
+const interceptors_1 = require("./common/interceptors");
+const metrics_service_1 = require("./modules/metrics/metrics.service");
 async function bootstrap() {
     const logger = new common_1.Logger('Bootstrap');
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
@@ -38,6 +40,8 @@ async function bootstrap() {
         maxAge: 86400,
     });
     app.setGlobalPrefix(apiPrefix);
+    const metricsService = app.get(metrics_service_1.MetricsService);
+    app.useGlobalInterceptors(new interceptors_1.LoggingInterceptor(), new interceptors_1.MetricsInterceptor(metricsService));
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
@@ -46,46 +50,51 @@ async function bootstrap() {
             enableImplicitConversion: true,
         },
     }));
-    const config = new swagger_1.DocumentBuilder()
-        .setTitle('USDC Wallet API')
-        .setDescription(`
-      JoonaPay USDC Wallet - Cross-Border Remittance Platform
+    if (nodeEnv !== 'production') {
+        const config = new swagger_1.DocumentBuilder()
+            .setTitle('USDC Wallet API')
+            .setDescription(`
+        JoonaPay USDC Wallet - Cross-Border Remittance Platform
 
-      **Ivory Coast → USA Corridor**
+        **Ivory Coast → USA Corridor**
 
-      This API enables money transfers from Ivory Coast to the USA using USDC as the settlement currency.
-      Users see a simple USD wallet experience while the underlying infrastructure handles stablecoin conversions automatically.
+        This API enables money transfers from Ivory Coast to the USA using USDC as the settlement currency.
+        Users see a simple USD wallet experience while the underlying infrastructure handles stablecoin conversions automatically.
 
-      ## Features
-      - User registration with phone verification (OTP)
-      - USD wallet management
-      - Deposits via Mobile Money (Orange Money, Wave, MTN)
-      - Internal transfers (phone-to-phone)
-      - External transfers (to USDC wallet address)
-      - KYC verification for higher limits
-      - Real-time exchange rates
+        ## Features
+        - User registration with phone verification (OTP)
+        - USD wallet management
+        - Deposits via Mobile Money (Orange Money, Wave, MTN)
+        - Internal transfers (phone-to-phone)
+        - External transfers (to USDC wallet address)
+        - KYC verification for higher limits
+        - Real-time exchange rates
 
-      ## Authentication
-      All authenticated endpoints require a Bearer token in the Authorization header.
-      Obtain a token by verifying OTP after registration/login.
+        ## Authentication
+        All authenticated endpoints require a Bearer token in the Authorization header.
+        Obtain a token by verifying OTP after registration/login.
 
-      ## Payment Provider
-      Currently integrated with Yellow Card for stablecoin infrastructure.
-      The API is designed with provider abstraction for easy switching.
-      `)
-        .setVersion('1.0')
-        .addBearerAuth()
-        .addTag('Authentication', 'User registration and login via phone OTP')
-        .addTag('User', 'User profile management')
-        .addTag('Wallet', 'Wallet balance, deposits, transfers, and KYC')
-        .addTag('Transactions', 'Transaction history and status tracking')
-        .addTag('Webhooks', 'Payment provider webhook endpoints')
-        .build();
-    const document = swagger_1.SwaggerModule.createDocument(app, config);
-    swagger_1.SwaggerModule.setup('docs', app, document);
+        ## Payment Provider
+        Currently integrated with Yellow Card for stablecoin infrastructure.
+        The API is designed with provider abstraction for easy switching.
+        `)
+            .setVersion('1.0')
+            .addBearerAuth()
+            .addTag('Authentication', 'User registration and login via phone OTP')
+            .addTag('User', 'User profile management')
+            .addTag('Wallet', 'Wallet balance, deposits, transfers, and KYC')
+            .addTag('Transactions', 'Transaction history and status tracking')
+            .addTag('Webhooks', 'Payment provider webhook endpoints')
+            .build();
+        const document = swagger_1.SwaggerModule.createDocument(app, config);
+        swagger_1.SwaggerModule.setup('docs', app, document);
+        logger.log(`Swagger documentation: http://localhost:${port}/docs`);
+    }
+    else {
+        logger.log('Swagger documentation disabled in production');
+    }
     await app.listen(port);
     logger.log(`Application running on: http://localhost:${port}/${apiPrefix}`);
-    logger.log(`Swagger documentation: http://localhost:${port}/docs`);
     logger.log(`Health check: http://localhost:${port}/${apiPrefix}/health`);
 }
 void bootstrap();

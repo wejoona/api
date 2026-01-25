@@ -3,7 +3,7 @@ export declare class AuthResponse {
     accessToken: string;
     refreshToken: string;
     user: UserResponse;
-    walletCreated?: boolean;
+    kycStatus?: string;
 }
 export declare class RefreshResponse {
     accessToken: string;

@@ -25,7 +25,7 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { JwtAuthGuard, AuthenticatedRequest, PinVerificationGuard } from '../../../../common/guards';
 import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   CreateInternalTransferDto,
@@ -49,10 +49,18 @@ export class TransferController {
 
   @Post('internal')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Require PIN verification before transfer
+  @UseGuards(PinVerificationGuard)
   // SECURITY: Rate limit transfers to prevent abuse (10 per minute per user)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Transfer to another user by phone number (P2P)' })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /wallet/pin/verify',
+    required: true,
+    example: 'abc123...',
+  })
   @ApiHeader({
     name: 'X-Idempotency-Key',
     description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
@@ -87,7 +95,18 @@ export class TransferController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid input or insufficient balance',
+    description: 'Bad request - invalid input, insufficient balance, or PIN verification required',
+    schema: {
+      example: {
+        message: 'PIN verification required for this operation',
+        code: 'PIN_REQUIRED',
+        hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Invalid or expired PIN verification',
   })
   @ApiResponse({
     status: 404,
@@ -131,10 +150,18 @@ export class TransferController {
 
   @Post('external')
   @HttpCode(HttpStatus.OK)
+  // SECURITY: Require PIN verification before transfer
+  @UseGuards(PinVerificationGuard)
   // SECURITY: Stricter rate limit for external transfers (5 per minute per user)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Send USDC to external blockchain address' })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /wallet/pin/verify',
+    required: true,
+    example: 'abc123...',
+  })
   @ApiHeader({
     name: 'X-Idempotency-Key',
     description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
@@ -167,7 +194,18 @@ export class TransferController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid address or amount',
+    description: 'Bad request - invalid address, amount, or PIN verification required',
+    schema: {
+      example: {
+        message: 'PIN verification required for this operation',
+        code: 'PIN_REQUIRED',
+        hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Invalid or expired PIN verification',
   })
   async createExternalTransfer(
     @Request() req: AuthenticatedRequest,

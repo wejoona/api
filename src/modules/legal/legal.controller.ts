@@ -16,7 +16,7 @@ import {
   LegalConsentDto,
   GetLegalDocumentQueryDto,
 } from './legal.dto';
-import { Public } from '../user/application/domain/decorators/public.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Legal')
 @Controller('legal')

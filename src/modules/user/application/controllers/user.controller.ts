@@ -4,6 +4,8 @@ import {
   Get,
   Put,
   Body,
+  Query,
+  Param,
   UseGuards,
   Request,
   HttpCode,
@@ -14,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
@@ -24,8 +27,18 @@ import {
   UpdateProfileDto,
   RefreshTokenDto,
   LogoutDto,
+  CheckUsernameDto,
+  SearchUsernameDto,
 } from '../dto/requests';
-import { UserResponse, AuthResponse, OtpSentResponse, RefreshResponse, LogoutResponse } from '../dto/responses';
+import {
+  UserResponse,
+  AuthResponse,
+  OtpSentResponse,
+  RefreshResponse,
+  LogoutResponse,
+  CheckUsernameResponse,
+  SearchUsernameResponse,
+} from '../dto/responses';
 import {
   RegisterUserUsecase,
   VerifyOtpUsecase,
@@ -33,6 +46,7 @@ import {
   UpdateProfileUsecase,
   RefreshTokenUsecase,
   LogoutUsecase,
+  UsernameUsecase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -81,7 +95,7 @@ export class AuthController {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       user: UserResponse.fromDomain(result.user),
-      walletCreated: result.walletCreated,
+      kycStatus: result.kycStatus,
     };
   }
 
@@ -149,7 +163,10 @@ export class AuthController {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UserController {
-  constructor(private readonly updateProfileUsecase: UpdateProfileUsecase) {}
+  constructor(
+    private readonly updateProfileUsecase: UpdateProfileUsecase,
+    private readonly usernameUsecase: UsernameUsecase,
+  ) {}
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -168,17 +185,58 @@ export class UserController {
   @Put('profile')
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({ status: 200, type: UserResponse })
+  @ApiResponse({ status: 409, description: 'Username already taken' })
   async updateProfile(
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateProfileDto,
   ): Promise<UserResponse> {
     const user = await this.updateProfileUsecase.execute({
       userId: req.user.id,
+      username: dto.username,
       firstName: dto.firstName,
       lastName: dto.lastName,
       email: dto.email,
     });
 
+    return UserResponse.fromDomain(user);
+  }
+
+  @Get('username/check/:username')
+  @ApiOperation({ summary: 'Check if username is available' })
+  @ApiParam({ name: 'username', description: 'Username to check' })
+  @ApiResponse({ status: 200, type: CheckUsernameResponse })
+  async checkUsername(
+    @Param('username') username: string,
+  ): Promise<CheckUsernameResponse> {
+    return this.usernameUsecase.checkAvailability({ username });
+  }
+
+  @Get('username/search')
+  @ApiOperation({ summary: 'Search users by username' })
+  @ApiResponse({ status: 200, type: SearchUsernameResponse })
+  async searchUsername(
+    @Query() dto: SearchUsernameDto,
+  ): Promise<SearchUsernameResponse> {
+    const users = await this.usernameUsecase.search({
+      query: dto.query,
+      limit: dto.limit,
+    });
+
+    return {
+      users,
+      count: users.length,
+    };
+  }
+
+  @Get('by-username/:username')
+  @ApiOperation({ summary: 'Find user by username' })
+  @ApiParam({ name: 'username', description: 'Username to find (with or without @)' })
+  @ApiResponse({ status: 200, type: UserResponse })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async findByUsername(
+    @Param('username') username: string,
+  ): Promise<UserResponse> {
+    const user = await this.usernameUsecase.findByUsername({ username });
     return UserResponse.fromDomain(user);
   }
 }

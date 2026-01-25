@@ -19,6 +19,10 @@ export class UserOrmEntity {
   @Column({ name: 'phone_verified', type: 'boolean', default: false })
   phoneVerified: boolean;
 
+  @Column({ type: 'varchar', length: 30, nullable: true, unique: true })
+  @Index()
+  username: string | null;
+
   @Column({ name: 'first_name', type: 'varchar', length: 100, nullable: true })
   firstName: string | null;
 

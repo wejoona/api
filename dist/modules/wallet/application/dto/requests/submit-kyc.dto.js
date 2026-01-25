@@ -107,4 +107,31 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", AddressDto)
 ], SubmitKycDto.prototype, "address", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 'kyc/user-123/id_front-1234567890.jpg',
+        description: 'S3 key for front of ID document',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SubmitKycDto.prototype, "documentFrontKey", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 'kyc/user-123/id_back-1234567890.jpg',
+        description: 'S3 key for back of ID document',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SubmitKycDto.prototype, "documentBackKey", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 'kyc/user-123/selfie-1234567890.jpg',
+        description: 'S3 key for selfie photo',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], SubmitKycDto.prototype, "selfieKey", void 0);
 //# sourceMappingURL=submit-kyc.dto.js.map

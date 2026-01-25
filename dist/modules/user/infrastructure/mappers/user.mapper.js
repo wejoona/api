@@ -9,6 +9,7 @@ class UserMapper {
             id: orm.id,
             phone: orm.phone,
             phoneVerified: orm.phoneVerified,
+            username: orm.username,
             firstName: orm.firstName,
             lastName: orm.lastName,
             email: orm.email,
@@ -34,6 +35,7 @@ class UserMapper {
         orm.id = domain.id;
         orm.phone = domain.phone;
         orm.phoneVerified = domain.phoneVerified;
+        orm.username = domain.username;
         orm.firstName = domain.firstName;
         orm.lastName = domain.lastName;
         orm.email = domain.email;

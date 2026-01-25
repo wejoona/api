@@ -23,16 +23,19 @@ import {
   SetupUserBalanceMonitorsUseCase,
   RefreshTokenUsecase,
   LogoutUsecase,
+  UsernameUsecase,
 } from './application/domain/usecases';
 
 // Controllers
 import { AuthController, UserController } from './application/controllers';
+import { DevController } from './application/controllers/dev.controller';
 
 // Guards
 import { JwtStrategy } from '../../common/guards';
 
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
+import { KycModule } from '../kyc/kyc.module';
 
 @Module({
   imports: [
@@ -52,8 +55,14 @@ import { WalletModule } from '../wallet/wallet.module';
       },
     }),
     forwardRef(() => WalletModule),
+    forwardRef(() => KycModule),
   ],
-  controllers: [AuthController, UserController],
+  controllers: [
+    AuthController,
+    UserController,
+    // Conditionally register DevController only in non-production environments
+    ...(process.env.NODE_ENV !== 'production' ? [DevController] : []),
+  ],
   providers: [
     // Repository
     UserRepository,
@@ -68,6 +77,7 @@ import { WalletModule } from '../wallet/wallet.module';
     SetupUserBalanceMonitorsUseCase,
     RefreshTokenUsecase,
     LogoutUsecase,
+    UsernameUsecase,
     // Strategy
     JwtStrategy,
   ],

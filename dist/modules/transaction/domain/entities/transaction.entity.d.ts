@@ -1,4 +1,4 @@
-export type TransactionType = 'deposit' | 'transfer_internal' | 'transfer_external' | 'withdrawal';
+export type TransactionType = 'deposit' | 'transfer_internal' | 'transfer_external' | 'withdrawal' | 'bill_payment';
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export interface ITransaction {
     id: string;
@@ -39,6 +39,12 @@ export interface CreateExternalTransferProps {
     yellowCardRef?: string;
     metadata?: Record<string, unknown>;
 }
+export interface CreateBillPaymentProps {
+    walletId: string;
+    amount: number;
+    currency?: string;
+    metadata?: Record<string, unknown>;
+}
 export declare class TransactionEntity implements ITransaction {
     readonly id: string;
     readonly walletId: string;
@@ -58,6 +64,7 @@ export declare class TransactionEntity implements ITransaction {
     static createDeposit(props: CreateDepositProps): TransactionEntity;
     static createInternalTransfer(props: CreateInternalTransferProps): TransactionEntity;
     static createExternalTransfer(props: CreateExternalTransferProps): TransactionEntity;
+    static createBillPayment(props: CreateBillPaymentProps): TransactionEntity;
     static reconstitute(props: ITransaction): TransactionEntity;
     markProcessing(): void;
     updateStatus(status: TransactionStatus): void;
@@ -73,4 +80,5 @@ export declare class TransactionEntity implements ITransaction {
     get isFailed(): boolean;
     get isDeposit(): boolean;
     get isTransfer(): boolean;
+    get isBillPayment(): boolean;
 }

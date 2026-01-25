@@ -21,11 +21,15 @@ const typeorm_2 = require("typeorm");
 const orm_entities_1 = require("../../transaction/infrastructure/orm-entities");
 const scheduled_job_entity_1 = require("../../admin/infrastructure/persistence/typeorm/entities/scheduled-job.entity");
 const audit_log_entity_1 = require("../../admin/infrastructure/persistence/typeorm/entities/audit-log.entity");
+const fcm_1 = require("../../notification/infrastructure/fcm");
+const orm_entities_2 = require("../../notification/infrastructure/orm-entities");
 let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
-    constructor(transactionRepository, jobRepository, auditLogRepository) {
+    constructor(transactionRepository, jobRepository, auditLogRepository, fcmTokenRepository, notificationRepository) {
         this.transactionRepository = transactionRepository;
         this.jobRepository = jobRepository;
         this.auditLogRepository = auditLogRepository;
+        this.fcmTokenRepository = fcmTokenRepository;
+        this.notificationRepository = notificationRepository;
         this.logger = new common_1.Logger(ScheduledJobsService_1.name);
     }
     async expireStaleTransactions() {
@@ -153,6 +157,50 @@ let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
             this.logger.error(`Stuck transaction check failed: ${message}`);
         }
     }
+    async cleanupInactiveFcmTokens() {
+        const jobName = 'cleanup_fcm_tokens';
+        const job = await this.startJob(jobName);
+        try {
+            this.logger.log('Starting FCM token cleanup job');
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 30);
+            const result = await this.fcmTokenRepository
+                .createQueryBuilder()
+                .delete()
+                .where('is_active = :isActive', { isActive: false })
+                .andWhere('updated_at < :cutoffDate', { cutoffDate })
+                .execute();
+            await this.completeJob(job.id, result.affected || 0);
+            this.logger.log(`Cleaned up ${result.affected} inactive FCM tokens`);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            await this.failJob(job.id, message);
+            this.logger.error(`FCM token cleanup failed: ${message}`);
+        }
+    }
+    async cleanupOldNotifications() {
+        const jobName = 'cleanup_notifications';
+        const job = await this.startJob(jobName);
+        try {
+            this.logger.log('Starting notification cleanup job');
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 90);
+            const result = await this.notificationRepository
+                .createQueryBuilder()
+                .delete()
+                .where('read_at IS NOT NULL')
+                .andWhere('created_at < :cutoffDate', { cutoffDate })
+                .execute();
+            await this.completeJob(job.id, result.affected || 0);
+            this.logger.log(`Cleaned up ${result.affected} old notifications`);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            await this.failJob(job.id, message);
+            this.logger.error(`Notification cleanup failed: ${message}`);
+        }
+    }
     async providerHealthCheck() {
     }
     async startJob(jobName) {
@@ -198,6 +246,12 @@ let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
             case 'cleanup_audit_logs':
                 await this.cleanupAuditLogs();
                 break;
+            case 'cleanup_fcm_tokens':
+                await this.cleanupInactiveFcmTokens();
+                break;
+            case 'cleanup_notifications':
+                await this.cleanupOldNotifications();
+                break;
             case 'daily_reconciliation':
                 await this.dailyReconciliation();
                 break;
@@ -239,6 +293,18 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ScheduledJobsService.prototype, "checkStuckTransactions", null);
 __decorate([
+    (0, schedule_1.Cron)('0 4 * * *'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ScheduledJobsService.prototype, "cleanupInactiveFcmTokens", null);
+__decorate([
+    (0, schedule_1.Cron)('0 3 * * 6'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ScheduledJobsService.prototype, "cleanupOldNotifications", null);
+__decorate([
     (0, schedule_1.Cron)('*/5 * * * *'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -249,7 +315,11 @@ exports.ScheduledJobsService = ScheduledJobsService = ScheduledJobsService_1 = _
     __param(0, (0, typeorm_1.InjectRepository)(orm_entities_1.TransactionOrmEntity)),
     __param(1, (0, typeorm_1.InjectRepository)(scheduled_job_entity_1.ScheduledJobEntity)),
     __param(2, (0, typeorm_1.InjectRepository)(audit_log_entity_1.AuditLogEntity)),
+    __param(3, (0, typeorm_1.InjectRepository)(fcm_1.FcmTokenOrmEntity)),
+    __param(4, (0, typeorm_1.InjectRepository)(orm_entities_2.NotificationOrmEntity)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])
 ], ScheduledJobsService);

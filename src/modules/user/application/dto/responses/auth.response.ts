@@ -12,10 +12,10 @@ export class AuthResponse {
   user: UserResponse;
 
   @ApiPropertyOptional({
-    example: true,
-    description: 'Whether a wallet was auto-created on first verification',
+    example: 'documents_pending',
+    description: 'Current KYC verification status. Wallet is created after KYC approval.',
   })
-  walletCreated?: boolean;
+  kycStatus?: string;
 }
 
 export class RefreshResponse {

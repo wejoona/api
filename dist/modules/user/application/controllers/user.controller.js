@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserController = exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const throttler_1 = require("@nestjs/throttler");
 const guards_1 = require("../../../../common/guards");
 const requests_1 = require("../dto/requests");
 const responses_1 = require("../dto/responses");
@@ -47,7 +48,7 @@ let AuthController = class AuthController {
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
             user: responses_1.UserResponse.fromDomain(result.user),
-            walletCreated: result.walletCreated,
+            kycStatus: result.kycStatus,
         };
     }
     async refreshToken(dto) {
@@ -84,6 +85,7 @@ exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('register'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Register a new user' }),
     (0, swagger_1.ApiResponse)({ status: 201, type: responses_1.OtpSentResponse }),
     __param(0, (0, common_1.Body)()),
@@ -94,6 +96,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('verify-otp'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Verify OTP and get access token' }),
     (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.AuthResponse }),
     __param(0, (0, common_1.Body)()),
@@ -104,6 +107,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('refresh'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 10 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Refresh access token' }),
     (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.RefreshResponse }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'Invalid or expired refresh token' }),
@@ -115,6 +119,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
     (0, swagger_1.ApiOperation)({ summary: 'Request login OTP' }),
     (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.OtpSentResponse }),
     __param(0, (0, common_1.Body)()),
@@ -146,8 +151,9 @@ exports.AuthController = AuthController = __decorate([
         usecases_1.LogoutUsecase])
 ], AuthController);
 let UserController = class UserController {
-    constructor(updateProfileUsecase) {
+    constructor(updateProfileUsecase, usernameUsecase) {
         this.updateProfileUsecase = updateProfileUsecase;
+        this.usernameUsecase = usernameUsecase;
     }
     getProfile(req) {
         return Promise.resolve(responses_1.UserResponse.fromDomain(req.user));
@@ -155,10 +161,28 @@ let UserController = class UserController {
     async updateProfile(req, dto) {
         const user = await this.updateProfileUsecase.execute({
             userId: req.user.id,
+            username: dto.username,
             firstName: dto.firstName,
             lastName: dto.lastName,
             email: dto.email,
         });
+        return responses_1.UserResponse.fromDomain(user);
+    }
+    async checkUsername(username) {
+        return this.usernameUsecase.checkAvailability({ username });
+    }
+    async searchUsername(dto) {
+        const users = await this.usernameUsecase.search({
+            query: dto.query,
+            limit: dto.limit,
+        });
+        return {
+            users,
+            count: users.length,
+        };
+    }
+    async findByUsername(username) {
+        const user = await this.usernameUsecase.findByUsername({ username });
         return responses_1.UserResponse.fromDomain(user);
     }
 };
@@ -176,17 +200,49 @@ __decorate([
     (0, common_1.Put)('profile'),
     (0, swagger_1.ApiOperation)({ summary: 'Update user profile' }),
     (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.UserResponse }),
+    (0, swagger_1.ApiResponse)({ status: 409, description: 'Username already taken' }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, requests_1.UpdateProfileDto]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "updateProfile", null);
+__decorate([
+    (0, common_1.Get)('username/check/:username'),
+    (0, swagger_1.ApiOperation)({ summary: 'Check if username is available' }),
+    (0, swagger_1.ApiParam)({ name: 'username', description: 'Username to check' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.CheckUsernameResponse }),
+    __param(0, (0, common_1.Param)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "checkUsername", null);
+__decorate([
+    (0, common_1.Get)('username/search'),
+    (0, swagger_1.ApiOperation)({ summary: 'Search users by username' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.SearchUsernameResponse }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [requests_1.SearchUsernameDto]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "searchUsername", null);
+__decorate([
+    (0, common_1.Get)('by-username/:username'),
+    (0, swagger_1.ApiOperation)({ summary: 'Find user by username' }),
+    (0, swagger_1.ApiParam)({ name: 'username', description: 'Username to find (with or without @)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.UserResponse }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Param)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "findByUsername", null);
 exports.UserController = UserController = __decorate([
     (0, swagger_1.ApiTags)('User'),
     (0, common_1.Controller)('user'),
     (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    __metadata("design:paramtypes", [usecases_1.UpdateProfileUsecase])
+    __metadata("design:paramtypes", [usecases_1.UpdateProfileUsecase,
+        usecases_1.UsernameUsecase])
 ], UserController);
 //# sourceMappingURL=user.controller.js.map

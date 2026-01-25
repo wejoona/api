@@ -19,15 +19,19 @@ const orm_entities_1 = require("./infrastructure/orm-entities");
 const typeorm_1 = require("@nestjs/typeorm");
 const services_1 = require("./application/domain/services");
 const shared_module_1 = require("../shared/shared.module");
+const user_preferences_module_1 = require("../user-preferences/user-preferences.module");
+const fcm_1 = require("./infrastructure/fcm");
+const event_listeners_1 = require("./application/domain/event-listeners");
 let NotificationModule = class NotificationModule {
 };
 exports.NotificationModule = NotificationModule;
 exports.NotificationModule = NotificationModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([...orm_entities_1.OrmEntities]),
+            typeorm_1.TypeOrmModule.forFeature([...orm_entities_1.OrmEntities, fcm_1.FcmTokenOrmEntity]),
             cqrs_1.CqrsModule,
             shared_module_1.SharedModule,
+            user_preferences_module_1.UserPreferencesModule,
         ],
         providers: [
             ...commands_1.CommandHandlers,
@@ -36,6 +40,8 @@ exports.NotificationModule = NotificationModule = __decorate([
             ...mappers_1.Mappers,
             ...usecases_1.UseCases,
             ...services_1.Services,
+            fcm_1.FcmTokenRepository,
+            event_listeners_1.NotificationEventListener,
         ],
         controllers: [...controllers_1.Controllers],
         exports: [...services_1.Services],

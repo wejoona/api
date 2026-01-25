@@ -31,6 +31,14 @@ let AdminController = class AdminController {
     async getDashboard() {
         return this.adminService.getDashboardStats();
     }
+    async getEnhancedDashboard(days) {
+        const daysToFetch = days && days > 0 ? Math.min(days, 365) : 30;
+        return this.adminService.getEnhancedDashboardStats(daysToFetch);
+    }
+    async invalidateDashboardCache() {
+        await this.adminService.invalidateDashboardCache();
+        return { message: 'Dashboard cache invalidated' };
+    }
     async listUsers(query) {
         const result = await this.adminService.listUsers(query);
         return {
@@ -155,6 +163,11 @@ let AdminController = class AdminController {
         const data = await this.adminService.getUserGrowthReport(start, end);
         return { data };
     }
+    async getUserGrowthTimeSeries(days) {
+        const daysToFetch = days && days > 0 ? Math.min(days, 365) : 30;
+        const data = await this.adminService.getUserGrowthTimeSeries(daysToFetch);
+        return { data };
+    }
     async getKycStatusReport() {
         const data = await this.adminService.getKycStatusReport();
         return { data };
@@ -164,12 +177,40 @@ exports.AdminController = AdminController;
 __decorate([
     (0, common_1.Get)('dashboard'),
     (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get dashboard statistics' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Dashboard stats retrieved' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get basic dashboard statistics' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Dashboard stats retrieved',
+        type: dto_1.DashboardStatsDto,
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getDashboard", null);
+__decorate([
+    (0, common_1.Get)('dashboard/enhanced'),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get enhanced dashboard with time-series data' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Enhanced dashboard stats with charts data retrieved',
+        type: dto_1.EnhancedDashboardStatsDto,
+    }),
+    __param(0, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getEnhancedDashboard", null);
+__decorate([
+    (0, common_1.Post)('dashboard/cache/invalidate'),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Invalidate dashboard cache' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Cache invalidated' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "invalidateDashboardCache", null);
 __decorate([
     (0, common_1.Get)('users'),
     (0, roles_decorator_1.Roles)('admin'),
@@ -308,7 +349,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('reports/user-growth'),
     (0, roles_decorator_1.Roles)('admin'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get user growth report' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user growth report (legacy)' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'User growth report retrieved' }),
     __param(0, (0, common_1.Query)('startDate')),
     __param(1, (0, common_1.Query)('endDate')),
@@ -316,6 +357,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getUserGrowthReport", null);
+__decorate([
+    (0, common_1.Get)('reports/user-growth-timeseries'),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user growth time-series with running totals' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'User growth time-series retrieved' }),
+    __param(0, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getUserGrowthTimeSeries", null);
 __decorate([
     (0, common_1.Get)('reports/kyc-status'),
     (0, roles_decorator_1.Roles)('admin'),

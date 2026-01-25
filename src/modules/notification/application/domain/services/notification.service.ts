@@ -228,4 +228,173 @@ export class NotificationService {
   async getUnreadCount(userId: string): Promise<number> {
     return this.notificationRepository.countUnread(userId);
   }
+
+  // ============================================
+  // CONVENIENCE METHODS FOR SPECIFIC NOTIFICATIONS
+  // ============================================
+
+  /**
+   * Send new device login alert
+   */
+  async sendNewDeviceLoginAlert(
+    userId: string,
+    deviceName: string,
+    location?: string,
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'new_device_login',
+      title: 'New Device Login',
+      body: `A new device "${deviceName}" just logged into your account${location ? ` from ${location}` : ''}.`,
+      data: {
+        deviceName,
+        location: location || 'Unknown',
+      },
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send large transaction alert
+   */
+  async sendLargeTransactionAlert(
+    userId: string,
+    amount: number,
+    currency: string,
+    transactionId: string,
+    recipientName?: string,
+  ): Promise<void> {
+    const bodyText = recipientName
+      ? `A large transaction of ${amount} ${currency} to ${recipientName} has been initiated.`
+      : `A large transaction of ${amount} ${currency} has been initiated.`;
+
+    await this.sendToUser({
+      userId,
+      type: 'large_transaction',
+      title: 'Large Transaction Alert',
+      body: bodyText,
+      data: {
+        amount: amount.toString(),
+        currency,
+        transactionId,
+        recipientName: recipientName || '',
+      },
+      referenceType: 'transaction',
+      referenceId: transactionId,
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send address whitelisted notification
+   */
+  async sendAddressWhitelistedNotification(
+    userId: string,
+    label: string,
+    address: string,
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'address_whitelisted',
+      title: 'Address Whitelisted',
+      body: `"${label}" (${address.substring(0, 6)}...${address.slice(-4)}) has been added to your trusted addresses.`,
+      data: {
+        label,
+        address,
+      },
+    });
+  }
+
+  /**
+   * Send security alert
+   */
+  async sendSecurityAlert(
+    userId: string,
+    title: string,
+    message: string,
+    data?: Record<string, string>,
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'security_alert',
+      title,
+      body: message,
+      data,
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send withdrawal pending notification (for new addresses)
+   */
+  async sendWithdrawalPendingNotification(
+    userId: string,
+    amount: number,
+    currency: string,
+    hoursUntilProcessed: number,
+    transactionId: string,
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'withdrawal_pending',
+      title: 'Withdrawal Pending',
+      body: `Your withdrawal of ${amount} ${currency} to a new address will be processed in ${hoursUntilProcessed} hours.`,
+      data: {
+        amount: amount.toString(),
+        currency,
+        hoursUntilProcessed: hoursUntilProcessed.toString(),
+        transactionId,
+      },
+      referenceType: 'transaction',
+      referenceId: transactionId,
+    });
+  }
+
+  /**
+   * Send price alert
+   */
+  async sendPriceAlert(
+    userId: string,
+    rate: string,
+    threshold: string,
+    direction: 'above' | 'below',
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'price_alert',
+      title: 'Price Alert',
+      body: `USDC/XOF rate is now ${rate}, ${direction} your threshold of ${threshold}.`,
+      data: {
+        rate,
+        threshold,
+        direction,
+      },
+    });
+  }
+
+  /**
+   * Send weekly spending summary
+   */
+  async sendWeeklySummary(
+    userId: string,
+    totalSpent: number,
+    totalReceived: number,
+    currency: string,
+    transactionCount: number,
+    comparisonText?: string,
+  ): Promise<void> {
+    await this.sendToUser({
+      userId,
+      type: 'weekly_summary',
+      title: 'Weekly Summary',
+      body: `This week: Sent ${totalSpent} ${currency}, Received ${totalReceived} ${currency} (${transactionCount} transactions).${comparisonText ? ` ${comparisonText}` : ''}`,
+      data: {
+        totalSpent: totalSpent.toString(),
+        totalReceived: totalReceived.toString(),
+        currency,
+        transactionCount: transactionCount.toString(),
+        comparison: comparisonText || '',
+      },
+    });
+  }
 }

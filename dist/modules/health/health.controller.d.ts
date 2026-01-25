@@ -1,11 +1,14 @@
 import { HealthCheckService, TypeOrmHealthIndicator, HealthCheckResult } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
+import { CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator } from './health-indicators';
 export declare class HealthController {
     private readonly health;
     private readonly db;
     private readonly configService;
-    private redis;
-    constructor(health: HealthCheckService, db: TypeOrmHealthIndicator, configService: ConfigService);
+    private readonly circleHealth;
+    private readonly blnkHealth;
+    private readonly redisHealth;
+    constructor(health: HealthCheckService, db: TypeOrmHealthIndicator, configService: ConfigService, circleHealth: CircleHealthIndicator, blnkHealth: BlnkHealthIndicator, redisHealth: RedisHealthIndicator);
     check(): Promise<HealthCheckResult>;
     readiness(): Promise<HealthCheckResult>;
     live(): {
@@ -13,49 +16,14 @@ export declare class HealthController {
         timestamp: string;
     };
     detailed(): Promise<{
+        status: string;
         timestamp: string;
-        services: {
-            database: {
-                status: string;
-                latency: string;
-                error?: undefined;
-            } | {
-                status: string;
-                error: string;
-                latency?: undefined;
-            };
-            redis: {
-                status: string;
-                latency: string;
-                error?: undefined;
-            } | {
-                status: string;
-                error: string;
-                latency?: undefined;
-            };
-            blnk: {
-                status: string;
-                latency: string;
-                url: string;
-                error?: undefined;
-            } | {
-                status: string;
-                error: string;
-                url: string;
-                latency?: undefined;
-            };
-        };
+        services: Record<string, any>;
         environment: {
             nodeEnv: any;
             version: string;
         };
         uptime: number;
         memory: NodeJS.MemoryUsage;
-        status: string;
     }>;
-    private checkRedis;
-    private checkBlnk;
-    private checkDatabaseDetailed;
-    private checkRedisDetailed;
-    private checkBlnkDetailed;
 }

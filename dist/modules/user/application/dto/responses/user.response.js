@@ -17,6 +17,7 @@ class UserResponse {
         response.id = user.id;
         response.phone = user.phone;
         response.phoneVerified = user.phoneVerified;
+        response.username = user.username;
         response.firstName = user.firstName;
         response.lastName = user.lastName;
         response.email = user.email;
@@ -41,6 +42,10 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: true }),
     __metadata("design:type", Boolean)
 ], UserResponse.prototype, "phoneVerified", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'amadou_diallo', nullable: true }),
+    __metadata("design:type", String)
+], UserResponse.prototype, "username", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Amadou', nullable: true }),
     __metadata("design:type", String)

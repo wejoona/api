@@ -2,6 +2,7 @@ export declare class UserOrmEntity {
     id: string;
     phone: string;
     phoneVerified: boolean;
+    username: string | null;
     firstName: string | null;
     lastName: string | null;
     email: string | null;

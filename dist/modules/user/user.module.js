@@ -17,8 +17,10 @@ const repositories_1 = require("./infrastructure/repositories");
 const services_1 = require("./application/domain/services");
 const usecases_1 = require("./application/domain/usecases");
 const controllers_1 = require("./application/controllers");
+const dev_controller_1 = require("./application/controllers/dev.controller");
 const guards_1 = require("../../common/guards");
 const wallet_module_1 = require("../wallet/wallet.module");
+const kyc_module_1 = require("../kyc/kyc.module");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -41,8 +43,13 @@ exports.UserModule = UserModule = __decorate([
                 },
             }),
             (0, common_1.forwardRef)(() => wallet_module_1.WalletModule),
+            (0, common_1.forwardRef)(() => kyc_module_1.KycModule),
         ],
-        controllers: [controllers_1.AuthController, controllers_1.UserController],
+        controllers: [
+            controllers_1.AuthController,
+            controllers_1.UserController,
+            ...(process.env.NODE_ENV !== 'production' ? [dev_controller_1.DevController] : []),
+        ],
         providers: [
             repositories_1.UserRepository,
             services_1.OtpService,
@@ -53,6 +60,8 @@ exports.UserModule = UserModule = __decorate([
             usecases_1.CreateUserLedgerIdentityUseCase,
             usecases_1.SetupUserBalanceMonitorsUseCase,
             usecases_1.RefreshTokenUsecase,
+            usecases_1.LogoutUsecase,
+            usecases_1.UsernameUsecase,
             guards_1.JwtStrategy,
         ],
         exports: [repositories_1.UserRepository, guards_1.JwtStrategy, passport_1.PassportModule],
