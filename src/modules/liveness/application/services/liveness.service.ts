@@ -13,7 +13,6 @@ import {
   StartSessionResponse,
   SubmitChallengeResponse,
   ChallengeType,
-  LivenessSessionStatus,
 } from '../../domain/interfaces/liveness.types';
 
 /**

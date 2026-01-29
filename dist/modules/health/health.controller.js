@@ -15,19 +15,19 @@ const swagger_1 = require("@nestjs/swagger");
 const terminus_1 = require("@nestjs/terminus");
 const config_1 = require("@nestjs/config");
 const health_indicators_1 = require("./health-indicators");
+const shutdown_1 = require("../../common/shutdown");
 let HealthController = class HealthController {
-    constructor(health, db, configService, circleHealth, blnkHealth, redisHealth) {
+    constructor(health, db, configService, circleHealth, blnkHealth, redisHealth, shutdownService) {
         this.health = health;
         this.db = db;
         this.configService = configService;
         this.circleHealth = circleHealth;
         this.blnkHealth = blnkHealth;
         this.redisHealth = redisHealth;
+        this.shutdownService = shutdownService;
     }
     check() {
-        return this.health.check([
-            () => this.db.pingCheck('database'),
-        ]);
+        return this.health.check([() => this.db.pingCheck('database')]);
     }
     async readiness() {
         return this.health.check([
@@ -38,9 +38,12 @@ let HealthController = class HealthController {
         ]);
     }
     live() {
+        const isShuttingDown = this.shutdownService.isShutdown();
         return {
-            status: 'ok',
+            status: isShuttingDown ? 'shutting_down' : 'ok',
             timestamp: new Date().toISOString(),
+            shuttingDown: isShuttingDown,
+            activeRequests: this.shutdownService.getActiveRequestCount(),
         };
     }
     async detailed() {
@@ -53,7 +56,10 @@ let HealthController = class HealthController {
         try {
             const startDb = Date.now();
             await this.db.pingCheck('database');
-            services.database = { status: 'up', latency: `${Date.now() - startDb}ms` };
+            services.database = {
+                status: 'up',
+                latency: `${Date.now() - startDb}ms`,
+            };
         }
         catch (error) {
             services.database = {
@@ -92,13 +98,18 @@ let HealthController = class HealthController {
             };
         }
         const allHealthy = Object.values(services).every((service) => service.status === 'up');
+        const isShuttingDown = this.shutdownService.isShutdown();
         return {
-            status: allHealthy ? 'ok' : 'degraded',
+            status: isShuttingDown ? 'shutting_down' : allHealthy ? 'ok' : 'degraded',
             timestamp: new Date().toISOString(),
             services,
             environment: {
                 nodeEnv: this.configService.get('NODE_ENV', 'development'),
                 version: process.env.npm_package_version || '0.0.1',
+            },
+            shutdown: {
+                isShuttingDown,
+                activeRequests: this.shutdownService.getActiveRequestCount(),
             },
             uptime: process.uptime(),
             memory: process.memoryUsage(),
@@ -147,6 +158,10 @@ __decorate([
         status: 200,
         description: 'Service is alive',
     }),
+    (0, swagger_1.ApiResponse)({
+        status: 503,
+        description: 'Service is shutting down',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -170,6 +185,7 @@ exports.HealthController = HealthController = __decorate([
         config_1.ConfigService,
         health_indicators_1.CircleHealthIndicator,
         health_indicators_1.BlnkHealthIndicator,
-        health_indicators_1.RedisHealthIndicator])
+        health_indicators_1.RedisHealthIndicator,
+        shutdown_1.ShutdownService])
 ], HealthController);
 //# sourceMappingURL=health.controller.js.map

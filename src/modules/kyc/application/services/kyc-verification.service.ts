@@ -4,7 +4,6 @@ import { createActor, Snapshot } from 'xstate';
 import {
   kycMachine,
   KycContext,
-  KycEvent,
   KycState,
 } from '../../domain/machines/kyc.machine';
 import { KycProviderFactory } from '../../infrastructure/providers/kyc-provider.factory';

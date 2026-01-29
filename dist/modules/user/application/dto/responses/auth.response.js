@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogoutResponse = exports.OtpSentResponse = exports.RefreshResponse = exports.AuthResponse = void 0;
+exports.LogoutAllResponse = exports.LogoutResponse = exports.OtpSentResponse = exports.RefreshResponse = exports.AuthResponse = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const user_response_1 = require("./user.response");
 class AuthResponse {
@@ -71,4 +71,22 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Logged out successfully' }),
     __metadata("design:type", String)
 ], LogoutResponse.prototype, "message", void 0);
+class LogoutAllResponse {
+}
+exports.LogoutAllResponse = LogoutAllResponse;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true }),
+    __metadata("design:type", Boolean)
+], LogoutAllResponse.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'All devices logged out successfully' }),
+    __metadata("design:type", String)
+], LogoutAllResponse.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        example: 5,
+        description: 'Number of sessions invalidated (0 if not tracked)',
+    }),
+    __metadata("design:type", Number)
+], LogoutAllResponse.prototype, "sessionsInvalidated", void 0);
 //# sourceMappingURL=auth.response.js.map

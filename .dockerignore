@@ -2,73 +2,195 @@
 # Docker Ignore File
 # =============================================================================
 # Excludes files from Docker build context for faster builds and smaller images
+# Order: most specific patterns first, then general patterns
 # =============================================================================
 
-# Dependencies
+# -----------------------------------------------------------------------------
+# Dependencies (reinstalled in container)
+# -----------------------------------------------------------------------------
 node_modules
 npm-debug.log
+npm-debug.log*
 yarn-error.log
+yarn.lock
+bun.lock
+package-lock.json.bak
+.npm
+.yarn
 
-# Build output
+# -----------------------------------------------------------------------------
+# Build output (rebuilt in container)
+# -----------------------------------------------------------------------------
 dist
 build
+out
 coverage
+.nyc_output
 
+# -----------------------------------------------------------------------------
+# Environment files (NEVER include in image - use runtime env vars)
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.production.example
+.env.local
+.env.development
+.env.test
+.env.staging
+.env.production
+
+# -----------------------------------------------------------------------------
 # IDE and editor files
+# -----------------------------------------------------------------------------
 .idea
 .vscode
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings
 
+# -----------------------------------------------------------------------------
 # Git
+# -----------------------------------------------------------------------------
 .git
 .gitignore
+.gitattributes
+.github
+.gitlab-ci.yml
 
-# Environment files (NEVER include in image)
-.env
-.env.*
-!.env.example
-!.env.production.example
-
-# Documentation
+# -----------------------------------------------------------------------------
+# Documentation (not needed at runtime)
+# -----------------------------------------------------------------------------
 *.md
 !README.md
 docs
+CHANGELOG*
+LICENSE*
+CONTRIBUTING*
 
-# Test files
+# -----------------------------------------------------------------------------
+# Test files (not needed in production)
+# -----------------------------------------------------------------------------
 test
+tests
+__tests__
+__mocks__
 *.spec.ts
 *.test.ts
+*.spec.js
+*.test.js
 jest.config.js
+jest.config.ts
 jest-e2e.json
+.jest
+cypress
+e2e
 
-# Development files
+# -----------------------------------------------------------------------------
+# Development configuration
+# -----------------------------------------------------------------------------
 docker-compose*.yml
+!docker-compose.prod.yml
+Dockerfile.dev
 Makefile
 .prettierrc
+.prettierignore
 .eslintrc*
 eslint.config.mjs
+.eslintignore
+.editorconfig
 tsconfig*.json
+!tsconfig.json
+!tsconfig.build.json
+nest-cli.json
+nodemon.json
+pm2.json
+pm2.config.js
 
+# -----------------------------------------------------------------------------
 # CI/CD
-.github
-.gitlab-ci.yml
+# -----------------------------------------------------------------------------
 .circleci
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+bitbucket-pipelines.yml
+.drone.yml
+.buildkite
 
-# Kubernetes
+# -----------------------------------------------------------------------------
+# Kubernetes (separate deployment)
+# -----------------------------------------------------------------------------
 k8s
+kubernetes
+helm
+charts
 
+# -----------------------------------------------------------------------------
+# Monitoring configuration (separate deployment)
+# -----------------------------------------------------------------------------
+monitoring
+grafana
+prometheus
+
+# -----------------------------------------------------------------------------
 # Scripts (deployment scripts not needed in container)
+# -----------------------------------------------------------------------------
 scripts
+*.sh
+!docker-entrypoint.sh
 
-# Misc
-.DS_Store
-*.log
-*.tmp
-tmp
-temp
-
+# -----------------------------------------------------------------------------
 # Load testing
+# -----------------------------------------------------------------------------
 load-tests
 *.k6.js
+artillery*
+locust*
+jmeter*
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.temp
+tmp
+temp
+.cache
+.parcel-cache
+.turbo
+
+# -----------------------------------------------------------------------------
+# Secrets and credentials (CRITICAL - never include)
+# -----------------------------------------------------------------------------
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials*
+secrets*
+serviceAccountKey.json
+firebase-adminsdk*.json
+google-credentials*.json
+
+# -----------------------------------------------------------------------------
+# Large files that should not be in container
+# -----------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.sql
+*.dump
+*.bak

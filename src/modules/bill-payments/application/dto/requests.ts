@@ -6,12 +6,10 @@ import {
   IsEnum,
   IsUUID,
   IsEmail,
-  IsPhoneNumber,
   Min,
   Max,
   MaxLength,
   IsNotEmpty,
-  Matches,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import {

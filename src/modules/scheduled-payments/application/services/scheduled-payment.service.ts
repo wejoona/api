@@ -15,8 +15,6 @@ import {
   PaymentSchedule,
   PaymentExecution,
   CreateScheduleInput,
-  ScheduleStatus,
-  ExecutionStatus,
   ScheduleFrequency,
   ScheduleSummary,
   UpcomingPayment,
@@ -25,7 +23,7 @@ import { ScheduleRepository } from '../../infrastructure/repositories/schedule.r
 import { ExecutionRepository } from '../../infrastructure/repositories/execution.repository';
 
 // Frequency to milliseconds mapping
-const FREQUENCY_MS: Record<ScheduleFrequency, number> = {
+const _FREQUENCY_MS: Record<ScheduleFrequency, number> = {
   once: 0,
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000,

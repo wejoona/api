@@ -1,1 +1,1 @@
-export declare const Events: any[];
+export declare const Events: never[];

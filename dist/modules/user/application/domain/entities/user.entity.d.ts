@@ -2,32 +2,8 @@ export type KycStatus = 'pending' | 'submitted' | 'approved' | 'rejected';
 export type UserRole = 'user' | 'admin' | 'super_admin';
 export type UserStatus = 'active' | 'suspended' | 'deactivated';
 export interface IUser {
-    id: string;
-    phone: string;
-    phoneVerified: boolean;
-    username: string | null;
-    firstName: string | null;
-    lastName: string | null;
-    email: string | null;
-    countryCode: string;
-    kycStatus: KycStatus;
-    kycProviderId: string | null;
-    circleUserId: string | null;
-    circleUserToken: string | null;
-    role: UserRole;
-    status: UserStatus;
-    suspendedAt: Date | null;
-    suspendedReason: string | null;
-    pinHash: string | null;
-    pinSetAt: Date | null;
-    pinAttempts: number;
-    pinLockedUntil: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
 }
 export interface CreateUserProps {
-    phone: string;
-    countryCode?: string;
 }
 export interface UpdateUserProps {
     username?: string;

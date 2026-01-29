@@ -219,7 +219,7 @@ export class KycUploadController {
 
     // Get document type from form field or filename
     const file = files.document[0];
-    const fieldName = file.fieldname;
+    const _fieldName = file.fieldname;
     let docType: DocumentType;
 
     // Try to extract type from original filename or use default

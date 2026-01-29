@@ -5,7 +5,6 @@ import {
   MinLength,
   IsBoolean,
   Matches,
-  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';

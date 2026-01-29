@@ -274,7 +274,7 @@ export class WebhookWithCompliance {
   constructor(private readonly amlCftService: AMLCFTService) {}
 
   async processYellowCardDeposit(webhookData: any) {
-    const { userId, amount, countryCode } = webhookData;
+    const { userId, amount: _amount, countryCode } = webhookData;
 
     // Check geographic risk for deposits from external sources
     const geoRisk = this.amlCftService.assessGeographicRisk(countryCode);

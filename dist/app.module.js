@@ -21,6 +21,8 @@ const config_2 = require("./config");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const logger_1 = require("./common/logger");
+const rate_limiting_1 = require("./common/rate-limiting");
+const shutdown_1 = require("./common/shutdown");
 const shared_module_1 = require("./modules/shared/shared.module");
 const user_module_1 = require("./modules/user/user.module");
 const wallet_module_1 = require("./modules/wallet/wallet.module");
@@ -45,6 +47,13 @@ const merchant_module_1 = require("./modules/merchant/merchant.module");
 const bill_payments_module_1 = require("./modules/bill-payments/bill-payments.module");
 const monitoring_module_1 = require("./modules/monitoring/monitoring.module");
 const compliance_module_1 = require("./modules/compliance/compliance.module");
+const verification_module_1 = require("./modules/verification/verification.module");
+const device_module_1 = require("./modules/device/device.module");
+const session_module_1 = require("./modules/session/session.module");
+const beneficiary_module_1 = require("./modules/beneficiary/beneficiary.module");
+const feature_flag_module_1 = require("./modules/feature-flag/feature-flag.module");
+const payment_links_module_1 = require("./modules/payment-links/payment-links.module");
+const savings_pots_module_1 = require("./modules/savings-pots/savings-pots.module");
 const circle_1 = require("./modules/providers/circle");
 const yellowcard_1 = require("./modules/providers/yellowcard");
 const blnk_1 = require("./modules/providers/blnk");
@@ -107,22 +116,29 @@ exports.AppModule = AppModule = __decorate([
             throttler_1.ThrottlerModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: (configService) => ([
+                useFactory: (configService) => [
                     {
                         ttl: configService.get('rateLimit.ttl', 60) * 1000,
                         limit: configService.get('rateLimit.limit', 100),
                     },
-                ]),
+                ],
             }),
             cqrs_1.CqrsModule,
             event_emitter_1.EventEmitterModule.forRoot(),
             schedule_1.ScheduleModule.forRoot(),
+            rate_limiting_1.RateLimitModule,
+            shutdown_1.ShutdownModule,
             circle_1.CircleModule,
             yellowcard_1.YellowCardModule,
             blnk_1.BlnkModule,
             shared_module_1.SharedModule,
             user_module_1.UserModule,
+            verification_module_1.VerificationModule,
+            device_module_1.DeviceModule,
+            session_module_1.SessionModule,
             wallet_module_1.WalletModule,
+            beneficiary_module_1.BeneficiaryModule,
+            payment_links_module_1.PaymentLinksModule,
             transaction_module_1.TransactionModule,
             transfer_module_1.TransferModule,
             notification_module_1.NotificationModule,
@@ -137,6 +153,7 @@ exports.AppModule = AppModule = __decorate([
             legal_module_1.LegalModule,
             contacts_module_1.ContactsModule,
             user_preferences_module_1.UserPreferencesModule,
+            feature_flag_module_1.FeatureFlagModule,
             upload_module_1.UploadModule,
             kyc_module_1.KycModule,
             liveness_module_1.LivenessModule,
@@ -144,6 +161,7 @@ exports.AppModule = AppModule = __decorate([
             bill_payments_module_1.BillPaymentsModule,
             monitoring_module_1.MonitoringModule,
             compliance_module_1.ComplianceModule,
+            savings_pots_module_1.SavingsPotsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

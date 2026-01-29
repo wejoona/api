@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { TransactionRepository } from '../../infrastructure/repositories/transaction.repository';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';

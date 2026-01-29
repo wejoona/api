@@ -6,6 +6,6 @@ export declare class BalanceMonitorTriggeredEvent {
     readonly currentValue: bigint;
     readonly threshold: bigint;
     readonly triggeredAt: Date;
-    readonly metadata?: Record<string, unknown>;
-    constructor(monitorId: string, monitorType: 'LOW_BALANCE_WARNING' | 'HIGH_DEBIT_ALERT' | 'AML_DAILY_LIMIT' | 'LOW_FLOAT_ALERT', balanceId: string, userId: string, currentValue: bigint, threshold: bigint, triggeredAt: Date, metadata?: Record<string, unknown>);
+    readonly metadata?: Record<string, unknown> | undefined;
+    constructor(monitorId: string, monitorType: 'LOW_BALANCE_WARNING' | 'HIGH_DEBIT_ALERT' | 'AML_DAILY_LIMIT' | 'LOW_FLOAT_ALERT', balanceId: string, userId: string, currentValue: bigint, threshold: bigint, triggeredAt: Date, metadata?: Record<string, unknown> | undefined);
 }

@@ -1,16 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Repository,
-  Between,
-  In,
-  MoreThanOrEqual,
-  LessThanOrEqual,
-} from 'typeorm';
+import { Repository, In, MoreThanOrEqual } from 'typeorm';
 import { BillPaymentOrmEntity } from '../orm-entities';
 import {
   BillPaymentStatus,
-  BillCategory,
   GetPaymentHistoryQuery,
   BillPaymentHistoryItem,
   PaginatedBillPaymentHistory,

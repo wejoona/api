@@ -20,7 +20,7 @@ __decorate([
 ], AuditLogEntity.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'actor_id', type: 'uuid', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], AuditLogEntity.prototype, "actorId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'actor_type', type: 'varchar', length: 20, default: 'user' }),
@@ -36,7 +36,7 @@ __decorate([
 ], AuditLogEntity.prototype, "resourceType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'resource_id', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], AuditLogEntity.prototype, "resourceId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
@@ -44,11 +44,11 @@ __decorate([
 ], AuditLogEntity.prototype, "details", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ip_address', type: 'varchar', length: 45, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], AuditLogEntity.prototype, "ipAddress", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'user_agent', type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], AuditLogEntity.prototype, "userAgent", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),

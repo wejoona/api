@@ -14,12 +14,12 @@ declare const _default: () => {
     redis: {
         host: string;
         port: number;
-        password: string;
+        password: string | undefined;
         db: number;
     };
     jwt: {
-        secret: string;
-        refreshSecret: string;
+        secret: string | undefined;
+        refreshSecret: string | undefined;
         expiresIn: string;
         refreshExpiresIn: string;
     };
@@ -67,6 +67,11 @@ declare const _default: () => {
         clientEmail: string;
         privateKey: string;
         useMock: boolean;
+    };
+    novu: {
+        apiKey: string;
+        appId: string;
+        enabled: boolean;
     };
     kyc: {
         autoApprovalEnabled: boolean;

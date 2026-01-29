@@ -33,7 +33,7 @@ __decorate([
         unique: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], WalletOrmEntity.prototype, "yellowCardWalletId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -44,7 +44,7 @@ __decorate([
         unique: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], WalletOrmEntity.prototype, "circleWalletId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -53,7 +53,7 @@ __decorate([
         length: 255,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], WalletOrmEntity.prototype, "circleWalletAddress", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 10, default: 'USDC' }),

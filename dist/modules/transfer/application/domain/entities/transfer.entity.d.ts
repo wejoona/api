@@ -1,55 +1,10 @@
 export type TransferType = 'internal' | 'external';
 export type TransferStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
 export interface ITransfer {
-    id: string;
-    reference: string;
-    type: TransferType;
-    status: TransferStatus;
-    senderId: string;
-    senderWalletId: string;
-    senderPhone: string | null;
-    recipientId: string | null;
-    recipientWalletId: string | null;
-    recipientPhone: string | null;
-    recipientAddress: string | null;
-    recipientBlockchain: string | null;
-    amount: number;
-    fee: number;
-    currency: string;
-    note: string | null;
-    providerTransferId: string | null;
-    providerName: string | null;
-    ledgerTransactionId: string | null;
-    txHash: string | null;
-    errorMessage: string | null;
-    metadata: Record<string, unknown> | null;
-    createdAt: Date;
-    updatedAt: Date;
-    completedAt: Date | null;
 }
 export interface CreateInternalTransferProps {
-    senderId: string;
-    senderWalletId: string;
-    senderPhone?: string;
-    recipientId: string;
-    recipientWalletId: string;
-    recipientPhone: string;
-    amount: number;
-    fee?: number;
-    currency?: string;
-    note?: string;
-    metadata?: Record<string, unknown>;
 }
 export interface CreateExternalTransferProps {
-    senderId: string;
-    senderWalletId: string;
-    recipientAddress: string;
-    recipientBlockchain?: string;
-    amount: number;
-    fee?: number;
-    currency?: string;
-    note?: string;
-    metadata?: Record<string, unknown>;
 }
 export declare class TransferEntity implements ITransfer {
     readonly id: string;

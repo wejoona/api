@@ -1,1 +1,1 @@
-export declare const Responses: any[];
+export declare const Responses: never[];

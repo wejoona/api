@@ -150,7 +150,10 @@ export class FeatureFlag {
 
     // Check country restrictions
     if (this._enabledCountries.length > 0) {
-      if (!context.countryCode || !this._enabledCountries.includes(context.countryCode)) {
+      if (
+        !context.countryCode ||
+        !this._enabledCountries.includes(context.countryCode)
+      ) {
         return false;
       }
     }

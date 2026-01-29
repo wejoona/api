@@ -76,35 +76,35 @@ __decorate([
         description: 'Reference type (e.g., transaction, wallet)',
         example: 'transaction',
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], NotificationResponse.prototype, "referenceType", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'Reference ID',
         example: '123e4567-e89b-12d3-a456-426614174000',
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], NotificationResponse.prototype, "referenceId", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'When notification was sent',
         example: '2026-01-23T10:30:00.000Z',
     }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationResponse.prototype, "sentAt", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'When notification was delivered',
         example: '2026-01-23T10:30:05.000Z',
     }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationResponse.prototype, "deliveredAt", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
         description: 'When notification was read',
         example: '2026-01-23T10:35:00.000Z',
     }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationResponse.prototype, "readAt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({

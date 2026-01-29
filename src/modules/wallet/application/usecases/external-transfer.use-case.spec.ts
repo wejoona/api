@@ -39,7 +39,7 @@ describe('ExternalTransferUseCase', () => {
 
   const userId = 'user-id';
   const validAddress = '0x' + 'a'.repeat(40); // Valid lowercase Ethereum address
-  const validChecksumAddress = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'; // Valid EIP-55 checksum address
+  const _validChecksumAddress = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'; // Valid EIP-55 checksum address
 
   beforeEach(async () => {
     walletRepository = createMockRepository();

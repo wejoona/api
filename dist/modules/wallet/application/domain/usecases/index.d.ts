@@ -1,1 +1,1 @@
-export declare const UseCases: any[];
+export declare const UseCases: never[];

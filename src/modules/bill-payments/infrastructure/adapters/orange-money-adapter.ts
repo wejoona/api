@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { BaseBillAdapter } from './base-bill-adapter';
 import {
   AccountValidationRequest,
@@ -71,7 +70,7 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
       );
 
       return this.accessToken;
-    } catch (error) {
+    } catch (_error) {
       throw new BillPaymentError(
         'Failed to authenticate with Orange API',
         BillPaymentErrorCodes.PROVIDER_UNAVAILABLE,
@@ -114,7 +113,7 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
             ? 'Valid Orange subscriber'
             : 'Subscriber not found or inactive',
         };
-      } catch (error) {
+      } catch (_error) {
         // For airtime, we can proceed even if validation fails
         // The actual top-up will fail if the number is invalid
         return {

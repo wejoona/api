@@ -5,7 +5,6 @@ import {
   maskIpAddress,
   maskDeviceId,
   maskWalletAddress,
-  maskGeneric,
   sanitizeForLogging,
 } from './pii-sanitizer';
 

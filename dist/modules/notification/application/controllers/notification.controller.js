@@ -20,12 +20,13 @@ const usecases_1 = require("../domain/usecases");
 const requests_1 = require("../dto/requests");
 const responses_1 = require("../dto/responses");
 let NotificationController = class NotificationController {
-    constructor(getUserNotificationsUseCase, markNotificationReadUseCase, markAllNotificationsReadUseCase, registerDeviceTokenUseCase, unregisterDeviceTokenUseCase, getUnreadCountUseCase) {
+    constructor(getUserNotificationsUseCase, markNotificationReadUseCase, markAllNotificationsReadUseCase, registerDeviceTokenUseCase, unregisterDeviceTokenUseCase, unregisterAllDeviceTokensUseCase, getUnreadCountUseCase) {
         this.getUserNotificationsUseCase = getUserNotificationsUseCase;
         this.markNotificationReadUseCase = markNotificationReadUseCase;
         this.markAllNotificationsReadUseCase = markAllNotificationsReadUseCase;
         this.registerDeviceTokenUseCase = registerDeviceTokenUseCase;
         this.unregisterDeviceTokenUseCase = unregisterDeviceTokenUseCase;
+        this.unregisterAllDeviceTokensUseCase = unregisterAllDeviceTokensUseCase;
         this.getUnreadCountUseCase = getUnreadCountUseCase;
     }
     async getNotifications(req, query) {
@@ -65,6 +66,26 @@ let NotificationController = class NotificationController {
     }
     async unregisterDeviceToken(token) {
         await this.unregisterDeviceTokenUseCase.execute({ token });
+    }
+    async registerPushToken(req, body) {
+        await this.registerDeviceTokenUseCase.execute({
+            userId: req.user.id,
+            token: body.token,
+            platform: body.platform,
+            deviceId: body.deviceId,
+            deviceName: body.deviceName,
+        });
+        return {
+            message: 'Push token registered successfully',
+        };
+    }
+    async removePushToken(body) {
+        await this.unregisterDeviceTokenUseCase.execute({ token: body.token });
+    }
+    async removeAllPushTokens(req) {
+        await this.unregisterAllDeviceTokensUseCase.execute({
+            userId: req.user.id,
+        });
     }
 };
 exports.NotificationController = NotificationController;
@@ -201,6 +222,58 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], NotificationController.prototype, "unregisterDeviceToken", null);
+__decorate([
+    (0, common_1.Post)('push/token'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, swagger_1.ApiOperation)({ summary: 'Register FCM push token (mobile SDK compatible)' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'FCM token registered successfully',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid request data',
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, requests_1.RegisterFcmTokenRequest]),
+    __metadata("design:returntype", Promise)
+], NotificationController.prototype, "registerPushToken", null);
+__decorate([
+    (0, common_1.Delete)('push/token'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Remove a specific FCM push token (mobile SDK compatible)',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 204,
+        description: 'FCM token removed successfully',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid request data',
+    }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [requests_1.RemoveFcmTokenRequest]),
+    __metadata("design:returntype", Promise)
+], NotificationController.prototype, "removePushToken", null);
+__decorate([
+    (0, common_1.Delete)('push/tokens'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Remove all FCM push tokens for current user (mobile SDK compatible)',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 204,
+        description: 'All FCM tokens removed successfully',
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], NotificationController.prototype, "removeAllPushTokens", null);
 exports.NotificationController = NotificationController = __decorate([
     (0, swagger_1.ApiTags)('Notifications'),
     (0, common_1.Controller)('notifications'),
@@ -211,6 +284,7 @@ exports.NotificationController = NotificationController = __decorate([
         usecases_1.MarkAllNotificationsReadUseCase,
         usecases_1.RegisterDeviceTokenUseCase,
         usecases_1.UnregisterDeviceTokenUseCase,
+        usecases_1.UnregisterAllDeviceTokensUseCase,
         usecases_1.GetUnreadCountUseCase])
 ], NotificationController);
 //# sourceMappingURL=notification.controller.js.map

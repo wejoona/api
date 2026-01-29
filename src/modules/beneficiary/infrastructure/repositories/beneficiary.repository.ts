@@ -58,7 +58,10 @@ export class TypeOrmBeneficiaryRepository extends BeneficiaryRepository {
     accountType: BeneficiaryAccountType,
   ): Promise<Beneficiary[]> {
     const entities = await this.repo.find({
-      where: { walletId, accountType: accountType as unknown as OrmAccountType },
+      where: {
+        walletId,
+        accountType: accountType as unknown as OrmAccountType,
+      },
       order: { lastTransferAt: 'DESC', name: 'ASC' },
     });
     return entities.map((e) => this.mapper.toDomain(e));

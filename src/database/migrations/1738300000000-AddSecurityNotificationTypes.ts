@@ -28,7 +28,7 @@ export class AddSecurityNotificationTypes1738300000000 implements MigrationInter
     `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
+  public async down(_queryRunner: QueryRunner): Promise<void> {
     // PostgreSQL doesn't support removing enum values directly
     // Would need to recreate the type which is complex and risky
     // So we just leave the values in place

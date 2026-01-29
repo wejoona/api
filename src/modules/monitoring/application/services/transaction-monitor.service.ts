@@ -8,7 +8,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import { AlertRepository } from '../../infrastructure/repositories/alert.repository';
 import { UserAlertPreferencesRepository } from '../../infrastructure/repositories/user-alert-preferences.repository';
-import { AlertRulesService, RuleEvaluationResult } from './alert-rules.service';
+import { AlertRulesService } from './alert-rules.service';
 import {
   TransactionAlert,
   TransactionContext,
@@ -187,7 +187,7 @@ export class TransactionMonitorService {
     threshold: number,
     currency: string,
   ): Promise<TransactionAlert> {
-    const config = ALERT_TYPE_CONFIG.balance_threshold;
+    const _config = ALERT_TYPE_CONFIG.balance_threshold;
 
     const alert: TransactionAlert = {
       alertId: uuidv4(),

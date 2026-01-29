@@ -1,6 +1,7 @@
 import { HealthCheckService, TypeOrmHealthIndicator, HealthCheckResult } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 import { CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator } from './health-indicators';
+import { ShutdownService } from '../../common/shutdown';
 export declare class HealthController {
     private readonly health;
     private readonly db;
@@ -8,12 +9,15 @@ export declare class HealthController {
     private readonly circleHealth;
     private readonly blnkHealth;
     private readonly redisHealth;
-    constructor(health: HealthCheckService, db: TypeOrmHealthIndicator, configService: ConfigService, circleHealth: CircleHealthIndicator, blnkHealth: BlnkHealthIndicator, redisHealth: RedisHealthIndicator);
+    private readonly shutdownService;
+    constructor(health: HealthCheckService, db: TypeOrmHealthIndicator, configService: ConfigService, circleHealth: CircleHealthIndicator, blnkHealth: BlnkHealthIndicator, redisHealth: RedisHealthIndicator, shutdownService: ShutdownService);
     check(): Promise<HealthCheckResult>;
     readiness(): Promise<HealthCheckResult>;
     live(): {
         status: string;
         timestamp: string;
+        shuttingDown: boolean;
+        activeRequests: number;
     };
     detailed(): Promise<{
         status: string;
@@ -22,6 +26,10 @@ export declare class HealthController {
         environment: {
             nodeEnv: any;
             version: string;
+        };
+        shutdown: {
+            isShuttingDown: boolean;
+            activeRequests: number;
         };
         uptime: number;
         memory: NodeJS.MemoryUsage;

@@ -197,7 +197,8 @@ let ExternalTransferUseCase = ExternalTransferUseCase_1 = class ExternalTransfer
             throw new common_1.NotFoundException('User not found');
         }
         const kycStatus = user.kycStatus || 'none';
-        const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus] ?? DAILY_TRANSFER_LIMITS.none;
+        const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus] ??
+            DAILY_TRANSFER_LIMITS.none;
         if (dailyLimit === 0) {
             throw new common_1.BadRequestException('Transfers are disabled. Please contact support regarding your KYC status.');
         }

@@ -70,7 +70,8 @@ let OtpService = OtpService_1 = class OtpService {
         this.ensureConnection();
         const rateLimitKey = `otp_rate:${phone}`;
         const requestCount = await this.redis.get(rateLimitKey);
-        if (requestCount && parseInt(requestCount, 10) >= this.maxOtpRequestsPerHour) {
+        if (requestCount &&
+            parseInt(requestCount, 10) >= this.maxOtpRequestsPerHour) {
             throw new common_1.BadRequestException('Too many OTP requests. Please try again later.');
         }
         const otp = this.generateOtp();
@@ -124,7 +125,7 @@ let OtpService = OtpService_1 = class OtpService {
             const newAttempts = await this.redis.incr(attemptsKey);
             if (newAttempts >= 1) {
                 const backoffSeconds = Math.min(5 * Math.pow(3, newAttempts - 1), 300);
-                const lockoutUntilMs = Date.now() + (backoffSeconds * 1000);
+                const lockoutUntilMs = Date.now() + backoffSeconds * 1000;
                 await this.redis.setex(lockoutKey, backoffSeconds + 60, lockoutUntilMs.toString());
                 this.logger.debug(`OTP lockout applied for ${phone}: ${backoffSeconds}s after attempt ${newAttempts}`);
             }

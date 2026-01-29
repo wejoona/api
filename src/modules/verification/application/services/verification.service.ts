@@ -187,8 +187,11 @@ export class VerificationService {
   /**
    * Delete old expired verifications (cleanup job).
    */
-  async cleanupExpiredVerifications(olderThanDays: number = 30): Promise<number> {
-    const count = await this.verificationRepository.deleteExpired(olderThanDays);
+  async cleanupExpiredVerifications(
+    olderThanDays: number = 30,
+  ): Promise<number> {
+    const count =
+      await this.verificationRepository.deleteExpired(olderThanDays);
     if (count > 0) {
       this.logger.log(
         `Deleted ${count} expired verifications older than ${olderThanDays} days`,

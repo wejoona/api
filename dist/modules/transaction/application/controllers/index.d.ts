@@ -1,1 +1,1 @@
-export declare const Controllers: any[];
+export declare const Controllers: never[];

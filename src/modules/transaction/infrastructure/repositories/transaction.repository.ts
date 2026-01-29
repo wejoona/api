@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TransactionMapper } from '../mappers/transaction.mapper';
 import { TransactionOrmEntity } from '../orm-entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
@@ -328,7 +328,7 @@ export class TransactionRepository {
       {} as Record<string, number>,
     );
 
-    const total: number = (Object.values(statusCounts) as number[]).reduce(
+    const total: number = Object.values(statusCounts).reduce(
       (sum, count) => sum + count,
       0,
     );

@@ -21,12 +21,13 @@ const requests_1 = require("../dto/requests");
 const responses_1 = require("../dto/responses");
 const usecases_1 = require("../domain/usecases");
 let AuthController = class AuthController {
-    constructor(registerUserUsecase, verifyOtpUsecase, loginUserUsecase, refreshTokenUsecase, logoutUsecase) {
+    constructor(registerUserUsecase, verifyOtpUsecase, loginUserUsecase, refreshTokenUsecase, logoutUsecase, logoutAllUsecase) {
         this.registerUserUsecase = registerUserUsecase;
         this.verifyOtpUsecase = verifyOtpUsecase;
         this.loginUserUsecase = loginUserUsecase;
         this.refreshTokenUsecase = refreshTokenUsecase;
         this.logoutUsecase = logoutUsecase;
+        this.logoutAllUsecase = logoutAllUsecase;
     }
     async register(dto) {
         const result = await this.registerUserUsecase.execute({
@@ -78,6 +79,17 @@ let AuthController = class AuthController {
         return {
             success: result.success,
             message: result.message,
+        };
+    }
+    async logoutAll(req, dto) {
+        const result = await this.logoutAllUsecase.execute({
+            userId: req.user.id,
+            currentRefreshToken: dto.currentRefreshToken,
+        });
+        return {
+            success: result.success,
+            message: result.message,
+            sessionsInvalidated: result.sessionsInvalidated,
         };
     }
 };
@@ -141,6 +153,24 @@ __decorate([
     __metadata("design:paramtypes", [Object, requests_1.LogoutDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Post)('logout-all'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 3 } }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Logout from all devices',
+        description: 'Invalidate all refresh tokens for the user. Optionally preserve current session by providing currentRefreshToken.',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.LogoutAllResponse }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, requests_1.LogoutAllDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "logoutAll", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('Authentication'),
     (0, common_1.Controller)('auth'),
@@ -148,12 +178,14 @@ exports.AuthController = AuthController = __decorate([
         usecases_1.VerifyOtpUsecase,
         usecases_1.LoginUserUsecase,
         usecases_1.RefreshTokenUsecase,
-        usecases_1.LogoutUsecase])
+        usecases_1.LogoutUsecase,
+        usecases_1.LogoutAllUsecase])
 ], AuthController);
 let UserController = class UserController {
-    constructor(updateProfileUsecase, usernameUsecase) {
+    constructor(updateProfileUsecase, usernameUsecase, getUserLimitsUseCase) {
         this.updateProfileUsecase = updateProfileUsecase;
         this.usernameUsecase = usernameUsecase;
+        this.getUserLimitsUseCase = getUserLimitsUseCase;
     }
     getProfile(req) {
         return Promise.resolve(responses_1.UserResponse.fromDomain(req.user));
@@ -184,6 +216,11 @@ let UserController = class UserController {
     async findByUsername(username) {
         const user = await this.usernameUsecase.findByUsername({ username });
         return responses_1.UserResponse.fromDomain(user);
+    }
+    async getLimits(req) {
+        return this.getUserLimitsUseCase.execute({
+            userId: req.user.id,
+        });
     }
 };
 exports.UserController = UserController;
@@ -229,7 +266,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)('by-username/:username'),
     (0, swagger_1.ApiOperation)({ summary: 'Find user by username' }),
-    (0, swagger_1.ApiParam)({ name: 'username', description: 'Username to find (with or without @)' }),
+    (0, swagger_1.ApiParam)({
+        name: 'username',
+        description: 'Username to find (with or without @)',
+    }),
     (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.UserResponse }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
     __param(0, (0, common_1.Param)('username')),
@@ -237,12 +277,23 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "findByUsername", null);
+__decorate([
+    (0, common_1.Get)('limits'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get user transaction limits based on KYC status' }),
+    (0, swagger_1.ApiResponse)({ status: 200, type: responses_1.UserLimitsResponse }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User or wallet not found' }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getLimits", null);
 exports.UserController = UserController = __decorate([
     (0, swagger_1.ApiTags)('User'),
     (0, common_1.Controller)('user'),
     (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:paramtypes", [usecases_1.UpdateProfileUsecase,
-        usecases_1.UsernameUsecase])
+        usecases_1.UsernameUsecase,
+        usecases_1.GetUserLimitsUseCase])
 ], UserController);
 //# sourceMappingURL=user.controller.js.map

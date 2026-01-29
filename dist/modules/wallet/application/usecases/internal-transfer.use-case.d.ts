@@ -4,6 +4,7 @@ import { TransactionRepository } from '../../../transaction/infrastructure/repos
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { IPaymentGateway } from '../../../shared/domain/gateways';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { BlnkLedgerAdapter } from '../../../providers/blnk/adapters/blnk-ledger.adapter';
 export interface InternalTransferInput {
     fromUserId: string;
     toPhone: string;
@@ -27,9 +28,10 @@ export declare class InternalTransferUseCase {
     private readonly dataSource;
     private readonly paymentGateway;
     private readonly cacheInvalidationService;
+    private readonly blnkLedgerAdapter;
     private readonly logger;
     private readonly MAX_RETRIES;
-    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, dataSource: DataSource, paymentGateway: IPaymentGateway, cacheInvalidationService: CacheInvalidationService);
+    constructor(walletRepository: WalletRepository, transactionRepository: TransactionRepository, userRepository: UserRepository, dataSource: DataSource, paymentGateway: IPaymentGateway, cacheInvalidationService: CacheInvalidationService, blnkLedgerAdapter: BlnkLedgerAdapter);
     execute(input: InternalTransferInput): Promise<InternalTransferOutput>;
     private validateTransferRequest;
     private validateRecipient;

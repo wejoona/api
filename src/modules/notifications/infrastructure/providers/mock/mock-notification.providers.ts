@@ -43,7 +43,7 @@ export class MockPushProvider implements IPushNotificationProvider {
 
   async sendBatch(
     tokens: string[],
-    payload: PushNotificationPayload,
+    _payload: PushNotificationPayload,
   ): Promise<DeliveryResult[]> {
     this.logger.debug(`[MOCK PUSH] Batch sending to ${tokens.length} devices`);
 
@@ -77,7 +77,7 @@ export class MockPushProvider implements IPushNotificationProvider {
 
   async sendToTopic(
     topic: string,
-    payload: PushNotificationPayload,
+    _payload: PushNotificationPayload,
   ): Promise<DeliveryResult> {
     this.logger.debug(`[MOCK PUSH] Sending to topic: ${topic}`);
 

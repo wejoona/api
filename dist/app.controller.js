@@ -14,9 +14,7 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const app_service_1 = require("./app.service");
 let AppController = class AppController {
-    constructor(appService) {
-        this.appService = appService;
-    }
+    constructor(_appService) { }
     getHealth() {
         return {
             status: 'ok',

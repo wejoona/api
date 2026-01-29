@@ -1,1 +1,1 @@
-export declare const Queries: any[];
+export declare const Queries: never[];

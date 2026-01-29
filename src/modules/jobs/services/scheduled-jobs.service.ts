@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, In } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { TransactionOrmEntity } from '@modules/transaction/infrastructure/orm-entities';
 import { ScheduledJobEntity } from '@modules/admin/infrastructure/persistence/typeorm/entities/scheduled-job.entity';
 import { AuditLogEntity } from '@modules/admin/infrastructure/persistence/typeorm/entities/audit-log.entity';
@@ -37,7 +37,7 @@ export class ScheduledJobsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async expireStaleTransactions(): Promise<void> {
-    const jobName = 'expire_stale_transactions';
+    const _jobName = 'expire_stale_transactions';
     const job = await this.startJob(jobName);
 
     try {
@@ -79,7 +79,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 3 * * *')
   async cleanupTransactionMetadata(): Promise<void> {
-    const jobName = 'cleanup_transaction_metadata';
+    const _jobName = 'cleanup_transaction_metadata';
     const job = await this.startJob(jobName);
 
     try {
@@ -118,7 +118,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 2 * * 0')
   async cleanupAuditLogs(): Promise<void> {
-    const jobName = 'cleanup_audit_logs';
+    const _jobName = 'cleanup_audit_logs';
     const job = await this.startJob(jobName);
 
     try {
@@ -151,7 +151,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 1 * * *')
   async dailyReconciliation(): Promise<void> {
-    const jobName = 'daily_reconciliation';
+    const _jobName = 'daily_reconciliation';
     const job = await this.startJob(jobName);
 
     try {
@@ -178,7 +178,7 @@ export class ScheduledJobsService {
       const withdrawals = completedTransactions.filter(
         (t) => t.type === 'withdrawal',
       );
-      const transfers = completedTransactions.filter(
+      const _transfers = completedTransactions.filter(
         (t) => t.type === 'transfer_internal' || t.type === 'transfer_external',
       );
 
@@ -214,7 +214,7 @@ export class ScheduledJobsService {
    */
   @Cron('*/15 * * * *')
   async checkStuckTransactions(): Promise<void> {
-    const jobName = 'check_stuck_transactions';
+    const _jobName = 'check_stuck_transactions';
 
     try {
       // Transactions in processing state for more than 30 minutes
@@ -253,7 +253,7 @@ export class ScheduledJobsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredSessions(): Promise<void> {
-    const jobName = 'cleanup_expired_sessions';
+    const _jobName = 'cleanup_expired_sessions';
     const job = await this.startJob(jobName);
 
     try {
@@ -287,7 +287,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 4 * * *')
   async cleanupInactiveFcmTokens(): Promise<void> {
-    const jobName = 'cleanup_fcm_tokens';
+    const _jobName = 'cleanup_fcm_tokens';
     const job = await this.startJob(jobName);
 
     try {
@@ -321,7 +321,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 3 * * 6')
   async cleanupOldNotifications(): Promise<void> {
-    const jobName = 'cleanup_notifications';
+    const _jobName = 'cleanup_notifications';
     const job = await this.startJob(jobName);
 
     try {

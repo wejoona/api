@@ -147,7 +147,11 @@ export class BeneficiaryController {
       throw new Error('User has no wallet');
     }
 
-    await this.beneficiaryService.updateBeneficiary(walletId, beneficiaryId, dto);
+    await this.beneficiaryService.updateBeneficiary(
+      walletId,
+      beneficiaryId,
+      dto,
+    );
     return { success: true, message: 'Beneficiary updated successfully' };
   }
 

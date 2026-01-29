@@ -9,7 +9,6 @@ declare const JwtStrategy_base: new (...args: [opt: import("passport-jwt").Strat
     validate(...args: any[]): unknown;
 };
 export declare class JwtStrategy extends JwtStrategy_base {
-    private readonly configService;
     private readonly userRepository;
     constructor(configService: ConfigService, userRepository: UserRepository);
     validate(payload: JwtPayload): Promise<import("../../modules/user/application/domain/entities").User>;

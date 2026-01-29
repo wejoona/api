@@ -4,7 +4,6 @@ import {
   Query,
   UseGuards,
   Request,
-  Header,
   BadRequestException,
   StreamableFile,
 } from '@nestjs/common';

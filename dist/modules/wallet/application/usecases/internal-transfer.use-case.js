@@ -23,6 +23,7 @@ const user_repository_1 = require("../../../user/infrastructure/repositories/use
 const wallet_orm_entity_1 = require("../../infrastructure/orm-entities/wallet.orm-entity");
 const gateways_1 = require("../../../shared/domain/gateways");
 const services_1 = require("../../../shared/infrastructure/services");
+const blnk_ledger_adapter_1 = require("../../../providers/blnk/adapters/blnk-ledger.adapter");
 const DAILY_TRANSFER_LIMITS = {
     none: 100,
     pending: 100,
@@ -30,13 +31,14 @@ const DAILY_TRANSFER_LIMITS = {
     rejected: 0,
 };
 let InternalTransferUseCase = InternalTransferUseCase_1 = class InternalTransferUseCase {
-    constructor(walletRepository, transactionRepository, userRepository, dataSource, paymentGateway, cacheInvalidationService) {
+    constructor(walletRepository, transactionRepository, userRepository, dataSource, paymentGateway, cacheInvalidationService, blnkLedgerAdapter) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.dataSource = dataSource;
         this.paymentGateway = paymentGateway;
         this.cacheInvalidationService = cacheInvalidationService;
+        this.blnkLedgerAdapter = blnkLedgerAdapter;
         this.logger = new common_1.Logger(InternalTransferUseCase_1.name);
         this.MAX_RETRIES = 3;
     }
@@ -54,7 +56,8 @@ let InternalTransferUseCase = InternalTransferUseCase_1 = class InternalTransfer
         if (input.amount < 0.01) {
             throw new common_1.BadRequestException('Minimum transfer amount is 0.01');
         }
-        if (!Number.isFinite(input.amount) || Math.round(input.amount * 100) / 100 !== input.amount) {
+        if (!Number.isFinite(input.amount) ||
+            Math.round(input.amount * 100) / 100 !== input.amount) {
             throw new common_1.BadRequestException('Invalid amount precision');
         }
     }
@@ -71,7 +74,8 @@ let InternalTransferUseCase = InternalTransferUseCase_1 = class InternalTransfer
             throw new common_1.NotFoundException('User not found');
         }
         const kycStatus = user.kycStatus || 'none';
-        const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus] ?? DAILY_TRANSFER_LIMITS.none;
+        const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus] ??
+            DAILY_TRANSFER_LIMITS.none;
         if (dailyLimit === 0) {
             throw new common_1.BadRequestException('Transfers are disabled. Please contact support regarding your KYC status.');
         }
@@ -154,6 +158,28 @@ let InternalTransferUseCase = InternalTransferUseCase_1 = class InternalTransfer
                 this.transactionRepository.save(recipientTransaction),
             ]);
             this.logger.log(`Internal transfer completed: ${senderTransaction.id}, amount: ${input.amount}`);
+            try {
+                const amountInMicroUSDC = BigInt(Math.round(input.amount * 1000000));
+                await this.blnkLedgerAdapter.recordP2PTransfer({
+                    senderId: input.fromUserId,
+                    recipientId: recipient.id,
+                    amount: amountInMicroUSDC,
+                    currency: 'USD',
+                    reference: senderTransaction.id,
+                    description: `P2P transfer from ${input.fromUserId} to ${recipient.id}`,
+                    metadata: {
+                        transferId: transferResponse.id,
+                        senderWalletId: fromWalletOrm.id,
+                        recipientWalletId: toWalletOrm.id,
+                        recipientPhone: input.toPhone,
+                        recipientName: recipient.fullName,
+                    },
+                });
+                this.logger.log(`Blnk ledger updated for P2P transfer: ${senderTransaction.id}`);
+            }
+            catch (blnkError) {
+                this.logger.error(`Failed to record P2P transfer in Blnk ledger: ${blnkError.message}`, blnkError.stack);
+            }
             await this.cacheInvalidationService.invalidateMultipleBalances([
                 input.fromUserId,
                 recipient.id,
@@ -195,6 +221,7 @@ exports.InternalTransferUseCase = InternalTransferUseCase = InternalTransferUseC
     __metadata("design:paramtypes", [wallet_repository_1.WalletRepository,
         transaction_repository_1.TransactionRepository,
         user_repository_1.UserRepository,
-        typeorm_1.DataSource, Object, services_1.CacheInvalidationService])
+        typeorm_1.DataSource, Object, services_1.CacheInvalidationService,
+        blnk_ledger_adapter_1.BlnkLedgerAdapter])
 ], InternalTransferUseCase);
 //# sourceMappingURL=internal-transfer.use-case.js.map

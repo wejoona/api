@@ -18,7 +18,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import {
   RegisterUserDto,
@@ -28,7 +28,6 @@ import {
   RefreshTokenDto,
   LogoutDto,
   LogoutAllDto,
-  CheckUsernameDto,
   SearchUsernameDto,
 } from '../dto/requests';
 import {

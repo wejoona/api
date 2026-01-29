@@ -399,7 +399,11 @@ describe('ReconciliationService', () => {
 
       // Mock findByUserId for each wallet (called by reconcileUserBalance)
       mockWalletRepository.findByUserId.mockImplementation((userId: string) => {
-        const wallets = { 'user-1': wallet1, 'user-2': wallet2, 'user-3': wallet3 };
+        const wallets = {
+          'user-1': wallet1,
+          'user-2': wallet2,
+          'user-3': wallet3,
+        };
         return Promise.resolve(wallets[userId] || null);
       });
 

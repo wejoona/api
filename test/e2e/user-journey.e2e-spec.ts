@@ -36,9 +36,9 @@ describe('User Journey E2E Tests', () => {
   });
 
   describe('Complete User Onboarding Journey', () => {
-    let authToken: string;
-    let userId: string;
-    let refreshToken: string;
+    let _authToken: string;
+    let _userId: string;
+    let _refreshToken: string;
 
     it('should register a new user with phone number', async () => {
       const response = await request(app.getHttpServer())
@@ -80,9 +80,9 @@ describe('User Journey E2E Tests', () => {
       expect(response.body.walletCreated).toBe(true);
 
       // Save for next tests
-      authToken = response.body.accessToken;
-      userId = response.body.user.id;
-      refreshToken = response.body.refreshToken;
+      _authToken = response.body.accessToken;
+      _userId = response.body.user.id;
+      _refreshToken = response.body.refreshToken;
     });
 
     it('should get user profile', async () => {

@@ -374,7 +374,7 @@ export class StepUpService {
   private buildReason(
     flow: RiskFlow,
     stepUpType: StepUpRequirement,
-    factors: string[],
+    _factors: string[],
   ): string {
     const flowEmoji = { green: '🟢', yellow: '🟡', red: '🔴' };
 

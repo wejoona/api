@@ -47,7 +47,11 @@ export class SessionOrmEntity {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ name: 'last_activity_at', type: 'timestamp', default: () => 'now()' })
+  @Column({
+    name: 'last_activity_at',
+    type: 'timestamp',
+    default: () => 'now()',
+  })
   lastActivityAt: Date;
 
   @Column({ name: 'expires_at', type: 'timestamp' })
@@ -57,7 +61,12 @@ export class SessionOrmEntity {
   @Column({ name: 'revoked_at', type: 'timestamp', nullable: true })
   revokedAt: Date | null;
 
-  @Column({ name: 'revoked_reason', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'revoked_reason',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   revokedReason: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

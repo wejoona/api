@@ -66,7 +66,10 @@ export class FeatureFlagService implements OnModuleInit {
    * Check if a feature is enabled for a given context.
    * Uses in-memory cache for fast lookups.
    */
-  async isEnabled(key: string, context: EvaluationContext = {}): Promise<boolean> {
+  async isEnabled(
+    key: string,
+    context: EvaluationContext = {},
+  ): Promise<boolean> {
     // Check in-memory cache first
     let flag = this.flagsCache.get(key);
 
@@ -80,7 +83,9 @@ export class FeatureFlagService implements OnModuleInit {
 
     if (!flag) {
       // Feature flag doesn't exist - default to disabled
-      this.logger.warn(`Feature flag "${key}" not found, defaulting to disabled`);
+      this.logger.warn(
+        `Feature flag "${key}" not found, defaulting to disabled`,
+      );
       return false;
     }
 

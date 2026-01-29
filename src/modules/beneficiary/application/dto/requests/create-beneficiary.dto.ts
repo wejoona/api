@@ -4,7 +4,6 @@ import {
   IsOptional,
   IsEnum,
   IsUUID,
-  IsPhoneNumber,
   MaxLength,
 } from 'class-validator';
 import { BeneficiaryAccountType } from '../../../domain/entities/beneficiary.entity';

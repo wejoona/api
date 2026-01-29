@@ -18,3 +18,8 @@ export declare class LogoutResponse {
     success: boolean;
     message: string;
 }
+export declare class LogoutAllResponse {
+    success: boolean;
+    message: string;
+    sessionsInvalidated?: number;
+}

@@ -505,7 +505,7 @@ export class RiskManagerClient implements IRiskClient {
     userId: string,
     updates: Partial<UserRiskProfile>,
   ): Promise<UserRiskProfile> {
-    const response = await this.request<any>(
+    const _response = await this.request<any>(
       'PUT',
       `/entities/risk-profiles/${userId}`,
       {
@@ -560,7 +560,7 @@ export class RiskManagerClient implements IRiskClient {
         status: 'ok',
         latencyMs: Date.now() - startTime,
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         status: 'down',
         latencyMs: Date.now() - startTime,

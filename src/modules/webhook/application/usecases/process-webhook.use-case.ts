@@ -513,7 +513,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
 
   private async handleYcDepositPending(
     depositId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     _data: Record<string, unknown>,
   ): Promise<void> {
     const transaction =
@@ -621,7 +621,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
 
   private async handleYcWithdrawalPending(
     withdrawalId: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     _data: Record<string, unknown>,
   ): Promise<void> {
     const transaction =

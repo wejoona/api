@@ -16,6 +16,8 @@ const transaction_mapper_1 = require("./infrastructure/mappers/transaction.mappe
 const usecases_1 = require("./application/usecases");
 const services_1 = require("./application/domain/services");
 const transaction_controller_1 = require("./application/controllers/transaction.controller");
+const reconciliation_controller_1 = require("./application/controllers/reconciliation.controller");
+const reconciliation_alert_listener_1 = require("./application/domain/events/reconciliation-alert.listener");
 const wallet_module_1 = require("../wallet/wallet.module");
 let TransactionModule = class TransactionModule {
 };
@@ -35,8 +37,9 @@ exports.TransactionModule = TransactionModule = __decorate([
             usecases_1.GetDepositStatusUseCase,
             services_1.ReconciliationService,
             services_1.TransactionSearchService,
+            reconciliation_alert_listener_1.ReconciliationAlertListener,
         ],
-        controllers: [transaction_controller_1.TransactionController],
+        controllers: [transaction_controller_1.TransactionController, reconciliation_controller_1.ReconciliationController],
         exports: [
             transaction_repository_1.TransactionRepository,
             services_1.TransactionSearchService,

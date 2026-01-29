@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Device,
-  DevicePlatform,
-} from '../../domain/entities/device.entity';
+import { Device, DevicePlatform } from '../../domain/entities/device.entity';
 import {
   DeviceOrmEntity,
   DevicePlatform as OrmPlatform,

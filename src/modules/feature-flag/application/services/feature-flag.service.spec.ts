@@ -8,7 +8,7 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 describe('FeatureFlagService', () => {
   let service: FeatureFlagService;
   let repository: jest.Mocked<FeatureFlagRepository>;
-  let cacheManager: any;
+  let _cacheManager: any;
 
   const mockFlag = FeatureFlag.create({
     key: 'test_feature',
@@ -50,7 +50,7 @@ describe('FeatureFlagService', () => {
 
     service = module.get<FeatureFlagService>(FeatureFlagService);
     repository = module.get(FeatureFlagRepository);
-    cacheManager = module.get(CACHE_MANAGER);
+    _cacheManager = module.get(CACHE_MANAGER);
   });
 
   describe('isEnabled', () => {

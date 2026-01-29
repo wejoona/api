@@ -37,11 +37,11 @@ __decorate([
 ], DeviceTokenOrmEntity.prototype, "platform", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'device_id', type: 'varchar', length: 255, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], DeviceTokenOrmEntity.prototype, "deviceId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'device_name', type: 'varchar', length: 255, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], DeviceTokenOrmEntity.prototype, "deviceName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_active', type: 'boolean', default: true }),
@@ -49,7 +49,7 @@ __decorate([
 ], DeviceTokenOrmEntity.prototype, "isActive", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'last_used_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], DeviceTokenOrmEntity.prototype, "lastUsedAt", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),

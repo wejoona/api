@@ -219,7 +219,7 @@ export class FirebasePushProvider
         true, // dryRun
       );
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

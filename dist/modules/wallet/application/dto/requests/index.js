@@ -21,4 +21,5 @@ __exportStar(require("./get-rate.dto"), exports);
 __exportStar(require("./submit-kyc.dto"), exports);
 __exportStar(require("./verify-pin.dto"), exports);
 __exportStar(require("./set-pin.dto"), exports);
+__exportStar(require("./withdraw.dto"), exports);
 //# sourceMappingURL=index.js.map

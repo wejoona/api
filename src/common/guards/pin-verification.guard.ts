@@ -136,7 +136,7 @@ export class PinTokenService {
   /**
    * Invalidate all PIN tokens for a user (on PIN change, logout, etc.)
    */
-  async invalidateAllPinTokens(userId: string): Promise<void> {
+  async invalidateAllPinTokens(_userId: string): Promise<void> {
     // Note: This requires pattern-based deletion which depends on cache implementation
     // For Redis, you'd use SCAN with pattern matching
     // For simple cache-manager, we rely on TTL expiration

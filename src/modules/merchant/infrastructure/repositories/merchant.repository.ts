@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository } from 'typeorm';
 import { MerchantEntity } from '../../domain/entities/merchant.entity';
 import { IMerchantRepository } from '../../domain/repositories/merchant.repository';
 import { MerchantOrmEntity } from '../orm-entities/merchant.orm-entity';

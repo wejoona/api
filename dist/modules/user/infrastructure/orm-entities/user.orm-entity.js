@@ -30,19 +30,19 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 30, nullable: true, unique: true }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "username", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'first_name', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "firstName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'last_name', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "lastName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "email", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'country_code', type: 'varchar', length: 3, default: 'CI' }),
@@ -64,7 +64,7 @@ __decorate([
         length: 100,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "kycProviderId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -75,11 +75,11 @@ __decorate([
         unique: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "circleUserId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'circle_user_token', type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "circleUserToken", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 20, default: 'user' }),
@@ -93,19 +93,19 @@ __decorate([
 ], UserOrmEntity.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'suspended_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "suspendedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'suspended_reason', type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "suspendedReason", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'pin_hash', type: 'varchar', length: 255, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "pinHash", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'pin_set_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "pinSetAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'pin_attempts', type: 'integer', default: 0 }),
@@ -113,7 +113,7 @@ __decorate([
 ], UserOrmEntity.prototype, "pinAttempts", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'pin_locked_until', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], UserOrmEntity.prototype, "pinLockedUntil", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
@@ -124,6 +124,6 @@ __decorate([
     __metadata("design:type", Date)
 ], UserOrmEntity.prototype, "updatedAt", void 0);
 exports.UserOrmEntity = UserOrmEntity = __decorate([
-    (0, typeorm_1.Entity)('users')
+    (0, typeorm_1.Entity)({ name: 'users', schema: 'auth' })
 ], UserOrmEntity);
 //# sourceMappingURL=user.orm-entity.js.map

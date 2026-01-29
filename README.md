@@ -1,98 +1,342 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# JoonaPay USDC Wallet - Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based backend API for cross-border remittance using USDC stablecoin infrastructure. Enables money transfers from West Africa (Ivory Coast) to the USA.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+- **Framework**: NestJS + TypeScript
+- **Database**: PostgreSQL + TypeORM
+- **Cache**: Redis
+- **Architecture**: Clean Architecture (DDD-inspired)
+- **Authentication**: JWT with refresh tokens
+- **API Version**: v1 (with versioning support)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- User registration with phone verification (OTP)
+- USD wallet management
+- Deposits via Mobile Money (Orange Money, Wave, MTN)
+- Internal transfers (phone-to-phone)
+- External transfers (to USDC wallet address)
+- KYC verification for higher limits
+- Real-time exchange rates
+- Webhook handling for payment providers
+
+## Project Setup
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+## Environment Variables
+
+Create a `.env` file in the root directory:
 
 ```bash
-# development
-$ npm run start
+# Application
+NODE_ENV=development
+PORT=3000
+API_PREFIX=api
 
-# watch mode
-$ npm run start:dev
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/usdc_wallet
 
-# production mode
-$ npm run start:prod
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
+
+# External Providers
+BLNK_API_KEY=your-blnk-api-key
+YELLOW_CARD_API_KEY=your-yellowcard-api-key
+CIRCLE_API_KEY=your-circle-api-key
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3001,http://localhost:8080
 ```
 
-## Run tests
+## Run the Application
 
 ```bash
-# unit tests
-$ npm run test
+# Development mode with hot reload
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
+# Production mode
+npm run start:prod
 
-# test coverage
-$ npm run test:cov
+# Debug mode
+npm run start:debug
+```
+
+## Database Migrations
+
+```bash
+# Generate migration from entity changes
+npm run migration:generate -- -n MigrationName
+
+# Run pending migrations
+npm run migration:run
+
+# Revert last migration
+npm run migration:revert
+```
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+## API Documentation
+
+Swagger documentation is available in non-production environments:
+
+```
+http://localhost:3000/docs
+```
+
+## API Versioning
+
+This API uses URI-based versioning for backward compatibility:
+
+- **Current Version**: v1
+- **Base URL**: `/api/v1/*`
+- **Future Versions**: `/api/v2/*`, `/api/v3/*`, etc.
+
+### Key Versioning Features
+
+1. **URI Versioning**: Clear version in URL path (`/api/v1/wallet`)
+2. **Default Version**: All endpoints default to v1 unless specified
+3. **Version Headers**: All responses include `X-API-Version` header
+4. **Deprecation Tracking**: Deprecated versions return `X-API-Deprecated: true`
+5. **Multiple Version Support**: Endpoints can support multiple versions
+
+### Version Headers
+
+All API responses include versioning headers:
+
+```http
+X-API-Version: 1
+X-API-Latest-Version: 1
+```
+
+Deprecated endpoints also include:
+
+```http
+X-API-Deprecated: true
+X-API-Deprecation-Info: API version 1 is deprecated. Please migrate to v2.
+```
+
+### Documentation
+
+- [API Versioning Strategy](./docs/API_VERSIONING.md) - Comprehensive versioning guide
+- [Version Migration Examples](./src/modules/wallet/application/controllers/wallet.v2.controller.example.ts)
+
+### Example Usage
+
+```typescript
+// v1 endpoint (default)
+GET /api/v1/wallet
+
+// v2 endpoint (future)
+GET /api/v2/wallet
+
+// Response headers
+X-API-Version: 1
+X-API-Latest-Version: 1
+```
+
+## Project Structure
+
+```
+src/
+├── main.ts                    # Entry point with versioning config
+├── app.module.ts              # Root module
+│
+├── modules/
+│   ├── auth/                  # Authentication
+│   ├── wallet/                # Wallet management
+│   ├── transfers/             # Money transfers
+│   ├── deposits/              # Deposits
+│   ├── withdrawals/           # Withdrawals
+│   ├── users/                 # User management
+│   ├── kyc/                   # KYC verification
+│   └── webhook/               # Payment webhooks
+│
+├── common/
+│   ├── guards/                # Auth guards
+│   ├── decorators/            # Custom decorators
+│   ├── filters/               # Exception filters
+│   ├── interceptors/          # Logging, metrics, versioning
+│   └── utils/                 # Helpers
+│
+└── config/                    # Configuration
+```
+
+### Module Structure (Clean Architecture)
+
+Each module follows a consistent structure:
+
+```
+module/
+├── application/           # Use cases, controllers, DTOs
+│   ├── controllers/       # REST endpoints
+│   ├── usecases/          # Business logic
+│   ├── services/          # Application services
+│   └── dtos/              # Request/Response DTOs
+│
+├── domain/                # Business entities, interfaces
+│   ├── entities/          # Domain entities
+│   ├── repositories/      # Repository interfaces
+│   └── value-objects/     # Value objects
+│
+└── infrastructure/        # Implementation details
+    ├── orm-entities/      # TypeORM entities
+    ├── repositories/      # Repository implementations
+    └── adapters/          # External service adapters
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/verify-otp` - Verify OTP and get access token
+- `POST /api/v1/auth/login` - Request login OTP
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - Logout and invalidate token
+
+### Wallet
+- `GET /api/v1/wallet` - Get wallet balance
+- `POST /api/v1/wallet/create` - Create wallet
+- `GET /api/v1/wallet/deposit/channels` - Get deposit channels
+- `POST /api/v1/wallet/deposit` - Initiate deposit
+- `POST /api/v1/wallet/transfer/internal` - Internal transfer
+- `POST /api/v1/wallet/transfer/external` - External transfer
+- `GET /api/v1/wallet/rate` - Get exchange rate
+
+### Transactions
+- `GET /api/v1/wallet/transactions` - Get transaction history
+- `GET /api/v1/wallet/transactions/:id` - Get transaction details
+- `GET /api/v1/wallet/transactions/deposit/:id/status` - Get deposit status
+
+### KYC
+- `GET /api/v1/wallet/kyc/status` - Get KYC status
+- `POST /api/v1/wallet/kyc/submit` - Submit KYC documents
+
+### Webhooks
+- `POST /api/v1/webhooks/payment` - Handle payment provider webhooks
+- `POST /api/v1/webhooks/payment/yellow-card` - Yellow Card webhooks
+- `POST /api/v1/webhooks/circle` - Circle webhooks
+
+## Security Features
+
+- Helmet.js for security headers
+- CORS with configurable origins
+- Rate limiting with @nestjs/throttler
+- Request body size limits (10kb)
+- JWT authentication
+- PIN verification for sensitive operations
+- Idempotency keys for transactions
+- Webhook signature verification
+
+## External Service Integrations
+
+### Blnk (Ledger)
+- Double-entry accounting ledger
+- Transaction and balance management
+- Located in: `src/modules/providers/blnk/`
+
+### Yellow Card (Mobile Money)
+- Deposits and withdrawals
+- Orange Money, MTN, Wave integration
+- Located in: `src/modules/providers/yellow-card/`
+
+### Circle (USDC)
+- External crypto transfers
+- USDC wallet infrastructure
+- Located in: `src/modules/providers/circle/`
+
+## Development Commands
+
+```bash
+# Start development server
+npm run start:dev
+
+# Build for production
+npm run build
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Run migrations
+npm run migration:run
+
+# Generate migration
+npm run migration:generate -- -n MigrationName
+
+# Revert migration
+npm run migration:revert
 ```
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Production Checklist
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- Set `NODE_ENV=production`
+- Configure secure `JWT_SECRET`
+- Set up SSL/TLS certificates
+- Configure CORS allowed origins
+- Enable database connection pooling
+- Set up Redis for caching
+- Configure logging and monitoring
+- Run database migrations
+- Set up health check monitoring
+
+### Docker Deployment
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Build Docker image
+docker build -t usdc-wallet-api .
+
+# Run container
+docker run -p 3000:3000 --env-file .env usdc-wallet-api
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Monitoring
 
-## Resources
+- Health check endpoint: `/api/health`
+- Metrics endpoint: `/api/metrics` (authenticated)
+- Logging with Winston
+- Request/response interceptors
+- Error tracking
 
-Check out a few resources that may come in handy when working with NestJS:
+## Contributing
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+1. Follow the Clean Architecture pattern
+2. Write unit tests for use cases
+3. Write E2E tests for endpoints
+4. Use DTOs for validation
+5. Follow TypeScript strict mode
+6. Document API changes in Swagger
+7. Update version documentation when making breaking changes
 
 ## Support
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+For questions or issues, contact the development team or create an issue in the repository.
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Proprietary - JoonaPay

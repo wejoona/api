@@ -37,7 +37,9 @@ let SetPinUseCase = class SetPinUseCase {
         await this.userRepository.save(user);
         return {
             success: true,
-            message: user.pinSetAt ? 'PIN updated successfully' : 'PIN set successfully',
+            message: user.pinSetAt
+                ? 'PIN updated successfully'
+                : 'PIN set successfully',
         };
     }
     isWeakPin(pin) {

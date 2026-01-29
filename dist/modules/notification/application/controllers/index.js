@@ -17,10 +17,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controllers = void 0;
 __exportStar(require("./notification.controller"), exports);
 __exportStar(require("./push-notification.controller"), exports);
+__exportStar(require("./novu.controller"), exports);
 const notification_controller_1 = require("./notification.controller");
 const push_notification_controller_1 = require("./push-notification.controller");
+const novu_controller_1 = require("./novu.controller");
 exports.Controllers = [
     notification_controller_1.NotificationController,
     push_notification_controller_1.PushNotificationController,
+    novu_controller_1.NovuController,
 ];
 //# sourceMappingURL=index.js.map

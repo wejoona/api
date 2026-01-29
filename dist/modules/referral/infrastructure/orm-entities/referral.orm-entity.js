@@ -26,7 +26,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'referred_id', type: 'uuid', nullable: true }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], ReferralOrmEntity.prototype, "referredId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'referral_code', type: 'varchar', length: 20, unique: true }),
@@ -60,15 +60,15 @@ __decorate([
 ], ReferralOrmEntity.prototype, "rewardCurrency", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'rewarded_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralOrmEntity.prototype, "rewardedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'completed_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralOrmEntity.prototype, "completedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'expires_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralOrmEntity.prototype, "expiresAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', default: '{}' }),

@@ -250,7 +250,7 @@ export class GenericBillAdapter implements IBillProviderAdapter {
         currency: data.currency,
         paidAt: data.completedAt ? new Date(data.completedAt) : undefined,
       };
-    } catch (error) {
+    } catch (_error) {
       throw new BillPaymentError(
         'Failed to check payment status',
         BillPaymentErrorCodes.PROVIDER_ERROR,

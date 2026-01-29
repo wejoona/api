@@ -1,49 +1,14 @@
 export type TransactionType = 'deposit' | 'transfer_internal' | 'transfer_external' | 'withdrawal' | 'bill_payment';
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export interface ITransaction {
-    id: string;
-    walletId: string;
-    type: TransactionType;
-    amount: number;
-    currency: string;
-    status: TransactionStatus;
-    yellowCardRef: string | null;
-    recipientAddress: string | null;
-    recipientPhone: string | null;
-    recipientWalletId: string | null;
-    metadata: Record<string, unknown> | null;
-    failureReason: string | null;
-    createdAt: Date;
-    completedAt: Date | null;
 }
 export interface CreateDepositProps {
-    walletId: string;
-    amount: number;
-    currency?: string;
-    yellowCardRef?: string;
-    metadata?: Record<string, unknown>;
 }
 export interface CreateInternalTransferProps {
-    walletId: string;
-    amount: number;
-    recipientWalletId: string;
-    recipientPhone: string;
-    currency?: string;
-    metadata?: Record<string, unknown>;
 }
 export interface CreateExternalTransferProps {
-    walletId: string;
-    amount: number;
-    recipientAddress: string;
-    currency?: string;
-    yellowCardRef?: string;
-    metadata?: Record<string, unknown>;
 }
 export interface CreateBillPaymentProps {
-    walletId: string;
-    amount: number;
-    currency?: string;
-    metadata?: Record<string, unknown>;
 }
 export declare class TransactionEntity implements ITransaction {
     readonly id: string;
@@ -62,8 +27,8 @@ export declare class TransactionEntity implements ITransaction {
     completedAt: Date | null;
     private constructor();
     static createDeposit(props: CreateDepositProps): TransactionEntity;
-    static createInternalTransfer(props: CreateInternalTransferProps): TransactionEntity;
-    static createExternalTransfer(props: CreateExternalTransferProps): TransactionEntity;
+    static createInternalTransfer(props: any, : any, CreateInternalTransferProps: any): TransactionEntity;
+    static createExternalTransfer(props: any, : any, CreateExternalTransferProps: any): TransactionEntity;
     static createBillPayment(props: CreateBillPaymentProps): TransactionEntity;
     static reconstitute(props: ITransaction): TransactionEntity;
     markProcessing(): void;

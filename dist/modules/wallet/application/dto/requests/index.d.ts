@@ -5,3 +5,4 @@ export * from './get-rate.dto';
 export * from './submit-kyc.dto';
 export * from './verify-pin.dto';
 export * from './set-pin.dto';
+export * from './withdraw.dto';

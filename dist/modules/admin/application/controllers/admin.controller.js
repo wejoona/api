@@ -21,8 +21,64 @@ const roles_decorator_1 = require("../../../../common/decorators/roles.decorator
 const admin_service_1 = require("../services/admin.service");
 const audit_service_1 = require("../services/audit.service");
 const dto_1 = require("../dto");
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 class AuditLogQueryDto {
 }
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(1000),
+    __metadata("design:type", Number)
+], AuditLogQueryDto.prototype, "page", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], AuditLogQueryDto.prototype, "limit", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)('4', { message: 'actorId must be a valid UUID' }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "actorId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9_\-.]+$/, {
+        message: 'action contains invalid characters',
+    }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "action", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_validator_1.Matches)(/^[a-zA-Z0-9_\-.]+$/, {
+        message: 'resourceType contains invalid characters',
+    }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "resourceType", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)('4', { message: 'resourceId must be a valid UUID' }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "resourceId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)({}, { message: 'startDate must be a valid ISO 8601 date' }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "startDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)({}, { message: 'endDate must be a valid ISO 8601 date' }),
+    __metadata("design:type", String)
+], AuditLogQueryDto.prototype, "endDate", void 0);
 let AdminController = class AdminController {
     constructor(adminService, auditService) {
         this.adminService = adminService;
@@ -361,7 +417,10 @@ __decorate([
     (0, common_1.Get)('reports/user-growth-timeseries'),
     (0, roles_decorator_1.Roles)('admin'),
     (0, swagger_1.ApiOperation)({ summary: 'Get user growth time-series with running totals' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'User growth time-series retrieved' }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'User growth time-series retrieved',
+    }),
     __param(0, (0, common_1.Query)('days')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

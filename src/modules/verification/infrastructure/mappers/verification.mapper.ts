@@ -19,7 +19,8 @@ export class VerificationMapper {
       id: entity.id,
       userId: entity.userId,
       identifier: entity.identifier,
-      identifierType: entity.identifierType as unknown as VerificationIdentifierType,
+      identifierType:
+        entity.identifierType as unknown as VerificationIdentifierType,
       type: entity.type as unknown as VerificationType,
       codeHash: entity.codeHash,
       attempts: entity.attempts,
@@ -41,7 +42,8 @@ export class VerificationMapper {
     entity.id = verification.id;
     entity.userId = verification.userId;
     entity.identifier = verification.identifier;
-    entity.identifierType = verification.identifierType as unknown as OrmIdentifierType;
+    entity.identifierType =
+      verification.identifierType as unknown as OrmIdentifierType;
     entity.type = verification.type as unknown as OrmType;
     entity.codeHash = verification.codeHash;
     entity.attempts = verification.attempts;

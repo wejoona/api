@@ -4,4 +4,5 @@ export * from './login-user.dto';
 export * from './update-profile.dto';
 export * from './refresh-token.dto';
 export * from './logout.dto';
+export * from './logout-all.dto';
 export * from './username.dto';

@@ -289,7 +289,7 @@ describe('Performance E2E Tests', () => {
 
   describe('Load Testing Scenarios', () => {
     it('should maintain performance under sustained load', async () => {
-      const user = await userHelper.createUser('+2250700000040');
+      const _user = await userHelper.createUser('+2250700000040');
 
       const iterations = 100;
       const durations: number[] = [];
@@ -338,7 +338,7 @@ describe('Performance E2E Tests', () => {
 
   describe('Memory and Resource Usage', () => {
     it('should not leak memory with repeated requests', async () => {
-      const user = await userHelper.createUser('+2250700000050');
+      const _user = await userHelper.createUser('+2250700000050');
 
       // Get initial memory
       const initialMemory = process.memoryUsage().heapUsed;

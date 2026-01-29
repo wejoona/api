@@ -49,7 +49,7 @@ __decorate([
         nullable: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "yellowCardRef", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -58,7 +58,7 @@ __decorate([
         length: 255,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "recipientAddress", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -67,11 +67,11 @@ __decorate([
         length: 20,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "recipientPhone", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'recipient_wallet_id', type: 'uuid', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "recipientWalletId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
@@ -79,7 +79,7 @@ __decorate([
 ], TransactionOrmEntity.prototype, "metadata", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'failure_reason', type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "failureReason", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
@@ -87,7 +87,7 @@ __decorate([
 ], TransactionOrmEntity.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'completed_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], TransactionOrmEntity.prototype, "completedAt", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => orm_entities_1.WalletOrmEntity),

@@ -3,11 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan, In } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import {
-  TransactionReport,
-  ReportType,
-  BCEAOReportMetrics,
-} from '../../domain/compliance.types';
+import { ReportType, BCEAOReportMetrics } from '../../domain/compliance.types';
 import { ComplianceReportOrmEntity } from '../../infrastructure/orm-entities';
 import { TransactionOrmEntity } from '../../../transaction/infrastructure/orm-entities/transaction.orm-entity';
 import { UserOrmEntity } from '../../../user/infrastructure/orm-entities/user.orm-entity';

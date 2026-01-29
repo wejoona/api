@@ -77,7 +77,7 @@ export class MtnAdapter extends BaseBillAdapter {
       );
 
       return this.accessToken;
-    } catch (error) {
+    } catch (_error) {
       throw new BillPaymentError(
         'Failed to authenticate with MTN API',
         BillPaymentErrorCodes.PROVIDER_UNAVAILABLE,

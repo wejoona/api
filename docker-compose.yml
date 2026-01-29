@@ -2,14 +2,17 @@
 # JoonaPay USDC Wallet - Docker Compose (Local Development)
 # =============================================================================
 # Usage:
-#   Start all services:     docker-compose up -d
-#   Start API only:         docker-compose up -d api
-#   View logs:              docker-compose logs -f api
-#   Stop all:               docker-compose down
-#   Clean restart:          docker-compose down -v && docker-compose up -d
+#   Start all services:       docker compose up -d
+#   Start with rebuild:       docker compose up -d --build
+#   Start API only:           docker compose up -d api
+#   View logs:                docker compose logs -f api
+#   Stop all:                 docker compose down
+#   Clean restart:            docker compose down -v && docker compose up -d
+#   Start with admin tools:   docker compose --profile admin up -d
+#
+# Environment:
+#   Copy .env.example to .env and customize values
 # =============================================================================
-
-version: '3.8'
 
 services:
   # ===========================================================================
@@ -19,6 +22,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NODE_VERSION: 20
     container_name: usdc_wallet_api
     restart: unless-stopped
     ports:
@@ -35,11 +40,13 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
       DATABASE_SYNCHRONIZE: ${DATABASE_SYNCHRONIZE:-false}
       DATABASE_LOGGING: ${DATABASE_LOGGING:-true}
+      DATABASE_SSL: "false"
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: ${REDIS_DB:-0}
+      REDIS_TLS: "false"
       # JWT
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_change_in_production}
@@ -95,7 +102,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -103,7 +110,8 @@ services:
     networks:
       - usdc_wallet_network
     volumes:
-      # Mount for local development hot-reload (remove in production)
+      # Mount source for development hot-reload
+      # Remove this volume mount for production builds
       - ./src:/app/src:ro
     logging:
       driver: "json-file"
@@ -133,6 +141,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - usdc_wallet_network
     logging:
@@ -148,7 +157,14 @@ services:
     image: redis:7-alpine
     container_name: usdc_wallet_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -158,6 +174,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
     networks:
       - usdc_wallet_network
     logging:
@@ -178,13 +195,14 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@joonapay.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - usdc_wallet_network
     logging:
@@ -207,7 +225,8 @@ services:
     ports:
       - "${REDIS_COMMANDER_PORT:-8081}:8081"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - usdc_wallet_network
     logging:
@@ -215,6 +234,26 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ===========================================================================
+  # MailHog (Optional - Email Testing)
+  # ===========================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: usdc_wallet_mailhog
+    restart: unless-stopped
+    profiles:
+      - admin
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
 # =============================================================================
 # Networks

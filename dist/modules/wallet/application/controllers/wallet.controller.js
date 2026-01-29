@@ -22,7 +22,7 @@ const interceptors_1 = require("../../../../common/interceptors");
 const requests_1 = require("../dto/requests");
 const usecases_1 = require("../usecases");
 let WalletController = class WalletController {
-    constructor(getBalanceUseCase, getDepositChannelsUseCase, initiateDepositUseCase, internalTransferUseCase, externalTransferUseCase, getRateUseCase, submitKycUseCase, getKycStatusUseCase, verifyPinUseCase, setPinUseCase) {
+    constructor(getBalanceUseCase, getDepositChannelsUseCase, initiateDepositUseCase, internalTransferUseCase, externalTransferUseCase, getRateUseCase, submitKycUseCase, getKycStatusUseCase, verifyPinUseCase, setPinUseCase, createWalletUseCase) {
         this.getBalanceUseCase = getBalanceUseCase;
         this.getDepositChannelsUseCase = getDepositChannelsUseCase;
         this.initiateDepositUseCase = initiateDepositUseCase;
@@ -33,9 +33,25 @@ let WalletController = class WalletController {
         this.getKycStatusUseCase = getKycStatusUseCase;
         this.verifyPinUseCase = verifyPinUseCase;
         this.setPinUseCase = setPinUseCase;
+        this.createWalletUseCase = createWalletUseCase;
     }
     async getBalance(req) {
         return this.getBalanceUseCase.execute({ userId: req.user.id });
+    }
+    async createWallet(req) {
+        const wallet = await this.createWalletUseCase.execute({
+            userId: req.user.id,
+            userPhone: req.user.phone,
+        });
+        return {
+            id: wallet.id,
+            userId: wallet.userId,
+            circleWalletId: wallet.circleWalletId,
+            circleWalletAddress: wallet.circleWalletAddress,
+            currency: wallet.currency,
+            balance: wallet.balance,
+            status: wallet.status,
+        };
     }
     async getDepositChannels(req, currency) {
         return this.getDepositChannelsUseCase.execute({
@@ -67,6 +83,23 @@ let WalletController = class WalletController {
             currency: dto.currency,
             network: dto.network,
         });
+    }
+    async withdraw(req, dto) {
+        const result = await this.externalTransferUseCase.execute({
+            userId: req.user.id,
+            toAddress: dto.destinationAddress,
+            amount: dto.amount,
+            currency: 'USD',
+            network: dto.network || 'polygon',
+        });
+        return {
+            transactionId: result.transactionId,
+            amount: result.amount,
+            destinationAddress: result.toAddress,
+            network: dto.network || 'polygon',
+            fee: result.fee,
+            status: result.status,
+        };
     }
     async getRate(query) {
         return this.getRateUseCase.execute({
@@ -131,6 +164,34 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], WalletController.prototype, "getBalance", null);
+__decorate([
+    (0, common_1.Post)('create'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, swagger_1.ApiOperation)({ summary: 'Create/activate wallet for current user' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Wallet created successfully',
+        schema: {
+            example: {
+                id: '123e4567-e89b-12d3-a456-426614174000',
+                userId: '123e4567-e89b-12d3-a456-426614174001',
+                circleWalletId: '55c56c99-63f9-5426-ab08-10d40d196a8f',
+                circleWalletAddress: '0x3ca7a6241ee8490dc847b3ee9635b4ecfe9f9bc5',
+                currency: 'USDC',
+                balance: 0,
+                status: 'active',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Wallet already exists',
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WalletController.prototype, "createWallet", null);
 __decorate([
     (0, common_1.Get)('deposit/channels'),
     (0, swagger_1.ApiOperation)({ summary: 'Get available deposit channels' }),
@@ -307,6 +368,55 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], WalletController.prototype, "externalTransfer", null);
 __decorate([
+    (0, common_1.Post)('withdraw'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, common_1.UseGuards)(pin_verification_guard_1.PinVerificationGuard),
+    (0, common_1.UseInterceptors)(interceptors_1.IdempotencyInterceptor),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 5 } }),
+    (0, swagger_1.ApiOperation)({ summary: 'Withdraw USDC to external wallet address' }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Idempotency-Key',
+        description: 'Unique key to prevent duplicate withdrawal requests (e.g., UUID)',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000',
+    }),
+    (0, swagger_1.ApiHeader)({
+        name: 'X-Pin-Token',
+        description: 'PIN verification token from POST /wallet/pin/verify',
+        required: true,
+        example: 'abc123...',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Withdrawal initiated successfully',
+        schema: {
+            example: {
+                transactionId: '123e4567-e89b-12d3-a456-426614174000',
+                amount: 50.0,
+                destinationAddress: '0x1234567890abcdef1234567890abcdef12345678',
+                network: 'polygon',
+                fee: 0.25,
+                status: 'pending',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'PIN verification required or invalid request',
+        schema: {
+            example: {
+                message: 'PIN verification required for this operation',
+                code: 'PIN_REQUIRED',
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, requests_1.WithdrawDto]),
+    __metadata("design:returntype", Promise)
+], WalletController.prototype, "withdraw", null);
+__decorate([
     (0, common_1.Get)('rate'),
     (0, swagger_1.ApiOperation)({ summary: 'Get exchange rate quote' }),
     (0, swagger_1.ApiQuery)({ name: 'sourceCurrency', required: true, example: 'XOF' }),
@@ -459,6 +569,7 @@ exports.WalletController = WalletController = __decorate([
         usecases_1.SubmitKycUseCase,
         usecases_1.GetKycStatusUseCase,
         usecases_1.VerifyPinUseCase,
-        usecases_1.SetPinUseCase])
+        usecases_1.SetPinUseCase,
+        usecases_1.CreateWalletUseCase])
 ], WalletController);
 //# sourceMappingURL=wallet.controller.js.map

@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { TestUser } from './test-user.helper';
 
 /**
  * Helper class for seeding and managing test data

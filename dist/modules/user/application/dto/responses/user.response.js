@@ -44,19 +44,19 @@ __decorate([
 ], UserResponse.prototype, "phoneVerified", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'amadou_diallo', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserResponse.prototype, "username", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Amadou', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserResponse.prototype, "firstName", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Diallo', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserResponse.prototype, "lastName", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'amadou@example.com', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], UserResponse.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'CI' }),

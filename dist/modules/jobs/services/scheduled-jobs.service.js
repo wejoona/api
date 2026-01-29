@@ -23,13 +23,15 @@ const scheduled_job_entity_1 = require("../../admin/infrastructure/persistence/t
 const audit_log_entity_1 = require("../../admin/infrastructure/persistence/typeorm/entities/audit-log.entity");
 const fcm_1 = require("../../notification/infrastructure/fcm");
 const orm_entities_2 = require("../../notification/infrastructure/orm-entities");
+const session_service_1 = require("../../session/application/services/session.service");
 let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
-    constructor(transactionRepository, jobRepository, auditLogRepository, fcmTokenRepository, notificationRepository) {
+    constructor(transactionRepository, jobRepository, auditLogRepository, fcmTokenRepository, notificationRepository, sessionService) {
         this.transactionRepository = transactionRepository;
         this.jobRepository = jobRepository;
         this.auditLogRepository = auditLogRepository;
         this.fcmTokenRepository = fcmTokenRepository;
         this.notificationRepository = notificationRepository;
+        this.sessionService = sessionService;
         this.logger = new common_1.Logger(ScheduledJobsService_1.name);
     }
     async expireStaleTransactions() {
@@ -157,6 +159,23 @@ let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
             this.logger.error(`Stuck transaction check failed: ${message}`);
         }
     }
+    async cleanupExpiredSessions() {
+        const jobName = 'cleanup_expired_sessions';
+        const job = await this.startJob(jobName);
+        try {
+            this.logger.log('Starting expired session cleanup job');
+            const count = await this.sessionService.cleanupExpiredSessions();
+            await this.completeJob(job.id, count);
+            if (count > 0) {
+                this.logger.log(`Cleaned up ${count} expired sessions`);
+            }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            await this.failJob(job.id, message);
+            this.logger.error(`Session cleanup failed: ${message}`);
+        }
+    }
     async cleanupInactiveFcmTokens() {
         const jobName = 'cleanup_fcm_tokens';
         const job = await this.startJob(jobName);
@@ -252,6 +271,9 @@ let ScheduledJobsService = ScheduledJobsService_1 = class ScheduledJobsService {
             case 'cleanup_notifications':
                 await this.cleanupOldNotifications();
                 break;
+            case 'cleanup_expired_sessions':
+                await this.cleanupExpiredSessions();
+                break;
             case 'daily_reconciliation':
                 await this.dailyReconciliation();
                 break;
@@ -293,6 +315,12 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ScheduledJobsService.prototype, "checkStuckTransactions", null);
 __decorate([
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_HOUR),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ScheduledJobsService.prototype, "cleanupExpiredSessions", null);
+__decorate([
     (0, schedule_1.Cron)('0 4 * * *'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -321,6 +349,7 @@ exports.ScheduledJobsService = ScheduledJobsService = ScheduledJobsService_1 = _
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        session_service_1.SessionService])
 ], ScheduledJobsService);
 //# sourceMappingURL=scheduled-jobs.service.js.map

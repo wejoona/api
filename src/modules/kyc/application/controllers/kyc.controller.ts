@@ -6,7 +6,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  Param,
 } from '@nestjs/common';
 import {
   ApiTags,

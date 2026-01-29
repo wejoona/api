@@ -10,11 +10,9 @@ import { UserAlertPreferencesRepository } from '../../infrastructure/repositorie
 import {
   MonitoringRule,
   RuleCondition,
-  RuleAction,
   TransactionContext,
   TransactionAlert,
   AlertType,
-  AlertSeverity,
   UserAlertPreferences,
   ALERT_TYPE_CONFIG,
 } from '../../domain/interfaces/monitoring.types';

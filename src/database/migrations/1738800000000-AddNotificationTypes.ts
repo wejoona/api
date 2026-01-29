@@ -32,7 +32,7 @@ export class AddNotificationTypes1738800000000 implements MigrationInterface {
     `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
+  public async down(_queryRunner: QueryRunner): Promise<void> {
     // Note: PostgreSQL does not support removing values from an enum
     // To properly downgrade, you would need to:
     // 1. Create a new enum without the values

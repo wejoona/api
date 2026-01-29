@@ -9,9 +9,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ExternalTransferDto = void 0;
+exports.ExternalTransferDto = exports.TransferCurrency = exports.BlockchainNetwork = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
+var BlockchainNetwork;
+(function (BlockchainNetwork) {
+    BlockchainNetwork["POLYGON"] = "polygon";
+    BlockchainNetwork["ETHEREUM"] = "ethereum";
+    BlockchainNetwork["BASE"] = "base";
+})(BlockchainNetwork || (exports.BlockchainNetwork = BlockchainNetwork = {}));
+var TransferCurrency;
+(function (TransferCurrency) {
+    TransferCurrency["USD"] = "USD";
+    TransferCurrency["USDC"] = "USDC";
+})(TransferCurrency || (exports.TransferCurrency = TransferCurrency = {}));
 class ExternalTransferDto {
 }
 exports.ExternalTransferDto = ExternalTransferDto;
@@ -32,30 +43,35 @@ __decorate([
         description: 'Amount in USD to transfer',
         example: 50,
         minimum: 1,
+        maximum: 1000000,
     }),
     (0, class_validator_1.IsNumber)(),
-    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Min)(1, { message: 'Amount must be at least $1.00' }),
+    (0, class_validator_1.Max)(1000000, { message: 'Amount cannot exceed $1,000,000' }),
     __metadata("design:type", Number)
 ], ExternalTransferDto.prototype, "amount", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    (0, swagger_1.ApiPropertyOptional)({
         description: 'Currency (defaults to USD)',
         example: 'USD',
-        required: false,
+        enum: TransferCurrency,
     }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(TransferCurrency, {
+        message: 'Currency must be USD or USDC',
+    }),
     __metadata("design:type", String)
 ], ExternalTransferDto.prototype, "currency", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({
+    (0, swagger_1.ApiPropertyOptional)({
         description: 'Blockchain network (defaults to polygon)',
         example: 'polygon',
-        required: false,
-        enum: ['polygon', 'ethereum', 'base'],
+        enum: BlockchainNetwork,
     }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(BlockchainNetwork, {
+        message: 'Network must be one of: polygon, ethereum, base',
+    }),
     __metadata("design:type", String)
 ], ExternalTransferDto.prototype, "network", void 0);
 //# sourceMappingURL=external-transfer.dto.js.map

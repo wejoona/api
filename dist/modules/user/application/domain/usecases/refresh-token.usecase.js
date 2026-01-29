@@ -78,6 +78,11 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
             if (payload.type !== 'refresh') {
                 throw new common_1.UnauthorizedException('Invalid token type');
             }
+            const isInvalidatedByLogoutAll = await this.checkGlobalInvalidation(payload.sub, input.refreshToken, payload.iat);
+            if (isInvalidatedByLogoutAll) {
+                this.logger.warn('Attempt to use globally invalidated refresh token');
+                throw new common_1.UnauthorizedException('Token has been revoked - all devices logged out');
+            }
             const user = await this.userRepository.findById(payload.sub);
             if (!user) {
                 throw new common_1.NotFoundException('User not found');
@@ -95,7 +100,8 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
                 type: 'refresh',
             }, {
                 secret: this.refreshSecret,
-                expiresIn: this.refreshExpiresIn,
+                expiresIn: this
+                    .refreshExpiresIn,
             });
             await this.blacklistToken(input.refreshToken, payload.exp);
             this.logger.log(`Tokens refreshed and old token blacklisted for user ${user.id}`);
@@ -106,7 +112,8 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
             };
         }
         catch (error) {
-            if (error instanceof common_1.UnauthorizedException || error instanceof common_1.NotFoundException) {
+            if (error instanceof common_1.UnauthorizedException ||
+                error instanceof common_1.NotFoundException) {
                 throw error;
             }
             this.logger.warn(`Invalid refresh token: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -139,6 +146,30 @@ let RefreshTokenUsecase = RefreshTokenUsecase_1 = class RefreshTokenUsecase {
         }
         catch (error) {
             this.logger.error(`Failed to blacklist token: ${error.message}`);
+        }
+    }
+    async checkGlobalInvalidation(userId, token, tokenIssuedAt) {
+        try {
+            const userInvalidationKey = `user:${userId}:token_invalidation`;
+            const invalidationTimestamp = await this.redis.get(userInvalidationKey);
+            if (!invalidationTimestamp) {
+                return false;
+            }
+            const whitelistKey = `user:${userId}:whitelisted_tokens`;
+            const isWhitelisted = await this.redis.sismember(whitelistKey, token);
+            if (isWhitelisted) {
+                return false;
+            }
+            if (!tokenIssuedAt) {
+                return true;
+            }
+            const tokenIssuedAtMs = tokenIssuedAt * 1000;
+            const invalidatedAt = parseInt(invalidationTimestamp, 10);
+            return tokenIssuedAtMs < invalidatedAt;
+        }
+        catch (error) {
+            this.logger.error(`Error checking global token invalidation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return false;
         }
     }
 };

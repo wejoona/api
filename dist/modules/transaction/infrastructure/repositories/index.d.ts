@@ -1,2 +1,2 @@
 export * from './transaction.repository';
-export declare const Repositories: any[];
+export declare const Repositories: never[];

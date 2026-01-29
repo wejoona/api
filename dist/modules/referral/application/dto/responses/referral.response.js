@@ -24,7 +24,7 @@ __decorate([
 ], ReferralResponse.prototype, "referrerId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], ReferralResponse.prototype, "referredId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
@@ -48,15 +48,15 @@ __decorate([
 ], ReferralResponse.prototype, "rewardCurrency", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralResponse.prototype, "completedAt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralResponse.prototype, "rewardedAt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ReferralResponse.prototype, "expiresAt", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)(),

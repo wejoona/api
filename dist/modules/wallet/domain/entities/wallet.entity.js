@@ -2,6 +2,34 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WalletEntity = void 0;
 const uuid_1 = require("uuid");
+id;
+string;
+userId;
+string;
+yellowCardWalletId;
+string | null;
+circleWalletId;
+string | null;
+circleWalletAddress;
+string | null;
+currency;
+string;
+balance;
+number;
+kycStatus;
+KycStatus;
+status;
+WalletStatus;
+createdAt;
+Date;
+updatedAt;
+Date;
+userId;
+string;
+yellowCardWalletId ?  : string;
+circleWalletId ?  : string;
+circleWalletAddress ?  : string;
+currency ?  : string;
 class WalletEntity {
     constructor(props) {
         this.id = props.id;

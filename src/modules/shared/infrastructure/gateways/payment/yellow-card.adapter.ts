@@ -232,7 +232,7 @@ export class YellowCardPaymentAdapter implements IPaymentGateway {
 
   private mockGetOnRampChannels(
     country: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     _currency?: string,
   ): OnRampChannel[] {
     if (country === 'CI') {
@@ -432,7 +432,6 @@ export class YellowCardPaymentAdapter implements IPaymentGateway {
     return result;
   }
 
-  /* eslint-disable @typescript-eslint/no-unused-vars */
   // ============================================
   // REAL API IMPLEMENTATIONS (TODO when keys available)
   // ============================================
@@ -487,14 +486,11 @@ export class YellowCardPaymentAdapter implements IPaymentGateway {
   private apiGetRate(_request: RateRequest): Promise<RateResponse> {
     return Promise.reject(new Error('Real Yellow Card API not implemented'));
   }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private apiSubmitKyc(_request: SubmitKycRequest): Promise<KycResponse> {
     return Promise.reject(new Error('Real Yellow Card API not implemented'));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private apiGetKycStatus(_subwalletId: string): Promise<KycResponse> {
     return Promise.reject(new Error('Real Yellow Card API not implemented'));
   }

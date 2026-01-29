@@ -4,14 +4,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  DataSource,
-  Repository,
-  LessThan,
-  MoreThan,
-  In,
-  Between,
-} from 'typeorm';
+import { DataSource, Repository, LessThan } from 'typeorm';
 import { AlertOrmEntity } from '../orm-entities/alert.orm-entity';
 import {
   TransactionAlert,

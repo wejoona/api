@@ -82,24 +82,24 @@ __decorate([
         length: 50,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], NotificationOrmEntity.prototype, "referenceType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'reference_id', type: 'uuid', nullable: true }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], NotificationOrmEntity.prototype, "referenceId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'sent_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationOrmEntity.prototype, "sentAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'delivered_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationOrmEntity.prototype, "deliveredAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'read_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], NotificationOrmEntity.prototype, "readAt", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),

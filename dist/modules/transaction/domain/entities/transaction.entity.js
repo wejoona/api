@@ -2,6 +2,66 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionEntity = void 0;
 const uuid_1 = require("uuid");
+id;
+string;
+walletId;
+string;
+type;
+TransactionType;
+amount;
+number;
+currency;
+string;
+status;
+TransactionStatus;
+yellowCardRef;
+string | null;
+recipientAddress;
+string | null;
+recipientPhone;
+string | null;
+recipientWalletId;
+string | null;
+metadata;
+(Record) | null;
+failureReason;
+string | null;
+createdAt;
+Date;
+completedAt;
+Date | null;
+walletId;
+string;
+amount;
+number;
+currency ?  : string;
+yellowCardRef ?  : string;
+metadata ?  : Record;
+walletId;
+string;
+amount;
+number;
+recipientWalletId;
+string;
+recipientPhone;
+string;
+currency ?  : string;
+metadata ?  : Record;
+walletId;
+string;
+amount;
+number;
+recipientAddress;
+string;
+currency ?  : string;
+yellowCardRef ?  : string;
+metadata ?  : Record;
+walletId;
+string;
+amount;
+number;
+currency ?  : string;
+metadata ?  : Record;
 class TransactionEntity {
     constructor(props) {
         this.id = props.id;
@@ -37,7 +97,7 @@ class TransactionEntity {
             completedAt: null,
         });
     }
-    static createInternalTransfer(props) {
+    static createInternalTransfer(props, , CreateInternalTransferProps) {
         return new TransactionEntity({
             id: (0, uuid_1.v4)(),
             walletId: props.walletId,
@@ -55,7 +115,7 @@ class TransactionEntity {
             completedAt: null,
         });
     }
-    static createExternalTransfer(props) {
+    static createExternalTransfer(props, , CreateExternalTransferProps) {
         return new TransactionEntity({
             id: (0, uuid_1.v4)(),
             walletId: props.walletId,

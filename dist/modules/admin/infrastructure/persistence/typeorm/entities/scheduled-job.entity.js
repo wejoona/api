@@ -28,11 +28,11 @@ __decorate([
 ], ScheduledJobEntity.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'started_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ScheduledJobEntity.prototype, "startedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'completed_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], ScheduledJobEntity.prototype, "completedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'records_processed', type: 'integer', default: 0 }),
@@ -40,7 +40,7 @@ __decorate([
 ], ScheduledJobEntity.prototype, "recordsProcessed", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'error_message', type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], ScheduledJobEntity.prototype, "errorMessage", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),

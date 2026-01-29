@@ -21,7 +21,15 @@ let GetTransactionsUseCase = class GetTransactionsUseCase {
     async execute(input) {
         const wallet = await this.walletRepository.findByUserId(input.userId);
         if (!wallet) {
-            throw new common_1.NotFoundException('Wallet not found');
+            const limit = input.limit || 20;
+            const offset = input.offset || 0;
+            return {
+                transactions: [],
+                total: 0,
+                limit,
+                offset,
+                hasMore: false,
+            };
         }
         const limit = input.limit || 20;
         const offset = input.offset || 0;

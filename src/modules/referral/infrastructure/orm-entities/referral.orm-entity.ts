@@ -5,8 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 
 export type ReferralStatus = 'pending' | 'completed' | 'expired' | 'rewarded';

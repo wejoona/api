@@ -20,7 +20,6 @@ import {
   BillPaymentRequest,
   BillPaymentResult,
   BillPaymentError,
-  BillPaymentErrorCodes,
 } from '../../domain/types';
 
 export interface PayBillInput {

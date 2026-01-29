@@ -21,6 +21,7 @@ const dev_controller_1 = require("./application/controllers/dev.controller");
 const guards_1 = require("../../common/guards");
 const wallet_module_1 = require("../wallet/wallet.module");
 const kyc_module_1 = require("../kyc/kyc.module");
+const transaction_module_1 = require("../transaction/transaction.module");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -44,6 +45,7 @@ exports.UserModule = UserModule = __decorate([
             }),
             (0, common_1.forwardRef)(() => wallet_module_1.WalletModule),
             (0, common_1.forwardRef)(() => kyc_module_1.KycModule),
+            (0, common_1.forwardRef)(() => transaction_module_1.TransactionModule),
         ],
         controllers: [
             controllers_1.AuthController,
@@ -61,7 +63,9 @@ exports.UserModule = UserModule = __decorate([
             usecases_1.SetupUserBalanceMonitorsUseCase,
             usecases_1.RefreshTokenUsecase,
             usecases_1.LogoutUsecase,
+            usecases_1.LogoutAllUsecase,
             usecases_1.UsernameUsecase,
+            usecases_1.GetUserLimitsUseCase,
             guards_1.JwtStrategy,
         ],
         exports: [repositories_1.UserRepository, guards_1.JwtStrategy, passport_1.PassportModule],

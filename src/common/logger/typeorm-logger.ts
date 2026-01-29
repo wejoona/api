@@ -7,7 +7,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
   /**
    * Logs query and parameters used in it
    */
-  logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner) {
+  logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner) {
     if (process.env.NODE_ENV === 'development') {
       this.logger.debug(
         JSON.stringify({
@@ -26,7 +26,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
     error: string | Error,
     query: string,
     parameters?: any[],
-    queryRunner?: QueryRunner,
+    _queryRunner?: QueryRunner,
   ) {
     this.logger.error(
       JSON.stringify({
@@ -46,7 +46,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
     time: number,
     query: string,
     parameters?: any[],
-    queryRunner?: QueryRunner,
+    _queryRunner?: QueryRunner,
   ) {
     this.logger.warn(
       JSON.stringify({
@@ -63,7 +63,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
   /**
    * Logs events from the schema build process
    */
-  logSchemaBuild(message: string, queryRunner?: QueryRunner) {
+  logSchemaBuild(message: string, _queryRunner?: QueryRunner) {
     this.logger.log(
       JSON.stringify({
         type: 'schema_build',
@@ -75,7 +75,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
   /**
    * Logs events from the migrations run process
    */
-  logMigration(message: string, queryRunner?: QueryRunner) {
+  logMigration(message: string, _queryRunner?: QueryRunner) {
     this.logger.log(
       JSON.stringify({
         type: 'migration',
@@ -87,7 +87,11 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
   /**
    * Perform logging using given logger, or by default to the console
    */
-  log(level: 'log' | 'info' | 'warn', message: any, queryRunner?: QueryRunner) {
+  log(
+    level: 'log' | 'info' | 'warn',
+    message: any,
+    _queryRunner?: QueryRunner,
+  ) {
     switch (level) {
       case 'log':
       case 'info':

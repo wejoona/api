@@ -199,10 +199,10 @@ describe('Security E2E Tests', () => {
 
     it('should expire PIN tokens after time limit', async () => {
       const sender = await userHelper.createUser('+2250700000113');
-      const recipient = await userHelper.createUser('+2250700000114');
+      const _recipient = await userHelper.createUser('+2250700000114');
 
       await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      const _pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
 
       // In a real test, we'd wait or manipulate time
       // For now, we verify the token has an expiry
@@ -364,7 +364,7 @@ describe('Security E2E Tests', () => {
 
     it('should prevent users from modifying other users profiles', async () => {
       const user1 = await userHelper.createUser('+2250700000133');
-      const user2 = await userHelper.createUser('+2250700000134');
+      const _user2 = await userHelper.createUser('+2250700000134');
 
       // User1 cannot update user2's profile
       // (This is implicitly prevented by JwtAuthGuard + req.user.id)

@@ -3,12 +3,7 @@
  * Business logic for managing user alert preferences
  */
 
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { UserAlertPreferencesRepository } from '../../infrastructure/repositories/user-alert-preferences.repository';
 import {
   UserAlertPreferences,
@@ -134,7 +129,7 @@ export class UserAlertPreferencesUseCase {
     alertType: AlertType,
     enabled: boolean,
   ): Promise<UserAlertPreferences> {
-    const validTypes = Object.keys(DEFAULT_ALERT_PREFERENCES.alertTypes);
+    const _validTypes = Object.keys(DEFAULT_ALERT_PREFERENCES.alertTypes);
 
     return this.preferencesRepository.toggleAlertType(
       userId,

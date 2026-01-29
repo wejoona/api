@@ -54,9 +54,7 @@ export class BeneficiaryService {
   private readonly logger = new Logger(BeneficiaryService.name);
   private readonly maxBeneficiariesPerWallet = 100;
 
-  constructor(
-    private readonly beneficiaryRepository: BeneficiaryRepository,
-  ) {}
+  constructor(private readonly beneficiaryRepository: BeneficiaryRepository) {}
 
   /**
    * Create a new beneficiary.
@@ -123,8 +121,10 @@ export class BeneficiaryService {
     walletId: string,
     limit: number = 10,
   ): Promise<BeneficiaryResponse[]> {
-    const beneficiaries =
-      await this.beneficiaryRepository.findRecentByWalletId(walletId, limit);
+    const beneficiaries = await this.beneficiaryRepository.findRecentByWalletId(
+      walletId,
+      limit,
+    );
     return beneficiaries.map(this.toResponse);
   }
 
@@ -157,7 +157,9 @@ export class BeneficiaryService {
     }
 
     if (beneficiary.walletId !== walletId) {
-      throw new ForbiddenException('Beneficiary does not belong to this wallet');
+      throw new ForbiddenException(
+        'Beneficiary does not belong to this wallet',
+      );
     }
 
     return beneficiary;
@@ -246,11 +248,10 @@ export class BeneficiaryService {
     name: string,
     beneficiaryUserId?: string,
   ): Promise<Beneficiary> {
-    let beneficiary =
-      await this.beneficiaryRepository.findByWalletIdAndPhone(
-        walletId,
-        phoneE164,
-      );
+    let beneficiary = await this.beneficiaryRepository.findByWalletIdAndPhone(
+      walletId,
+      phoneE164,
+    );
 
     if (beneficiary) {
       // Update name if provided and different

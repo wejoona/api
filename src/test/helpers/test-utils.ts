@@ -10,7 +10,6 @@ import {
   CreateSubwalletRequest,
   Subwallet,
   BalanceResponse,
-  OnRampChannel,
   InitiateDepositRequest,
   DepositResponse,
   InternalTransferRequest,
@@ -259,7 +258,7 @@ export function createMockSmsGateway(): jest.Mocked<ISmsGateway> {
     ),
 
     sendOtp: jest.fn().mockImplementation(
-      async (phone: string, otp: string): Promise<SmsResponse> => ({
+      async (phone: string, _otp: string): Promise<SmsResponse> => ({
         id: uuidv4(),
         to: phone,
         status: 'sent',

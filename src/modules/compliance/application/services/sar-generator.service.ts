@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  SuspiciousActivityReport,
   SARTriggerReason,
   SARStatus,
   RiskLevel,
@@ -462,7 +461,7 @@ export class SARGeneratorService {
   private generateReasonSpecificNarrative(
     triggerReason: SARTriggerReason,
     transactions: TransactionOrmEntity[],
-    indicators: string[],
+    _indicators: string[],
   ): string {
     switch (triggerReason) {
       case 'structuring':
@@ -519,7 +518,7 @@ export class SARGeneratorService {
    * Generate geographic risk narrative
    */
   private generateGeographicNarrative(
-    transactions: TransactionOrmEntity[],
+    _transactions: TransactionOrmEntity[],
   ): string {
     let narrative = `GEOGRAPHIC RISK ANALYSIS:\n`;
     narrative += `Transaction involves high-risk jurisdiction flagged by FATF.\n`;
@@ -620,7 +619,7 @@ export class SARGeneratorService {
    * Generate BCEAO reference for SAR
    */
   private generateBCEAOReference(
-    sar: SuspiciousActivityReportOrmEntity,
+    _sar: SuspiciousActivityReportOrmEntity,
   ): string {
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth() + 1).padStart(2, '0');

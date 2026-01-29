@@ -10,8 +10,6 @@ import {
   Request,
   HttpCode,
   HttpStatus,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiTags,

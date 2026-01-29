@@ -481,7 +481,7 @@ describe('VerifyPinUseCase', () => {
       };
 
       // Act
-      const result = await useCase.execute(input);
+      const _result = await useCase.execute(input);
 
       // Assert
       expect(cacheManager.set).toHaveBeenCalledWith(

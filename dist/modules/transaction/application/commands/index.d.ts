@@ -1,1 +1,1 @@
-export declare const CommandHandlers: any[];
+export declare const CommandHandlers: never[];

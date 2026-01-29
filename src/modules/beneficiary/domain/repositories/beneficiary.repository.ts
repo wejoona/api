@@ -1,4 +1,7 @@
-import { Beneficiary, BeneficiaryAccountType } from '../entities/beneficiary.entity';
+import {
+  Beneficiary,
+  BeneficiaryAccountType,
+} from '../entities/beneficiary.entity';
 
 export abstract class BeneficiaryRepository {
   abstract findById(id: string): Promise<Beneficiary | null>;

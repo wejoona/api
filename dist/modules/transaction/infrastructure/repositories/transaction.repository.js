@@ -89,10 +89,10 @@ let TransactionRepository = class TransactionRepository {
             .where('wallet.userId = :userId', { userId })
             .andWhere('transaction.createdAt >= :sinceDate', { sinceDate })
             .andWhere('transaction.type IN (:...types)', {
-            types: ['internal_transfer', 'external_transfer', 'withdrawal']
+            types: ['internal_transfer', 'external_transfer', 'withdrawal'],
         })
             .andWhere('transaction.status IN (:...statuses)', {
-            statuses: ['completed', 'pending', 'processing']
+            statuses: ['completed', 'pending', 'processing'],
         })
             .getRawOne();
         return parseFloat(result?.totalVolume || '0');
@@ -106,7 +106,9 @@ let TransactionRepository = class TransactionRepository {
             query.andWhere('transaction.type = :type', { type: options.type });
         }
         if (options.status) {
-            query.andWhere('transaction.status = :status', { status: options.status });
+            query.andWhere('transaction.status = :status', {
+                status: options.status,
+            });
         }
         const [ormEntities, total] = await query
             .take(options.limit)

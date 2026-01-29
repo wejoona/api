@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, Between } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -87,8 +87,8 @@ export class AMLCFTService {
   async analyzeTransaction(
     userId: string,
     amount: number,
-    recipientId?: string,
-    metadata?: Record<string, unknown>,
+    _recipientId?: string,
+    _metadata?: Record<string, unknown>,
   ): Promise<{
     approved: boolean;
     riskLevel: RiskLevel;

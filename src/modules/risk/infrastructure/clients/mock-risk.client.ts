@@ -277,7 +277,7 @@ export class MockRiskClient implements IRiskClient {
   }
 
   async getScreeningResult(
-    screeningId: string,
+    _screeningId: string,
   ): Promise<ScreeningResult | null> {
     // In mock, we don't persist results, so return null
     return null;

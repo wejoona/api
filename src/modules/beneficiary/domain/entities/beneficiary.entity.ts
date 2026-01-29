@@ -66,7 +66,8 @@ export class Beneficiary {
     this.walletId = props.walletId;
     this._name = props.name;
     this.phoneE164 = props.phoneE164 ?? null;
-    this.accountType = props.accountType ?? BeneficiaryAccountType.JOONAPAY_USER;
+    this.accountType =
+      props.accountType ?? BeneficiaryAccountType.JOONAPAY_USER;
     this.beneficiaryUserId = props.beneficiaryUserId ?? null;
     this.beneficiaryWalletAddress = props.beneficiaryWalletAddress ?? null;
     this.bankCode = props.bankCode ?? null;

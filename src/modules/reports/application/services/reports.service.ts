@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { TransactionOrmEntity } from '@modules/transaction/infrastructure/orm-entities';
 import { UserOrmEntity } from '@modules/user/infrastructure/orm-entities';
 import { WalletOrmEntity } from '@modules/wallet/infrastructure/orm-entities';

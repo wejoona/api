@@ -89,7 +89,7 @@ export class MoovAdapter extends BaseBillAdapter {
             country: data.subscriber.country,
           },
         };
-      } catch (error) {
+      } catch (_error) {
         // For airtime, allow proceeding even if validation fails
         return {
           isValid: true,

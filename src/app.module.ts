@@ -44,6 +44,7 @@ import { DeviceModule } from './modules/device/device.module';
 import { SessionModule } from './modules/session/session.module';
 import { BeneficiaryModule } from './modules/beneficiary/beneficiary.module';
 import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
+import { ApiKeysModule } from './modules/api-keys';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -160,6 +161,7 @@ import { BlnkModule } from './modules/providers/blnk';
     ContactsModule,
     UserPreferencesModule,
     FeatureFlagModule, // Feature flags for gradual rollout
+    ApiKeysModule, // External API key management
     UploadModule, // S3 document upload
     KycModule, // KYC verification flow
     LivenessModule, // Challenge-based liveness detection

@@ -34,10 +34,30 @@ let GetBalanceUseCase = class GetBalanceUseCase {
         if (!wallet) {
             throw new common_1.NotFoundException('Wallet not found');
         }
-        if (!wallet.yellowCardWalletId) {
-            throw new common_1.NotFoundException('Wallet not linked to payment provider');
+        const providerWalletId = wallet.circleWalletId || wallet.yellowCardWalletId;
+        if (!providerWalletId) {
+            const result = {
+                walletId: wallet.id,
+                currency: wallet.currency,
+                balances: [
+                    {
+                        currency: 'USD',
+                        available: wallet.balance,
+                        pending: 0,
+                        total: wallet.balance,
+                    },
+                    {
+                        currency: 'USDC',
+                        available: 0,
+                        pending: 0,
+                        total: 0,
+                    },
+                ],
+            };
+            await this.cacheManager.set(cacheKey, result, 10);
+            return result;
         }
-        const balanceResponse = await this.paymentGateway.getBalance(wallet.yellowCardWalletId);
+        const balanceResponse = await this.paymentGateway.getBalance(providerWalletId);
         const result = {
             walletId: wallet.id,
             currency: wallet.currency,

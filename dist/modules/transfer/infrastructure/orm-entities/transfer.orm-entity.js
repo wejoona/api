@@ -61,16 +61,16 @@ __decorate([
 ], TransferOrmEntity.prototype, "senderWalletId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'sender_phone', type: 'varchar', length: 20, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "senderPhone", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'recipient_id', type: 'uuid', nullable: true }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "recipientId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'recipient_wallet_id', type: 'uuid', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "recipientWalletId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -80,7 +80,7 @@ __decorate([
         nullable: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "recipientPhone", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -89,7 +89,7 @@ __decorate([
         length: 255,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "recipientAddress", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -98,7 +98,7 @@ __decorate([
         length: 20,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "recipientBlockchain", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'bigint' }),
@@ -114,7 +114,7 @@ __decorate([
 ], TransferOrmEntity.prototype, "currency", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 500, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "note", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -124,7 +124,7 @@ __decorate([
         nullable: true,
     }),
     (0, typeorm_1.Index)(),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "providerTransferId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -133,15 +133,15 @@ __decorate([
         length: 50,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "providerName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ledger_transaction_id', type: 'uuid', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "ledgerTransactionId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'tx_hash', type: 'varchar', length: 255, nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "txHash", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -150,7 +150,7 @@ __decorate([
         length: 500,
         nullable: true,
     }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "errorMessage", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true, default: '{}' }),
@@ -166,7 +166,7 @@ __decorate([
 ], TransferOrmEntity.prototype, "updatedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'completed_at', type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], TransferOrmEntity.prototype, "completedAt", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => orm_entities_1.UserOrmEntity),

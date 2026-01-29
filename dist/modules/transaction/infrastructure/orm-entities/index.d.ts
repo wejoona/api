@@ -1,2 +1,2 @@
 export { TransactionOrmEntity } from './transaction.orm-entity';
-export declare const OrmEntities: any[];
+export declare const OrmEntities: never[];

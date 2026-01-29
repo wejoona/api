@@ -9,6 +9,12 @@ import {
   ComplianceReportOrmEntity,
   SuspiciousActivityReportOrmEntity,
   ComplianceAlertOrmEntity,
+  VelocityRuleOrmEntity,
+  WatchlistEntryOrmEntity,
+  WatchlistMatchOrmEntity,
+  ComplianceCaseOrmEntity,
+  CaseNoteOrmEntity,
+  CaseEvidenceOrmEntity,
 } from './infrastructure/orm-entities';
 
 // External entities
@@ -21,10 +27,25 @@ import {
   AMLCFTService,
   SARGeneratorService,
   ComplianceDashboardService,
+  VelocityRuleService,
+  WatchlistScreeningService,
+  ComplianceCaseService,
 } from './application/services';
 
 // Controllers
-import { ComplianceController } from './application/controllers';
+import {
+  ComplianceController,
+  VelocityRuleController,
+  ComplianceCaseController,
+} from './application/controllers';
+
+// Repositories
+import { VelocityRuleRepository } from './domain/repositories/velocity-rule.repository';
+import { TypeOrmVelocityRuleRepository } from './infrastructure/repositories/typeorm-velocity-rule.repository';
+import { WatchlistRepository } from './domain/repositories/watchlist.repository';
+import { TypeOrmWatchlistRepository } from './infrastructure/repositories/typeorm-watchlist.repository';
+import { ComplianceCaseRepository } from './domain/repositories/compliance-case.repository';
+import { TypeOrmComplianceCaseRepository } from './infrastructure/repositories/typeorm-compliance-case.repository';
 
 // Guards
 import { TransactionScreeningGuard } from './application/guards';
@@ -59,6 +80,12 @@ import { TransactionScreeningGuard } from './application/guards';
       ComplianceReportOrmEntity,
       SuspiciousActivityReportOrmEntity,
       ComplianceAlertOrmEntity,
+      VelocityRuleOrmEntity,
+      WatchlistEntryOrmEntity,
+      WatchlistMatchOrmEntity,
+      ComplianceCaseOrmEntity,
+      CaseNoteOrmEntity,
+      CaseEvidenceOrmEntity,
       // External entities
       TransactionOrmEntity,
       UserOrmEntity,
@@ -67,19 +94,44 @@ import { TransactionScreeningGuard } from './application/guards';
     ScheduleModule.forRoot(), // Enable cron jobs
     EventEmitterModule.forRoot(), // Enable event emission
   ],
-  controllers: [ComplianceController],
+  controllers: [
+    ComplianceController,
+    VelocityRuleController,
+    ComplianceCaseController,
+  ],
   providers: [
     BCEAOReportingService,
     AMLCFTService,
     SARGeneratorService,
     ComplianceDashboardService,
+    VelocityRuleService,
+    WatchlistScreeningService,
+    ComplianceCaseService,
     TransactionScreeningGuard,
+    {
+      provide: VelocityRuleRepository,
+      useClass: TypeOrmVelocityRuleRepository,
+    },
+    {
+      provide: WatchlistRepository,
+      useClass: TypeOrmWatchlistRepository,
+    },
+    {
+      provide: ComplianceCaseRepository,
+      useClass: TypeOrmComplianceCaseRepository,
+    },
   ],
   exports: [
     BCEAOReportingService,
     AMLCFTService,
     SARGeneratorService,
     ComplianceDashboardService,
+    VelocityRuleService,
+    WatchlistScreeningService,
+    ComplianceCaseService,
+    VelocityRuleRepository,
+    WatchlistRepository,
+    ComplianceCaseRepository,
     TransactionScreeningGuard,
   ],
 })

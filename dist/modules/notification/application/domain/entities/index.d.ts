@@ -1,1 +1,1 @@
-export declare const Entities: any[];
+export declare const Entities: never[];

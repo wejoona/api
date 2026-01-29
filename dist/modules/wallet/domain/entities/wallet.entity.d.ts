@@ -1,24 +1,8 @@
 export type WalletStatus = 'active' | 'suspended' | 'closed';
 export type KycStatus = 'none' | 'pending' | 'verified' | 'rejected';
 export interface IWallet {
-    id: string;
-    userId: string;
-    yellowCardWalletId: string | null;
-    circleWalletId: string | null;
-    circleWalletAddress: string | null;
-    currency: string;
-    balance: number;
-    kycStatus: KycStatus;
-    status: WalletStatus;
-    createdAt: Date;
-    updatedAt: Date;
 }
 export interface CreateWalletProps {
-    userId: string;
-    yellowCardWalletId?: string;
-    circleWalletId?: string;
-    circleWalletAddress?: string;
-    currency?: string;
 }
 export declare class WalletEntity implements IWallet {
     readonly id: string;

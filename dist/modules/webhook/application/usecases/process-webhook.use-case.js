@@ -203,7 +203,10 @@ let ProcessWebhookUseCase = ProcessWebhookUseCase_1 = class ProcessWebhookUseCas
         }
         const payload = input.payload;
         const notificationType = payload.notificationType;
-        const webhookData = payload.transfer || payload.transaction || payload.inboundTransfer || payload;
+        const webhookData = payload.transfer ||
+            payload.transaction ||
+            payload.inboundTransfer ||
+            payload;
         const entityId = webhookData?.id || 'unknown';
         const webhookId = `circle:${entityId}:${notificationType}`;
         this.logger.log(`Circle webhook: ${notificationType}`);

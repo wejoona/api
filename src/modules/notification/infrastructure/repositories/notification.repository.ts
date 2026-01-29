@@ -4,7 +4,6 @@ import { Repository, LessThan } from 'typeorm';
 import {
   NotificationOrmEntity,
   NotificationType,
-  NotificationStatus,
 } from '../orm-entities/notification.orm-entity';
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');

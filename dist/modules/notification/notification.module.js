@@ -22,6 +22,7 @@ const shared_module_1 = require("../shared/shared.module");
 const user_preferences_module_1 = require("../user-preferences/user-preferences.module");
 const fcm_1 = require("./infrastructure/fcm");
 const event_listeners_1 = require("./application/domain/event-listeners");
+const adapters_1 = require("./infrastructure/adapters");
 let NotificationModule = class NotificationModule {
 };
 exports.NotificationModule = NotificationModule;
@@ -41,10 +42,11 @@ exports.NotificationModule = NotificationModule = __decorate([
             ...usecases_1.UseCases,
             ...services_1.Services,
             fcm_1.FcmTokenRepository,
+            adapters_1.NovuAdapter,
             event_listeners_1.NotificationEventListener,
         ],
         controllers: [...controllers_1.Controllers],
-        exports: [...services_1.Services],
+        exports: [...services_1.Services, adapters_1.NovuAdapter],
     })
 ], NotificationModule);
 //# sourceMappingURL=notification.module.js.map

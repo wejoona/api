@@ -41,6 +41,10 @@ exports.WalletModule = WalletModule = __decorate([
         ],
         providers: [
             wallet_repository_1.WalletRepository,
+            {
+                provide: 'WALLET_REPOSITORY',
+                useExisting: wallet_repository_1.WalletRepository,
+            },
             wallet_mapper_1.WalletMapper,
             pin_verification_guard_1.PinVerificationGuard,
             pin_verification_guard_1.PinTokenService,
@@ -62,6 +66,7 @@ exports.WalletModule = WalletModule = __decorate([
         controllers: [wallet_controller_1.WalletController, kyc_upload_controller_1.KycUploadController, export_controller_1.ExportController],
         exports: [
             wallet_repository_1.WalletRepository,
+            'WALLET_REPOSITORY',
             usecases_1.CreateWalletUseCase,
             usecases_1.InternalTransferUseCase,
             usecases_1.ExternalTransferUseCase,
