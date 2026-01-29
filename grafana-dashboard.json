@@ -1,0 +1,356 @@
+{
+  "dashboard": {
+    "title": "USDC Wallet - Performance Dashboard",
+    "tags": ["performance", "usdc-wallet", "nodejs"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "title": "Request Latency Percentiles",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(usdc_wallet_http_request_duration_seconds_bucket[5m])) by (le, path))",
+            "legendFormat": "p50 - {{path}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(usdc_wallet_http_request_duration_seconds_bucket[5m])) by (le, path))",
+            "legendFormat": "p95 - {{path}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(usdc_wallet_http_request_duration_seconds_bucket[5m])) by (le, path))",
+            "legendFormat": "p99 - {{path}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Latency (seconds)",
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_http_requests_total[5m])) by (method, path)",
+            "legendFormat": "{{method}} {{path}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Requests/sec",
+            "format": "reqps"
+          }
+        ]
+      },
+      {
+        "title": "Database Query Duration",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(usdc_wallet_db_query_duration_seconds_bucket[5m])) by (le, operation, table))",
+            "legendFormat": "p95 - {{operation}} {{table}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(usdc_wallet_db_query_duration_seconds_bucket[5m])) by (le, operation, table))",
+            "legendFormat": "p99 - {{operation}} {{table}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Duration (seconds)",
+            "format": "s"
+          }
+        ],
+        "alert": {
+          "name": "High Database Query Latency",
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.5],
+                "type": "gt"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "type": "query"
+            }
+          ],
+          "frequency": "1m",
+          "for": "5m"
+        }
+      },
+      {
+        "title": "Database Connection Pool",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "usdc_wallet_db_connection_pool_size{state=\"total\"}",
+            "legendFormat": "Total Connections"
+          },
+          {
+            "expr": "usdc_wallet_db_connection_pool_size{state=\"active\"}",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "usdc_wallet_db_connection_pool_size{state=\"idle\"}",
+            "legendFormat": "Idle Connections"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Connections",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_cache_hits_total[5m])) / (sum(rate(usdc_wallet_cache_hits_total[5m])) + sum(rate(usdc_wallet_cache_misses_total[5m]))) * 100",
+            "legendFormat": "Hit Rate"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {},
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "red" },
+                { "value": 70, "color": "yellow" },
+                { "value": 85, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Cache Operations/sec",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_cache_hits_total[5m])) + sum(rate(usdc_wallet_cache_misses_total[5m]))"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "title": "Error Rate",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_http_request_errors_total[5m])) / sum(rate(usdc_wallet_http_requests_total[5m])) * 100"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Active Users",
+        "type": "stat",
+        "gridPos": { "x": 18, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "usdc_wallet_active_users_gauge"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "title": "Transaction Volume",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_transactions_total[5m])) by (type, status)",
+            "legendFormat": "{{type}} - {{status}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Transactions/sec",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "title": "Transaction Amount Distribution",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(usdc_wallet_transaction_amount_usd_bucket[5m])) by (le, type))",
+            "legendFormat": "p50 - {{type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(usdc_wallet_transaction_amount_usd_bucket[5m])) by (le, type))",
+            "legendFormat": "p95 - {{type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(usdc_wallet_transaction_amount_usd_bucket[5m])) by (le, type))",
+            "legendFormat": "p99 - {{type}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Amount (USD)",
+            "format": "currencyUSD"
+          }
+        ]
+      },
+      {
+        "title": "External API Latency",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(usdc_wallet_external_api_latency_seconds_bucket[5m])) by (le, provider, endpoint))",
+            "legendFormat": "p95 - {{provider}} {{endpoint}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Latency (seconds)",
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "title": "External API Error Rate",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(usdc_wallet_external_api_errors_total[5m])) by (provider, endpoint)",
+            "legendFormat": "{{provider}} {{endpoint}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Errors/sec",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "title": "Node.js Heap Memory",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 36, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "usdc_wallet_nodejs_heap_size_used_bytes",
+            "legendFormat": "Heap Used"
+          },
+          {
+            "expr": "usdc_wallet_nodejs_heap_size_total_bytes",
+            "legendFormat": "Heap Total"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Memory",
+            "format": "bytes"
+          }
+        ]
+      },
+      {
+        "title": "Top 10 Slowest Endpoints",
+        "type": "table",
+        "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "topk(10, histogram_quantile(0.99, sum(rate(usdc_wallet_http_request_duration_seconds_bucket[5m])) by (le, path)))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "path": "Endpoint",
+                "Value": "p99 Latency (s)"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "endpoint",
+          "type": "query",
+          "query": "label_values(usdc_wallet_http_requests_total, path)",
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "provider",
+          "type": "query",
+          "query": "label_values(usdc_wallet_external_api_calls_total, provider)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "iconColor": "green"
+        }
+      ]
+    }
+  }
+}

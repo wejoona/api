@@ -8,12 +8,15 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { SanitizeSingleLine, SanitizeHtml } from '../../../../../common/decorators';
 
 export class CreateContactDto {
   @ApiProperty({
     description: 'Contact display name',
     example: 'Amadou Diallo',
   })
+  // SECURITY: Sanitize name to prevent stored XSS (OWASP A03:2021)
+  @SanitizeSingleLine(100)
   @IsString()
   @MinLength(1)
   @MaxLength(100)
@@ -59,6 +62,8 @@ export class UpdateContactDto {
     description: 'Contact display name',
     example: 'Amadou Diallo',
   })
+  // SECURITY: Sanitize name to prevent stored XSS (OWASP A03:2021)
+  @SanitizeSingleLine(100)
   @IsOptional()
   @IsString()
   @MinLength(1)
@@ -79,6 +84,8 @@ export class SearchContactsDto {
     description: 'Search query (name or username)',
     example: 'ama',
   })
+  // SECURITY: Sanitize search query to prevent injection
+  @SanitizeHtml({ maxLength: 50, htmlMode: 'strip' })
   @IsString()
   @MinLength(1)
   @MaxLength(50)

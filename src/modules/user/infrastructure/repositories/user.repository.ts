@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { User } from '../../application/domain/entities';
 import { UserOrmEntity } from '../orm-entities';
 import { UserMapper } from '../mappers';
+import { escapeLikePattern } from '../../../../common/utils/sql-utils';
 
 @Injectable()
 export class UserRepository {
@@ -80,10 +81,12 @@ export class UserRepository {
 
   async searchByUsername(query: string, limit = 10): Promise<User[]> {
     const normalizedQuery = query.toLowerCase().replace(/^@/, '');
+    // SECURITY: Escape LIKE wildcards to prevent pattern injection
+    const escapedQuery = escapeLikePattern(normalizedQuery);
     const orms = await this.ormRepository
       .createQueryBuilder('user')
       .where('LOWER(user.username) LIKE :query', {
-        query: `${normalizedQuery}%`,
+        query: `${escapedQuery}%`,
       })
       .take(limit)
       .getMany();

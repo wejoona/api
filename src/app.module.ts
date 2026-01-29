@@ -45,11 +45,20 @@ import { SessionModule } from './modules/session/session.module';
 import { BeneficiaryModule } from './modules/beneficiary/beneficiary.module';
 import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
 import { ApiKeysModule } from './modules/api-keys';
+import { SlaConfigurationModule } from './modules/sla-configuration';
+import { SupportModule } from './modules/support';
+import { DataRetentionModule } from './modules/data-retention';
+import { ProfilingModule } from './modules/profiling';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
 import { YellowCardModule } from './modules/providers/yellowcard';
 import { BlnkModule } from './modules/providers/blnk';
+import { TwilioModule } from './modules/twilio/twilio.module';
+
+// APM and Profiling
+import { ApmService } from './common/apm';
+import { DatabaseProfiler } from './common/profilers/database.profiler';
 
 @Module({
   imports: [
@@ -137,6 +146,7 @@ import { BlnkModule } from './modules/providers/blnk';
     CircleModule, // Identity, Wallets, Transfers
     YellowCardModule, // On-ramp/Off-ramp for Africa
     BlnkModule, // Ledger/Accounting (source of truth)
+    TwilioModule, // SMS OTP delivery and webhook handling
 
     // Core feature modules
     SharedModule,
@@ -169,10 +179,16 @@ import { BlnkModule } from './modules/providers/blnk';
     BillPaymentsModule, // Bill payments for West African utilities
     MonitoringModule, // Transaction monitoring and alerts
     ComplianceModule, // BCEAO compliance and AML/CFT
+    SlaConfigurationModule, // SLA configurations for support tickets and KYC
+    SupportModule, // Customer support ticket system with SLA tracking
+    DataRetentionModule, // Data retention policies and GDPR compliance
+    ProfilingModule, // Performance profiling and monitoring
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    ApmService,
+    DatabaseProfiler,
     // Apply rate limiting globally to all endpoints
     {
       provide: APP_GUARD,

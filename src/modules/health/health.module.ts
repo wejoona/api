@@ -5,11 +5,19 @@ import {
   CircleHealthIndicator,
   BlnkHealthIndicator,
   RedisHealthIndicator,
+  YellowCardHealthIndicator,
+  TwilioHealthIndicator,
 } from './health-indicators';
 
 @Module({
   imports: [TerminusModule],
   controllers: [HealthController],
-  providers: [CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator],
+  providers: [
+    CircleHealthIndicator,
+    BlnkHealthIndicator,
+    RedisHealthIndicator,
+    YellowCardHealthIndicator,
+    TwilioHealthIndicator,
+  ],
 })
 export class HealthModule {}

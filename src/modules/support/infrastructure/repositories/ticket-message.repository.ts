@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TicketMessageRepository } from '../../domain/repositories/ticket-message.repository';
-import { TicketMessage } from '../../domain/entities/ticket-message.entity';
+import { TicketMessage, MessageSenderType } from '../../domain/entities/ticket-message.entity';
 import { TicketMessageOrmEntity } from '../orm-entities/ticket-message.orm-entity';
 import { TicketMessageMapper } from '../mappers/ticket-message.mapper';
 
@@ -57,6 +57,17 @@ export class TypeOrmTicketMessageRepository extends TicketMessageRepository {
     const entity = await this.repo.findOne({
       where!: { ticketId },
       order: { createdAt: 'DESC' },
+    });
+    return entity ? this.mapper.toDomain(entity) : null;
+  }
+
+  async findFirstBySenderType(
+    ticketId: string,
+    senderType: MessageSenderType,
+  ): Promise<TicketMessage | null> {
+    const entity = await this.repo.findOne({
+      where: { ticketId, senderType },
+      order: { createdAt: 'ASC' },
     });
     return entity ? this.mapper.toDomain(entity) : null;
   }

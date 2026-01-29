@@ -1,0 +1,10 @@
+# k6 reports
+reports/*.html
+reports/*.json
+
+# Temporary files
+*.tmp
+*.log
+
+# Environment files (if any)
+.env.load-test

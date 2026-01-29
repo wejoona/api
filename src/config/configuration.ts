@@ -72,6 +72,16 @@ export default () => ({
     senderId: process.env.SMS_SENDER_ID || 'JoonaPay',
   },
 
+  // Twilio Configuration (SMS/Voice)
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || '',
+    fromNumber: process.env.TWILIO_FROM_NUMBER || '',
+    useMock:
+      process.env.TWILIO_USE_MOCK === 'true' ||
+      !process.env.TWILIO_ACCOUNT_SID,
+  },
+
   // OTP Settings
   otp: {
     expiresIn: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300, // 5 minutes
@@ -189,5 +199,13 @@ export default () => ({
     // PEP screening (future integration)
     pepScreeningEnabled: process.env.PEP_SCREENING_ENABLED === 'true',
     pepScreeningProvider: process.env.PEP_SCREENING_PROVIDER || '', // 'world-check', 'dow-jones', etc.
+  },
+
+  // APM (Application Performance Monitoring)
+  apm: {
+    enabled: process.env.APM_ENABLED === 'true',
+    provider: process.env.APM_PROVIDER || 'none', // 'newrelic', 'datadog', 'none'
+    serviceName: process.env.APM_SERVICE_NAME || 'usdc-wallet',
+    version: process.env.APP_VERSION || '1.0.0',
   },
 });

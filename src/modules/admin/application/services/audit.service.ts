@@ -5,6 +5,7 @@ import {
   AuditLogEntity,
   ActorType,
 } from '../../infrastructure/persistence/typeorm/entities/audit-log.entity';
+import { escapeLikePattern } from '../../../../common/utils/sql-utils';
 
 export interface AuditLogData {
   actorId?: string;
@@ -82,8 +83,10 @@ export class AuditService {
     }
 
     if (params.action) {
+      // SECURITY: Escape LIKE wildcards to prevent pattern injection
+      const escapedAction = escapeLikePattern(params.action);
       queryBuilder.andWhere('audit.action LIKE :action', {
-        action: `%${params.action}%`,
+        action: `%${escapedAction}%`,
       });
     }
 

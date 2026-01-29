@@ -60,6 +60,21 @@ export class LegalController {
     return this.legalService.getPrivacyPolicy(query.locale || 'en');
   }
 
+  @Get('cookies')
+  @Public()
+  @ApiOperation({
+    summary: 'Get Cookie Policy',
+    description: 'Retrieve the current Cookie Policy document',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cookie Policy document',
+    type: LegalDocumentDto,
+  })
+  getCookiePolicy(@Query() query: GetLegalDocumentQueryDto): LegalDocumentDto {
+    return this.legalService.getCookiePolicy(query.locale || 'en');
+  }
+
   @Post('consent')
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()

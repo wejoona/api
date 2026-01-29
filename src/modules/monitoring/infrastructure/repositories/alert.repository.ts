@@ -14,6 +14,11 @@ import {
   AlertType,
   AlertSeverity,
 } from '../../domain/interfaces/monitoring.types';
+import {
+  validateSortColumn,
+  validateSortOrder,
+  ALLOWED_SORT_COLUMNS,
+} from '../../../../common/utils/sql-utils';
 
 @Injectable()
 export class AlertRepository {
@@ -134,7 +139,17 @@ export class AlertRepository {
     const total = await queryBuilder.getCount();
 
     // Apply sorting and pagination
-    queryBuilder.orderBy(`alert.${sortBy}`, sortOrder).skip(skip).take(limit);
+    // SECURITY: Validate sort column against allowlist to prevent SQL injection
+    const validSortBy = validateSortColumn(
+      sortBy,
+      ALLOWED_SORT_COLUMNS.alert,
+      'createdAt',
+    );
+    const validSortOrder = validateSortOrder(sortOrder, 'DESC');
+    queryBuilder
+      .orderBy(`alert.${validSortBy}`, validSortOrder)
+      .skip(skip)
+      .take(limit);
 
     const entities = await queryBuilder.getMany();
     const alerts = entities.map((e) => this.toDomain(e));

@@ -13,6 +13,7 @@ import {
 } from '../../domain/entities/watchlist-match.entity';
 import { WatchlistEntryOrmEntity } from '../orm-entities/watchlist-entry.orm-entity';
 import { WatchlistMatchOrmEntity } from '../orm-entities/watchlist-match.orm-entity';
+import { escapeLikePattern } from '../../../../common/utils/sql-utils';
 
 @Injectable()
 export class TypeOrmWatchlistRepository extends WatchlistRepository {
@@ -47,14 +48,16 @@ export class TypeOrmWatchlistRepository extends WatchlistRepository {
     name: string,
     listType?: WatchlistListType,
   ): Promise<WatchlistEntry[]> {
+    // SECURITY: Escape LIKE wildcards to prevent pattern injection
+    const escapedName = escapeLikePattern(name);
     const queryBuilder = this.entryRepo
       .createQueryBuilder('entry')
       .where('entry.is_active = :isActive', { isActive: true })
       .andWhere(
         '(LOWER(entry.name) LIKE LOWER(:name) OR entry.aliases::text ILIKE :aliasPattern)',
         {
-          name: `%${name}%`,
-          aliasPattern: `%${name}%`,
+          name: `%${escapedName}%`,
+          aliasPattern: `%${escapedName}%`,
         },
       );
 

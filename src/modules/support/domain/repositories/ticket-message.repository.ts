@@ -23,4 +23,9 @@ export abstract class TicketMessageRepository {
   abstract countByTicketId(ticketId: string): Promise<number>;
 
   abstract getLatestByTicketId(ticketId: string): Promise<TicketMessage | null>;
+
+  abstract findFirstBySenderType(
+    ticketId: string,
+    senderType: MessageSenderType,
+  ): Promise<TicketMessage | null>;
 }

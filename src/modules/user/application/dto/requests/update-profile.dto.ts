@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { SanitizeSingleLine } from '../../../../../common/decorators';
 
 export class UpdateProfileDto {
   @ApiProperty({
@@ -33,6 +34,8 @@ export class UpdateProfileDto {
     example: 'Amadou',
     required: false,
   })
+  // SECURITY: Sanitize name to prevent stored XSS (OWASP A03:2021)
+  @SanitizeSingleLine(100)
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -43,6 +46,8 @@ export class UpdateProfileDto {
     example: 'Diallo',
     required: false,
   })
+  // SECURITY: Sanitize name to prevent stored XSS (OWASP A03:2021)
+  @SanitizeSingleLine(100)
   @IsOptional()
   @IsString()
   @MaxLength(100)

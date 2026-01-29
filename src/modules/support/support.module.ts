@@ -9,17 +9,21 @@ import { TypeOrmTicketMessageRepository } from './infrastructure/repositories/ti
 import { SupportTicketMapper } from './infrastructure/mappers/support-ticket.mapper';
 import { TicketMessageMapper } from './infrastructure/mappers/ticket-message.mapper';
 import { SupportService } from './application/services/support.service';
+import { SupportSlaService } from './application/services/support-sla.service';
 import { SupportController } from './application/controllers/support.controller';
+import { SlaConfigurationModule } from '../sla-configuration';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([SupportTicketOrmEntity, TicketMessageOrmEntity]),
+    SlaConfigurationModule,
   ],
   controllers: [SupportController],
   providers: [
     SupportTicketMapper,
     TicketMessageMapper,
     SupportService,
+    SupportSlaService,
     {
       provide: SupportTicketRepository,
       useClass: TypeOrmSupportTicketRepository,
@@ -29,6 +33,6 @@ import { SupportController } from './application/controllers/support.controller'
       useClass: TypeOrmTicketMessageRepository,
     },
   ],
-  exports: [SupportService, SupportTicketRepository, TicketMessageRepository],
+  exports: [SupportService, SupportSlaService, SupportTicketRepository, TicketMessageRepository],
 })
 export class SupportModule {}

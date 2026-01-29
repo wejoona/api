@@ -5,6 +5,12 @@ import { TransactionOrmEntity } from '../orm-entities/transaction.orm-entity';
 import { TransactionEntity } from '../../domain/entities/transaction.entity';
 import { TransactionFilters } from '../../application/dto/requests';
 import { Injectable } from '@nestjs/common';
+import {
+  validateSortColumn,
+  validateSortOrder,
+  escapeLikePattern,
+  ALLOWED_SORT_COLUMNS,
+} from '../../../../common/utils/sql-utils';
 
 @Injectable()
 export class TransactionRepository {
@@ -223,8 +229,10 @@ export class TransactionRepository {
     }
 
     // Apply text search (ILIKE for case-insensitive search)
+    // SECURITY: Escape LIKE wildcards to prevent pattern injection
     if (filters.search) {
-      const searchPattern = `%${filters.search}%`;
+      const escapedSearch = escapeLikePattern(filters.search);
+      const searchPattern = `%${escapedSearch}%`;
       query.andWhere(
         '(tx.yellowCardRef ILIKE :search OR tx.recipientPhone ILIKE :search OR tx.recipientAddress ILIKE :search)',
         { search: searchPattern },
@@ -232,9 +240,14 @@ export class TransactionRepository {
     }
 
     // Apply sorting
-    const sortBy = filters.sortBy || 'createdAt';
-    const sortOrder = filters.sortOrder || 'DESC';
-    query.orderBy(`tx.${sortBy}`, sortOrder);
+    // SECURITY: Validate sort column against allowlist to prevent SQL injection
+    const validSortBy = validateSortColumn(
+      filters.sortBy,
+      ALLOWED_SORT_COLUMNS.transaction,
+      'createdAt',
+    );
+    const validSortOrder = validateSortOrder(filters.sortOrder, 'DESC');
+    query.orderBy(`tx.${validSortBy}`, validSortOrder);
 
     // Execute paginated query with count
     const [ormEntities, total] = await query

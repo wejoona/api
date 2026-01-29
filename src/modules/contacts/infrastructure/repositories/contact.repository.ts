@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Contact } from '../../domain/entities';
 import { ContactOrmEntity } from '../orm-entities';
 import { ContactMapper } from '../mappers';
+import { escapeLikePattern } from '../../../../common/utils/sql-utils';
 
 @Injectable()
 export class ContactRepository {
@@ -80,12 +81,14 @@ export class ContactRepository {
     query: string,
     limit = 10,
   ): Promise<Contact[]> {
+    // SECURITY: Escape LIKE wildcards to prevent pattern injection
+    const escapedQuery = escapeLikePattern(query.toLowerCase());
     const orms = await this.ormRepository
       .createQueryBuilder('contact')
       .where('contact.user_id = :userId', { userId })
       .andWhere(
         '(LOWER(contact.name) LIKE :query OR LOWER(contact.username) LIKE :query)',
-        { query: `%${query.toLowerCase()}%` },
+        { query: `%${escapedQuery}%` },
       )
       .orderBy('contact.is_favorite', 'DESC')
       .addOrderBy('contact.transaction_count', 'DESC')

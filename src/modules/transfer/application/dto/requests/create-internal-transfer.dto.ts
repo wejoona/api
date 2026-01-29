@@ -8,6 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SanitizeNote } from '../../../../../common/decorators';
 
 export class CreateInternalTransferDto {
   @ApiProperty({
@@ -43,6 +44,8 @@ export class CreateInternalTransferDto {
     example: 'Payment for lunch',
     maxLength: 500,
   })
+  // SECURITY: Sanitize note to prevent stored XSS (OWASP A03:2021)
+  @SanitizeNote(500)
   @IsOptional()
   @IsString()
   @MaxLength(500, { message: 'Note cannot exceed 500 characters' })

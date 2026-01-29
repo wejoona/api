@@ -11,6 +11,8 @@ import {
   CircleHealthIndicator,
   BlnkHealthIndicator,
   RedisHealthIndicator,
+  YellowCardHealthIndicator,
+  TwilioHealthIndicator,
 } from './health-indicators';
 
 @ApiTags('Health')
@@ -23,6 +25,8 @@ export class HealthController {
     private readonly circleHealth: CircleHealthIndicator,
     private readonly blnkHealth: BlnkHealthIndicator,
     private readonly redisHealth: RedisHealthIndicator,
+    private readonly yellowCardHealth: YellowCardHealthIndicator,
+    private readonly twilioHealth: TwilioHealthIndicator,
   ) {}
 
   @Get()
@@ -151,6 +155,200 @@ export class HealthController {
       },
       uptime: process.uptime(),
       memory: process.memoryUsage(),
+    };
+  }
+
+  @Get('providers')
+  @ApiOperation({ summary: 'Provider health status for dashboard' })
+  @ApiResponse({
+    status: 200,
+    description: 'Provider health status',
+    schema: {
+      example: {
+        status: 'ok',
+        timestamp: '2026-01-29T12:00:00.000Z',
+        providers: {
+          circle: {
+            status: 'up',
+            latency: '150ms',
+            lastSuccess: '2026-01-29T12:00:00.000Z',
+          },
+        },
+        healthScore: 100,
+        alertCount: 0,
+      },
+    },
+  })
+  async providers() {
+    const providers: Record<
+      string,
+      {
+        name: string;
+        status: 'up' | 'down' | 'degraded';
+        latency: string | null;
+        lastSuccess: string | null;
+        error: string | null;
+        type: 'api' | 'database' | 'cache' | 'messaging';
+      }
+    > = {};
+
+    const now = new Date().toISOString();
+    let healthyCount = 0;
+    const totalProviders = 6;
+
+    // Check Circle API
+    try {
+      const result = await this.circleHealth.isHealthy('circle');
+      providers.circle = {
+        name: 'Circle API',
+        status: 'up',
+        latency: result.circle?.latency || null,
+        lastSuccess: now,
+        error: null,
+        type: 'api',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.circle = {
+        name: 'Circle API',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'api',
+      };
+    }
+
+    // Check Yellow Card API
+    try {
+      const result = await this.yellowCardHealth.isHealthy('yellowcard');
+      providers.yellowcard = {
+        name: 'Yellow Card API',
+        status: 'up',
+        latency: result.yellowcard?.latency || null,
+        lastSuccess: now,
+        error: null,
+        type: 'api',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.yellowcard = {
+        name: 'Yellow Card API',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'api',
+      };
+    }
+
+    // Check Blnk Ledger
+    try {
+      const result = await this.blnkHealth.isHealthy('blnk');
+      providers.blnk = {
+        name: 'Blnk Ledger',
+        status: 'up',
+        latency: result.blnk?.latency || null,
+        lastSuccess: now,
+        error: null,
+        type: 'api',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.blnk = {
+        name: 'Blnk Ledger',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'api',
+      };
+    }
+
+    // Check Twilio SMS
+    try {
+      const result = await this.twilioHealth.isHealthy('twilio');
+      providers.twilio = {
+        name: 'Twilio SMS',
+        status: 'up',
+        latency: result.twilio?.latency || null,
+        lastSuccess: now,
+        error: null,
+        type: 'messaging',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.twilio = {
+        name: 'Twilio SMS',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'messaging',
+      };
+    }
+
+    // Check Redis
+    try {
+      const result = await this.redisHealth.isHealthy('redis');
+      providers.redis = {
+        name: 'Redis Cache',
+        status: 'up',
+        latency: result.redis?.latency || null,
+        lastSuccess: now,
+        error: null,
+        type: 'cache',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.redis = {
+        name: 'Redis Cache',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'cache',
+      };
+    }
+
+    // Check PostgreSQL
+    try {
+      const startDb = Date.now();
+      await this.db.pingCheck('database');
+      providers.postgresql = {
+        name: 'PostgreSQL',
+        status: 'up',
+        latency: `${Date.now() - startDb}ms`,
+        lastSuccess: now,
+        error: null,
+        type: 'database',
+      };
+      healthyCount++;
+    } catch (error: any) {
+      providers.postgresql = {
+        name: 'PostgreSQL',
+        status: 'down',
+        latency: null,
+        lastSuccess: null,
+        error: error.message || 'Connection failed',
+        type: 'database',
+      };
+    }
+
+    const healthScore = Math.round((healthyCount / totalProviders) * 100);
+    const alertCount = totalProviders - healthyCount;
+
+    return {
+      status: healthyCount === totalProviders ? 'ok' : 'degraded',
+      timestamp: now,
+      providers,
+      healthScore,
+      alertCount,
+      summary: {
+        total: totalProviders,
+        healthy: healthyCount,
+        unhealthy: alertCount,
+      },
     };
   }
 }

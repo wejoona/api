@@ -7,9 +7,9 @@ export class LegalDocumentDto {
 
   @ApiProperty({
     description: 'Document type',
-    enum: ['terms_of_service', 'privacy_policy'],
+    enum: ['terms_of_service', 'privacy_policy', 'cookie_policy'],
   })
-  type: 'terms_of_service' | 'privacy_policy';
+  type: 'terms_of_service' | 'privacy_policy' | 'cookie_policy';
 
   @ApiProperty({ description: 'Semantic version (e.g., 1.2.0)' })
   version: string;
@@ -47,10 +47,10 @@ export class LegalConsentDto {
 
   @ApiProperty({
     description: 'Document type',
-    enum: ['terms_of_service', 'privacy_policy'],
+    enum: ['terms_of_service', 'privacy_policy', 'cookie_policy'],
   })
-  @IsEnum(['terms_of_service', 'privacy_policy'])
-  document_type: 'terms_of_service' | 'privacy_policy';
+  @IsEnum(['terms_of_service', 'privacy_policy', 'cookie_policy'])
+  document_type: 'terms_of_service' | 'privacy_policy' | 'cookie_policy';
 
   @ApiProperty({ description: 'Timestamp of consent' })
   @IsDateString()
