@@ -42,57 +42,50 @@ export class ComplianceDashboardService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    this.logger.log(
-      `Generating compliance dashboard for last ${days} days`,
-    );
+    this.logger.log(`Generating compliance dashboard for last ${days} days`);
 
     // Fetch data in parallel
-    const [
-      recentReports,
-      openAlerts,
-      pendingSARs,
-      recentSARs,
-      recentAlerts,
-    ] = await Promise.all([
-      this.reportRepository.find({
-        where: {
-          createdAt: MoreThan(startDate),
-        },
-        order: {
-          createdAt: 'DESC',
-        },
-      }),
-      this.alertRepository.count({
-        where: {
-          resolved: false,
-        },
-      }),
-      this.sarRepository.count({
-        where: {
-          status: In(['draft', 'under_investigation']),
-        },
-      }),
-      this.sarRepository.find({
-        where: {
-          createdAt: MoreThan(startDate),
-        },
-        relations: ['user'],
-        order: {
-          createdAt: 'DESC',
-        },
-        take: 10,
-      }),
-      this.alertRepository.find({
-        where: {
-          createdAt: MoreThan(startDate),
-        },
-        relations: ['user'],
-        order: {
-          createdAt: 'DESC',
-        },
-        take: 10,
-      }),
-    ]);
+    const [recentReports, openAlerts, pendingSARs, recentSARs, recentAlerts] =
+      await Promise.all([
+        this.reportRepository.find({
+          where: {
+            createdAt: MoreThan(startDate),
+          },
+          order: {
+            createdAt: 'DESC',
+          },
+        }),
+        this.alertRepository.count({
+          where: {
+            resolved: false,
+          },
+        }),
+        this.sarRepository.count({
+          where: {
+            status: In(['draft', 'under_investigation']),
+          },
+        }),
+        this.sarRepository.find({
+          where: {
+            createdAt: MoreThan(startDate),
+          },
+          relations: ['user'],
+          order: {
+            createdAt: 'DESC',
+          },
+          take: 10,
+        }),
+        this.alertRepository.find({
+          where: {
+            createdAt: MoreThan(startDate),
+          },
+          relations: ['user'],
+          order: {
+            createdAt: 'DESC',
+          },
+          take: 10,
+        }),
+      ]);
 
     // Calculate aggregate metrics
     const metrics = this.aggregateMetrics(recentReports);
@@ -139,7 +132,8 @@ export class ComplianceDashboardService {
         const data = report.reportData as any;
 
         return {
-          totalDeposits: acc.totalDeposits + (data?.metrics?.totalDeposits || 0),
+          totalDeposits:
+            acc.totalDeposits + (data?.metrics?.totalDeposits || 0),
           totalWithdrawals:
             acc.totalWithdrawals + (data?.metrics?.totalWithdrawals || 0),
           totalTransfers:
@@ -325,7 +319,8 @@ export class ComplianceDashboardService {
     const factors: Array<{ name: string; score: number; weight: number }> = [];
 
     // Factor 1: Report submission timeliness (30%)
-    const reportStats = await this.bceaoReportingService.getReportStatistics(30);
+    const reportStats =
+      await this.bceaoReportingService.getReportStatistics(30);
     const reportTimeliness =
       reportStats.averageProcessingTime < 24
         ? 100
@@ -502,10 +497,14 @@ export class ComplianceDashboardService {
   ): Promise<Record<string, unknown>> {
     const [reportStats, sarStats, alerts] = await Promise.all([
       this.bceaoReportingService.getReportStatistics(
-        Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)),
+        Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
       ),
       this.sarGeneratorService.getSARStatistics(
-        Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)),
+        Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
       ),
       this.alertRepository.find({
         where: {

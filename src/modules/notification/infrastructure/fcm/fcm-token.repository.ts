@@ -62,9 +62,7 @@ export class FcmTokenRepository implements IFcmTokenRepository {
   /**
    * Save or create a token
    */
-  async save(
-    fcmToken: Partial<FcmTokenOrmEntity>,
-  ): Promise<FcmTokenOrmEntity> {
+  async save(fcmToken: Partial<FcmTokenOrmEntity>): Promise<FcmTokenOrmEntity> {
     const entity = this.repository.create(fcmToken);
     return this.repository.save(entity);
   }
@@ -177,7 +175,9 @@ export class FcmTokenRepository implements IFcmTokenRepository {
   /**
    * Get count of active tokens by platform
    */
-  async getActiveTokenStats(): Promise<{ platform: FcmPlatform; count: number }[]> {
+  async getActiveTokenStats(): Promise<
+    { platform: FcmPlatform; count: number }[]
+  > {
     return this.repository
       .createQueryBuilder('token')
       .select('token.platform', 'platform')

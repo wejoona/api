@@ -75,7 +75,11 @@ export class ContactRepository {
     return orm ? ContactMapper.toDomain(orm) : null;
   }
 
-  async searchByName(userId: string, query: string, limit = 10): Promise<Contact[]> {
+  async searchByName(
+    userId: string,
+    query: string,
+    limit = 10,
+  ): Promise<Contact[]> {
     const orms = await this.ormRepository
       .createQueryBuilder('contact')
       .where('contact.user_id = :userId', { userId })

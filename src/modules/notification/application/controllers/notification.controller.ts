@@ -26,11 +26,14 @@ import {
   MarkAllNotificationsReadUseCase,
   RegisterDeviceTokenUseCase,
   UnregisterDeviceTokenUseCase,
+  UnregisterAllDeviceTokensUseCase,
   GetUnreadCountUseCase,
 } from '../domain/usecases';
 import {
   RegisterDeviceTokenRequest,
   GetNotificationsRequest,
+  RegisterFcmTokenRequest,
+  RemoveFcmTokenRequest,
 } from '../dto/requests';
 import {
   NotificationListResponse,
@@ -48,6 +51,7 @@ export class NotificationController {
     private readonly markAllNotificationsReadUseCase: MarkAllNotificationsReadUseCase,
     private readonly registerDeviceTokenUseCase: RegisterDeviceTokenUseCase,
     private readonly unregisterDeviceTokenUseCase: UnregisterDeviceTokenUseCase,
+    private readonly unregisterAllDeviceTokensUseCase: UnregisterAllDeviceTokensUseCase,
     private readonly getUnreadCountUseCase: GetUnreadCountUseCase,
   ) {}
 
@@ -199,5 +203,72 @@ export class NotificationController {
   })
   async unregisterDeviceToken(@Param('token') token: string): Promise<void> {
     await this.unregisterDeviceTokenUseCase.execute({ token });
+  }
+
+  // Mobile SDK compatible endpoints
+
+  @Post('push/token')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register FCM push token (mobile SDK compatible)' })
+  @ApiResponse({
+    status: 201,
+    description: 'FCM token registered successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data',
+  })
+  async registerPushToken(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: RegisterFcmTokenRequest,
+  ): Promise<{ message: string }> {
+    await this.registerDeviceTokenUseCase.execute({
+      userId: req.user.id,
+      token: body.token,
+      platform: body.platform,
+      deviceId: body.deviceId,
+      deviceName: body.deviceName,
+      // Note: appVersion and osVersion are accepted but not yet stored in the entity
+      // These can be added to the entity and repository in a future migration
+    });
+
+    return {
+      message: 'Push token registered successfully',
+    };
+  }
+
+  @Delete('push/token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Remove a specific FCM push token (mobile SDK compatible)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'FCM token removed successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data',
+  })
+  async removePushToken(@Body() body: RemoveFcmTokenRequest): Promise<void> {
+    await this.unregisterDeviceTokenUseCase.execute({ token: body.token });
+  }
+
+  @Delete('push/tokens')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Remove all FCM push tokens for current user (mobile SDK compatible)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'All FCM tokens removed successfully',
+  })
+  async removeAllPushTokens(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<void> {
+    await this.unregisterAllDeviceTokensUseCase.execute({
+      userId: req.user.id,
+    });
   }
 }

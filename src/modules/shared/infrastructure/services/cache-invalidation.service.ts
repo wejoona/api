@@ -38,10 +38,15 @@ export class CacheInvalidationService {
    * Invalidate exchange rate cache
    * Called when: rates need to be refreshed (typically not manually invalidated)
    */
-  async invalidateRate(sourceCurrency: string, targetCurrency: string): Promise<void> {
+  async invalidateRate(
+    sourceCurrency: string,
+    targetCurrency: string,
+  ): Promise<void> {
     const cacheKey = `rate:${sourceCurrency}:${targetCurrency}`;
     await this.cacheManager.del(cacheKey);
-    this.logger.debug(`Invalidated rate cache: ${sourceCurrency} -> ${targetCurrency}`);
+    this.logger.debug(
+      `Invalidated rate cache: ${sourceCurrency} -> ${targetCurrency}`,
+    );
   }
 
   /**
@@ -59,6 +64,8 @@ export class CacheInvalidationService {
   async clearAll(): Promise<void> {
     // Note: cache-manager v5+ doesn't have reset(). Clear known patterns instead.
     // For full cache clear, use Redis CLI: FLUSHDB
-    this.logger.warn('clearAll() called - for full cache reset, use Redis FLUSHDB command');
+    this.logger.warn(
+      'clearAll() called - for full cache reset, use Redis FLUSHDB command',
+    );
   }
 }

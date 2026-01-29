@@ -1,5 +1,13 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { BillPaymentRepository, BillProviderRepository } from '../../infrastructure/repositories';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
+import {
+  BillPaymentRepository,
+  BillProviderRepository,
+} from '../../infrastructure/repositories';
 import { BillPaymentReceipt } from '../../domain/types';
 
 export interface GetReceiptInput {
@@ -17,7 +25,9 @@ export class GetReceiptUseCase {
   ) {}
 
   async execute(input: GetReceiptInput): Promise<BillPaymentReceipt> {
-    this.logger.debug(`Getting receipt: paymentId=${input.paymentId}, userId=${input.userId}`);
+    this.logger.debug(
+      `Getting receipt: paymentId=${input.paymentId}, userId=${input.userId}`,
+    );
 
     const payment = await this.paymentRepository.findById(input.paymentId);
 
@@ -52,7 +62,8 @@ export class GetReceiptUseCase {
 
     return {
       paymentId: payment.id,
-      receiptNumber: payment.receiptNumber || `RCP-${payment.id.slice(0, 8).toUpperCase()}`,
+      receiptNumber:
+        payment.receiptNumber || `RCP-${payment.id.slice(0, 8).toUpperCase()}`,
       providerName: provider?.name || 'Unknown Provider',
       providerLogo: provider?.logo || '',
       category: payment.category,

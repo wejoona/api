@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationPreferences, UpdateNotificationPreferencesProps } from '../entities';
+import {
+  NotificationPreferences,
+  UpdateNotificationPreferencesProps,
+} from '../entities';
 import { NotificationPreferencesRepository } from '../../../infrastructure/repositories';
 
 export interface UpdateNotificationPreferencesInput extends UpdateNotificationPreferencesProps {
@@ -8,7 +11,9 @@ export interface UpdateNotificationPreferencesInput extends UpdateNotificationPr
 
 @Injectable()
 export class UpdateNotificationPreferencesUsecase {
-  private readonly logger = new Logger(UpdateNotificationPreferencesUsecase.name);
+  private readonly logger = new Logger(
+    UpdateNotificationPreferencesUsecase.name,
+  );
 
   constructor(
     private readonly preferencesRepository: NotificationPreferencesRepository,
@@ -18,7 +23,9 @@ export class UpdateNotificationPreferencesUsecase {
    * Update notification preferences for a user
    * Creates default preferences if none exist, then applies updates
    */
-  async execute(input: UpdateNotificationPreferencesInput): Promise<NotificationPreferences> {
+  async execute(
+    input: UpdateNotificationPreferencesInput,
+  ): Promise<NotificationPreferences> {
     const { userId, ...updateProps } = input;
 
     // Get existing preferences or create new ones

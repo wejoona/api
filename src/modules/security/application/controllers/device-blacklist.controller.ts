@@ -20,11 +20,21 @@ import {
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsUUID, IsDateString, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsDateString,
+  MaxLength,
+} from 'class-validator';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
-import { DeviceBlacklistService, BlacklistDeviceInput } from '../services/device-blacklist.service';
+import {
+  DeviceBlacklistService,
+  BlacklistDeviceInput,
+} from '../services/device-blacklist.service';
 import { SkipDeviceCheck } from '../guards/device-blacklist.guard';
 
 // DTOs
@@ -34,7 +44,12 @@ class BlacklistDeviceDto {
   deviceFingerprint: string;
 
   @IsEnum(['device_id', 'fingerprint', 'ip_address', 'ip_range', 'user_agent'])
-  identifierType: 'device_id' | 'fingerprint' | 'ip_address' | 'ip_range' | 'user_agent';
+  identifierType:
+    | 'device_id'
+    | 'fingerprint'
+    | 'ip_address'
+    | 'ip_range'
+    | 'user_agent';
 
   @IsString()
   @MaxLength(1000)
@@ -86,7 +101,12 @@ export class DeviceBlacklistController {
   @ApiOperation({ summary: 'Get all blacklisted devices' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 50 })
   @ApiQuery({ name: 'offset', required: false, type: Number, example: 0 })
-  @ApiQuery({ name: 'activeOnly', required: false, type: Boolean, example: true })
+  @ApiQuery({
+    name: 'activeOnly',
+    required: false,
+    type: Boolean,
+    example: true,
+  })
   @ApiQuery({
     name: 'identifierType',
     required: false,
@@ -107,7 +127,7 @@ export class DeviceBlacklistController {
     });
 
     return {
-      devices: result.devices.map(d => ({
+      devices: result.devices.map((d) => ({
         id: d.id,
         deviceFingerprint: d.deviceFingerprint,
         identifierType: d.identifierType,
@@ -198,14 +218,20 @@ export class DeviceBlacklistController {
   @Delete(':fingerprint')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove device from blacklist' })
-  @ApiParam({ name: 'fingerprint', description: 'Device fingerprint to unblacklist' })
+  @ApiParam({
+    name: 'fingerprint',
+    description: 'Device fingerprint to unblacklist',
+  })
   @ApiResponse({ status: 200, description: 'Device removed from blacklist' })
   @ApiResponse({ status: 404, description: 'Device not found in blacklist' })
   async unblacklistDevice(
     @Request() req: AuthenticatedRequest,
     @Param('fingerprint') fingerprint: string,
   ): Promise<{ success: boolean; message: string }> {
-    const result = await this.blacklistService.unblacklistDevice(fingerprint, req.user.id);
+    const result = await this.blacklistService.unblacklistDevice(
+      fingerprint,
+      req.user.id,
+    );
 
     return {
       success: result,
@@ -220,7 +246,8 @@ export class DeviceBlacklistController {
   @ApiOperation({ summary: 'Check if identifiers are blacklisted' })
   @ApiResponse({ status: 200, description: 'Check result' })
   async checkDevice(
-    @Body() body: {
+    @Body()
+    body: {
       deviceId?: string;
       ipAddress?: string;
       fingerprint?: string;

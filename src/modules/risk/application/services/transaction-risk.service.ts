@@ -74,22 +74,23 @@ export class TransactionRiskService {
   /**
    * Perform comprehensive pre-transaction risk check
    */
-  async checkTransaction(input: PreTransactionCheckInput): Promise<PreTransactionCheckResult> {
+  async checkTransaction(
+    input: PreTransactionCheckInput,
+  ): Promise<PreTransactionCheckResult> {
     this.logger.log(`Checking transaction risk: ${input.transactionId}`);
 
     const startTime = Date.now();
 
     try {
       // Run checks in parallel where possible
-      const [
-        transactionAnalysis,
-        velocityCheck,
-        deviceAnalysis,
-      ] = await Promise.all([
-        this.analyzeTransaction(input),
-        this.checkVelocity(input.userId),
-        input.deviceFingerprint ? this.analyzeDevice(input.deviceFingerprint) : Promise.resolve(undefined),
-      ]);
+      const [transactionAnalysis, velocityCheck, deviceAnalysis] =
+        await Promise.all([
+          this.analyzeTransaction(input),
+          this.checkVelocity(input.userId),
+          input.deviceFingerprint
+            ? this.analyzeDevice(input.deviceFingerprint)
+            : Promise.resolve(undefined),
+        ]);
 
       // Sanctions screening (may be skipped for internal transfers)
       let screeningResult: ScreeningResult | undefined;
@@ -112,11 +113,14 @@ export class TransactionRiskService {
           (input.blockchain as CircleBlockchain) || 'MATIC',
         );
 
-        this.logger.log(`Circle Compliance screening completed for ${input.transactionId}`, {
-          address: input.destinationAddress,
-          decision: addressScreening.decision,
-          riskSignals: addressScreening.riskSignals.length,
-        });
+        this.logger.log(
+          `Circle Compliance screening completed for ${input.transactionId}`,
+          {
+            address: input.destinationAddress,
+            decision: addressScreening.decision,
+            riskSignals: addressScreening.riskSignals.length,
+          },
+        );
       }
 
       // Determine final decision
@@ -146,15 +150,21 @@ export class TransactionRiskService {
         latencyMs: Date.now() - startTime,
       });
 
-      this.logger.log(`Transaction risk check completed: ${input.transactionId}`, {
-        decision: assessment.finalDecision,
-        score: transactionAnalysis.riskScore,
-        latencyMs: Date.now() - startTime,
-      });
+      this.logger.log(
+        `Transaction risk check completed: ${input.transactionId}`,
+        {
+          decision: assessment.finalDecision,
+          score: transactionAnalysis.riskScore,
+          latencyMs: Date.now() - startTime,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error(`Transaction risk check failed: ${input.transactionId}`, error);
+      this.logger.error(
+        `Transaction risk check failed: ${input.transactionId}`,
+        error,
+      );
 
       // Emit failure event
       this.eventEmitter.emit('risk.transaction.check_failed', {
@@ -171,7 +181,9 @@ export class TransactionRiskService {
   /**
    * Analyze transaction for risk
    */
-  async analyzeTransaction(input: PreTransactionCheckInput): Promise<TransactionAnalysisResult> {
+  async analyzeTransaction(
+    input: PreTransactionCheckInput,
+  ): Promise<TransactionAnalysisResult> {
     const request: TransactionAnalysisRequest = {
       transactionId: input.transactionId,
       userId: input.userId,
@@ -192,7 +204,9 @@ export class TransactionRiskService {
   /**
    * Screen user against sanction lists
    */
-  async screenUser(input: IndividualScreeningRequest): Promise<ScreeningResult> {
+  async screenUser(
+    input: IndividualScreeningRequest,
+  ): Promise<ScreeningResult> {
     return this.client.screenIndividual(input);
   }
 
@@ -210,14 +224,19 @@ export class TransactionRiskService {
   /**
    * Analyze device fingerprint
    */
-  async analyzeDevice(fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async analyzeDevice(
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     return this.client.analyzeDevice(fingerprint);
   }
 
   /**
    * Register device for user
    */
-  async registerDevice(userId: string, fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async registerDevice(
+    userId: string,
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     return this.client.registerDevice(userId, fingerprint);
   }
 
@@ -231,7 +250,10 @@ export class TransactionRiskService {
   /**
    * Update user risk profile (e.g., after KYC approval)
    */
-  async updateUserRiskProfile(userId: string, updates: Partial<UserRiskProfile>): Promise<UserRiskProfile> {
+  async updateUserRiskProfile(
+    userId: string,
+    updates: Partial<UserRiskProfile>,
+  ): Promise<UserRiskProfile> {
     return this.client.updateUserRiskProfile(userId, updates);
   }
 
@@ -286,11 +308,14 @@ export class TransactionRiskService {
         address,
         blockchain,
         decision: 'DENIED',
-        riskSignals: [{
-          category: 'OTHER',
-          severity: 'CRITICAL',
-          description: 'Address screening unavailable - transaction blocked for safety',
-        }],
+        riskSignals: [
+          {
+            category: 'OTHER',
+            severity: 'CRITICAL',
+            description:
+              'Address screening unavailable - transaction blocked for safety',
+          },
+        ],
         screenedAt: new Date(),
         provider: 'internal',
       };
@@ -301,7 +326,10 @@ export class TransactionRiskService {
    * Check if a blockchain address is safe for transactions
    * Convenience method that returns a simple boolean
    */
-  async isAddressSafe(address: string, blockchain: CircleBlockchain = 'MATIC'): Promise<{
+  async isAddressSafe(
+    address: string,
+    blockchain: CircleBlockchain = 'MATIC',
+  ): Promise<{
     safe: boolean;
     reason?: string;
     riskSignals?: AddressScreeningAssessment['riskSignals'];
@@ -311,20 +339,20 @@ export class TransactionRiskService {
     if (result.decision === 'DENIED') {
       return {
         safe: false,
-        reason: `Address blocked: ${result.riskSignals.map(s => s.category).join(', ')}`,
+        reason: `Address blocked: ${result.riskSignals.map((s) => s.category).join(', ')}`,
         riskSignals: result.riskSignals,
       };
     }
 
     // Even if approved, check for high-severity warnings
     const criticalSignals = result.riskSignals.filter(
-      s => s.severity === 'CRITICAL' || s.severity === 'HIGH'
+      (s) => s.severity === 'CRITICAL' || s.severity === 'HIGH',
     );
 
     if (criticalSignals.length > 0) {
       return {
         safe: false,
-        reason: `High-risk signals: ${criticalSignals.map(s => s.category).join(', ')}`,
+        reason: `High-risk signals: ${criticalSignals.map((s) => s.category).join(', ')}`,
         riskSignals: result.riskSignals,
       };
     }
@@ -348,7 +376,7 @@ export class TransactionRiskService {
     // Check transaction analysis
     if (transactionAnalysis.riskDecision === 'block') {
       blockedReasons.push(`High risk score: ${transactionAnalysis.riskScore}`);
-      transactionAnalysis.riskFactors.forEach(f => blockedReasons.push(f));
+      transactionAnalysis.riskFactors.forEach((f) => blockedReasons.push(f));
     }
 
     // Check sanctions screening
@@ -357,13 +385,17 @@ export class TransactionRiskService {
         blockedReasons.push('Sanctions match confirmed');
       } else if (screeningResult.status === 'potential_match') {
         requiresManualReview = true;
-        blockedReasons.push(`Potential sanctions match: ${screeningResult.totalMatches} match(es)`);
+        blockedReasons.push(
+          `Potential sanctions match: ${screeningResult.totalMatches} match(es)`,
+        );
       }
     }
 
     // Check velocity
     if (velocityCheck?.isExceeded) {
-      blockedReasons.push(`Velocity limit exceeded: ${velocityCheck.checkType}`);
+      blockedReasons.push(
+        `Velocity limit exceeded: ${velocityCheck.checkType}`,
+      );
     }
 
     // Check device
@@ -380,16 +412,16 @@ export class TransactionRiskService {
     // This is a hard block - no override possible for sanctioned addresses
     if (addressScreening && addressScreening.decision === 'DENIED') {
       const criticalCategories = addressScreening.riskSignals
-        .filter(s => s.severity === 'CRITICAL')
-        .map(s => s.category);
+        .filter((s) => s.severity === 'CRITICAL')
+        .map((s) => s.category);
 
       if (criticalCategories.length > 0) {
         blockedReasons.push(
-          `[CIRCLE COMPLIANCE] Address blocked: ${criticalCategories.join(', ')}`
+          `[CIRCLE COMPLIANCE] Address blocked: ${criticalCategories.join(', ')}`,
         );
       } else {
         blockedReasons.push(
-          `[CIRCLE COMPLIANCE] Address flagged: ${addressScreening.riskSignals.map(s => s.category).join(', ')}`
+          `[CIRCLE COMPLIANCE] Address flagged: ${addressScreening.riskSignals.map((s) => s.category).join(', ')}`,
         );
       }
 
@@ -403,13 +435,16 @@ export class TransactionRiskService {
     // Check for address screening warnings (not blocked but requires review)
     if (addressScreening && addressScreening.decision === 'APPROVED') {
       const highRiskSignals = addressScreening.riskSignals.filter(
-        s => s.severity === 'HIGH' || s.category === 'PEP' || s.category === 'HIGH_RISK_INDUSTRY'
+        (s) =>
+          s.severity === 'HIGH' ||
+          s.category === 'PEP' ||
+          s.category === 'HIGH_RISK_INDUSTRY',
       );
 
       if (highRiskSignals.length > 0) {
         requiresManualReview = true;
         blockedReasons.push(
-          `[CIRCLE COMPLIANCE] Manual review: ${highRiskSignals.map(s => s.category).join(', ')}`
+          `[CIRCLE COMPLIANCE] Manual review: ${highRiskSignals.map((s) => s.category).join(', ')}`,
         );
       }
     }
@@ -419,11 +454,12 @@ export class TransactionRiskService {
     if (blockedReasons.length > 0 && !requiresManualReview) {
       // Check if all reasons are soft blocks (can be overridden by step-up)
       // Note: Circle Compliance blocks are ALWAYS hard blocks
-      const hardBlocks = blockedReasons.filter(r =>
-        r.includes('Sanctions match confirmed') ||
-        r.includes('Velocity limit exceeded') ||
-        r.includes('[CIRCLE COMPLIANCE] Address blocked') ||
-        transactionAnalysis.riskScore >= 90
+      const hardBlocks = blockedReasons.filter(
+        (r) =>
+          r.includes('Sanctions match confirmed') ||
+          r.includes('Velocity limit exceeded') ||
+          r.includes('[CIRCLE COMPLIANCE] Address blocked') ||
+          transactionAnalysis.riskScore >= 90,
       );
 
       if (hardBlocks.length > 0) {
@@ -431,7 +467,10 @@ export class TransactionRiskService {
       } else {
         finalDecision = 'review';
       }
-    } else if (requiresManualReview || transactionAnalysis.riskDecision === 'review') {
+    } else if (
+      requiresManualReview ||
+      transactionAnalysis.riskDecision === 'review'
+    ) {
       finalDecision = 'review';
     } else {
       finalDecision = 'allow';

@@ -7,7 +7,11 @@ import {
   HealthCheckResult,
 } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
-import { CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator } from './health-indicators';
+import {
+  CircleHealthIndicator,
+  BlnkHealthIndicator,
+  RedisHealthIndicator,
+} from './health-indicators';
 
 @ApiTags('Health')
 @Controller('health')
@@ -35,9 +39,7 @@ export class HealthController {
   })
   @HealthCheck()
   check(): Promise<HealthCheckResult> {
-    return this.health.check([
-      () => this.db.pingCheck('database'),
-    ]);
+    return this.health.check([() => this.db.pingCheck('database')]);
   }
 
   @Get('ready')
@@ -91,7 +93,10 @@ export class HealthController {
     try {
       const startDb = Date.now();
       await this.db.pingCheck('database');
-      services.database = { status: 'up', latency: `${Date.now() - startDb}ms` };
+      services.database = {
+        status: 'up',
+        latency: `${Date.now() - startDb}ms`,
+      };
     } catch (error) {
       services.database = {
         status: 'down',

@@ -30,7 +30,11 @@ import {
   ApproveReportDto,
   ResolveAlertDto,
 } from '../dto';
-import { SARStatus, ReportType, RiskLevel } from '../../domain/compliance.types';
+import {
+  SARStatus,
+  ReportType,
+  RiskLevel,
+} from '../../domain/compliance.types';
 
 /**
  * Compliance Controller
@@ -248,13 +252,7 @@ export class ComplianceController {
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: [
-      'draft',
-      'under_investigation',
-      'submitted',
-      'closed',
-      'dismissed',
-    ],
+    enum: ['draft', 'under_investigation', 'submitted', 'closed', 'dismissed'],
   })
   @ApiQuery({
     name: 'limit',
@@ -364,7 +362,12 @@ export class ComplianceController {
     // @CurrentUser() user: User,
   ) {
     const officerId = 'admin'; // Replace with user.id
-    return this.sarGeneratorService.closeSAR(sarId, officerId, dto.reason, false);
+    return this.sarGeneratorService.closeSAR(
+      sarId,
+      officerId,
+      dto.reason,
+      false,
+    );
   }
 
   @Post('sars/:sarId/dismiss')
@@ -381,7 +384,12 @@ export class ComplianceController {
     // @CurrentUser() user: User,
   ) {
     const officerId = 'admin'; // Replace with user.id
-    return this.sarGeneratorService.closeSAR(sarId, officerId, dto.reason, true);
+    return this.sarGeneratorService.closeSAR(
+      sarId,
+      officerId,
+      dto.reason,
+      true,
+    );
   }
 
   @Get('sars/:sarId/export')
@@ -407,9 +415,7 @@ export class ComplianceController {
     description: 'SAR statistics',
   })
   async getSARStatistics(@Query('days') days?: number) {
-    return this.sarGeneratorService.getSARStatistics(
-      days ? Number(days) : 30,
-    );
+    return this.sarGeneratorService.getSARStatistics(days ? Number(days) : 30);
   }
 
   @Get('users/:userId/sars')
@@ -447,7 +453,10 @@ export class ComplianceController {
     @Query('severity') severity?: RiskLevel,
     @Query('limit') limit?: number,
   ) {
-    return this.amlCftService.getOpenAlerts(severity, limit ? Number(limit) : 50);
+    return this.amlCftService.getOpenAlerts(
+      severity,
+      limit ? Number(limit) : 50,
+    );
   }
 
   @Post('alerts/:alertId/acknowledge')
@@ -546,9 +555,7 @@ export class ComplianceController {
     description: 'Batch analysis completed',
   })
   async runBatchAnalysis(@Query('daysBack') daysBack?: number) {
-    return this.amlCftService.runBatchAnalysis(
-      daysBack ? Number(daysBack) : 7,
-    );
+    return this.amlCftService.runBatchAnalysis(daysBack ? Number(daysBack) : 7);
   }
 
   // ==========================================

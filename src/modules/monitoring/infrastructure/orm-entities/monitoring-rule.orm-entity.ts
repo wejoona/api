@@ -33,7 +33,12 @@ export class MonitoringRuleOrmEntity {
   @Column({ type: 'jsonb' })
   conditions: Record<string, any>[];
 
-  @Column({ name: 'condition_logic', type: 'varchar', length: 10, default: 'AND' })
+  @Column({
+    name: 'condition_logic',
+    type: 'varchar',
+    length: 10,
+    default: 'AND',
+  })
   conditionLogic: string;
 
   // Rule action configuration

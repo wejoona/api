@@ -6,7 +6,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { MonitoringRuleOrmEntity } from '../orm-entities/monitoring-rule.orm-entity';
-import { MonitoringRule, RuleCondition, RuleAction } from '../../domain/interfaces/monitoring.types';
+import {
+  MonitoringRule,
+  RuleCondition,
+  RuleAction,
+} from '../../domain/interfaces/monitoring.types';
 
 @Injectable()
 export class MonitoringRuleRepository {
@@ -71,7 +75,10 @@ export class MonitoringRuleRepository {
   /**
    * Update a rule
    */
-  async update(ruleId: string, updates: Partial<MonitoringRule>): Promise<MonitoringRule | null> {
+  async update(
+    ruleId: string,
+    updates: Partial<MonitoringRule>,
+  ): Promise<MonitoringRule | null> {
     const existing = await this.findById(ruleId);
     if (!existing) {
       return null;
@@ -123,7 +130,8 @@ export class MonitoringRuleRepository {
    * Check if rule name exists
    */
   async nameExists(name: string, excludeRuleId?: string): Promise<boolean> {
-    const query = this.repository.createQueryBuilder('rule')
+    const query = this.repository
+      .createQueryBuilder('rule')
       .where('rule.name = :name', { name });
 
     if (excludeRuleId) {

@@ -64,7 +64,9 @@ export class ProcessMerchantPaymentUseCase {
     private readonly ledgerProvider: ILedgerProvider,
   ) {}
 
-  async execute(input: ProcessMerchantPaymentInput): Promise<ProcessMerchantPaymentOutput> {
+  async execute(
+    input: ProcessMerchantPaymentInput,
+  ): Promise<ProcessMerchantPaymentOutput> {
     const { customerId, qrData, amount: inputAmount } = input;
 
     this.logger.log(`Processing merchant payment from customer ${customerId}`);
@@ -73,7 +75,9 @@ export class ProcessMerchantPaymentUseCase {
     const qrPayload = this.qrCodeService.decodeQr(qrData);
 
     // 2. Find and validate merchant
-    const merchant = await this.merchantRepository.findById(qrPayload.merchantId);
+    const merchant = await this.merchantRepository.findById(
+      qrPayload.merchantId,
+    );
     if (!merchant) {
       throw new NotFoundException('Merchant not found');
     }
@@ -97,9 +101,10 @@ export class ProcessMerchantPaymentUseCase {
       }
 
       // Find and validate payment request
-      const paymentRequest = await this.paymentRequestRepository.findByRequestId(
-        qrPayload.requestId,
-      );
+      const paymentRequest =
+        await this.paymentRequestRepository.findByRequestId(
+          qrPayload.requestId,
+        );
       if (!paymentRequest) {
         throw new NotFoundException('Payment request not found');
       }
@@ -110,7 +115,9 @@ export class ProcessMerchantPaymentUseCase {
           await this.paymentRequestRepository.save(paymentRequest);
           throw new BadRequestException('Payment request has expired');
         }
-        throw new BadRequestException(`Payment request is ${paymentRequest.status}`);
+        throw new BadRequestException(
+          `Payment request is ${paymentRequest.status}`,
+        );
       }
 
       amount = paymentRequest.amount;
@@ -118,14 +125,18 @@ export class ProcessMerchantPaymentUseCase {
     } else {
       // Static QR - customer must provide amount
       if (!inputAmount || inputAmount <= 0) {
-        throw new BadRequestException('Amount is required for static QR payments');
+        throw new BadRequestException(
+          'Amount is required for static QR payments',
+        );
       }
       amount = inputAmount;
     }
 
     // 4. Validate amount limits
     if (amount > 10000) {
-      throw new BadRequestException('Amount exceeds maximum allowed (10,000 USDC)');
+      throw new BadRequestException(
+        'Amount exceeds maximum allowed (10,000 USDC)',
+      );
     }
 
     const canAccept = merchant.canAcceptPayment(amount);
@@ -139,7 +150,9 @@ export class ProcessMerchantPaymentUseCase {
       throw new NotFoundException('Customer wallet not found');
     }
 
-    const merchantWallet = await this.walletRepository.findById(merchant.walletId);
+    const merchantWallet = await this.walletRepository.findById(
+      merchant.walletId,
+    );
     if (!merchantWallet) {
       throw new NotFoundException('Merchant wallet not found');
     }
@@ -149,7 +162,10 @@ export class ProcessMerchantPaymentUseCase {
       customerId,
       'USDC',
     );
-    if (!customerBalance || customerBalance.availableBalance < BigInt(Math.round(amount * 100))) {
+    if (
+      !customerBalance ||
+      customerBalance.availableBalance < BigInt(Math.round(amount * 100))
+    ) {
       throw new BadRequestException('Insufficient balance');
     }
 
@@ -191,7 +207,8 @@ export class ProcessMerchantPaymentUseCase {
 
       merchantPayment.setLedgerTransactionId(transferResult.transactionId);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to process payment: ${errorMessage}`, error);
       throw new BadRequestException('Payment processing failed');
     }
@@ -202,7 +219,8 @@ export class ProcessMerchantPaymentUseCase {
 
     // 11. Update payment request if dynamic
     if (paymentRequestId) {
-      const paymentRequest = await this.paymentRequestRepository.findById(paymentRequestId);
+      const paymentRequest =
+        await this.paymentRequestRepository.findById(paymentRequestId);
       if (paymentRequest) {
         paymentRequest.markAsPaid(merchantPayment.paymentId, customerId);
         await this.paymentRequestRepository.save(paymentRequest);
@@ -210,9 +228,12 @@ export class ProcessMerchantPaymentUseCase {
     }
 
     // 12. Save merchant payment
-    const savedPayment = await this.merchantPaymentRepository.save(merchantPayment);
+    const savedPayment =
+      await this.merchantPaymentRepository.save(merchantPayment);
 
-    this.logger.log(`Merchant payment ${savedPayment.paymentId} completed successfully`);
+    this.logger.log(
+      `Merchant payment ${savedPayment.paymentId} completed successfully`,
+    );
 
     return {
       paymentId: savedPayment.paymentId,

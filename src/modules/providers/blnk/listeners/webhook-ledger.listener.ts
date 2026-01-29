@@ -182,7 +182,9 @@ export class WebhookLedgerListener {
 
       if (transaction) {
         // Commit the inflight transaction to finalize it
-        await this.blnkLedgerAdapter.commitTransaction(transaction.transactionId);
+        await this.blnkLedgerAdapter.commitTransaction(
+          transaction.transactionId,
+        );
         this.logger.log(
           `Successfully committed transfer ${payload.transferId} (txn: ${transaction.transactionId})`,
         );
@@ -303,11 +305,15 @@ export class WebhookLedgerListener {
 
       // Look up the inflight transaction by reference
       const transaction =
-        await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+        await this.blnkLedgerAdapter.getTransactionByReference(
+          payload.reference,
+        );
 
       if (transaction) {
         // Commit the inflight transaction to finalize it
-        await this.blnkLedgerAdapter.commitTransaction(transaction.transactionId);
+        await this.blnkLedgerAdapter.commitTransaction(
+          transaction.transactionId,
+        );
         this.logger.log(
           `Successfully committed withdrawal ${payload.withdrawalId} (txn: ${transaction.transactionId})`,
         );
@@ -346,7 +352,9 @@ export class WebhookLedgerListener {
 
       // Look up the inflight transaction by reference
       const transaction =
-        await this.blnkLedgerAdapter.getTransactionByReference(payload.reference);
+        await this.blnkLedgerAdapter.getTransactionByReference(
+          payload.reference,
+        );
 
       if (transaction) {
         // Void the inflight transaction to return funds to user

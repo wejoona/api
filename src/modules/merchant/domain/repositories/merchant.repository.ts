@@ -47,7 +47,10 @@ export interface IMerchantRepository {
   /**
    * Check if a business name exists
    */
-  existsByBusinessName(businessName: string, excludeId?: string): Promise<boolean>;
+  existsByBusinessName(
+    businessName: string,
+    excludeId?: string,
+  ): Promise<boolean>;
 
   /**
    * Count merchants by owner

@@ -70,11 +70,15 @@ export class RegisterMerchantUseCase {
     // 1. Validate user has a wallet
     const wallet = await this.walletRepository.findByUserId(input.userId);
     if (!wallet) {
-      throw new BadRequestException('User must have a wallet to register as a merchant');
+      throw new BadRequestException(
+        'User must have a wallet to register as a merchant',
+      );
     }
 
     // 2. Check if user already has a merchant account
-    const existingMerchant = await this.merchantRepository.findByOwnerId(input.userId);
+    const existingMerchant = await this.merchantRepository.findByOwnerId(
+      input.userId,
+    );
     if (existingMerchant) {
       throw new ConflictException('User already has a merchant account');
     }

@@ -3,7 +3,12 @@
  * Core service for managing scheduled/recurring payments
  */
 
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -122,7 +127,10 @@ export class ScheduledPaymentService {
   /**
    * Get schedule by ID
    */
-  async getSchedule(scheduleId: string, userId: string): Promise<PaymentSchedule> {
+  async getSchedule(
+    scheduleId: string,
+    userId: string,
+  ): Promise<PaymentSchedule> {
     const schedule = await this.scheduleRepository.findById(scheduleId);
     if (!schedule) {
       throw new NotFoundException('Schedule not found');
@@ -138,7 +146,7 @@ export class ScheduledPaymentService {
    */
   async getUserSchedules(userId: string): Promise<ScheduleSummary[]> {
     const schedules = await this.scheduleRepository.findByUserId(userId);
-    return schedules.map(s => ({
+    return schedules.map((s) => ({
       id: s.id,
       name: s.name,
       recipientName: s.recipientName || 'Unknown',
@@ -154,7 +162,10 @@ export class ScheduledPaymentService {
   /**
    * Get upcoming payments for a user
    */
-  async getUpcomingPayments(userId: string, days: number = 7): Promise<UpcomingPayment[]> {
+  async getUpcomingPayments(
+    userId: string,
+    days: number = 7,
+  ): Promise<UpcomingPayment[]> {
     const schedules = await this.scheduleRepository.findByUserId(userId);
     const cutoff = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
@@ -175,17 +186,24 @@ export class ScheduledPaymentService {
       });
     }
 
-    return upcoming.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+    return upcoming.sort(
+      (a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime(),
+    );
   }
 
   /**
    * Pause a schedule
    */
-  async pauseSchedule(scheduleId: string, userId: string): Promise<PaymentSchedule> {
+  async pauseSchedule(
+    scheduleId: string,
+    userId: string,
+  ): Promise<PaymentSchedule> {
     const schedule = await this.getSchedule(scheduleId, userId);
 
     if (schedule.status !== 'active') {
-      throw new BadRequestException(`Cannot pause schedule in ${schedule.status} status`);
+      throw new BadRequestException(
+        `Cannot pause schedule in ${schedule.status} status`,
+      );
     }
 
     const updated = await this.scheduleRepository.update(scheduleId, {
@@ -204,11 +222,16 @@ export class ScheduledPaymentService {
   /**
    * Resume a paused schedule
    */
-  async resumeSchedule(scheduleId: string, userId: string): Promise<PaymentSchedule> {
+  async resumeSchedule(
+    scheduleId: string,
+    userId: string,
+  ): Promise<PaymentSchedule> {
     const schedule = await this.getSchedule(scheduleId, userId);
 
     if (schedule.status !== 'paused' && schedule.status !== 'failed') {
-      throw new BadRequestException(`Cannot resume schedule in ${schedule.status} status`);
+      throw new BadRequestException(
+        `Cannot resume schedule in ${schedule.status} status`,
+      );
     }
 
     // Recalculate next execution
@@ -240,7 +263,10 @@ export class ScheduledPaymentService {
   /**
    * Cancel a schedule
    */
-  async cancelSchedule(scheduleId: string, userId: string): Promise<PaymentSchedule> {
+  async cancelSchedule(
+    scheduleId: string,
+    userId: string,
+  ): Promise<PaymentSchedule> {
     const schedule = await this.getSchedule(scheduleId, userId);
 
     if (schedule.status === 'cancelled' || schedule.status === 'completed') {
@@ -271,12 +297,19 @@ export class ScheduledPaymentService {
     const schedule = await this.getSchedule(scheduleId, userId);
 
     if (schedule.status !== 'active' && schedule.status !== 'paused') {
-      throw new BadRequestException(`Cannot update schedule in ${schedule.status} status`);
+      throw new BadRequestException(
+        `Cannot update schedule in ${schedule.status} status`,
+      );
     }
 
     // Recalculate next execution if schedule timing changed
     let nextExecutionAt = schedule.nextExecutionAt;
-    if (updates.time || updates.frequency || updates.dayOfWeek || updates.dayOfMonth) {
+    if (
+      updates.time ||
+      updates.frequency ||
+      updates.dayOfWeek ||
+      updates.dayOfMonth
+    ) {
       nextExecutionAt = this.calculateNextExecution(
         schedule.nextExecutionAt || new Date(),
         updates.frequency || schedule.frequency,
@@ -314,7 +347,9 @@ export class ScheduledPaymentService {
     }
 
     if (schedule.status !== 'active') {
-      throw new BadRequestException(`Cannot execute schedule in ${schedule.status} status`);
+      throw new BadRequestException(
+        `Cannot execute schedule in ${schedule.status} status`,
+      );
     }
 
     // Create execution record
@@ -364,8 +399,10 @@ export class ScheduledPaymentService {
         schedule.dayOfMonth,
       );
 
-      const shouldComplete = schedule.frequency === 'once' ||
-        (schedule.maxOccurrences && schedule.totalExecuted + 1 >= schedule.maxOccurrences) ||
+      const shouldComplete =
+        schedule.frequency === 'once' ||
+        (schedule.maxOccurrences &&
+          schedule.totalExecuted + 1 >= schedule.maxOccurrences) ||
         (schedule.endDate && nextExecutionAt > schedule.endDate);
 
       await this.scheduleRepository.update(scheduleId, {
@@ -390,9 +427,10 @@ export class ScheduledPaymentService {
         status: 'completed',
       });
 
-      this.logger.log(`Executed schedule ${scheduleId}, transaction ${transactionId}`);
+      this.logger.log(
+        `Executed schedule ${scheduleId}, transaction ${transactionId}`,
+      );
       return { ...execution, status: 'completed', transactionId };
-
     } catch (error: any) {
       // Update execution as failed
       await this.executionRepository.update(execution.id, {
@@ -421,7 +459,9 @@ export class ScheduledPaymentService {
         failureReason: error.message,
       });
 
-      this.logger.error(`Failed to execute schedule ${scheduleId}: ${error.message}`);
+      this.logger.error(
+        `Failed to execute schedule ${scheduleId}: ${error.message}`,
+      );
       return { ...execution, status: 'failed', failureReason: error.message };
     }
   }
@@ -456,7 +496,7 @@ export class ScheduledPaymentService {
     dayOfMonth?: number,
   ): Date {
     const [hours, minutes] = time.split(':').map(Number);
-    let next = new Date(fromDate);
+    const next = new Date(fromDate);
 
     // Set time
     next.setHours(hours, minutes, 0, 0);

@@ -365,7 +365,10 @@ export class AdminController {
   @Get('reports/user-growth-timeseries')
   @Roles('admin')
   @ApiOperation({ summary: 'Get user growth time-series with running totals' })
-  @ApiResponse({ status: 200, description: 'User growth time-series retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'User growth time-series retrieved',
+  })
   async getUserGrowthTimeSeries(@Query('days') days?: number) {
     const daysToFetch = days && days > 0 ? Math.min(days, 365) : 30;
     const data = await this.adminService.getUserGrowthTimeSeries(daysToFetch);

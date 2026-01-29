@@ -42,7 +42,9 @@ export class WhitelistedAddressService {
     );
   }
 
-  async addAddress(input: CreateWhitelistedAddressInput): Promise<WhitelistedAddress> {
+  async addAddress(
+    input: CreateWhitelistedAddressInput,
+  ): Promise<WhitelistedAddress> {
     // Check for duplicate
     const existing = await this.addressRepository.findByAddress(
       input.userId,
@@ -86,7 +88,9 @@ export class WhitelistedAddressService {
     }
 
     if (user.isPinLocked) {
-      throw new ForbiddenException('Account is temporarily locked due to too many failed attempts');
+      throw new ForbiddenException(
+        'Account is temporarily locked due to too many failed attempts',
+      );
     }
 
     const isValidPin = await bcrypt.compare(input.pin, user.pinHash);
@@ -172,7 +176,9 @@ export class WhitelistedAddressService {
       isNew,
       hoursUntilTrusted: whitelisted.hoursUntilTrusted,
       requiresDelay: isNew,
-      instantLimit: isNew ? this.instantWithdrawalLimit : Number.MAX_SAFE_INTEGER,
+      instantLimit: isNew
+        ? this.instantWithdrawalLimit
+        : Number.MAX_SAFE_INTEGER,
     };
   }
 

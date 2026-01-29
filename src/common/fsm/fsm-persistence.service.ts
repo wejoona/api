@@ -35,7 +35,9 @@ export class FsmPersistenceService {
       },
     });
 
-    this.logger.debug(`Persisted state for ${key}: ${JSON.stringify(state.value)}`);
+    this.logger.debug(
+      `Persisted state for ${key}: ${JSON.stringify(state.value)}`,
+    );
   }
 
   /**

@@ -3,10 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 
 // ORM Entities
-import { BillProviderOrmEntity, BillPaymentOrmEntity } from './infrastructure/orm-entities';
+import {
+  BillProviderOrmEntity,
+  BillPaymentOrmEntity,
+} from './infrastructure/orm-entities';
 
 // Repositories
-import { BillProviderRepository, BillPaymentRepository } from './infrastructure/repositories';
+import {
+  BillProviderRepository,
+  BillPaymentRepository,
+} from './infrastructure/repositories';
 
 // Adapters
 import {
@@ -68,10 +74,6 @@ import { SharedModule } from '../shared/shared.module';
     GetReceiptUseCase,
   ],
   controllers: [BillPaymentController],
-  exports: [
-    BillProviderRepository,
-    BillPaymentRepository,
-    BillAdapterService,
-  ],
+  exports: [BillProviderRepository, BillPaymentRepository, BillAdapterService],
 })
 export class BillPaymentsModule {}

@@ -3,7 +3,12 @@
  * Business logic for managing user alert preferences
  */
 
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { UserAlertPreferencesRepository } from '../../infrastructure/repositories/user-alert-preferences.repository';
 import {
   UserAlertPreferences,
@@ -69,7 +74,11 @@ export class UserAlertPreferencesUseCase {
       throw new BadRequestException('Threshold must be a positive number');
     }
 
-    await this.preferencesRepository.updateThreshold(userId, 'large_transaction', threshold);
+    await this.preferencesRepository.updateThreshold(
+      userId,
+      'large_transaction',
+      threshold,
+    );
     return this.getPreferences(userId);
   }
 
@@ -84,7 +93,11 @@ export class UserAlertPreferencesUseCase {
       throw new BadRequestException('Threshold must be a positive number');
     }
 
-    await this.preferencesRepository.updateThreshold(userId, 'balance_low', threshold);
+    await this.preferencesRepository.updateThreshold(
+      userId,
+      'balance_low',
+      threshold,
+    );
     return this.getPreferences(userId);
   }
 
@@ -96,14 +109,20 @@ export class UserAlertPreferencesUseCase {
     threshold: number | null,
   ): Promise<UserAlertPreferences> {
     if (threshold !== null && threshold < 0) {
-      throw new BadRequestException('Threshold must be a positive number or null');
+      throw new BadRequestException(
+        'Threshold must be a positive number or null',
+      );
     }
 
     if (threshold === null) {
       return this.updatePreferences(userId, { balanceHighThreshold: null });
     }
 
-    await this.preferencesRepository.updateThreshold(userId, 'balance_high', threshold);
+    await this.preferencesRepository.updateThreshold(
+      userId,
+      'balance_high',
+      threshold,
+    );
     return this.getPreferences(userId);
   }
 
@@ -117,7 +136,11 @@ export class UserAlertPreferencesUseCase {
   ): Promise<UserAlertPreferences> {
     const validTypes = Object.keys(DEFAULT_ALERT_PREFERENCES.alertTypes);
 
-    return this.preferencesRepository.toggleAlertType(userId, alertType, enabled);
+    return this.preferencesRepository.toggleAlertType(
+      userId,
+      alertType,
+      enabled,
+    );
   }
 
   /**
@@ -143,13 +166,21 @@ export class UserAlertPreferencesUseCase {
   ): Promise<UserAlertPreferences> {
     if (enabled) {
       if (!startTime || !endTime) {
-        throw new BadRequestException('Start and end time required when enabling quiet hours');
+        throw new BadRequestException(
+          'Start and end time required when enabling quiet hours',
+        );
       }
       this.validateTimeFormat(startTime);
       this.validateTimeFormat(endTime);
     }
 
-    return this.preferencesRepository.setQuietHours(userId, enabled, startTime, endTime, timezone);
+    return this.preferencesRepository.setQuietHours(
+      userId,
+      enabled,
+      startTime,
+      endTime,
+      timezone,
+    );
   }
 
   /**
@@ -274,19 +305,35 @@ export class UserAlertPreferencesUseCase {
    * Validate input parameters
    */
   private validateInput(input: UpdatePreferencesInput): void {
-    if (input.largeTransactionThreshold !== undefined && input.largeTransactionThreshold < 0) {
-      throw new BadRequestException('Large transaction threshold must be positive');
+    if (
+      input.largeTransactionThreshold !== undefined &&
+      input.largeTransactionThreshold < 0
+    ) {
+      throw new BadRequestException(
+        'Large transaction threshold must be positive',
+      );
     }
 
-    if (input.balanceLowThreshold !== undefined && input.balanceLowThreshold < 0) {
+    if (
+      input.balanceLowThreshold !== undefined &&
+      input.balanceLowThreshold < 0
+    ) {
       throw new BadRequestException('Balance low threshold must be positive');
     }
 
-    if (input.balanceHighThreshold !== undefined && input.balanceHighThreshold !== null && input.balanceHighThreshold < 0) {
+    if (
+      input.balanceHighThreshold !== undefined &&
+      input.balanceHighThreshold !== null &&
+      input.balanceHighThreshold < 0
+    ) {
       throw new BadRequestException('Balance high threshold must be positive');
     }
 
-    if (input.dailyLimitThreshold !== undefined && input.dailyLimitThreshold !== null && input.dailyLimitThreshold < 0) {
+    if (
+      input.dailyLimitThreshold !== undefined &&
+      input.dailyLimitThreshold !== null &&
+      input.dailyLimitThreshold < 0
+    ) {
       throw new BadRequestException('Daily limit threshold must be positive');
     }
 
@@ -298,7 +345,10 @@ export class UserAlertPreferencesUseCase {
       this.validateTimeFormat(input.quietHoursEnd);
     }
 
-    if (input.digestFrequency && !['realtime', 'hourly', 'daily', 'weekly'].includes(input.digestFrequency)) {
+    if (
+      input.digestFrequency &&
+      !['realtime', 'hourly', 'daily', 'weekly'].includes(input.digestFrequency)
+    ) {
       throw new BadRequestException('Invalid digest frequency');
     }
   }
@@ -309,7 +359,9 @@ export class UserAlertPreferencesUseCase {
   private validateTimeFormat(time: string): void {
     const regex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!regex.test(time)) {
-      throw new BadRequestException(`Invalid time format: ${time}. Use HH:mm format.`);
+      throw new BadRequestException(
+        `Invalid time format: ${time}. Use HH:mm format.`,
+      );
     }
   }
 }

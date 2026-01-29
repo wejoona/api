@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableForeignKey,
+} from 'typeorm';
 
 export class CreateMonitoringTables1738950000000 implements MigrationInterface {
   name = 'CreateMonitoringTables1738950000000';
@@ -90,7 +96,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     // Create indexes for transaction_alerts
@@ -99,7 +105,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_user_id',
         columnNames: ['user_id'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -107,7 +113,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_transaction_id',
         columnNames: ['transaction_id'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -115,7 +121,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_alert_type',
         columnNames: ['alert_type'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -123,7 +129,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_user_created',
         columnNames: ['user_id', 'created_at'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -131,7 +137,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_user_read',
         columnNames: ['user_id', 'is_read'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -139,7 +145,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_transaction_alerts_severity_created',
         columnNames: ['severity', 'created_at'],
-      })
+      }),
     );
 
     // Create user_alert_preferences table
@@ -247,7 +253,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     // Create monitoring_rules table
@@ -320,7 +326,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     // Create indexes for monitoring_rules
@@ -329,7 +335,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_monitoring_rules_category',
         columnNames: ['category'],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -337,7 +343,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_monitoring_rules_active_priority',
         columnNames: ['is_active', 'priority'],
-      })
+      }),
     );
 
     // Add foreign key constraints
@@ -348,7 +354,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
         referencedTableName: 'users',
         referencedColumnNames: ['id'],
         onDelete: 'CASCADE',
-      })
+      }),
     );
 
     await queryRunner.createForeignKey(
@@ -358,7 +364,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
         referencedTableName: 'users',
         referencedColumnNames: ['id'],
         onDelete: 'CASCADE',
-      })
+      }),
     );
   }
 
@@ -366,7 +372,7 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
     // Drop foreign keys
     const alertsTable = await queryRunner.getTable('transaction_alerts');
     const alertsForeignKey = alertsTable?.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('user_id') !== -1
+      (fk) => fk.columnNames.indexOf('user_id') !== -1,
     );
     if (alertsForeignKey) {
       await queryRunner.dropForeignKey('transaction_alerts', alertsForeignKey);
@@ -374,10 +380,13 @@ export class CreateMonitoringTables1738950000000 implements MigrationInterface {
 
     const prefsTable = await queryRunner.getTable('user_alert_preferences');
     const prefsForeignKey = prefsTable?.foreignKeys.find(
-      (fk) => fk.columnNames.indexOf('user_id') !== -1
+      (fk) => fk.columnNames.indexOf('user_id') !== -1,
     );
     if (prefsForeignKey) {
-      await queryRunner.dropForeignKey('user_alert_preferences', prefsForeignKey);
+      await queryRunner.dropForeignKey(
+        'user_alert_preferences',
+        prefsForeignKey,
+      );
     }
 
     // Drop tables

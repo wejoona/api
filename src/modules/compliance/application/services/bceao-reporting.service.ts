@@ -147,7 +147,8 @@ export class BCEAOReportingService {
       );
 
       // Identify flagged transactions
-      const flaggedTransactions = this.identifyFlaggedTransactions(transactions);
+      const flaggedTransactions =
+        this.identifyFlaggedTransactions(transactions);
 
       // Identify large transactions (>1M XOF)
       const largeTransactions = this.identifyLargeTransactions(transactions);
@@ -177,7 +178,8 @@ export class BCEAOReportingService {
             type: t.type,
             timestamp: t.createdAt,
           })),
-          crossBorderTransactions: this.getCrossBorderTransactions(transactions),
+          crossBorderTransactions:
+            this.getCrossBorderTransactions(transactions),
         },
         generatedBy: 'system',
       });
@@ -539,8 +541,7 @@ export class BCEAOReportingService {
    */
   async archiveOldReports(): Promise<number> {
     const retentionDays =
-      this.configService.get<number>('compliance.reportRetentionDays') ||
-      2555; // 7 years
+      this.configService.get<number>('compliance.reportRetentionDays') || 2555; // 7 years
 
     const archiveDate = new Date();
     archiveDate.setDate(archiveDate.getDate() - retentionDays);
@@ -606,8 +607,7 @@ export class BCEAOReportingService {
     // Calculate average processing time
     const submittedReports = reports.filter((r) => r.submittedAt);
     const totalProcessingTime = submittedReports.reduce((sum, r) => {
-      const processingTime =
-        r.submittedAt!.getTime() - r.createdAt.getTime();
+      const processingTime = r.submittedAt.getTime() - r.createdAt.getTime();
       return sum + processingTime;
     }, 0);
 

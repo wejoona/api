@@ -36,7 +36,10 @@ async function bootstrap() {
 
   // CORS - Restrict to allowed origins in production
   const allowedOrigins = configService
-    .get<string>('ALLOWED_ORIGINS', 'http://localhost:3001,http://localhost:8080')
+    .get<string>(
+      'ALLOWED_ORIGINS',
+      'http://localhost:3001,http://localhost:8080',
+    )
     .split(',')
     .map((origin) => origin.trim());
 
@@ -44,7 +47,12 @@ async function bootstrap() {
     origin: nodeEnv === 'production' ? allowedOrigins : true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Idempotency-Key'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-Idempotency-Key',
+    ],
     exposedHeaders: ['X-Idempotency-Key'],
     maxAge: 86400,
   });

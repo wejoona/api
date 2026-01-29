@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleDestroy, Inject, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  Inject,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import * as crypto from 'crypto';
@@ -81,8 +87,13 @@ export class OtpService implements OnModuleDestroy {
     const rateLimitKey = `otp_rate:${phone}`;
     const requestCount = await this.redis.get(rateLimitKey);
 
-    if (requestCount && parseInt(requestCount, 10) >= this.maxOtpRequestsPerHour) {
-      throw new BadRequestException('Too many OTP requests. Please try again later.');
+    if (
+      requestCount &&
+      parseInt(requestCount, 10) >= this.maxOtpRequestsPerHour
+    ) {
+      throw new BadRequestException(
+        'Too many OTP requests. Please try again later.',
+      );
     }
 
     const otp = this.generateOtp();
@@ -102,10 +113,15 @@ export class OtpService implements OnModuleDestroy {
 
     // SECURITY: Only log OTP with explicit flag AND in development mode
     // This double-check prevents accidental OTP exposure in staging/test environments
-    const enableOtpLogging = this.configService.get<boolean>('otp.enableDebugLogging', false);
+    const enableOtpLogging = this.configService.get<boolean>(
+      'otp.enableDebugLogging',
+      false,
+    );
     const nodeEnv = this.configService.get<string>('nodeEnv');
     if (enableOtpLogging && nodeEnv === 'development') {
-      this.logger.debug(`[DEV ONLY] OTP for ${phone.slice(-4).padStart(phone.length, '*')}: ${otp}`);
+      this.logger.debug(
+        `[DEV ONLY] OTP for ${phone.slice(-4).padStart(phone.length, '*')}: ${otp}`,
+      );
     }
 
     // Send OTP via SMS gateway
@@ -138,7 +154,7 @@ export class OtpService implements OnModuleDestroy {
       if (now < lockoutTime) {
         const remainingSeconds = Math.ceil((lockoutTime - now) / 1000);
         throw new BadRequestException(
-          `Too many failed attempts. Please wait ${remainingSeconds} seconds before trying again.`
+          `Too many failed attempts. Please wait ${remainingSeconds} seconds before trying again.`,
         );
       }
       // Lockout expired, clear it
@@ -150,7 +166,9 @@ export class OtpService implements OnModuleDestroy {
     const attemptCount = attempts ? parseInt(attempts, 10) : 0;
 
     if (attemptCount >= this.maxAttempts) {
-      throw new BadRequestException('Too many failed attempts. Please request a new OTP.');
+      throw new BadRequestException(
+        'Too many failed attempts. Please request a new OTP.',
+      );
     }
 
     const storedOtp = await this.redis.get(key);
@@ -160,10 +178,11 @@ export class OtpService implements OnModuleDestroy {
     }
 
     // Use constant-time comparison to prevent timing attacks
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(storedOtp),
-      Buffer.from(otp.padEnd(storedOtp.length)),
-    ) && storedOtp.length === otp.length;
+    const isValid =
+      crypto.timingSafeEqual(
+        Buffer.from(storedOtp),
+        Buffer.from(otp.padEnd(storedOtp.length)),
+      ) && storedOtp.length === otp.length;
 
     if (!isValid) {
       // Increment failed attempts
@@ -173,9 +192,15 @@ export class OtpService implements OnModuleDestroy {
       // 1st fail: 5s, 2nd: 15s, 3rd: 45s lockout
       if (newAttempts >= 1) {
         const backoffSeconds = Math.min(5 * Math.pow(3, newAttempts - 1), 300); // Max 5 minutes
-        const lockoutUntilMs = Date.now() + (backoffSeconds * 1000);
-        await this.redis.setex(lockoutKey, backoffSeconds + 60, lockoutUntilMs.toString());
-        this.logger.debug(`OTP lockout applied for ${phone}: ${backoffSeconds}s after attempt ${newAttempts}`);
+        const lockoutUntilMs = Date.now() + backoffSeconds * 1000;
+        await this.redis.setex(
+          lockoutKey,
+          backoffSeconds + 60,
+          lockoutUntilMs.toString(),
+        );
+        this.logger.debug(
+          `OTP lockout applied for ${phone}: ${backoffSeconds}s after attempt ${newAttempts}`,
+        );
       }
 
       return false;

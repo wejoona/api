@@ -28,7 +28,9 @@ export class KycApprovedListener {
 
   @OnEvent('kyc.approved')
   async handleKycApproved(event: KycApprovedEvent): Promise<void> {
-    this.logger.log(`KYC approved for user ${event.userId}, creating wallet...`);
+    this.logger.log(
+      `KYC approved for user ${event.userId}, creating wallet...`,
+    );
 
     try {
       // Get user details

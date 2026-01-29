@@ -22,7 +22,8 @@ async function setupEntitySecret(): Promise<void> {
   console.log('Step 1: Generate Entity Secret');
   console.log('-'.repeat(40));
 
-  const entitySecret = circleSdk.generateEntitySecret();
+  // Note: TypeScript types for Circle SDK may be incorrect - generateEntitySecret returns string at runtime
+  const entitySecret = circleSdk.generateEntitySecret() as unknown as string;
   console.log('✅ Generated entity secret (32-byte hex):');
   console.log(`   ${entitySecret}`);
   console.log('');

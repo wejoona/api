@@ -47,7 +47,10 @@ export class TestUserHelper {
   /**
    * Create multiple test users
    */
-  async createUsers(count: number, phonePrefix = '+22507'): Promise<TestUser[]> {
+  async createUsers(
+    count: number,
+    phonePrefix = '+22507',
+  ): Promise<TestUser[]> {
     const users: TestUser[] = [];
 
     for (let i = 0; i < count; i++) {

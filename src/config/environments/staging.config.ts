@@ -26,9 +26,13 @@ export const stagingConfig = {
     synchronize: false,
     logging: true, // Enable for debugging
     poolSize: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
-    ssl: process.env.DATABASE_SSL === 'true' ? {
-      rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
-    } : false,
+    ssl:
+      process.env.DATABASE_SSL === 'true'
+        ? {
+            rejectUnauthorized:
+              process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+          }
+        : false,
   },
 
   // Redis Settings
@@ -66,7 +70,8 @@ export const stagingConfig = {
     },
     yellowCard: {
       useMock: process.env.YELLOW_CARD_USE_MOCK === 'true',
-      apiUrl: process.env.YELLOW_CARD_API_URL || 'https://sandbox.yellowcard.io',
+      apiUrl:
+        process.env.YELLOW_CARD_API_URL || 'https://sandbox.yellowcard.io',
       apiKey: process.env.YELLOW_CARD_API_KEY,
       secretKey: process.env.YELLOW_CARD_SECRET_KEY,
       webhookSecret: process.env.YELLOW_CARD_WEBHOOK_SECRET,

@@ -21,7 +21,9 @@ export class NotificationPreferencesRepository {
   /**
    * Save notification preferences
    */
-  async save(preferences: NotificationPreferences): Promise<NotificationPreferences> {
+  async save(
+    preferences: NotificationPreferences,
+  ): Promise<NotificationPreferences> {
     const ormEntity = NotificationPreferencesMapper.toOrm(preferences);
     const saved = await this.ormRepository.save(ormEntity);
     const domain = NotificationPreferencesMapper.toDomain(saved);
@@ -39,7 +41,8 @@ export class NotificationPreferencesRepository {
     const cacheKey = this.getCacheKey(userId);
 
     // Try to get from cache first
-    const cached = await this.cacheManager.get<NotificationPreferences>(cacheKey);
+    const cached =
+      await this.cacheManager.get<NotificationPreferences>(cacheKey);
     if (cached) {
       // Reconstitute from cache (plain object to class instance)
       return NotificationPreferences.reconstitute(cached);

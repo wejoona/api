@@ -41,6 +41,8 @@ export class AddNotificationTypes1738800000000 implements MigrationInterface {
     //
     // Since this is a non-destructive addition, we leave the down migration empty
     // The values will simply not be used anymore
-    console.log('Note: Enum values cannot be removed in PostgreSQL. The added types will remain.');
+    console.log(
+      'Note: Enum values cannot be removed in PostgreSQL. The added types will remain.',
+    );
   }
 }

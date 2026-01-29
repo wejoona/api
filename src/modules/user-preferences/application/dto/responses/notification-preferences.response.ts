@@ -57,7 +57,9 @@ export class NotificationPreferencesResponse {
   @ApiProperty({ description: 'Last updated timestamp' })
   updatedAt: string;
 
-  static fromDomain(preferences: NotificationPreferences): NotificationPreferencesResponse {
+  static fromDomain(
+    preferences: NotificationPreferences,
+  ): NotificationPreferencesResponse {
     const response = new NotificationPreferencesResponse();
     response.id = preferences.id;
     response.userId = preferences.userId;

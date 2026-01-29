@@ -5,27 +5,27 @@
 
 // Referral status
 export type ReferralStatus =
-  | 'pending'           // Referee signed up but hasn't completed requirements
-  | 'qualified'         // Referee completed requirements, reward pending
-  | 'rewarded'          // Reward credited to referrer
-  | 'expired'           // Referral expired without completion
-  | 'rejected';         // Referral rejected (fraud, etc.)
+  | 'pending' // Referee signed up but hasn't completed requirements
+  | 'qualified' // Referee completed requirements, reward pending
+  | 'rewarded' // Reward credited to referrer
+  | 'expired' // Referral expired without completion
+  | 'rejected'; // Referral rejected (fraud, etc.)
 
 // Reward status
 export type RewardStatus =
-  | 'pending'           // Reward earned but not yet credited
-  | 'credited'          // Reward credited to wallet
-  | 'claimed'           // User claimed/withdrew the reward
-  | 'expired'           // Reward expired
-  | 'cancelled';        // Reward cancelled
+  | 'pending' // Reward earned but not yet credited
+  | 'credited' // Reward credited to wallet
+  | 'claimed' // User claimed/withdrew the reward
+  | 'expired' // Reward expired
+  | 'cancelled'; // Reward cancelled
 
 // Reward type
 export type RewardType =
-  | 'signup_bonus'      // Bonus for signing up
-  | 'referral_bonus'    // Bonus for successful referral
-  | 'first_tx_bonus'    // Bonus for first transaction
-  | 'campaign_bonus'    // Campaign-specific bonus
-  | 'milestone_bonus';  // Milestone achievement bonus
+  | 'signup_bonus' // Bonus for signing up
+  | 'referral_bonus' // Bonus for successful referral
+  | 'first_tx_bonus' // Bonus for first transaction
+  | 'campaign_bonus' // Campaign-specific bonus
+  | 'milestone_bonus'; // Milestone achievement bonus
 
 // Referral code
 export interface ReferralCode {
@@ -43,8 +43,8 @@ export interface ReferralCode {
 // Referral relationship
 export interface Referral {
   id: string;
-  referrerId: string;        // User who referred
-  refereeId: string;         // User who was referred
+  referrerId: string; // User who referred
+  refereeId: string; // User who was referred
   referralCodeId: string;
   status: ReferralStatus;
   qualificationRequirements: {
@@ -154,13 +154,22 @@ export const TIER_CONFIGS: TierConfig[] = [
     tier: 'gold',
     minReferrals: 15,
     rewardMultiplier: 1.5,
-    perks: ['50% bonus on referral rewards', 'Priority support', 'Early access to features'],
+    perks: [
+      '50% bonus on referral rewards',
+      'Priority support',
+      'Early access to features',
+    ],
   },
   {
     tier: 'platinum',
     minReferrals: 50,
     rewardMultiplier: 2.0,
-    perks: ['100% bonus on referral rewards', 'VIP support', 'Early access', 'Exclusive campaigns'],
+    perks: [
+      '100% bonus on referral rewards',
+      'VIP support',
+      'Early access',
+      'Exclusive campaigns',
+    ],
   },
 ];
 
@@ -176,7 +185,10 @@ export interface ReferralQualifiedEvent {
   referralId: string;
   referrerId: string;
   refereeId: string;
-  qualificationReason: 'kyc_completed' | 'first_transaction' | 'campaign_completed';
+  qualificationReason:
+    | 'kyc_completed'
+    | 'first_transaction'
+    | 'campaign_completed';
 }
 
 export interface RewardCreditedEvent {

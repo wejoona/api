@@ -44,6 +44,13 @@ class CompleteSessionDto {
 }
 
 /**
+ * DTO for cancelling a session
+ */
+class CancelSessionDto {
+  sessionId: string;
+}
+
+/**
  * Liveness Controller
  *
  * Handles challenge-based liveness detection for KYC verification.
@@ -51,9 +58,10 @@ class CompleteSessionDto {
  *
  * Flow:
  * 1. POST /liveness/start - Start session and get first challenge
- * 2. POST /liveness/challenge - Submit challenge responses (2-3 times)
+ * 2. POST /liveness/challenge OR /liveness/submit-challenge - Submit challenge responses (2-3 times)
  * 3. POST /liveness/complete - Complete session and get final result
- * 4. GET /liveness/:sessionId - Check session status at any time
+ * 4. POST /liveness/cancel - Cancel an active session
+ * 5. GET /liveness/:sessionId - Check session status at any time
  */
 @ApiTags('Liveness')
 @Controller('liveness')
@@ -161,7 +169,8 @@ export class LivenessController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid challenge ID, session expired, or invalid video frame',
+    description:
+      'Invalid challenge ID, session expired, or invalid video frame',
   })
   @ApiResponse({
     status: 401,
@@ -172,6 +181,87 @@ export class LivenessController {
     description: 'Session not found or expired',
   })
   async submitChallenge(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: SubmitChallengeDto,
+  ) {
+    return this.livenessService.submitChallenge(
+      dto.sessionId,
+      dto.challengeId,
+      dto.videoFrameBase64,
+      user.id,
+    );
+  }
+
+  /**
+   * Submit a challenge response (alias route for mobile SDK compatibility)
+   */
+  @Post('submit-challenge')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Submit challenge response (alias)',
+    description:
+      'Alias for /challenge endpoint. Submit a video frame/selfie for the current challenge. Returns whether it passed and the next challenge (if any).',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['sessionId', 'challengeId', 'videoFrameBase64'],
+      properties: {
+        sessionId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Liveness session ID',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+        },
+        challengeId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Challenge ID to submit response for',
+          example: '550e8400-e29b-41d4-a716-446655440001',
+        },
+        videoFrameBase64: {
+          type: 'string',
+          description: 'Base64 encoded video frame or selfie image',
+          example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Challenge submitted successfully',
+    schema: {
+      example: {
+        sessionId: '550e8400-e29b-41d4-a716-446655440000',
+        passed: true,
+        confidence: 87,
+        nextChallenge: {
+          challengeId: '550e8400-e29b-41d4-a716-446655440002',
+          type: 'smile',
+          instruction: 'Please smile naturally',
+          expiresAt: '2026-01-25T12:31:00.000Z',
+          order: 2,
+        },
+        sessionComplete: false,
+        completedCount: 1,
+        totalChallenges: 3,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid challenge ID, session expired, or invalid video frame',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - session does not belong to user',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found or expired',
+  })
+  async submitChallengeAlias(
     @CurrentUser() user: JwtUser,
     @Body() dto: SubmitChallengeDto,
   ) {
@@ -263,6 +353,59 @@ export class LivenessController {
   }
 
   /**
+   * Cancel a liveness session
+   */
+  @Post('cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel liveness session',
+    description:
+      'Cancel an active liveness session. Once cancelled, the session cannot be resumed.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['sessionId'],
+      properties: {
+        sessionId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Liveness session ID to cancel',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Session cancelled successfully',
+    schema: {
+      example: {
+        success: true,
+        message: 'Session cancelled successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot cancel session that is already completed or failed',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - session does not belong to user',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found or expired',
+  })
+  async cancelSession(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: CancelSessionDto,
+  ) {
+    return this.livenessService.cancelSession(dto.sessionId, user.id);
+  }
+
+  /**
    * Get session status
    */
   @Get(':sessionId')
@@ -303,7 +446,10 @@ export class LivenessController {
         ],
         status: 'in_progress',
         completedAt: '2026-01-25T12:25:00.000Z',
-        riskSignals: ['failed_challenges_detected', 'low_confidence_detections'],
+        riskSignals: [
+          'failed_challenges_detected',
+          'low_confidence_detections',
+        ],
         failureReason: undefined,
       },
     },
@@ -320,7 +466,10 @@ export class LivenessController {
     @CurrentUser() user: JwtUser,
     @Param('sessionId') sessionId: string,
   ) {
-    const result = await this.livenessService.getSessionStatus(sessionId, user.id);
+    const result = await this.livenessService.getSessionStatus(
+      sessionId,
+      user.id,
+    );
 
     if (!result) {
       return {

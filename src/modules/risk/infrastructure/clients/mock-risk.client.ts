@@ -5,9 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  IRiskClient,
-} from '../../domain/interfaces/risk-client.interface';
+import { IRiskClient } from '../../domain/interfaces/risk-client.interface';
 import {
   TransactionAnalysisRequest,
   TransactionAnalysisResult,
@@ -36,10 +34,15 @@ const MOCK_SANCTION_ENTRIES = [
 export class MockRiskClient implements IRiskClient {
   private readonly logger = new Logger(MockRiskClient.name);
   private readonly deviceRegistry = new Map<string, DeviceFingerprintResult>();
-  private readonly velocityCounters = new Map<string, { count: number; resetAt: Date }>();
+  private readonly velocityCounters = new Map<
+    string,
+    { count: number; resetAt: Date }
+  >();
   private readonly userProfiles = new Map<string, UserRiskProfile>();
 
-  async analyzeTransaction(request: TransactionAnalysisRequest): Promise<TransactionAnalysisResult> {
+  async analyzeTransaction(
+    request: TransactionAnalysisRequest,
+  ): Promise<TransactionAnalysisResult> {
     this.logger.debug(`[MOCK] Analyzing transaction: ${request.transactionId}`);
 
     // Simulate processing delay
@@ -55,14 +58,21 @@ export class MockRiskClient implements IRiskClient {
       riskFactors.push(`High amount: ${request.amount} ${request.currency}`);
     } else if (request.amount >= 5000) {
       riskScore += 15;
-      riskFactors.push(`Medium-high amount: ${request.amount} ${request.currency}`);
+      riskFactors.push(
+        `Medium-high amount: ${request.amount} ${request.currency}`,
+      );
     }
 
     // Cross-border risk
-    if (request.sourceCountry && request.destinationCountry &&
-        request.sourceCountry !== request.destinationCountry) {
+    if (
+      request.sourceCountry &&
+      request.destinationCountry &&
+      request.sourceCountry !== request.destinationCountry
+    ) {
       riskScore += 15;
-      riskFactors.push(`Cross-border: ${request.sourceCountry} → ${request.destinationCountry}`);
+      riskFactors.push(
+        `Cross-border: ${request.sourceCountry} → ${request.destinationCountry}`,
+      );
     }
 
     // External recipient risk
@@ -92,7 +102,8 @@ export class MockRiskClient implements IRiskClient {
     riskScore = Math.min(riskScore, 100);
 
     // Determine risk level and decision
-    const { riskLevel, riskDecision } = this.determineRiskLevelAndDecision(riskScore);
+    const { riskLevel, riskDecision } =
+      this.determineRiskLevelAndDecision(riskScore);
 
     return {
       analysisId: uuidv4(),
@@ -106,7 +117,9 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async analyzeTransactionBatch(requests: TransactionAnalysisRequest[]): Promise<{
+  async analyzeTransactionBatch(
+    requests: TransactionAnalysisRequest[],
+  ): Promise<{
     results: TransactionAnalysisResult[];
     summary: {
       total: number;
@@ -115,10 +128,21 @@ export class MockRiskClient implements IRiskClient {
       averageScore: number;
     };
   }> {
-    const results = await Promise.all(requests.map(r => this.analyzeTransaction(r)));
+    const results = await Promise.all(
+      requests.map((r) => this.analyzeTransaction(r)),
+    );
 
-    const byLevel: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
-    const byDecision: Record<string, number> = { allow: 0, review: 0, block: 0 };
+    const byLevel: Record<string, number> = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    };
+    const byDecision: Record<string, number> = {
+      allow: 0,
+      review: 0,
+      block: 0,
+    };
     let totalScore = 0;
 
     for (const result of results) {
@@ -138,35 +162,40 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async screenIndividual(request: IndividualScreeningRequest): Promise<ScreeningResult> {
-    this.logger.debug(`[MOCK] Screening individual: ${request.firstName} ${request.lastName}`);
+  async screenIndividual(
+    request: IndividualScreeningRequest,
+  ): Promise<ScreeningResult> {
+    this.logger.debug(
+      `[MOCK] Screening individual: ${request.firstName} ${request.lastName}`,
+    );
 
     await this.delay(100);
 
     const fullName = `${request.firstName} ${request.lastName}`.toLowerCase();
-    const matches = MOCK_SANCTION_ENTRIES
-      .filter(entry => {
-        const entryName = entry.name.toLowerCase();
-        // Check for exact or partial match
-        return entryName.includes(fullName) ||
-               fullName.includes(entryName.split(' ')[0]) ||
-               fullName.includes('sanctioned') ||
-               fullName.includes('blocked') ||
-               fullName.includes('terrorist');
-      })
-      .map(entry => ({
-        matchId: uuidv4(),
-        listCode: entry.listCode,
-        listName: this.getListName(entry.listCode),
-        entryId: uuidv4(),
-        matchedName: entry.name,
-        matchConfidence: 'strong' as const,
-        matchScore: 85,
-        matchedFields: ['name'],
-        sanctionPrograms: entry.programs,
-      }));
+    const matches = MOCK_SANCTION_ENTRIES.filter((entry) => {
+      const entryName = entry.name.toLowerCase();
+      // Check for exact or partial match
+      return (
+        entryName.includes(fullName) ||
+        fullName.includes(entryName.split(' ')[0]) ||
+        fullName.includes('sanctioned') ||
+        fullName.includes('blocked') ||
+        fullName.includes('terrorist')
+      );
+    }).map((entry) => ({
+      matchId: uuidv4(),
+      listCode: entry.listCode,
+      listName: this.getListName(entry.listCode),
+      entryId: uuidv4(),
+      matchedName: entry.name,
+      matchConfidence: 'strong' as const,
+      matchScore: 85,
+      matchedFields: ['name'],
+      sanctionPrograms: entry.programs,
+    }));
 
-    const status: ScreeningStatus = matches.length > 0 ? 'potential_match' : 'clear';
+    const status: ScreeningStatus =
+      matches.length > 0 ? 'potential_match' : 'clear';
 
     return {
       screeningId: uuidv4(),
@@ -176,36 +205,44 @@ export class MockRiskClient implements IRiskClient {
       totalMatches: matches.length,
       matches,
       screenedAt: new Date(),
-      listsScreened: request.listsToScreen || ['OFAC_SDN', 'UN_SC', 'EU_FSF', 'BCEAO_GEL'],
+      listsScreened: request.listsToScreen || [
+        'OFAC_SDN',
+        'UN_SC',
+        'EU_FSF',
+        'BCEAO_GEL',
+      ],
     };
   }
 
-  async screenEntity(request: EntityScreeningRequest): Promise<ScreeningResult> {
+  async screenEntity(
+    request: EntityScreeningRequest,
+  ): Promise<ScreeningResult> {
     this.logger.debug(`[MOCK] Screening entity: ${request.entityName}`);
 
     await this.delay(100);
 
     const entityName = request.entityName.toLowerCase();
-    const matches = MOCK_SANCTION_ENTRIES
-      .filter(entry => {
-        const entryName = entry.name.toLowerCase();
-        return entryName.includes(entityName) ||
-               entityName.includes('evil') ||
-               entityName.includes('blocked');
-      })
-      .map(entry => ({
-        matchId: uuidv4(),
-        listCode: entry.listCode,
-        listName: this.getListName(entry.listCode),
-        entryId: uuidv4(),
-        matchedName: entry.name,
-        matchConfidence: 'possible' as const,
-        matchScore: 72,
-        matchedFields: ['name'],
-        sanctionPrograms: entry.programs,
-      }));
+    const matches = MOCK_SANCTION_ENTRIES.filter((entry) => {
+      const entryName = entry.name.toLowerCase();
+      return (
+        entryName.includes(entityName) ||
+        entityName.includes('evil') ||
+        entityName.includes('blocked')
+      );
+    }).map((entry) => ({
+      matchId: uuidv4(),
+      listCode: entry.listCode,
+      listName: this.getListName(entry.listCode),
+      entryId: uuidv4(),
+      matchedName: entry.name,
+      matchConfidence: 'possible' as const,
+      matchScore: 72,
+      matchedFields: ['name'],
+      sanctionPrograms: entry.programs,
+    }));
 
-    const status: ScreeningStatus = matches.length > 0 ? 'potential_match' : 'clear';
+    const status: ScreeningStatus =
+      matches.length > 0 ? 'potential_match' : 'clear';
 
     return {
       screeningId: uuidv4(),
@@ -219,15 +256,17 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async screenBatch(requests: (IndividualScreeningRequest | EntityScreeningRequest)[]): Promise<{
+  async screenBatch(
+    requests: (IndividualScreeningRequest | EntityScreeningRequest)[],
+  ): Promise<{
     batchId: string;
     status: 'completed' | 'processing';
     results?: ScreeningResult[];
   }> {
     const results = await Promise.all(
-      requests.map(r =>
-        'firstName' in r ? this.screenIndividual(r) : this.screenEntity(r)
-      )
+      requests.map((r) =>
+        'firstName' in r ? this.screenIndividual(r) : this.screenEntity(r),
+      ),
     );
 
     return {
@@ -237,12 +276,16 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async getScreeningResult(screeningId: string): Promise<ScreeningResult | null> {
+  async getScreeningResult(
+    screeningId: string,
+  ): Promise<ScreeningResult | null> {
     // In mock, we don't persist results, so return null
     return null;
   }
 
-  async checkVelocity(request: VelocityCheckRequest): Promise<VelocityCheckResult> {
+  async checkVelocity(
+    request: VelocityCheckRequest,
+  ): Promise<VelocityCheckResult> {
     this.logger.debug(`[MOCK] Checking velocity for user: ${request.userId}`);
 
     const key = `${request.userId}:${request.checkType}`;
@@ -252,7 +295,9 @@ export class MockRiskClient implements IRiskClient {
     if (!counter || counter.resetAt < now) {
       counter = {
         count: 0,
-        resetAt: new Date(now.getTime() + request.timeWindowMinutes * 60 * 1000),
+        resetAt: new Date(
+          now.getTime() + request.timeWindowMinutes * 60 * 1000,
+        ),
       };
     }
 
@@ -282,7 +327,10 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async registerDevice(userId: string, fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async registerDevice(
+    userId: string,
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     this.logger.debug(`[MOCK] Registering device for user: ${userId}`);
 
     const key = `${userId}:${fingerprint.deviceId}`;
@@ -301,7 +349,9 @@ export class MockRiskClient implements IRiskClient {
     return result;
   }
 
-  async analyzeDevice(fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async analyzeDevice(
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     return {
       fingerprintId: uuidv4(),
       isKnownDevice: false,
@@ -339,10 +389,13 @@ export class MockRiskClient implements IRiskClient {
     return profile;
   }
 
-  async updateUserRiskProfile(userId: string, updates: Partial<UserRiskProfile>): Promise<UserRiskProfile> {
+  async updateUserRiskProfile(
+    userId: string,
+    updates: Partial<UserRiskProfile>,
+  ): Promise<UserRiskProfile> {
     const existing = await this.getUserRiskProfile(userId);
     const updated: UserRiskProfile = {
-      ...existing!,
+      ...existing,
       ...updates,
       updatedAt: new Date(),
     };
@@ -400,7 +453,10 @@ export class MockRiskClient implements IRiskClient {
     };
   }
 
-  async healthCheck(): Promise<{ status: 'ok' | 'degraded' | 'down'; latencyMs: number }> {
+  async healthCheck(): Promise<{
+    status: 'ok' | 'degraded' | 'down';
+    latencyMs: number;
+  }> {
     return {
       status: 'ok',
       latencyMs: 5,
@@ -410,10 +466,13 @@ export class MockRiskClient implements IRiskClient {
   // Helper methods
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private determineRiskLevelAndDecision(score: number): { riskLevel: RiskLevel; riskDecision: RiskDecision } {
+  private determineRiskLevelAndDecision(score: number): {
+    riskLevel: RiskLevel;
+    riskDecision: RiskDecision;
+  } {
     if (score >= 80) {
       return { riskLevel: 'critical', riskDecision: 'block' };
     } else if (score >= 60) {

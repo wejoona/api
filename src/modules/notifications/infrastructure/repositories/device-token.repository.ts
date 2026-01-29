@@ -11,7 +11,7 @@ export class DeviceTokenRepository {
   private readonly tokens = new Map<string, DeviceToken>();
 
   async findByUserId(userId: string): Promise<DeviceToken[]> {
-    return Array.from(this.tokens.values()).filter(t => t.userId === userId);
+    return Array.from(this.tokens.values()).filter((t) => t.userId === userId);
   }
 
   async findByToken(token: string): Promise<DeviceToken | null> {
@@ -30,7 +30,10 @@ export class DeviceTokenRepository {
     return token;
   }
 
-  async update(id: string, updates: Partial<DeviceToken>): Promise<DeviceToken> {
+  async update(
+    id: string,
+    updates: Partial<DeviceToken>,
+  ): Promise<DeviceToken> {
     const existing = this.tokens.get(id);
     if (!existing) {
       throw new Error(`Token not found: ${id}`);
@@ -57,7 +60,10 @@ export class DeviceTokenRepository {
     }
   }
 
-  async deactivateOldTokens(userId: string, keepTokenId: string): Promise<void> {
+  async deactivateOldTokens(
+    userId: string,
+    keepTokenId: string,
+  ): Promise<void> {
     for (const [id, token] of this.tokens.entries()) {
       if (token.userId === userId && id !== keepTokenId) {
         this.tokens.set(id, { ...token, isActive: false });

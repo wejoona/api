@@ -48,8 +48,15 @@ export class AMLCFTService {
 
   // High-risk countries (simplified - should be maintained in database)
   private readonly HIGH_RISK_COUNTRIES = [
-    'AF', 'IR', 'KP', 'SY', 'YE', // FATF high-risk
-    'MM', 'PK', 'SS', 'VE', // Additional monitoring
+    'AF',
+    'IR',
+    'KP',
+    'SY',
+    'YE', // FATF high-risk
+    'MM',
+    'PK',
+    'SS',
+    'VE', // Additional monitoring
   ];
 
   constructor(
@@ -206,7 +213,8 @@ export class AMLCFTService {
     const totalAmount = amounts.reduce((sum, a) => sum + a, 0);
     const totalAmountXof = totalAmount * this.XOF_TO_USDC_RATE;
     const transactionCount = amounts.length;
-    const averageAmount = transactionCount > 0 ? totalAmount / transactionCount : 0;
+    const averageAmount =
+      transactionCount > 0 ? totalAmount / transactionCount : 0;
 
     // Calculate standard deviation
     const variance =
@@ -219,7 +227,8 @@ export class AMLCFTService {
       transactionCount >= 3 && standardDeviation < averageAmount * 0.1;
 
     // Check if all transactions are below threshold
-    const thresholdUsdc = this.STRUCTURING_THRESHOLD_XOF / this.XOF_TO_USDC_RATE;
+    const thresholdUsdc =
+      this.STRUCTURING_THRESHOLD_XOF / this.XOF_TO_USDC_RATE;
     const belowThreshold = amounts.every((a) => a < thresholdUsdc * 0.95); // 95% of threshold
 
     // Calculate confidence score
@@ -230,7 +239,7 @@ export class AMLCFTService {
     if (transactionCount >= 5) confidence += 20;
 
     // Calculate risk score
-    const riskScore = Math.min(100, confidence + (transactionCount * 5));
+    const riskScore = Math.min(100, confidence + transactionCount * 5);
 
     return {
       userId,
@@ -284,7 +293,8 @@ export class AMLCFTService {
       (sum, t) => sum + Number(t.amount),
       0,
     );
-    const averageAmount = transactionCount > 0 ? totalAmount / transactionCount : 0;
+    const averageAmount =
+      transactionCount > 0 ? totalAmount / transactionCount : 0;
 
     // Get threshold from config
     const threshold =
@@ -349,7 +359,16 @@ export class AMLCFTService {
 
     // Non-WAEMU African countries (medium risk)
     const africanCountries = [
-      'NG', 'GH', 'KE', 'UG', 'TZ', 'RW', 'ZA', 'EG', 'MA', 'TN',
+      'NG',
+      'GH',
+      'KE',
+      'UG',
+      'TZ',
+      'RW',
+      'ZA',
+      'EG',
+      'MA',
+      'TN',
     ];
     if (africanCountries.includes(countryCode)) {
       reasons.push('Non-WAEMU African country');
@@ -708,9 +727,7 @@ export class AMLCFTService {
    * Run comprehensive AML analysis on all active users
    * Used for periodic risk assessment
    */
-  async runBatchAnalysis(
-    daysBack = 7,
-  ): Promise<{
+  async runBatchAnalysis(daysBack = 7): Promise<{
     usersAnalyzed: number;
     alertsGenerated: number;
     highRiskUsers: number;

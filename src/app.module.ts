@@ -39,6 +39,11 @@ import { MerchantModule } from './modules/merchant/merchant.module';
 import { BillPaymentsModule } from './modules/bill-payments/bill-payments.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
+import { VerificationModule } from './modules/verification/verification.module';
+import { DeviceModule } from './modules/device/device.module';
+import { SessionModule } from './modules/session/session.module';
+import { BeneficiaryModule } from './modules/beneficiary/beneficiary.module';
+import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -110,12 +115,12 @@ import { BlnkModule } from './modules/providers/blnk';
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ([
+      useFactory: (configService: ConfigService) => [
         {
           ttl: configService.get<number>('rateLimit.ttl', 60) * 1000,
           limit: configService.get<number>('rateLimit.limit', 100),
         },
-      ]),
+      ],
     }),
 
     // CQRS
@@ -135,7 +140,11 @@ import { BlnkModule } from './modules/providers/blnk';
     // Core feature modules
     SharedModule,
     UserModule,
+    VerificationModule, // Email, phone, and identity verification
+    DeviceModule, // Device registration and management
+    SessionModule, // User session management with refresh tokens
     WalletModule,
+    BeneficiaryModule, // Saved beneficiaries for faster transfers
     TransactionModule,
     TransferModule,
     NotificationModule,
@@ -150,6 +159,7 @@ import { BlnkModule } from './modules/providers/blnk';
     LegalModule,
     ContactsModule,
     UserPreferencesModule,
+    FeatureFlagModule, // Feature flags for gradual rollout
     UploadModule, // S3 document upload
     KycModule, // KYC verification flow
     LivenessModule, // Challenge-based liveness detection

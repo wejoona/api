@@ -8,7 +8,9 @@
  * Implementations: Onfido, Jumio, Veriff, Smile Identity, Trulioo, Mock
  */
 
-export const IDENTITY_VERIFICATION_PROVIDER = Symbol('IDENTITY_VERIFICATION_PROVIDER');
+export const IDENTITY_VERIFICATION_PROVIDER = Symbol(
+  'IDENTITY_VERIFICATION_PROVIDER',
+);
 
 /**
  * Verification level/tier
@@ -278,7 +280,9 @@ export interface IIdentityVerificationProvider {
    * @param input - Identity verification input
    * @returns Verification result
    */
-  verifyIdentity(input: VerifyIdentityInput): Promise<IdentityVerificationResult>;
+  verifyIdentity(
+    input: VerifyIdentityInput,
+  ): Promise<IdentityVerificationResult>;
 
   /**
    * Get status of a pending verification
@@ -286,7 +290,9 @@ export interface IIdentityVerificationProvider {
    * @param verificationId - Provider's verification ID
    * @returns Current verification result
    */
-  getVerificationStatus(verificationId: string): Promise<IdentityVerificationResult>;
+  getVerificationStatus(
+    verificationId: string,
+  ): Promise<IdentityVerificationResult>;
 
   /**
    * Screen against watchlists only
@@ -322,5 +328,7 @@ export interface IIdentityVerificationProvider {
   /**
    * Parse webhook payload into verification result
    */
-  parseWebhookPayload(payload: Record<string, unknown>): IdentityVerificationResult;
+  parseWebhookPayload(
+    payload: Record<string, unknown>,
+  ): IdentityVerificationResult;
 }

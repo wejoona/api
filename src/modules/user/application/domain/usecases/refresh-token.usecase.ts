@@ -39,7 +39,10 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
     if (!this.refreshSecret) {
       throw new Error('JWT_REFRESH_SECRET environment variable is required');
     }
-    this.refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');
+    this.refreshExpiresIn = this.configService.get<string>(
+      'jwt.refreshExpiresIn',
+      '7d',
+    );
 
     // Initialize Redis client for token blacklist checking
     this.redis = new Redis({
@@ -108,6 +111,20 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
         throw new UnauthorizedException('Invalid token type');
       }
 
+      // Check if token was invalidated by logout-all operation
+      const isInvalidatedByLogoutAll = await this.checkGlobalInvalidation(
+        payload.sub,
+        input.refreshToken,
+        payload.iat,
+      );
+
+      if (isInvalidatedByLogoutAll) {
+        this.logger.warn('Attempt to use globally invalidated refresh token');
+        throw new UnauthorizedException(
+          'Token has been revoked - all devices logged out',
+        );
+      }
+
       // Find user
       const user = await this.userRepository.findById(payload.sub);
       if (!user) {
@@ -135,7 +152,8 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
         },
         {
           secret: this.refreshSecret,
-          expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
+          expiresIn: this
+            .refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
         },
       );
 
@@ -143,7 +161,9 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
       // This prevents "shadow sessions" where attacker can use old token
       await this.blacklistToken(input.refreshToken, payload.exp);
 
-      this.logger.log(`Tokens refreshed and old token blacklisted for user ${user.id}`);
+      this.logger.log(
+        `Tokens refreshed and old token blacklisted for user ${user.id}`,
+      );
 
       return {
         user,
@@ -151,10 +171,15 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
         refreshToken,
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException || error instanceof NotFoundException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
-      this.logger.warn(`Invalid refresh token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn(
+        `Invalid refresh token: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
@@ -180,7 +205,10 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
    * Blacklist a refresh token to prevent reuse
    * Token is kept in blacklist until its original expiration time
    */
-  async blacklistToken(token: string, expirationTimestamp?: number): Promise<void> {
+  async blacklistToken(
+    token: string,
+    expirationTimestamp?: number,
+  ): Promise<void> {
     try {
       const blacklistKey = `blacklist:${token}`;
 
@@ -200,6 +228,49 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
     } catch (error) {
       // Log but don't fail the refresh operation if blacklisting fails
       this.logger.error(`Failed to blacklist token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Check if a token has been invalidated by logout-all operation
+   */
+  private async checkGlobalInvalidation(
+    userId: string,
+    token: string,
+    tokenIssuedAt?: number,
+  ): Promise<boolean> {
+    try {
+      // Check if there's a global invalidation for this user
+      const userInvalidationKey = `user:${userId}:token_invalidation`;
+      const invalidationTimestamp = await this.redis.get(userInvalidationKey);
+
+      if (!invalidationTimestamp) {
+        return false; // No global invalidation
+      }
+
+      // Check if token is whitelisted (current session preservation)
+      const whitelistKey = `user:${userId}:whitelisted_tokens`;
+      const isWhitelisted = await this.redis.sismember(whitelistKey, token);
+
+      if (isWhitelisted) {
+        return false; // Token is whitelisted, not invalidated
+      }
+
+      // Token is invalidated if it was issued before the invalidation timestamp
+      if (!tokenIssuedAt) {
+        return true; // If we can't determine when token was issued, invalidate it
+      }
+
+      const tokenIssuedAtMs = tokenIssuedAt * 1000; // Convert to milliseconds
+      const invalidatedAt = parseInt(invalidationTimestamp, 10);
+
+      return tokenIssuedAtMs < invalidatedAt;
+    } catch (error) {
+      this.logger.error(
+        `Error checking global token invalidation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      // In case of error, fail safe - don't invalidate
+      return false;
     }
   }
 }

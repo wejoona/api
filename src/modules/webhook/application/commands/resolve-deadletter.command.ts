@@ -19,9 +19,10 @@ export class ResolveDeadletterCommand {
  * Marks a dead-letter entry as resolved
  */
 @CommandHandler(ResolveDeadletterCommand)
-export class ResolveDeadletterCommandHandler
-  implements ICommandHandler<ResolveDeadletterCommand, void>
-{
+export class ResolveDeadletterCommandHandler implements ICommandHandler<
+  ResolveDeadletterCommand,
+  void
+> {
   private readonly logger = new Logger(ResolveDeadletterCommandHandler.name);
 
   constructor(
@@ -37,9 +38,7 @@ export class ResolveDeadletterCommandHandler
     });
 
     if (!entry) {
-      throw new NotFoundException(
-        `Dead-letter entry ${command.id} not found`,
-      );
+      throw new NotFoundException(`Dead-letter entry ${command.id} not found`);
     }
 
     await this.deadletterService.resolve(

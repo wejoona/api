@@ -1,7 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('Security E2E Tests', () => {
   let setup: E2ETestSetup;
@@ -31,9 +37,7 @@ describe('Security E2E Tests', () => {
 
   describe('Authentication Security', () => {
     it('should reject requests without auth token', async () => {
-      await request(app.getHttpServer())
-        .get('/wallet')
-        .expect(401);
+      await request(app.getHttpServer()).get('/wallet').expect(401);
     });
 
     it('should reject requests with invalid auth token', async () => {
@@ -54,7 +58,8 @@ describe('Security E2E Tests', () => {
       // Create a token with very short expiration
       // This would require modifying JWT service or using time manipulation
       // For now, we'll test with an obviously expired/invalid token
-      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid';
+      const expiredToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.invalid';
 
       await request(app.getHttpServer())
         .get('/wallet')
@@ -64,7 +69,8 @@ describe('Security E2E Tests', () => {
 
     it('should validate JWT signature', async () => {
       // Token with invalid signature
-      const invalidSignatureToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wrongsignature';
+      const invalidSignatureToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wrongsignature';
 
       await request(app.getHttpServer())
         .get('/wallet')
@@ -83,14 +89,14 @@ describe('Security E2E Tests', () => {
         requests.push(
           request(app.getHttpServer())
             .post('/auth/register')
-            .send({ phone, countryCode: 'CI' })
+            .send({ phone, countryCode: 'CI' }),
         );
       }
 
       const responses = await Promise.all(requests);
 
       // Some requests should succeed, some should be rate limited
-      const rateLimited = responses.filter(r => r.status === 429);
+      const rateLimited = responses.filter((r) => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
     });
 
@@ -109,12 +115,12 @@ describe('Security E2E Tests', () => {
         requests.push(
           request(app.getHttpServer())
             .post('/auth/verify-otp')
-            .send({ phone, otp: '000000' })
+            .send({ phone, otp: '000000' }),
         );
       }
 
       const responses = await Promise.all(requests);
-      const rateLimited = responses.filter(r => r.status === 429);
+      const rateLimited = responses.filter((r) => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
     });
 
@@ -138,12 +144,12 @@ describe('Security E2E Tests', () => {
               toPhone: recipient.phone,
               amount: 1,
               currency: 'USDC',
-            })
+            }),
         );
       }
 
       const responses = await Promise.all(requests);
-      const rateLimited = responses.filter(r => r.status === 429);
+      const rateLimited = responses.filter((r) => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
     });
   });
@@ -217,7 +223,7 @@ describe('Security E2E Tests', () => {
       // Query database directly to verify PIN is hashed
       const result = await dataHelper.executeQuery(
         'SELECT pin_hash FROM users WHERE id = $1',
-        [user.id]
+        [user.id],
       );
 
       expect(result[0].pin_hash).toBeDefined();

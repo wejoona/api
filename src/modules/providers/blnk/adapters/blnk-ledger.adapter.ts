@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BlnkInit } from '@blnkfinance/blnk-typescript';
 import type { Blnk } from '@blnkfinance/blnk-typescript/dist/src/blnk/endpoints/baseBlnkClient';

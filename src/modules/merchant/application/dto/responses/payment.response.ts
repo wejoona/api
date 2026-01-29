@@ -10,7 +10,7 @@ export class PaymentRequestResponse {
   @ApiProperty({ example: 'Cafe Abidjan' })
   merchantName: string;
 
-  @ApiProperty({ example: 25.50 })
+  @ApiProperty({ example: 25.5 })
   amount: number;
 
   @ApiProperty({ example: 'USDC' })
@@ -42,13 +42,13 @@ export class PaymentReceiptResponse {
   @ApiProperty({ example: 'restaurant' })
   merchantCategory: string;
 
-  @ApiProperty({ example: 25.50 })
+  @ApiProperty({ example: 25.5 })
   amount: number;
 
   @ApiProperty({ example: 0.38 })
   fee: number;
 
-  @ApiProperty({ example: 25.50 })
+  @ApiProperty({ example: 25.5 })
   total: number;
 
   @ApiProperty({ example: '2026-01-25T10:05:00.000Z' })
@@ -71,7 +71,7 @@ export class ProcessPaymentResponse {
   @ApiProperty({ example: 'Cafe Abidjan' })
   merchantName: string;
 
-  @ApiProperty({ example: 25.50 })
+  @ApiProperty({ example: 25.5 })
   amount: number;
 
   @ApiProperty({ example: 0.38 })
@@ -103,7 +103,7 @@ export class MerchantTransactionResponse {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174002' })
   customerId: string;
 
-  @ApiProperty({ example: 25.50 })
+  @ApiProperty({ example: 25.5 })
   amount: number;
 
   @ApiProperty({ example: 0.38 })

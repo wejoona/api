@@ -32,7 +32,9 @@ export class GetMerchantAnalyticsUseCase {
     private readonly merchantPaymentRepository: MerchantPaymentRepository,
   ) {}
 
-  async execute(input: GetMerchantAnalyticsInput): Promise<GetMerchantAnalyticsOutput> {
+  async execute(
+    input: GetMerchantAnalyticsInput,
+  ): Promise<GetMerchantAnalyticsOutput> {
     const { userId, merchantId, period = 'month' } = input;
 
     this.logger.log(`Getting analytics for merchant ${merchantId}`);
@@ -66,9 +68,10 @@ export class GetMerchantAnalyticsUseCase {
     };
   }
 
-  private calculateDateRange(
-    period: 'day' | 'week' | 'month' | 'year',
-  ): { startDate: Date; endDate: Date } {
+  private calculateDateRange(period: 'day' | 'week' | 'month' | 'year'): {
+    startDate: Date;
+    endDate: Date;
+  } {
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
 

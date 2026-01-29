@@ -51,8 +51,17 @@ export class GetMerchantTransactionsUseCase {
     private readonly merchantPaymentRepository: MerchantPaymentRepository,
   ) {}
 
-  async execute(input: GetMerchantTransactionsInput): Promise<GetMerchantTransactionsOutput> {
-    const { userId, merchantId, limit = 50, offset = 0, startDate, endDate } = input;
+  async execute(
+    input: GetMerchantTransactionsInput,
+  ): Promise<GetMerchantTransactionsOutput> {
+    const {
+      userId,
+      merchantId,
+      limit = 50,
+      offset = 0,
+      startDate,
+      endDate,
+    } = input;
 
     this.logger.log(`Getting transactions for merchant ${merchantId}`);
 
@@ -72,23 +81,26 @@ export class GetMerchantTransactionsUseCase {
     let total;
 
     if (startDate && endDate) {
-      payments = await this.merchantPaymentRepository.findByMerchantIdAndDateRange(
-        merchantId,
-        startDate,
-        endDate,
-        limit,
-        offset,
-      );
+      payments =
+        await this.merchantPaymentRepository.findByMerchantIdAndDateRange(
+          merchantId,
+          startDate,
+          endDate,
+          limit,
+          offset,
+        );
       // For date range, we'd need a separate count query
       // For simplicity, using the same approach
-      total = await this.merchantPaymentRepository.countByMerchantId(merchantId);
+      total =
+        await this.merchantPaymentRepository.countByMerchantId(merchantId);
     } else {
       payments = await this.merchantPaymentRepository.findByMerchantId(
         merchantId,
         limit,
         offset,
       );
-      total = await this.merchantPaymentRepository.countByMerchantId(merchantId);
+      total =
+        await this.merchantPaymentRepository.countByMerchantId(merchantId);
     }
 
     // 4. Map to output format

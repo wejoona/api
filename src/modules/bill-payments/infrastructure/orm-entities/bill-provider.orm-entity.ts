@@ -41,10 +41,20 @@ export class BillProviderOrmEntity {
   @Column({ name: 'requires_customer_name', type: 'boolean', default: false })
   requiresCustomerName: boolean;
 
-  @Column({ name: 'account_number_label', type: 'varchar', length: 50, default: 'Account Number' })
+  @Column({
+    name: 'account_number_label',
+    type: 'varchar',
+    length: 50,
+    default: 'Account Number',
+  })
   accountNumberLabel: string;
 
-  @Column({ name: 'account_number_pattern', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'account_number_pattern',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   accountNumberPattern: string | null;
 
   @Column({ name: 'account_number_length', type: 'int', nullable: true })
@@ -56,10 +66,21 @@ export class BillProviderOrmEntity {
   @Column({ name: 'maximum_amount', type: 'decimal', precision: 18, scale: 2 })
   maximumAmount: number;
 
-  @Column({ name: 'processing_fee', type: 'decimal', precision: 18, scale: 4, default: 0 })
+  @Column({
+    name: 'processing_fee',
+    type: 'decimal',
+    precision: 18,
+    scale: 4,
+    default: 0,
+  })
   processingFee: number;
 
-  @Column({ name: 'processing_fee_type', type: 'varchar', length: 20, default: 'fixed' })
+  @Column({
+    name: 'processing_fee_type',
+    type: 'varchar',
+    length: 20,
+    default: 'fixed',
+  })
   processingFeeType: 'fixed' | 'percentage';
 
   @Column({ type: 'varchar', length: 10, default: 'XOF' })
@@ -72,7 +93,12 @@ export class BillProviderOrmEntity {
   @Column({ name: 'supports_validation', type: 'boolean', default: true })
   supportsValidation: boolean;
 
-  @Column({ name: 'estimated_processing_time', type: 'varchar', length: 50, default: 'Instant' })
+  @Column({
+    name: 'estimated_processing_time',
+    type: 'varchar',
+    length: 50,
+    default: 'Instant',
+  })
   estimatedProcessingTime: string;
 
   @Column({ name: 'operating_hours', type: 'jsonb', nullable: true })

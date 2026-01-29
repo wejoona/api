@@ -33,7 +33,10 @@ export class ReferralCodeRepository {
     return code;
   }
 
-  async update(id: string, updates: Partial<ReferralCode>): Promise<ReferralCode> {
+  async update(
+    id: string,
+    updates: Partial<ReferralCode>,
+  ): Promise<ReferralCode> {
     const existing = this.codes.get(id);
     if (!existing) throw new Error(`Code not found: ${id}`);
 

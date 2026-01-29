@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  OnModuleDestroy,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -58,7 +64,10 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     private readonly deadLetterService: WebhookDeadletterService,
     private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
-    this.circleWebhookSecret = this.configService.get<string>('circle.webhookSecret', '');
+    this.circleWebhookSecret = this.configService.get<string>(
+      'circle.webhookSecret',
+      '',
+    );
 
     // Initialize Redis for idempotency checks
     this.redis = new Redis({
@@ -156,7 +165,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Circle webhook signature verification failed: ${errorMessage}`);
+      this.logger.error(
+        `Circle webhook signature verification failed: ${errorMessage}`,
+      );
       throw new Error('Invalid webhook signature');
     }
   }
@@ -190,7 +201,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn(`Invalid Yellow Card webhook signature: ${errorMessage}`);
+      this.logger.warn(
+        `Invalid Yellow Card webhook signature: ${errorMessage}`,
+      );
       // SECURITY: Return 401 for invalid signatures so providers retry with correct signature
       throw new UnauthorizedException('Invalid webhook signature');
     }
@@ -302,8 +315,13 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
 
     // Extract a unique identifier for idempotency
     // Circle webhooks have different structures, try to get ID from various fields
-    const webhookData = payload.transfer || payload.transaction || payload.inboundTransfer || payload;
-    const entityId = (webhookData as Record<string, unknown>)?.id as string || 'unknown';
+    const webhookData =
+      payload.transfer ||
+      payload.transaction ||
+      payload.inboundTransfer ||
+      payload;
+    const entityId =
+      ((webhookData as Record<string, unknown>)?.id as string) || 'unknown';
     const webhookId = `circle:${entityId}:${notificationType}`;
 
     this.logger.log(`Circle webhook: ${notificationType}`);
@@ -622,7 +640,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     const transaction =
       await this.transactionRepository.findByProviderRef(withdrawalId);
     if (!transaction) {
-      this.logger.warn(`Transaction not found for YC withdrawal: ${withdrawalId}`);
+      this.logger.warn(
+        `Transaction not found for YC withdrawal: ${withdrawalId}`,
+      );
       return;
     }
 
@@ -664,7 +684,9 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     const transaction =
       await this.transactionRepository.findByProviderRef(withdrawalId);
     if (!transaction) {
-      this.logger.warn(`Transaction not found for failed YC withdrawal: ${withdrawalId}`);
+      this.logger.warn(
+        `Transaction not found for failed YC withdrawal: ${withdrawalId}`,
+      );
       return;
     }
 

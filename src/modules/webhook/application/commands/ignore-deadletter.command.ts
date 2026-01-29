@@ -19,9 +19,10 @@ export class IgnoreDeadletterCommand {
  * Marks a dead-letter entry as ignored
  */
 @CommandHandler(IgnoreDeadletterCommand)
-export class IgnoreDeadletterCommandHandler
-  implements ICommandHandler<IgnoreDeadletterCommand, void>
-{
+export class IgnoreDeadletterCommandHandler implements ICommandHandler<
+  IgnoreDeadletterCommand,
+  void
+> {
   private readonly logger = new Logger(IgnoreDeadletterCommandHandler.name);
 
   constructor(
@@ -37,9 +38,7 @@ export class IgnoreDeadletterCommandHandler
     });
 
     if (!entry) {
-      throw new NotFoundException(
-        `Dead-letter entry ${command.id} not found`,
-      );
+      throw new NotFoundException(`Dead-letter entry ${command.id} not found`);
     }
 
     await this.deadletterService.ignore(
@@ -48,6 +47,8 @@ export class IgnoreDeadletterCommandHandler
       command.reason,
     );
 
-    this.logger.log(`Dead-letter ${command.id} ignored by ${command.ignoredBy}`);
+    this.logger.log(
+      `Dead-letter ${command.id} ignored by ${command.ignoredBy}`,
+    );
   }
 }

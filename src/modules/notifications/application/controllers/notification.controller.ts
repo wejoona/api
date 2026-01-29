@@ -16,7 +16,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { NotificationService } from '../services/notification.service';
@@ -141,12 +146,15 @@ export class NotificationController {
     @CurrentUser() user: any,
     @Body() dto: UpdatePreferencesDto,
   ) {
-    const preferences = await this.notificationService.updatePreferences(user.id, {
-      channels: dto.channels as any,
-      categories: dto.categories as any,
-      quietHours: dto.quietHours,
-      language: dto.language,
-    });
+    const preferences = await this.notificationService.updatePreferences(
+      user.id,
+      {
+        channels: dto.channels as any,
+        categories: dto.categories as any,
+        quietHours: dto.quietHours,
+        language: dto.language,
+      },
+    );
 
     return {
       success: true,

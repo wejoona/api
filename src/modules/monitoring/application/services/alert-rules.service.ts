@@ -79,13 +79,17 @@ export class AlertRulesService implements OnModuleInit {
     await this.refreshCacheIfNeeded();
 
     const results: RuleEvaluationResult[] = [];
-    const prefs = userPreferences || await this.preferencesRepository.findByUserId(context.userId);
+    const prefs =
+      userPreferences ||
+      (await this.preferencesRepository.findByUserId(context.userId));
 
     for (const rule of this.rulesCache) {
       const result = await this.evaluateRule(rule, context, prefs);
       if (result.matched) {
         results.push(result);
-        this.logger.log(`Rule "${rule.name}" matched for transaction ${context.transactionId}`);
+        this.logger.log(
+          `Rule "${rule.name}" matched for transaction ${context.transactionId}`,
+        );
       }
     }
 
@@ -102,12 +106,15 @@ export class AlertRulesService implements OnModuleInit {
   ): Promise<RuleEvaluationResult> {
     try {
       const conditionResults = await Promise.all(
-        rule.conditions.map((condition) => this.evaluateCondition(condition, context, userPreferences))
+        rule.conditions.map((condition) =>
+          this.evaluateCondition(condition, context, userPreferences),
+        ),
       );
 
-      const matched = rule.conditionLogic === 'AND'
-        ? conditionResults.every((r) => r)
-        : conditionResults.some((r) => r);
+      const matched =
+        rule.conditionLogic === 'AND'
+          ? conditionResults.every((r) => r)
+          : conditionResults.some((r) => r);
 
       if (!matched) {
         return { matched: false };
@@ -115,9 +122,13 @@ export class AlertRulesService implements OnModuleInit {
 
       // Check if user has this alert type enabled
       if (userPreferences && rule.action.alertType) {
-        const alertTypeEnabled = userPreferences.alertTypes.includes(rule.action.alertType);
+        const alertTypeEnabled = userPreferences.alertTypes.includes(
+          rule.action.alertType,
+        );
         if (!alertTypeEnabled) {
-          this.logger.debug(`Alert type ${rule.action.alertType} disabled for user ${context.userId}`);
+          this.logger.debug(
+            `Alert type ${rule.action.alertType} disabled for user ${context.userId}`,
+          );
           return { matched: false };
         }
       }
@@ -135,7 +146,9 @@ export class AlertRulesService implements OnModuleInit {
         blockedTransaction: rule.action.blockTransaction,
       };
     } catch (error) {
-      this.logger.error(`Error evaluating rule ${rule.ruleId}: ${error.message}`);
+      this.logger.error(
+        `Error evaluating rule ${rule.ruleId}: ${error.message}`,
+      );
       return { matched: false };
     }
   }
@@ -150,7 +163,11 @@ export class AlertRulesService implements OnModuleInit {
   ): Promise<boolean> {
     switch (condition.type) {
       case 'amount_greater_than':
-        return this.evaluateAmountGreaterThan(condition, context, userPreferences);
+        return this.evaluateAmountGreaterThan(
+          condition,
+          context,
+          userPreferences,
+        );
 
       case 'amount_less_than':
         return context.amount < (condition.value as number);
@@ -168,7 +185,11 @@ export class AlertRulesService implements OnModuleInit {
         return await this.evaluateRecipientNew(condition, context);
 
       case 'cumulative_exceeded':
-        return await this.evaluateCumulativeExceeded(condition, context, userPreferences);
+        return await this.evaluateCumulativeExceeded(
+          condition,
+          context,
+          userPreferences,
+        );
 
       case 'device_new':
         return this.evaluateDeviceNew(condition, context);
@@ -194,7 +215,8 @@ export class AlertRulesService implements OnModuleInit {
     userPreferences?: UserAlertPreferences | null,
   ): boolean {
     // Use user preference threshold if available, otherwise use rule threshold
-    const threshold = userPreferences?.largeTransactionThreshold ?? (condition.value as number);
+    const threshold =
+      userPreferences?.largeTransactionThreshold ?? (condition.value as number);
     return context.amount > threshold;
   }
 
@@ -207,7 +229,8 @@ export class AlertRulesService implements OnModuleInit {
   ): Promise<boolean> {
     // This would typically query the transaction repository
     // For now, we'll use metadata if provided
-    const recentCount = (context.metadata?.recentTransactionCount as number) || 0;
+    const recentCount =
+      (context.metadata?.recentTransactionCount as number) || 0;
     const threshold = condition.countThreshold || 5;
     return recentCount >= threshold;
   }
@@ -243,7 +266,9 @@ export class AlertRulesService implements OnModuleInit {
     context: TransactionContext,
   ): boolean {
     const hour = context.createdAt.getHours();
-    const typicalHours = (context.metadata?.typicalHours as number[]) || [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+    const typicalHours = (context.metadata?.typicalHours as number[]) || [
+      8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+    ];
     return !typicalHours.includes(hour);
   }
 
@@ -254,11 +279,15 @@ export class AlertRulesService implements OnModuleInit {
     condition: RuleCondition,
     context: TransactionContext,
   ): Promise<boolean> {
-    const address = context.recipientAddress || context.recipientWalletId || context.recipientPhone;
+    const address =
+      context.recipientAddress ||
+      context.recipientWalletId ||
+      context.recipientPhone;
     if (!address) return false;
 
     // Check metadata for known recipients
-    const knownRecipients = (context.metadata?.knownRecipients as string[]) || [];
+    const knownRecipients =
+      (context.metadata?.knownRecipients as string[]) || [];
     return !knownRecipients.includes(address);
   }
 
@@ -271,8 +300,11 @@ export class AlertRulesService implements OnModuleInit {
     userPreferences?: UserAlertPreferences | null,
   ): Promise<boolean> {
     const dailyTotal = (context.metadata?.dailyTransactionTotal as number) || 0;
-    const threshold = userPreferences?.dailyLimitThreshold ?? (condition.value as number) ?? 5000;
-    return (dailyTotal + context.amount) > threshold;
+    const threshold =
+      userPreferences?.dailyLimitThreshold ??
+      (condition.value as number) ??
+      5000;
+    return dailyTotal + context.amount > threshold;
   }
 
   /**
@@ -312,7 +344,9 @@ export class AlertRulesService implements OnModuleInit {
       const amount = context.amount;
       // Check if amount is a round number (100, 500, 1000, etc.)
       const roundNumbers = [100, 200, 500, 1000, 2000, 5000, 10000];
-      return roundNumbers.includes(amount) || (amount >= 100 && amount % 100 === 0);
+      return (
+        roundNumbers.includes(amount) || (amount >= 100 && amount % 100 === 0)
+      );
     }
 
     return false;
@@ -325,7 +359,7 @@ export class AlertRulesService implements OnModuleInit {
     rule: MonitoringRule,
     context: TransactionContext,
   ): TransactionAlert {
-    const alertType = rule.action.alertType!;
+    const alertType = rule.action.alertType;
     const config = ALERT_TYPE_CONFIG[alertType];
     const severity = rule.action.severity || config.defaultSeverity;
 
@@ -356,7 +390,10 @@ export class AlertRulesService implements OnModuleInit {
   /**
    * Generate human-readable alert message
    */
-  private generateAlertMessage(alertType: AlertType, context: TransactionContext): string {
+  private generateAlertMessage(
+    alertType: AlertType,
+    context: TransactionContext,
+  ): string {
     const amount = `${context.amount} ${context.currency}`;
 
     switch (alertType) {
@@ -371,7 +408,8 @@ export class AlertRulesService implements OnModuleInit {
         return `Multiple transactions detected in a short time period. Please verify this activity.`;
 
       case 'new_recipient':
-        const recipient = context.recipientAddress || context.recipientPhone || 'a new address';
+        const recipient =
+          context.recipientAddress || context.recipientPhone || 'a new address';
         return `This is your first transaction to ${recipient}. Please verify the recipient.`;
 
       case 'suspicious_pattern':
@@ -424,9 +462,7 @@ export class AlertRulesService implements OnModuleInit {
         name: 'Large Transaction Alert',
         description: 'Alert when transaction amount exceeds user threshold',
         category: 'risk',
-        conditions: [
-          { type: 'amount_greater_than', value: 1000 },
-        ],
+        conditions: [{ type: 'amount_greater_than', value: 1000 }],
         conditionLogic: 'AND',
         action: {
           createAlert: true,
@@ -448,7 +484,11 @@ export class AlertRulesService implements OnModuleInit {
         description: 'Alert on rapid transactions (>5 in 10 minutes)',
         category: 'fraud',
         conditions: [
-          { type: 'velocity_exceeded', timeWindowMinutes: 10, countThreshold: 5 },
+          {
+            type: 'velocity_exceeded',
+            timeWindowMinutes: 10,
+            countThreshold: 5,
+          },
         ],
         conditionLogic: 'AND',
         action: {
@@ -470,9 +510,7 @@ export class AlertRulesService implements OnModuleInit {
         name: 'Geographic Anomaly',
         description: 'Alert on transactions from unusual locations',
         category: 'fraud',
-        conditions: [
-          { type: 'location_mismatch' },
-        ],
+        conditions: [{ type: 'location_mismatch' }],
         conditionLogic: 'AND',
         action: {
           createAlert: true,
@@ -493,9 +531,7 @@ export class AlertRulesService implements OnModuleInit {
         name: 'New Recipient Alert',
         description: 'Alert on first transaction to a new recipient',
         category: 'risk',
-        conditions: [
-          { type: 'recipient_new' },
-        ],
+        conditions: [{ type: 'recipient_new' }],
         conditionLogic: 'AND',
         action: {
           createAlert: true,
@@ -540,9 +576,7 @@ export class AlertRulesService implements OnModuleInit {
         name: 'Daily Cumulative Limit',
         description: 'Alert when daily transaction volume exceeds limit',
         category: 'risk',
-        conditions: [
-          { type: 'cumulative_exceeded', value: 5000 },
-        ],
+        conditions: [{ type: 'cumulative_exceeded', value: 5000 }],
         conditionLogic: 'AND',
         action: {
           createAlert: true,
@@ -563,9 +597,7 @@ export class AlertRulesService implements OnModuleInit {
         name: 'External Withdrawal Alert',
         description: 'Alert on withdrawals to external addresses',
         category: 'risk',
-        conditions: [
-          { type: 'recipient_new' },
-        ],
+        conditions: [{ type: 'recipient_new' }],
         conditionLogic: 'AND',
         action: {
           createAlert: true,
@@ -587,7 +619,11 @@ export class AlertRulesService implements OnModuleInit {
         description: 'Alert on multiple failed transaction attempts',
         category: 'risk',
         conditions: [
-          { type: 'failed_count_exceeded', countThreshold: 3, timeWindowMinutes: 30 },
+          {
+            type: 'failed_count_exceeded',
+            countThreshold: 3,
+            timeWindowMinutes: 30,
+          },
         ],
         conditionLogic: 'AND',
         action: {

@@ -1,12 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import {
-  Counter,
-  Histogram,
-  Gauge,
-  Registry,
-  Summary,
-} from 'prom-client';
+import { Counter, Histogram, Gauge, Registry, Summary } from 'prom-client';
 
 @Injectable()
 export class MetricsService {
@@ -111,7 +105,11 @@ export class MetricsService {
     this.httpRequestsTotal.inc(labels);
 
     if (statusCode >= 400) {
-      this.httpRequestErrorsTotal.inc({ method, path, status: statusCode.toString() });
+      this.httpRequestErrorsTotal.inc({
+        method,
+        path,
+        status: statusCode.toString(),
+      });
     }
   }
 
@@ -144,7 +142,11 @@ export class MetricsService {
     this.externalApiCallsTotal.inc(labels);
 
     if (statusCode >= 400) {
-      this.externalApiErrorsTotal.inc({ provider, endpoint, status: statusCode.toString() });
+      this.externalApiErrorsTotal.inc({
+        provider,
+        endpoint,
+        status: statusCode.toString(),
+      });
     }
   }
 
@@ -172,7 +174,12 @@ export class MetricsService {
   /**
    * Record database query metrics
    */
-  recordDbQuery(operation: string, table: string, duration: number, error = false): void {
+  recordDbQuery(
+    operation: string,
+    table: string,
+    duration: number,
+    error = false,
+  ): void {
     const labels = { operation, table };
 
     this.dbQueryDuration.observe(labels, duration / 1000);
@@ -235,7 +242,11 @@ export class MetricsService {
   /**
    * Update database connection pool size
    */
-  updateDbConnectionPoolSize(total: number, active: number, idle: number): void {
+  updateDbConnectionPoolSize(
+    total: number,
+    active: number,
+    idle: number,
+  ): void {
     this.dbConnectionPoolSize.set({ state: 'total' }, total);
     this.dbConnectionPoolSize.set({ state: 'active' }, active);
     this.dbConnectionPoolSize.set({ state: 'idle' }, idle);

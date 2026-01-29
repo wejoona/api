@@ -245,7 +245,9 @@ export class YellowCardOnRampAdapter implements IOnRampProvider {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Webhook signature verification failed: ${errorMessage}`);
+      this.logger.error(
+        `Webhook signature verification failed: ${errorMessage}`,
+      );
       throw new Error('Invalid webhook signature');
     }
   }

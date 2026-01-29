@@ -20,7 +20,9 @@ export interface IRiskClient {
   /**
    * Analyze a transaction for risk
    */
-  analyzeTransaction(request: TransactionAnalysisRequest): Promise<TransactionAnalysisResult>;
+  analyzeTransaction(
+    request: TransactionAnalysisRequest,
+  ): Promise<TransactionAnalysisResult>;
 
   /**
    * Analyze a batch of transactions
@@ -38,7 +40,9 @@ export interface IRiskClient {
   /**
    * Screen an individual against sanction lists
    */
-  screenIndividual(request: IndividualScreeningRequest): Promise<ScreeningResult>;
+  screenIndividual(
+    request: IndividualScreeningRequest,
+  ): Promise<ScreeningResult>;
 
   /**
    * Screen a business entity against sanction lists
@@ -48,7 +52,9 @@ export interface IRiskClient {
   /**
    * Batch screening for multiple subjects
    */
-  screenBatch(requests: (IndividualScreeningRequest | EntityScreeningRequest)[]): Promise<{
+  screenBatch(
+    requests: (IndividualScreeningRequest | EntityScreeningRequest)[],
+  ): Promise<{
     batchId: string;
     status: 'completed' | 'processing';
     results?: ScreeningResult[];
@@ -67,12 +73,17 @@ export interface IRiskClient {
   /**
    * Register/update device fingerprint
    */
-  registerDevice(userId: string, fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult>;
+  registerDevice(
+    userId: string,
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult>;
 
   /**
    * Analyze device for risk
    */
-  analyzeDevice(fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult>;
+  analyzeDevice(
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult>;
 
   /**
    * Get user risk profile
@@ -82,7 +93,10 @@ export interface IRiskClient {
   /**
    * Update user risk profile
    */
-  updateUserRiskProfile(userId: string, updates: Partial<UserRiskProfile>): Promise<UserRiskProfile>;
+  updateUserRiskProfile(
+    userId: string,
+    updates: Partial<UserRiskProfile>,
+  ): Promise<UserRiskProfile>;
 
   /**
    * Get available sanction lists
@@ -100,7 +114,10 @@ export interface IRiskClient {
   /**
    * Health check
    */
-  healthCheck(): Promise<{ status: 'ok' | 'degraded' | 'down'; latencyMs: number }>;
+  healthCheck(): Promise<{
+    status: 'ok' | 'degraded' | 'down';
+    latencyMs: number;
+  }>;
 }
 
 export const RISK_CLIENT = Symbol('RISK_CLIENT');

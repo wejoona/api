@@ -34,7 +34,9 @@ export interface FirebaseConfig {
 /**
  * Get Firebase configuration from ConfigService
  */
-export function getFirebaseConfig(configService: ConfigService): FirebaseConfig {
+export function getFirebaseConfig(
+  configService: ConfigService,
+): FirebaseConfig {
   return {
     projectId: configService.get<string>('fcm.projectId') || '',
     clientEmail: configService.get<string>('fcm.clientEmail') || '',

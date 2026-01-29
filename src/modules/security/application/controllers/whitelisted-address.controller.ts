@@ -64,7 +64,10 @@ export class WhitelistedAddressController {
   @ApiOperation({ summary: 'Verify a whitelisted address with PIN' })
   @ApiParam({ name: 'id', description: 'Address ID' })
   @ApiResponse({ status: 200, type: WhitelistedAddressResponse })
-  @ApiResponse({ status: 400, description: 'Address already verified or PIN not set' })
+  @ApiResponse({
+    status: 400,
+    description: 'Address already verified or PIN not set',
+  })
   @ApiResponse({ status: 403, description: 'Invalid PIN or account locked' })
   @ApiResponse({ status: 404, description: 'Address not found' })
   async verifyAddress(
@@ -146,7 +149,7 @@ export class WhitelistedAddressController {
     const address = await this.whitelistedAddressService.updateLabel(
       addressId,
       req.user.id,
-      dto.label!,
+      dto.label,
     );
     return WhitelistedAddressResponse.fromDomain(address);
   }

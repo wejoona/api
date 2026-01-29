@@ -43,10 +43,20 @@ export class BillPaymentOrmEntity {
   @Column({ name: 'account_number', type: 'varchar', length: 100 })
   accountNumber: string;
 
-  @Column({ name: 'meter_number', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'meter_number',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   meterNumber: string | null;
 
-  @Column({ name: 'customer_name', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'customer_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   customerName: string | null;
 
   @Column({ type: 'decimal', precision: 18, scale: 2 })
@@ -65,21 +75,43 @@ export class BillPaymentOrmEntity {
   @Index()
   status: BillPaymentStatus;
 
-  @Column({ name: 'receipt_number', type: 'varchar', length: 100, nullable: true, unique: true })
+  @Column({
+    name: 'receipt_number',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    unique: true,
+  })
   @Index()
   receiptNumber: string | null;
 
-  @Column({ name: 'provider_reference', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'provider_reference',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   @Index()
   providerReference: string | null;
 
-  @Column({ name: 'token_number', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'token_number',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   tokenNumber: string | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   units: string | null;
 
-  @Column({ name: 'idempotency_key', type: 'varchar', length: 100, nullable: true, unique: true })
+  @Column({
+    name: 'idempotency_key',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    unique: true,
+  })
   @Index()
   idempotencyKey: string | null;
 

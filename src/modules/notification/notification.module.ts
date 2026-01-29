@@ -13,7 +13,10 @@ import { SharedModule } from '@modules/shared/shared.module';
 import { UserPreferencesModule } from '@modules/user-preferences/user-preferences.module';
 
 // FCM Token Infrastructure
-import { FcmTokenOrmEntity, FcmTokenRepository } from '@modules/notification/infrastructure/fcm';
+import {
+  FcmTokenOrmEntity,
+  FcmTokenRepository,
+} from '@modules/notification/infrastructure/fcm';
 
 // Event Listeners
 import { NotificationEventListener } from '@modules/notification/application/domain/event-listeners';

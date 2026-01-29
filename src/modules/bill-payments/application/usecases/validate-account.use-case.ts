@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { BillProviderRepository } from '../../infrastructure/repositories';
 import { BillAdapterService } from '../services/bill-adapter.service';
-import { AccountValidationResult, AccountValidationRequest } from '../../domain/types';
+import {
+  AccountValidationResult,
+  AccountValidationRequest,
+} from '../../domain/types';
 
 export interface ValidateAccountInput {
   providerId: string;
@@ -19,10 +27,14 @@ export class ValidateAccountUseCase {
   ) {}
 
   async execute(input: ValidateAccountInput): Promise<AccountValidationResult> {
-    this.logger.debug(`Validating account: provider=${input.providerId}, account=${input.accountNumber}`);
+    this.logger.debug(
+      `Validating account: provider=${input.providerId}, account=${input.accountNumber}`,
+    );
 
     // Get provider
-    const providerData = await this.providerRepository.findByIdWithConfig(input.providerId);
+    const providerData = await this.providerRepository.findByIdWithConfig(
+      input.providerId,
+    );
     if (!providerData) {
       throw new NotFoundException('Bill provider not found');
     }
@@ -30,7 +42,9 @@ export class ValidateAccountUseCase {
     const { provider } = providerData;
 
     if (!provider.isActive) {
-      throw new BadRequestException('This bill provider is currently unavailable');
+      throw new BadRequestException(
+        'This bill provider is currently unavailable',
+      );
     }
 
     // Validate account number format if pattern is specified
@@ -46,7 +60,10 @@ export class ValidateAccountUseCase {
     }
 
     // Validate account number length if specified
-    if (provider.accountNumberLength && input.accountNumber.length !== provider.accountNumberLength) {
+    if (
+      provider.accountNumberLength &&
+      input.accountNumber.length !== provider.accountNumberLength
+    ) {
       return {
         isValid: false,
         accountNumber: input.accountNumber,
@@ -65,7 +82,9 @@ export class ValidateAccountUseCase {
 
     // If provider doesn't support validation, return success with no customer name
     if (!provider.supportsValidation) {
-      this.logger.debug(`Provider ${provider.shortName} doesn't support validation`);
+      this.logger.debug(
+        `Provider ${provider.shortName} doesn't support validation`,
+      );
       return {
         isValid: true,
         accountNumber: input.accountNumber,

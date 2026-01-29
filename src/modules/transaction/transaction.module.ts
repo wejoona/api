@@ -26,6 +26,10 @@ import {
 
 // Controllers
 import { TransactionController } from './application/controllers/transaction.controller';
+import { ReconciliationController } from './application/controllers/reconciliation.controller';
+
+// Event Listeners
+import { ReconciliationAlertListener } from './application/domain/events/reconciliation-alert.listener';
 
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
@@ -35,6 +39,8 @@ import { WalletModule } from '../wallet/wallet.module';
     TypeOrmModule.forFeature([TransactionOrmEntity]),
     CqrsModule,
     forwardRef(() => WalletModule),
+    // Note: BlnkModule and CircleModule are @Global() so providers
+    // (RECONCILIATION_PROVIDER, LEDGER_PROVIDER, WALLET_PROVIDER) are available
   ],
   providers: [
     // Repositories
@@ -48,8 +54,10 @@ import { WalletModule } from '../wallet/wallet.module';
     // Domain Services
     ReconciliationService,
     TransactionSearchService,
+    // Event Listeners
+    ReconciliationAlertListener,
   ],
-  controllers: [TransactionController],
+  controllers: [TransactionController, ReconciliationController],
   exports: [
     TransactionRepository,
     TransactionSearchService,

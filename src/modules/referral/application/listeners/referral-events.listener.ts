@@ -57,7 +57,9 @@ export class ReferralEventsListener {
         await this.referralService.updateUserTier(stats.userId);
       }
     } catch (error) {
-      this.logger.error(`Failed to process KYC approved for referral: ${error}`);
+      this.logger.error(
+        `Failed to process KYC approved for referral: ${error}`,
+      );
     }
   }
 
@@ -90,7 +92,9 @@ export class ReferralEventsListener {
    */
   @OnEvent('referral.applied')
   async handleReferralApplied(event: ReferralAppliedEvent) {
-    this.logger.log(`Referral applied: ${event.referrerId} referred ${event.referredId}`);
+    this.logger.log(
+      `Referral applied: ${event.referrerId} referred ${event.referredId}`,
+    );
 
     // This event is already emitted from ReferralService
     // The notification listener will pick it up

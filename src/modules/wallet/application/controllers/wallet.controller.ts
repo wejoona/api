@@ -30,6 +30,7 @@ import {
   SubmitKycDto,
   VerifyPinDto,
   SetPinDto,
+  WithdrawDto,
 } from '../dto/requests';
 import {
   GetBalanceUseCase,
@@ -42,6 +43,7 @@ import {
   GetKycStatusUseCase,
   VerifyPinUseCase,
   SetPinUseCase,
+  CreateWalletUseCase,
 } from '../usecases';
 
 @ApiTags('Wallet')
@@ -60,6 +62,7 @@ export class WalletController {
     private readonly getKycStatusUseCase: GetKycStatusUseCase,
     private readonly verifyPinUseCase: VerifyPinUseCase,
     private readonly setPinUseCase: SetPinUseCase,
+    private readonly createWalletUseCase: CreateWalletUseCase,
   ) {}
 
   // ============================================
@@ -83,6 +86,44 @@ export class WalletController {
   })
   async getBalance(@Request() req: AuthenticatedRequest) {
     return this.getBalanceUseCase.execute({ userId: req.user.id });
+  }
+
+  @Post('create')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create/activate wallet for current user' })
+  @ApiResponse({
+    status: 201,
+    description: 'Wallet created successfully',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        circleWalletId: '55c56c99-63f9-5426-ab08-10d40d196a8f',
+        circleWalletAddress: '0x3ca7a6241ee8490dc847b3ee9635b4ecfe9f9bc5',
+        currency: 'USDC',
+        balance: 0,
+        status: 'active',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet already exists',
+  })
+  async createWallet(@Request() req: AuthenticatedRequest) {
+    const wallet = await this.createWalletUseCase.execute({
+      userId: req.user.id,
+      userPhone: req.user.phone,
+    });
+    return {
+      id: wallet.id,
+      userId: wallet.userId,
+      circleWalletId: wallet.circleWalletId,
+      circleWalletAddress: wallet.circleWalletAddress,
+      currency: wallet.currency,
+      balance: wallet.balance,
+      status: wallet.status,
+    };
   }
 
   // ============================================
@@ -130,7 +171,8 @@ export class WalletController {
   @ApiOperation({ summary: 'Initiate a deposit (XOF → USD)' })
   @ApiHeader({
     name: 'X-Idempotency-Key',
-    description: 'Unique key to prevent duplicate deposit requests (e.g., UUID)',
+    description:
+      'Unique key to prevent duplicate deposit requests (e.g., UUID)',
     required: false,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -182,7 +224,8 @@ export class WalletController {
   @ApiOperation({ summary: 'Transfer to another user by phone number' })
   @ApiHeader({
     name: 'X-Idempotency-Key',
-    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    description:
+      'Unique key to prevent duplicate transfer requests (e.g., UUID)',
     required: false,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -238,7 +281,8 @@ export class WalletController {
   @ApiOperation({ summary: 'Transfer to external wallet address (USDC)' })
   @ApiHeader({
     name: 'X-Idempotency-Key',
-    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    description:
+      'Unique key to prevent duplicate transfer requests (e.g., UUID)',
     required: false,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -285,6 +329,72 @@ export class WalletController {
       currency: dto.currency,
       network: dto.network,
     });
+  }
+
+  @Post('withdraw')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @ApiOperation({ summary: 'Withdraw USDC to external wallet address' })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description:
+      'Unique key to prevent duplicate withdrawal requests (e.g., UUID)',
+    required: false,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /wallet/pin/verify',
+    required: true,
+    example: 'abc123...',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Withdrawal initiated successfully',
+    schema: {
+      example: {
+        transactionId: '123e4567-e89b-12d3-a456-426614174000',
+        amount: 50.0,
+        destinationAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        network: 'polygon',
+        fee: 0.25,
+        status: 'pending',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN verification required or invalid request',
+    schema: {
+      example: {
+        message: 'PIN verification required for this operation',
+        code: 'PIN_REQUIRED',
+      },
+    },
+  })
+  async withdraw(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: WithdrawDto,
+  ) {
+    const result = await this.externalTransferUseCase.execute({
+      userId: req.user.id,
+      toAddress: dto.destinationAddress,
+      amount: dto.amount,
+      currency: 'USD',
+      network: dto.network || 'polygon',
+    });
+
+    // Format response to match mobile SDK expectations
+    return {
+      transactionId: result.transactionId,
+      amount: result.amount,
+      destinationAddress: result.toAddress,
+      network: dto.network || 'polygon',
+      fee: result.fee,
+      status: result.status,
+    };
   }
 
   // ============================================
@@ -391,7 +501,8 @@ export class WalletController {
   @ApiOperation({ summary: 'Verify PIN for transaction authorization' })
   @ApiResponse({
     status: 200,
-    description: 'PIN verified successfully. Returns a token valid for 5 minutes.',
+    description:
+      'PIN verified successfully. Returns a token valid for 5 minutes.',
     schema: {
       example: {
         valid: true,
@@ -448,10 +559,7 @@ export class WalletController {
     status: 400,
     description: 'Invalid PIN or PINs do not match',
   })
-  async setPin(
-    @Request() req: AuthenticatedRequest,
-    @Body() dto: SetPinDto,
-  ) {
+  async setPin(@Request() req: AuthenticatedRequest, @Body() dto: SetPinDto) {
     return this.setPinUseCase.execute({
       userId: req.user.id,
       pin: dto.pin,

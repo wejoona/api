@@ -35,7 +35,9 @@ export class MockDocumentVerificationProvider implements IDocumentVerificationPr
 
   private verifications = new Map<string, DocumentVerificationResult>();
 
-  async verifyDocument(input: VerifyDocumentInput): Promise<DocumentVerificationResult> {
+  async verifyDocument(
+    input: VerifyDocumentInput,
+  ): Promise<DocumentVerificationResult> {
     this.logger.log(`[MOCK] Verifying document for user ${input.userId}`);
 
     // Simulate processing delay
@@ -123,7 +125,9 @@ export class MockDocumentVerificationProvider implements IDocumentVerificationPr
     return result;
   }
 
-  async getVerificationStatus(verificationId: string): Promise<DocumentVerificationResult> {
+  async getVerificationStatus(
+    verificationId: string,
+  ): Promise<DocumentVerificationResult> {
     const result = this.verifications.get(verificationId);
     if (!result) {
       return {
@@ -143,7 +147,9 @@ export class MockDocumentVerificationProvider implements IDocumentVerificationPr
     return true; // Mock always validates
   }
 
-  parseWebhookPayload(payload: Record<string, unknown>): DocumentVerificationResult {
+  parseWebhookPayload(
+    payload: Record<string, unknown>,
+  ): DocumentVerificationResult {
     const verificationId = payload.verificationId as string;
     return (
       this.verifications.get(verificationId) || {
@@ -181,23 +187,34 @@ export class MockDocumentVerificationProvider implements IDocumentVerificationPr
       review: docNumber.includes('REVIEW') || firstName.includes('REVIEW'),
       expired: docNumber.includes('EXPIRED') || firstName.includes('EXPIRED'),
       fake: docNumber.includes('FAKE') || firstName.includes('FAKE'),
-      warnings: docNumber.includes('WARN') ? ['Minor issue detected'] : undefined,
+      warnings: docNumber.includes('WARN')
+        ? ['Minor issue detected']
+        : undefined,
     };
   }
 
   private getScenarioName(docNumber: string, firstName: string): string {
-    if (docNumber.includes('PASS') || firstName.includes('PASS')) return 'forced_pass';
-    if (docNumber.includes('FAIL') || firstName.includes('FAIL')) return 'forced_fail';
-    if (docNumber.includes('REVIEW') || firstName.includes('REVIEW')) return 'forced_review';
-    if (docNumber.includes('EXPIRED') || firstName.includes('EXPIRED')) return 'expired_doc';
-    if (docNumber.includes('FAKE') || firstName.includes('FAKE')) return 'fake_doc';
+    if (docNumber.includes('PASS') || firstName.includes('PASS'))
+      return 'forced_pass';
+    if (docNumber.includes('FAIL') || firstName.includes('FAIL'))
+      return 'forced_fail';
+    if (docNumber.includes('REVIEW') || firstName.includes('REVIEW'))
+      return 'forced_review';
+    if (docNumber.includes('EXPIRED') || firstName.includes('EXPIRED'))
+      return 'expired_doc';
+    if (docNumber.includes('FAKE') || firstName.includes('FAKE'))
+      return 'fake_doc';
     return 'default';
   }
 
-  private calculateScore(scenario: ReturnType<typeof this.detectTestScenario>): number {
+  private calculateScore(
+    scenario: ReturnType<typeof this.detectTestScenario>,
+  ): number {
     if (scenario.pass) return 90 + Math.floor(Math.random() * 10);
-    if (scenario.fail || scenario.fake) return 20 + Math.floor(Math.random() * 25);
-    if (scenario.review || scenario.expired) return 60 + Math.floor(Math.random() * 15);
+    if (scenario.fail || scenario.fake)
+      return 20 + Math.floor(Math.random() * 25);
+    if (scenario.review || scenario.expired)
+      return 60 + Math.floor(Math.random() * 15);
     return 70 + Math.floor(Math.random() * 20); // Default: 70-90
   }
 

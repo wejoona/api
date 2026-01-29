@@ -22,7 +22,9 @@ export class MerchantResponse {
   @ApiProperty({ example: 'joonapay://pay?v=1&t=static&m=...' })
   qrCode: string;
 
-  @ApiPropertyOptional({ example: 'https://api.qrserver.com/v1/create-qr-code/...' })
+  @ApiPropertyOptional({
+    example: 'https://api.qrserver.com/v1/create-qr-code/...',
+  })
   qrCodeUrl?: string;
 
   @ApiProperty({ example: true })

@@ -7,7 +7,8 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ResolveAlertDto {
   @ApiProperty({
     description: 'Resolution explanation',
-    example: 'Verified legitimate business transaction with supporting documentation',
+    example:
+      'Verified legitimate business transaction with supporting documentation',
   })
   @IsString()
   resolution: string;

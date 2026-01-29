@@ -238,7 +238,7 @@ export class CircuitBreakerRegistry {
     if (!this.breakers.has(name)) {
       this.breakers.set(name, new CircuitBreaker({ ...options, name }));
     }
-    return this.breakers.get(name)!;
+    return this.breakers.get(name);
   }
 
   /**

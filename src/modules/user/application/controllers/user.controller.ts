@@ -27,6 +27,7 @@ import {
   UpdateProfileDto,
   RefreshTokenDto,
   LogoutDto,
+  LogoutAllDto,
   CheckUsernameDto,
   SearchUsernameDto,
 } from '../dto/requests';
@@ -36,8 +37,10 @@ import {
   OtpSentResponse,
   RefreshResponse,
   LogoutResponse,
+  LogoutAllResponse,
   CheckUsernameResponse,
   SearchUsernameResponse,
+  UserLimitsResponse,
 } from '../dto/responses';
 import {
   RegisterUserUsecase,
@@ -46,7 +49,9 @@ import {
   UpdateProfileUsecase,
   RefreshTokenUsecase,
   LogoutUsecase,
+  LogoutAllUsecase,
   UsernameUsecase,
+  GetUserLimitsUseCase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -58,6 +63,7 @@ export class AuthController {
     private readonly loginUserUsecase: LoginUserUsecase,
     private readonly refreshTokenUsecase: RefreshTokenUsecase,
     private readonly logoutUsecase: LogoutUsecase,
+    private readonly logoutAllUsecase: LogoutAllUsecase,
   ) {}
 
   @Post('register')
@@ -156,6 +162,34 @@ export class AuthController {
       message: result.message,
     };
   }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Logout from all devices',
+    description:
+      'Invalidate all refresh tokens for the user. Optionally preserve current session by providing currentRefreshToken.',
+  })
+  @ApiResponse({ status: 200, type: LogoutAllResponse })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async logoutAll(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: LogoutAllDto,
+  ): Promise<LogoutAllResponse> {
+    const result = await this.logoutAllUsecase.execute({
+      userId: req.user.id,
+      currentRefreshToken: dto.currentRefreshToken,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
+      sessionsInvalidated: result.sessionsInvalidated,
+    };
+  }
 }
 
 @ApiTags('User')
@@ -166,6 +200,7 @@ export class UserController {
   constructor(
     private readonly updateProfileUsecase: UpdateProfileUsecase,
     private readonly usernameUsecase: UsernameUsecase,
+    private readonly getUserLimitsUseCase: GetUserLimitsUseCase,
   ) {}
 
   @Get('profile')
@@ -230,7 +265,10 @@ export class UserController {
 
   @Get('by-username/:username')
   @ApiOperation({ summary: 'Find user by username' })
-  @ApiParam({ name: 'username', description: 'Username to find (with or without @)' })
+  @ApiParam({
+    name: 'username',
+    description: 'Username to find (with or without @)',
+  })
   @ApiResponse({ status: 200, type: UserResponse })
   @ApiResponse({ status: 404, description: 'User not found' })
   async findByUsername(
@@ -238,5 +276,17 @@ export class UserController {
   ): Promise<UserResponse> {
     const user = await this.usernameUsecase.findByUsername({ username });
     return UserResponse.fromDomain(user);
+  }
+
+  @Get('limits')
+  @ApiOperation({ summary: 'Get user transaction limits based on KYC status' })
+  @ApiResponse({ status: 200, type: UserLimitsResponse })
+  @ApiResponse({ status: 404, description: 'User or wallet not found' })
+  async getLimits(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UserLimitsResponse> {
+    return this.getUserLimitsUseCase.execute({
+      userId: req.user.id,
+    });
   }
 }

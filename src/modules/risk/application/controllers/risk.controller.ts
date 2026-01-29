@@ -13,13 +13,16 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { TransactionRiskService } from '../services/transaction-risk.service';
-import {
-  DeviceFingerprint,
-} from '../../domain/interfaces/risk-assessment.types';
+import { DeviceFingerprint } from '../../domain/interfaces/risk-assessment.types';
 
 class RegisterDeviceDto {
   deviceId: string;
@@ -102,10 +105,7 @@ export class RiskController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Screen user against sanction lists' })
   @ApiResponse({ status: 200, description: 'Screening completed' })
-  async screenUser(
-    @CurrentUser() user: any,
-    @Body() dto: ScreenUserDto,
-  ) {
+  async screenUser(@CurrentUser() user: any, @Body() dto: ScreenUserDto) {
     const result = await this.riskService.screenUser({
       referenceId: user.id,
       firstName: dto.firstName,

@@ -87,11 +87,7 @@ export class CustomTypeOrmLogger implements TypeOrmLogger {
   /**
    * Perform logging using given logger, or by default to the console
    */
-  log(
-    level: 'log' | 'info' | 'warn',
-    message: any,
-    queryRunner?: QueryRunner,
-  ) {
+  log(level: 'log' | 'info' | 'warn', message: any, queryRunner?: QueryRunner) {
     switch (level) {
       case 'log':
       case 'info':

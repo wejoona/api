@@ -113,7 +113,8 @@ export const transferMachine = setup({
     events: {} as TransferEvent,
   },
   guards: {
-    maxRetriesReached: ({ context }) => context.retryCount >= context.maxRetries,
+    maxRetriesReached: ({ context }) =>
+      context.retryCount >= context.maxRetries,
     canRetry: ({ context }) => context.retryCount < context.maxRetries,
     isExternalTransfer: ({ context }) => context.type === 'external',
   },

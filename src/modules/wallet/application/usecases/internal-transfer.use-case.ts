@@ -17,6 +17,7 @@ import {
   IPaymentGateway,
 } from '../../../shared/domain/gateways';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { BlnkLedgerAdapter } from '../../../providers/blnk/adapters/blnk-ledger.adapter';
 
 export interface InternalTransferInput {
   fromUserId: string;
@@ -38,10 +39,10 @@ export interface InternalTransferOutput {
 
 // SECURITY: KYC-based daily transfer limits
 const DAILY_TRANSFER_LIMITS = {
-  none: 100,        // $100/day for unverified users
-  pending: 100,     // $100/day while KYC is pending
-  verified: 10000,  // $10,000/day for verified users
-  rejected: 0,      // No transfers for rejected KYC
+  none: 100, // $100/day for unverified users
+  pending: 100, // $100/day while KYC is pending
+  verified: 10000, // $10,000/day for verified users
+  rejected: 0, // No transfers for rejected KYC
 };
 
 @Injectable()
@@ -57,6 +58,7 @@ export class InternalTransferUseCase {
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly blnkLedgerAdapter: BlnkLedgerAdapter,
   ) {}
 
   async execute(input: InternalTransferInput): Promise<InternalTransferOutput> {
@@ -92,7 +94,10 @@ export class InternalTransferUseCase {
     }
 
     // Validate amount precision (max 2 decimal places for USD)
-    if (!Number.isFinite(input.amount) || Math.round(input.amount * 100) / 100 !== input.amount) {
+    if (
+      !Number.isFinite(input.amount) ||
+      Math.round(input.amount * 100) / 100 !== input.amount
+    ) {
       throw new BadRequestException('Invalid amount precision');
     }
   }
@@ -101,10 +106,14 @@ export class InternalTransferUseCase {
    * Validates and retrieves recipient user by phone number
    * Fails fast if recipient doesn't exist (outside transaction)
    */
-  private async validateRecipient(phone: string): Promise<{ id: string; fullName: string }> {
+  private async validateRecipient(
+    phone: string,
+  ): Promise<{ id: string; fullName: string }> {
     const recipient = await this.userRepository.findByPhone(phone);
     if (!recipient) {
-      throw new NotFoundException('Recipient not found. They must register first.');
+      throw new NotFoundException(
+        'Recipient not found. They must register first.',
+      );
     }
     return recipient;
   }
@@ -113,18 +122,25 @@ export class InternalTransferUseCase {
    * SECURITY: Check if user has exceeded their daily transfer limit based on KYC status
    * Note: Blnk provides ledger-level tracking, this is additional application-level security
    */
-  private async checkDailyLimits(userId: string, amount: number): Promise<void> {
+  private async checkDailyLimits(
+    userId: string,
+    amount: number,
+  ): Promise<void> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const kycStatus = user.kycStatus || 'none';
-    const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ?? DAILY_TRANSFER_LIMITS.none;
+    const dailyLimit =
+      DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ??
+      DAILY_TRANSFER_LIMITS.none;
 
     // If KYC is rejected, block all transfers
     if (dailyLimit === 0) {
-      throw new BadRequestException('Transfers are disabled. Please contact support regarding your KYC status.');
+      throw new BadRequestException(
+        'Transfers are disabled. Please contact support regarding your KYC status.',
+      );
     }
 
     // Get today's transfer volume
@@ -141,13 +157,13 @@ export class InternalTransferUseCase {
       const remaining = Math.max(0, dailyLimit - dailyVolume);
       throw new BadRequestException(
         `Daily transfer limit exceeded. Your limit is $${dailyLimit}/day (KYC: ${kycStatus}). ` +
-        `You have $${remaining.toFixed(2)} remaining today.`
+          `You have $${remaining.toFixed(2)} remaining today.`,
       );
     }
 
     this.logger.debug(
       `Transfer limit check passed: user=${userId}, kycStatus=${kycStatus}, ` +
-      `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`
+        `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`,
     );
   }
 
@@ -259,6 +275,36 @@ export class InternalTransferUseCase {
         `Internal transfer completed: ${senderTransaction.id}, amount: ${input.amount}`,
       );
 
+      // Record P2P transfer in Blnk ledger immediately
+      try {
+        const amountInMicroUSDC = BigInt(Math.round(input.amount * 1000000));
+        await this.blnkLedgerAdapter.recordP2PTransfer({
+          senderId: input.fromUserId,
+          recipientId: recipient.id,
+          amount: amountInMicroUSDC,
+          currency: 'USD',
+          reference: senderTransaction.id,
+          description: `P2P transfer from ${input.fromUserId} to ${recipient.id}`,
+          metadata: {
+            transferId: transferResponse.id,
+            senderWalletId: fromWalletOrm.id,
+            recipientWalletId: toWalletOrm.id,
+            recipientPhone: input.toPhone,
+            recipientName: recipient.fullName,
+          },
+        });
+        this.logger.log(
+          `Blnk ledger updated for P2P transfer: ${senderTransaction.id}`,
+        );
+      } catch (blnkError) {
+        // Log error but don't fail the transaction since database is already committed
+        this.logger.error(
+          `Failed to record P2P transfer in Blnk ledger: ${blnkError.message}`,
+          blnkError.stack,
+        );
+        // TODO: Add to retry queue or alert monitoring system
+      }
+
       // Invalidate balance cache for both sender and recipient
       await this.cacheInvalidationService.invalidateMultipleBalances([
         input.fromUserId,
@@ -289,7 +335,12 @@ export class InternalTransferUseCase {
     attempt = 1,
   ): Promise<InternalTransferOutput> {
     try {
-      return await this.executeTransferTransaction(input, recipient, currency, attempt);
+      return await this.executeTransferTransaction(
+        input,
+        recipient,
+        currency,
+        attempt,
+      );
     } catch (error) {
       // Handle optimistic lock conflict - retry with fresh data
       if (

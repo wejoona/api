@@ -14,7 +14,9 @@ export class NotificationPreferencesRepository {
     return this.preferences.get(userId) || null;
   }
 
-  async create(prefs: NotificationPreferences): Promise<NotificationPreferences> {
+  async create(
+    prefs: NotificationPreferences,
+  ): Promise<NotificationPreferences> {
     this.preferences.set(prefs.userId, prefs);
     return prefs;
   }

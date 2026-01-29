@@ -29,14 +29,17 @@ export const envValidationSchema = Joi.object({
     'any.required': 'JWT_SECRET is required for authentication',
   }),
   JWT_REFRESH_SECRET: Joi.string().min(32).required().messages({
-    'string.min': 'JWT_REFRESH_SECRET must be at least 32 characters for security',
+    'string.min':
+      'JWT_REFRESH_SECRET must be at least 32 characters for security',
     'any.required': 'JWT_REFRESH_SECRET is required for refresh tokens',
   }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   // Security settings
-  ALLOWED_ORIGINS: Joi.string().default('http://localhost:3001,http://localhost:8080'),
+  ALLOWED_ORIGINS: Joi.string().default(
+    'http://localhost:3001,http://localhost:8080',
+  ),
 
   // Circle Provider
   CIRCLE_API_URL: Joi.string().uri().default('https://api.circle.com'),

@@ -21,7 +21,10 @@ export class SodeciAdapter extends BaseBillAdapter {
 
   constructor(private readonly configService: ConfigService) {
     const config: BillProviderConfig = {
-      apiBaseUrl: configService.get<string>('SODECI_API_URL', 'https://api.sodeci.ci'),
+      apiBaseUrl: configService.get<string>(
+        'SODECI_API_URL',
+        'https://api.sodeci.ci',
+      ),
       apiKey: configService.get<string>('SODECI_API_KEY', ''),
       apiSecret: configService.get<string>('SODECI_API_SECRET'),
       merchantId: configService.get<string>('SODECI_MERCHANT_ID'),
@@ -43,13 +46,18 @@ export class SodeciAdapter extends BaseBillAdapter {
     return config;
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     return this.withRetry(async () => {
       try {
-        const response = await this.httpClient.post('/api/v1/subscribers/validate', {
-          subscriberNumber: request.accountNumber,
-          meterNumber: request.meterNumber,
-        });
+        const response = await this.httpClient.post(
+          '/api/v1/subscribers/validate',
+          {
+            subscriberNumber: request.accountNumber,
+            meterNumber: request.meterNumber,
+          },
+        );
 
         const data = response.data;
 
@@ -88,20 +96,25 @@ export class SodeciAdapter extends BaseBillAdapter {
     });
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     return this.withRetry(async () => {
       try {
         const reference = this.generateReference('SDC');
 
-        const response = await this.httpClient.post('/api/v1/payments/initiate', {
-          subscriberNumber: request.accountNumber,
-          meterNumber: request.meterNumber,
-          amount: request.amount,
-          currency: request.currency || 'XOF',
-          externalReference: reference,
-          payerName: request.customerName,
-          payerPhone: request.phone,
-        });
+        const response = await this.httpClient.post(
+          '/api/v1/payments/initiate',
+          {
+            subscriberNumber: request.accountNumber,
+            meterNumber: request.meterNumber,
+            amount: request.amount,
+            currency: request.currency || 'XOF',
+            externalReference: reference,
+            payerName: request.customerName,
+            payerPhone: request.phone,
+          },
+        );
 
         const data = response.data;
 
@@ -123,7 +136,9 @@ export class SodeciAdapter extends BaseBillAdapter {
           fee: data.payment.fee || 0,
           totalAmount: request.amount + (data.payment.fee || 0),
           currency: request.currency || 'XOF',
-          paidAt: data.payment.processedAt ? new Date(data.payment.processedAt) : undefined,
+          paidAt: data.payment.processedAt
+            ? new Date(data.payment.processedAt)
+            : undefined,
           metadata: {
             subscriberName: data.payment.subscriberName,
             meterNumber: data.payment.meterNumber,
@@ -142,7 +157,9 @@ export class SodeciAdapter extends BaseBillAdapter {
 
   async checkPaymentStatus(paymentId: string): Promise<BillPaymentResult> {
     try {
-      const response = await this.httpClient.get(`/api/v1/payments/${paymentId}`);
+      const response = await this.httpClient.get(
+        `/api/v1/payments/${paymentId}`,
+      );
       const data = response.data;
 
       if (data.code !== '00') {
@@ -163,7 +180,9 @@ export class SodeciAdapter extends BaseBillAdapter {
         fee: parseFloat(data.payment.fee) || 0,
         totalAmount: parseFloat(data.payment.totalAmount),
         currency: data.payment.currency,
-        paidAt: data.payment.processedAt ? new Date(data.payment.processedAt) : undefined,
+        paidAt: data.payment.processedAt
+          ? new Date(data.payment.processedAt)
+          : undefined,
       };
     } catch (error) {
       if (error instanceof BillPaymentError) throw error;
@@ -177,23 +196,30 @@ export class SodeciAdapter extends BaseBillAdapter {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await this.httpClient.get('/api/v1/status', { timeout: 5000 });
+      const response = await this.httpClient.get('/api/v1/status', {
+        timeout: 5000,
+      });
       return response.status === 200 && response.data?.status === 'OK';
     } catch {
       return false;
     }
   }
 
-  private mapStatus(providerStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
-    const statusMap: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-      'INITIATED': 'pending',
-      'PENDING': 'pending',
-      'IN_PROGRESS': 'processing',
-      'SUCCESSFUL': 'completed',
-      'COMPLETED': 'completed',
-      'FAILED': 'failed',
-      'CANCELLED': 'failed',
-      'REVERSED': 'failed',
+  private mapStatus(
+    providerStatus: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
+    const statusMap: Record<
+      string,
+      'pending' | 'processing' | 'completed' | 'failed'
+    > = {
+      INITIATED: 'pending',
+      PENDING: 'pending',
+      IN_PROGRESS: 'processing',
+      SUCCESSFUL: 'completed',
+      COMPLETED: 'completed',
+      FAILED: 'failed',
+      CANCELLED: 'failed',
+      REVERSED: 'failed',
     };
     return statusMap[providerStatus?.toUpperCase()] || 'pending';
   }

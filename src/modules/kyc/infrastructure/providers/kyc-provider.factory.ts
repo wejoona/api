@@ -17,31 +17,86 @@ import { MockIdentityVerificationProvider } from './mock-identity-verification.p
  * Country to preferred provider mapping
  * Based on provider coverage and performance in each region
  */
-const COUNTRY_PROVIDER_MAP: Record<string, {
-  document: KycProviderType;
-  liveness: KycProviderType;
-  identity: KycProviderType;
-}> = {
+const COUNTRY_PROVIDER_MAP: Record<
+  string,
+  {
+    document: KycProviderType;
+    liveness: KycProviderType;
+    identity: KycProviderType;
+  }
+> = {
   // Africa - Smile Identity has best coverage
-  NG: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
-  GH: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
-  KE: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
-  ZA: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
-  CI: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
-  SN: { document: KycProviderType.SMILE_IDENTITY, liveness: KycProviderType.SMILE_IDENTITY, identity: KycProviderType.SMILE_IDENTITY },
+  NG: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
+  GH: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
+  KE: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
+  ZA: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
+  CI: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
+  SN: {
+    document: KycProviderType.SMILE_IDENTITY,
+    liveness: KycProviderType.SMILE_IDENTITY,
+    identity: KycProviderType.SMILE_IDENTITY,
+  },
 
   // Europe - Onfido/Veriff strong
-  GB: { document: KycProviderType.ONFIDO, liveness: KycProviderType.IPROOV, identity: KycProviderType.ONFIDO },
-  DE: { document: KycProviderType.VERIFF, liveness: KycProviderType.FACETEC, identity: KycProviderType.VERIFF },
-  FR: { document: KycProviderType.ONFIDO, liveness: KycProviderType.IPROOV, identity: KycProviderType.ONFIDO },
+  GB: {
+    document: KycProviderType.ONFIDO,
+    liveness: KycProviderType.IPROOV,
+    identity: KycProviderType.ONFIDO,
+  },
+  DE: {
+    document: KycProviderType.VERIFF,
+    liveness: KycProviderType.FACETEC,
+    identity: KycProviderType.VERIFF,
+  },
+  FR: {
+    document: KycProviderType.ONFIDO,
+    liveness: KycProviderType.IPROOV,
+    identity: KycProviderType.ONFIDO,
+  },
 
   // Americas - Jumio/Onfido
-  US: { document: KycProviderType.JUMIO, liveness: KycProviderType.FACETEC, identity: KycProviderType.JUMIO },
-  CA: { document: KycProviderType.JUMIO, liveness: KycProviderType.FACETEC, identity: KycProviderType.JUMIO },
-  BR: { document: KycProviderType.JUMIO, liveness: KycProviderType.FACETEC, identity: KycProviderType.TRULIOO },
+  US: {
+    document: KycProviderType.JUMIO,
+    liveness: KycProviderType.FACETEC,
+    identity: KycProviderType.JUMIO,
+  },
+  CA: {
+    document: KycProviderType.JUMIO,
+    liveness: KycProviderType.FACETEC,
+    identity: KycProviderType.JUMIO,
+  },
+  BR: {
+    document: KycProviderType.JUMIO,
+    liveness: KycProviderType.FACETEC,
+    identity: KycProviderType.TRULIOO,
+  },
 
   // Default
-  DEFAULT: { document: KycProviderType.ONFIDO, liveness: KycProviderType.FACETEC, identity: KycProviderType.ONFIDO },
+  DEFAULT: {
+    document: KycProviderType.ONFIDO,
+    liveness: KycProviderType.FACETEC,
+    identity: KycProviderType.ONFIDO,
+  },
 };
 
 /**
@@ -71,14 +126,17 @@ export class KycProviderFactory implements IKycProviderFactory {
     private readonly mockLivenessProvider: MockLivenessCheckProvider,
     private readonly mockIdentityProvider: MockIdentityVerificationProvider,
   ) {
-    this.useMock = this.configService.get<string>('kyc.provider', 'mock') === 'mock';
+    this.useMock =
+      this.configService.get<string>('kyc.provider', 'mock') === 'mock';
 
     // Register mock providers
     this.documentProviders.set('mock', this.mockDocumentProvider);
     this.livenessProviders.set('mock', this.mockLivenessProvider);
     this.identityProviders.set('mock', this.mockIdentityProvider);
 
-    this.logger.log(`KYC Provider Factory initialized (mock mode: ${this.useMock})`);
+    this.logger.log(
+      `KYC Provider Factory initialized (mock mode: ${this.useMock})`,
+    );
   }
 
   /**
@@ -215,7 +273,8 @@ export class KycProviderFactory implements IKycProviderFactory {
     liveness: string;
     identity: string;
   } {
-    const mapping = COUNTRY_PROVIDER_MAP[country.toUpperCase()] ||
+    const mapping =
+      COUNTRY_PROVIDER_MAP[country.toUpperCase()] ||
       COUNTRY_PROVIDER_MAP.DEFAULT;
 
     // Check if preferred providers are available, fallback to mock

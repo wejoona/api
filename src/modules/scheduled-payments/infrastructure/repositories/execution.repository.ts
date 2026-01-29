@@ -4,7 +4,10 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { PaymentExecution, ExecutionStatus } from '../../domain/interfaces/scheduled-payment.types';
+import {
+  PaymentExecution,
+  ExecutionStatus,
+} from '../../domain/interfaces/scheduled-payment.types';
 
 @Injectable()
 export class ExecutionRepository {
@@ -21,7 +24,7 @@ export class ExecutionRepository {
     const { page = 1, limit = 20 } = options;
 
     const all = Array.from(this.executions.values())
-      .filter(e => e.scheduleId === scheduleId)
+      .filter((e) => e.scheduleId === scheduleId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const total = all.length;
@@ -32,17 +35,20 @@ export class ExecutionRepository {
 
   async findByUserId(userId: string): Promise<PaymentExecution[]> {
     return Array.from(this.executions.values())
-      .filter(e => e.userId === userId)
+      .filter((e) => e.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async findByStatus(status: ExecutionStatus): Promise<PaymentExecution[]> {
-    return Array.from(this.executions.values()).filter(e => e.status === status);
+    return Array.from(this.executions.values()).filter(
+      (e) => e.status === status,
+    );
   }
 
   async findPending(): Promise<PaymentExecution[]> {
-    return Array.from(this.executions.values())
-      .filter(e => e.status === 'pending' || e.status === 'processing');
+    return Array.from(this.executions.values()).filter(
+      (e) => e.status === 'pending' || e.status === 'processing',
+    );
   }
 
   async create(execution: PaymentExecution): Promise<PaymentExecution> {
@@ -50,7 +56,10 @@ export class ExecutionRepository {
     return execution;
   }
 
-  async update(id: string, updates: Partial<PaymentExecution>): Promise<PaymentExecution> {
+  async update(
+    id: string,
+    updates: Partial<PaymentExecution>,
+  ): Promise<PaymentExecution> {
     const existing = this.executions.get(id);
     if (!existing) throw new Error(`Execution not found: ${id}`);
 
@@ -68,13 +77,14 @@ export class ExecutionRepository {
     completed: number;
     failed: number;
   }> {
-    const executions = Array.from(this.executions.values())
-      .filter(e => e.scheduleId === scheduleId);
+    const executions = Array.from(this.executions.values()).filter(
+      (e) => e.scheduleId === scheduleId,
+    );
 
     return {
       total: executions.length,
-      completed: executions.filter(e => e.status === 'completed').length,
-      failed: executions.filter(e => e.status === 'failed').length,
+      completed: executions.filter((e) => e.status === 'completed').length,
+      failed: executions.filter((e) => e.status === 'failed').length,
     };
   }
 }

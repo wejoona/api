@@ -8,10 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import {
-  SARTriggerReason,
-  RiskLevel,
-} from '../../domain/compliance.types';
+import { SARTriggerReason, RiskLevel } from '../../domain/compliance.types';
 import { UserOrmEntity } from '../../../user/infrastructure/orm-entities/user.orm-entity';
 
 /**

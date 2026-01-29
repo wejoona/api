@@ -2,7 +2,9 @@ import { NotificationPreferences } from '../../application/domain/entities';
 import { NotificationPreferencesOrmEntity } from '../orm-entities';
 
 export class NotificationPreferencesMapper {
-  static toDomain(orm: NotificationPreferencesOrmEntity): NotificationPreferences {
+  static toDomain(
+    orm: NotificationPreferencesOrmEntity,
+  ): NotificationPreferences {
     return NotificationPreferences.reconstitute({
       id: orm.id,
       userId: orm.userId,
@@ -24,7 +26,9 @@ export class NotificationPreferencesMapper {
     });
   }
 
-  static toOrm(domain: NotificationPreferences): NotificationPreferencesOrmEntity {
+  static toOrm(
+    domain: NotificationPreferences,
+  ): NotificationPreferencesOrmEntity {
     const orm = new NotificationPreferencesOrmEntity();
     orm.id = domain.id;
     orm.userId = domain.userId;

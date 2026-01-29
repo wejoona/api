@@ -257,10 +257,7 @@ export class CircleComplianceAdapter {
     }
 
     // Check for review categories
-    const allSignals = [
-      ...sourceResult.riskSignals,
-      ...destResult.riskSignals,
-    ];
+    const allSignals = [...sourceResult.riskSignals, ...destResult.riskSignals];
     const reviewSignals = allSignals.filter((s) =>
       this.REVIEW_CATEGORIES.includes(s.category),
     );

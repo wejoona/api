@@ -22,6 +22,7 @@ import { KycApprovedListener } from './application/listeners/kyc-approved.listen
 // Controllers
 import { KycController } from './application/controllers/kyc.controller';
 import { AdminKycController } from './application/controllers/admin-kyc.controller';
+import { KycUploadController } from './application/controllers/kyc-upload.controller';
 
 // External modules
 import { UploadModule } from '../upload/upload.module';
@@ -51,7 +52,7 @@ import { UserModule } from '../user/user.module';
     forwardRef(() => WalletModule),
     forwardRef(() => UserModule),
   ],
-  controllers: [KycController, AdminKycController],
+  controllers: [KycController, AdminKycController, KycUploadController],
   providers: [
     // Repository
     KycVerificationRepository,

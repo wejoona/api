@@ -22,9 +22,10 @@ export interface RetryDeadletterResult {
  * Attempts to reprocess a failed webhook from the dead-letter queue
  */
 @CommandHandler(RetryDeadletterCommand)
-export class RetryDeadletterCommandHandler
-  implements ICommandHandler<RetryDeadletterCommand, RetryDeadletterResult>
-{
+export class RetryDeadletterCommandHandler implements ICommandHandler<
+  RetryDeadletterCommand,
+  RetryDeadletterResult
+> {
   private readonly logger = new Logger(RetryDeadletterCommandHandler.name);
 
   constructor(
@@ -43,9 +44,7 @@ export class RetryDeadletterCommandHandler
     });
 
     if (!entry) {
-      throw new NotFoundException(
-        `Dead-letter entry ${command.id} not found`,
-      );
+      throw new NotFoundException(`Dead-letter entry ${command.id} not found`);
     }
 
     if (entry.status !== 'pending') {

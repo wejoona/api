@@ -129,7 +129,9 @@ export interface IKycVerificationProvider {
    * Get status of a pending verification
    * Use when verification is async
    */
-  getVerificationStatus(input: GetVerificationStatusInput): Promise<VerificationResult>;
+  getVerificationStatus(
+    input: GetVerificationStatusInput,
+  ): Promise<VerificationResult>;
 
   /**
    * Validate webhook payload signature

@@ -26,10 +26,17 @@ export const productionConfig = {
     synchronize: false, // Never use synchronize in production
     logging: false,
     poolSize: parseInt(process.env.DATABASE_POOL_SIZE || '20', 10),
-    ssl: process.env.DATABASE_SSL === 'true' ? {
-      rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
-    } : false,
-    connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '10000', 10),
+    ssl:
+      process.env.DATABASE_SSL === 'true'
+        ? {
+            rejectUnauthorized:
+              process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',
+          }
+        : false,
+    connectionTimeout: parseInt(
+      process.env.DATABASE_CONNECTION_TIMEOUT || '10000',
+      10,
+    ),
   },
 
   // Redis Settings

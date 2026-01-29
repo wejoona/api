@@ -16,7 +16,9 @@ export class KycNotificationListener {
 
   @OnEvent('kyc.submitted')
   async handleKycSubmitted(event: KycNotificationEvent) {
-    this.logger.log(`Sending KYC submitted notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending KYC submitted notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -37,7 +39,9 @@ export class KycNotificationListener {
 
   @OnEvent('kyc.approved')
   async handleKycApproved(event: KycNotificationEvent) {
-    this.logger.log(`Sending KYC approved notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending KYC approved notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -58,7 +62,9 @@ export class KycNotificationListener {
 
   @OnEvent('kyc.rejected')
   async handleKycRejected(event: KycNotificationEvent) {
-    this.logger.log(`Sending KYC rejected notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending KYC rejected notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -82,13 +88,15 @@ export class KycNotificationListener {
 
   @OnEvent('kyc.requires_review')
   async handleKycRequiresReview(event: KycNotificationEvent) {
-    this.logger.log(`Sending KYC requires review notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending KYC requires review notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
       category: 'kyc',
       title: 'Additional Review Required',
-      body: 'Your documents require additional review. We\'ll notify you when complete.',
+      body: "Your documents require additional review. We'll notify you when complete.",
       data: {
         type: 'kyc_review',
         kycId: event.kycId,

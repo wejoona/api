@@ -4,8 +4,61 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   RECONCILIATION_PROVIDER,
   IReconciliationProvider,
+  LEDGER_PROVIDER,
+  ILedgerProvider,
+  WALLET_PROVIDER,
+  IWalletProvider,
 } from '@modules/providers/interfaces';
+import { IWalletRepository } from '@modules/wallet/domain/repositories/wallet.repository';
 
+/**
+ * Balance discrepancy between different systems
+ */
+export interface BalanceDiscrepancy {
+  userId: string;
+  walletId: string;
+  currency: string;
+  blnkBalance: string;
+  databaseBalance: string;
+  circleBalance: string;
+  blnkDiff: string; // Difference between Blnk and Database
+  circleDiff: string; // Difference between Circle and Database
+  totalDiff: string; // Max difference across all systems
+  timestamp: Date;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+/**
+ * Reconciliation report for a single user
+ */
+export interface UserReconciliationReport {
+  userId: string;
+  walletId: string;
+  currency: string;
+  blnkBalance: string;
+  databaseBalance: string;
+  circleBalance: string;
+  isReconciled: boolean;
+  discrepancy?: BalanceDiscrepancy;
+  timestamp: Date;
+  error?: string;
+}
+
+/**
+ * Reconciliation report for all users
+ */
+export interface FullReconciliationReport {
+  totalWallets: number;
+  reconciledWallets: number;
+  discrepancies: BalanceDiscrepancy[];
+  errors: Array<{ userId: string; walletId: string; error: string }>;
+  timestamp: Date;
+  duration: number; // milliseconds
+}
+
+/**
+ * Legacy reconciliation report (for external provider reconciliation)
+ */
 export interface ReconciliationReport {
   source: 'yellowcard' | 'circle';
   reconciliationId: string;
@@ -18,15 +71,16 @@ export interface ReconciliationReport {
 /**
  * Reconciliation Service
  *
- * Handles reconciliation of JoonaPay's ledger with external providers:
- * - Yellow Card: XOF on-ramp/off-ramp transactions
- * - Circle: USDC transfers and deposits
+ * Handles two types of reconciliation:
+ * 1. Balance Reconciliation: Ensures Blnk ledger, database, and Circle balances match
+ * 2. Transaction Reconciliation: Matches JoonaPay ledger with external providers (Yellow Card, Circle)
  *
  * Features:
- * - Batch reconciliation (daily/weekly)
+ * - Real-time balance comparison across three systems
+ * - Automated daily reconciliation
+ * - Discrepancy alerts for balances > $1
+ * - Batch reconciliation with external providers
  * - Instant reconciliation for real-time verification
- * - Matching rules for amount, reference, date
- * - Discrepancy alerts
  */
 @Injectable()
 export class ReconciliationService implements OnModuleInit {
@@ -36,9 +90,21 @@ export class ReconciliationService implements OnModuleInit {
   private yellowCardRuleId?: string;
   private circleRuleId?: string;
 
+  // Discrepancy threshold in USDC (micro-units: 1 USDC = 1,000,000)
+  private readonly CRITICAL_THRESHOLD = 1_000_000n; // $1.00
+  private readonly HIGH_THRESHOLD = 100_000n; // $0.10
+  private readonly MEDIUM_THRESHOLD = 10_000n; // $0.01
+  private readonly USDC_PRECISION = 1_000_000;
+
   constructor(
     @Inject(RECONCILIATION_PROVIDER)
     private readonly reconciliationProvider: IReconciliationProvider,
+    @Inject(LEDGER_PROVIDER)
+    private readonly ledgerProvider: ILedgerProvider,
+    @Inject(WALLET_PROVIDER)
+    private readonly walletProvider: IWalletProvider,
+    @Inject('WALLET_REPOSITORY')
+    private readonly walletRepository: IWalletRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -52,6 +118,269 @@ export class ReconciliationService implements OnModuleInit {
       this.logger.error(`Failed to setup matching rules: ${error}`);
     }
   }
+
+  // ==========================================
+  // Balance Reconciliation
+  // ==========================================
+
+  /**
+   * Reconcile balance for a single user
+   * Compares Blnk ledger, database, and Circle balances
+   */
+  async reconcileUserBalance(
+    userId: string,
+  ): Promise<UserReconciliationReport> {
+    this.logger.log(`Reconciling balance for user ${userId}`);
+
+    const startTime = Date.now();
+    const timestamp = new Date();
+
+    try {
+      // 1. Get wallet from database
+      const wallet = await this.walletRepository.findByUserId(userId);
+      if (!wallet) {
+        throw new Error(`Wallet not found for user ${userId}`);
+      }
+
+      const walletId = wallet.id;
+      const currency = wallet.currency;
+      const circleWalletId = wallet.circleWalletId;
+
+      // 2. Get balance from Blnk ledger
+      let blnkBalance = 0n;
+      try {
+        const blnkBalanceInfo = await this.ledgerProvider.getUserBalance(
+          userId,
+          currency,
+        );
+        blnkBalance = blnkBalanceInfo?.balance ?? 0n;
+      } catch (error) {
+        this.logger.error(
+          `Failed to get Blnk balance for user ${userId}: ${error}`,
+        );
+      }
+
+      // 3. Get balance from database (stored in cents/micro-units)
+      const databaseBalance = BigInt(
+        Math.round(wallet.balance * this.USDC_PRECISION),
+      );
+
+      // 4. Get balance from Circle (if wallet is linked)
+      let circleBalance = 0n;
+      if (circleWalletId) {
+        try {
+          const circleBalances =
+            await this.walletProvider.getBalance(circleWalletId);
+          const usdcBalance = circleBalances.find((b) => b.currency === 'USDC');
+          if (usdcBalance) {
+            // Circle returns balance as string, convert to micro-units
+            circleBalance = BigInt(
+              Math.round(
+                parseFloat(usdcBalance.available) * this.USDC_PRECISION,
+              ),
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to get Circle balance for user ${userId}: ${error}`,
+          );
+        }
+      }
+
+      // 5. Compare balances
+      const blnkDiff = blnkBalance - databaseBalance;
+      const circleDiff = circleBalance - databaseBalance;
+      const totalDiff = this.calculateMaxDifference(
+        blnkBalance,
+        databaseBalance,
+        circleBalance,
+      );
+
+      const isReconciled = totalDiff === 0n;
+
+      // 6. Build report
+      const report: UserReconciliationReport = {
+        userId,
+        walletId,
+        currency,
+        blnkBalance: this.formatBalance(blnkBalance),
+        databaseBalance: this.formatBalance(databaseBalance),
+        circleBalance: this.formatBalance(circleBalance),
+        isReconciled,
+        timestamp,
+      };
+
+      // 7. Create discrepancy if balances don't match
+      if (!isReconciled) {
+        const severity = this.calculateSeverity(totalDiff);
+        const discrepancy: BalanceDiscrepancy = {
+          userId,
+          walletId,
+          currency,
+          blnkBalance: this.formatBalance(blnkBalance),
+          databaseBalance: this.formatBalance(databaseBalance),
+          circleBalance: this.formatBalance(circleBalance),
+          blnkDiff: this.formatBalance(blnkDiff),
+          circleDiff: this.formatBalance(circleDiff),
+          totalDiff: this.formatBalance(totalDiff),
+          timestamp,
+          severity,
+        };
+
+        report.discrepancy = discrepancy;
+
+        // 8. Emit event for discrepancy
+        this.eventEmitter.emit('reconciliation.balance.discrepancy', {
+          discrepancy,
+          userId,
+          walletId,
+        });
+
+        // 9. Emit critical alert if difference is >= $1
+        if (severity === 'critical' || severity === 'high') {
+          this.eventEmitter.emit('reconciliation.balance.critical', {
+            discrepancy,
+            userId,
+            walletId,
+          });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Reconciliation for user ${userId} completed in ${duration}ms - ${isReconciled ? 'RECONCILED' : 'DISCREPANCY FOUND'}`,
+      );
+
+      return report;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to reconcile user ${userId}: ${errorMessage}`);
+
+      return {
+        userId,
+        walletId: 'unknown',
+        currency: 'USDC',
+        blnkBalance: '0.00',
+        databaseBalance: '0.00',
+        circleBalance: '0.00',
+        isReconciled: false,
+        timestamp,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Reconcile all active wallets
+   * Runs daily at 1 AM or on-demand
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  async reconcileAllBalances(): Promise<FullReconciliationReport> {
+    this.logger.log('Starting full balance reconciliation...');
+
+    const startTime = Date.now();
+    const timestamp = new Date();
+
+    try {
+      // Get all active wallets
+      const wallets = await this.walletRepository.findAll();
+      const activeWallets = wallets.filter((w) => w.status === 'active');
+
+      this.logger.log(`Reconciling ${activeWallets.length} active wallets...`);
+
+      const discrepancies: BalanceDiscrepancy[] = [];
+      const errors: Array<{ userId: string; walletId: string; error: string }> =
+        [];
+      let reconciledCount = 0;
+
+      // Process each wallet
+      for (const wallet of activeWallets) {
+        try {
+          const report = await this.reconcileUserBalance(wallet.userId);
+
+          if (report.isReconciled) {
+            reconciledCount++;
+          } else if (report.discrepancy) {
+            discrepancies.push(report.discrepancy);
+          }
+
+          if (report.error) {
+            errors.push({
+              userId: wallet.userId,
+              walletId: wallet.id,
+              error: report.error,
+            });
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          this.logger.error(
+            `Failed to reconcile wallet ${wallet.id}: ${errorMessage}`,
+          );
+          errors.push({
+            userId: wallet.userId,
+            walletId: wallet.id,
+            error: errorMessage,
+          });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+
+      const report: FullReconciliationReport = {
+        totalWallets: activeWallets.length,
+        reconciledWallets: reconciledCount,
+        discrepancies,
+        errors,
+        timestamp,
+        duration,
+      };
+
+      // Emit event with full report
+      this.eventEmitter.emit('reconciliation.balance.completed', report);
+
+      // Log summary
+      this.logger.log(
+        `Balance reconciliation completed in ${duration}ms: ${reconciledCount}/${activeWallets.length} reconciled, ${discrepancies.length} discrepancies, ${errors.length} errors`,
+      );
+
+      // Alert if there are critical discrepancies
+      const criticalDiscrepancies = discrepancies.filter(
+        (d) => d.severity === 'critical',
+      );
+      if (criticalDiscrepancies.length > 0) {
+        this.logger.warn(
+          `CRITICAL: ${criticalDiscrepancies.length} wallets have discrepancies >= $1`,
+        );
+        this.eventEmitter.emit('reconciliation.balance.critical.summary', {
+          count: criticalDiscrepancies.length,
+          discrepancies: criticalDiscrepancies,
+          timestamp,
+        });
+      }
+
+      return report;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Full balance reconciliation failed: ${errorMessage}`);
+
+      const duration = Date.now() - startTime;
+      return {
+        totalWallets: 0,
+        reconciledWallets: 0,
+        discrepancies: [],
+        errors: [{ userId: 'system', walletId: 'system', error: errorMessage }],
+        timestamp,
+        duration,
+      };
+    }
+  }
+
+  // ==========================================
+  // Transaction Reconciliation (Legacy)
+  // ==========================================
 
   /**
    * Setup matching rules for Yellow Card and Circle
@@ -243,5 +572,56 @@ export class ReconciliationService implements OnModuleInit {
       circleRuleId: this.circleRuleId,
       initialized: !!(this.yellowCardRuleId && this.circleRuleId),
     };
+  }
+
+  // ==========================================
+  // Helper Methods
+  // ==========================================
+
+  /**
+   * Calculate the maximum absolute difference across all balances
+   */
+  private calculateMaxDifference(
+    blnk: bigint,
+    db: bigint,
+    circle: bigint,
+  ): bigint {
+    const blnkDiff = blnk > db ? blnk - db : db - blnk;
+    const circleDiff = circle > db ? circle - db : db - circle;
+    const blnkCircleDiff = blnk > circle ? blnk - circle : circle - blnk;
+
+    return blnkDiff > circleDiff
+      ? blnkDiff > blnkCircleDiff
+        ? blnkDiff
+        : blnkCircleDiff
+      : circleDiff > blnkCircleDiff
+        ? circleDiff
+        : blnkCircleDiff;
+  }
+
+  /**
+   * Calculate severity based on discrepancy amount
+   */
+  private calculateSeverity(
+    difference: bigint,
+  ): 'low' | 'medium' | 'high' | 'critical' {
+    const absDiff = difference < 0n ? -difference : difference;
+
+    if (absDiff >= this.CRITICAL_THRESHOLD) {
+      return 'critical'; // >= $1.00
+    } else if (absDiff >= this.HIGH_THRESHOLD) {
+      return 'high'; // >= $0.10
+    } else if (absDiff >= this.MEDIUM_THRESHOLD) {
+      return 'medium'; // >= $0.01
+    }
+    return 'low'; // < $0.01
+  }
+
+  /**
+   * Format balance from micro-units to human-readable string
+   */
+  private formatBalance(balance: bigint): string {
+    const value = Number(balance) / this.USDC_PRECISION;
+    return value.toFixed(6);
   }
 }

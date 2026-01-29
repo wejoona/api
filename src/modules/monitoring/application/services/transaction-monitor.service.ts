@@ -48,16 +48,25 @@ export class TransactionMonitorService {
   /**
    * Monitor a transaction and generate alerts
    */
-  async monitorTransaction(context: TransactionContext): Promise<MonitoringResult> {
+  async monitorTransaction(
+    context: TransactionContext,
+  ): Promise<MonitoringResult> {
     const startTime = Date.now();
-    this.logger.log(`Monitoring transaction ${context.transactionId} for user ${context.userId}`);
+    this.logger.log(
+      `Monitoring transaction ${context.transactionId} for user ${context.userId}`,
+    );
 
     try {
       // Get user preferences
-      const preferences = await this.preferencesRepository.getOrCreate(context.userId);
+      const preferences = await this.preferencesRepository.getOrCreate(
+        context.userId,
+      );
 
       // Evaluate all rules
-      const results = await this.rulesService.evaluateTransaction(context, preferences);
+      const results = await this.rulesService.evaluateTransaction(
+        context,
+        preferences,
+      );
 
       // Process rule results
       const alertsToCreate: TransactionAlert[] = [];
@@ -85,7 +94,7 @@ export class TransactionMonitorService {
         }
 
         this.logger.log(
-          `Created ${savedAlerts.length} alerts for transaction ${context.transactionId}`
+          `Created ${savedAlerts.length} alerts for transaction ${context.transactionId}`,
         );
       }
 
@@ -102,7 +111,7 @@ export class TransactionMonitorService {
     } catch (error) {
       this.logger.error(
         `Error monitoring transaction ${context.transactionId}: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw error;
     }
@@ -282,9 +291,11 @@ export class TransactionMonitorService {
       alertId: uuidv4(),
       userId,
       alertType: 'account_change',
-      severity: changeType === 'password' || changeType === 'pin' ? 'warning' : 'info',
+      severity:
+        changeType === 'password' || changeType === 'pin' ? 'warning' : 'info',
       title: 'Account Settings Changed',
-      message: changeMessages[changeType] || 'Your account settings were changed.',
+      message:
+        changeMessages[changeType] || 'Your account settings were changed.',
       metadata: {
         changeType,
         ...details,

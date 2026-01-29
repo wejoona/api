@@ -21,7 +21,10 @@ export class CieAdapter extends BaseBillAdapter {
 
   constructor(private readonly configService: ConfigService) {
     const config: BillProviderConfig = {
-      apiBaseUrl: configService.get<string>('CIE_API_URL', 'https://api.cie.ci'),
+      apiBaseUrl: configService.get<string>(
+        'CIE_API_URL',
+        'https://api.cie.ci',
+      ),
       apiKey: configService.get<string>('CIE_API_KEY', ''),
       apiSecret: configService.get<string>('CIE_API_SECRET'),
       merchantId: configService.get<string>('CIE_MERCHANT_ID'),
@@ -40,7 +43,9 @@ export class CieAdapter extends BaseBillAdapter {
     return config;
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     return this.withRetry(async () => {
       try {
         const response = await this.httpClient.post('/v1/customer/lookup', {
@@ -84,7 +89,9 @@ export class CieAdapter extends BaseBillAdapter {
     });
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     return this.withRetry(async () => {
       try {
         const reference = this.generateReference('CIE');
@@ -141,7 +148,9 @@ export class CieAdapter extends BaseBillAdapter {
 
   async checkPaymentStatus(paymentId: string): Promise<BillPaymentResult> {
     try {
-      const response = await this.httpClient.get(`/v1/payments/${paymentId}/status`);
+      const response = await this.httpClient.get(
+        `/v1/payments/${paymentId}/status`,
+      );
       const data = response.data;
 
       return {
@@ -170,22 +179,29 @@ export class CieAdapter extends BaseBillAdapter {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await this.httpClient.get('/v1/health', { timeout: 5000 });
+      const response = await this.httpClient.get('/v1/health', {
+        timeout: 5000,
+      });
       return response.status === 200;
     } catch {
       return false;
     }
   }
 
-  private mapStatus(providerStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
-    const statusMap: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-      'PENDING': 'pending',
-      'PROCESSING': 'processing',
-      'SUCCESS': 'completed',
-      'COMPLETED': 'completed',
-      'FAILED': 'failed',
-      'REJECTED': 'failed',
-      'CANCELLED': 'failed',
+  private mapStatus(
+    providerStatus: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
+    const statusMap: Record<
+      string,
+      'pending' | 'processing' | 'completed' | 'failed'
+    > = {
+      PENDING: 'pending',
+      PROCESSING: 'processing',
+      SUCCESS: 'completed',
+      COMPLETED: 'completed',
+      FAILED: 'failed',
+      REJECTED: 'failed',
+      CANCELLED: 'failed',
     };
     return statusMap[providerStatus?.toUpperCase()] || 'pending';
   }

@@ -32,11 +32,11 @@ export interface LivenessChallenge {
  * Status of a liveness session
  */
 export type LivenessSessionStatus =
-  | 'pending'     // Session created, awaiting challenges
+  | 'pending' // Session created, awaiting challenges
   | 'in_progress' // User is completing challenges
-  | 'completed'   // All challenges completed successfully
-  | 'failed'      // Liveness check failed (low confidence or fraud detected)
-  | 'expired';    // Session timed out
+  | 'completed' // All challenges completed successfully
+  | 'failed' // Liveness check failed (low confidence or fraud detected)
+  | 'expired'; // Session timed out
 
 /**
  * Result of a completed liveness session

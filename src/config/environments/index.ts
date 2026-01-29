@@ -8,7 +8,10 @@ import { developmentConfig } from './development.config';
 import { stagingConfig } from './staging.config';
 import { productionConfig } from './production.config';
 
-export type EnvironmentConfig = typeof developmentConfig | typeof stagingConfig | typeof productionConfig;
+export type EnvironmentConfig =
+  | typeof developmentConfig
+  | typeof stagingConfig
+  | typeof productionConfig;
 
 export function getEnvironmentConfig(): EnvironmentConfig {
   const nodeEnv = process.env.NODE_ENV || 'development';
@@ -59,7 +62,9 @@ export function validateProductionConfig(): void {
 
   const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || '';
   if (jwtRefreshSecret.length < 32) {
-    throw new Error('JWT_REFRESH_SECRET must be at least 32 characters in production');
+    throw new Error(
+      'JWT_REFRESH_SECRET must be at least 32 characters in production',
+    );
   }
 
   // Ensure mock modes are disabled

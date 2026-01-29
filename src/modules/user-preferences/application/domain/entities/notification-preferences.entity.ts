@@ -92,7 +92,9 @@ export class NotificationPreferences implements INotificationPreferences {
   /**
    * Create new notification preferences with defaults
    */
-  static create(props: CreateNotificationPreferencesProps): NotificationPreferences {
+  static create(
+    props: CreateNotificationPreferencesProps,
+  ): NotificationPreferences {
     const now = new Date();
     return new NotificationPreferences({
       id: uuidv4(),
@@ -122,7 +124,9 @@ export class NotificationPreferences implements INotificationPreferences {
   /**
    * Reconstitute from persistence
    */
-  static reconstitute(props: INotificationPreferences): NotificationPreferences {
+  static reconstitute(
+    props: INotificationPreferences,
+  ): NotificationPreferences {
     return new NotificationPreferences(props);
   }
 
@@ -139,9 +143,12 @@ export class NotificationPreferences implements INotificationPreferences {
         this.pushMarketing = false;
       }
     }
-    if (props.pushTransactions !== undefined) this.pushTransactions = props.pushTransactions;
-    if (props.pushSecurity !== undefined) this.pushSecurity = props.pushSecurity;
-    if (props.pushMarketing !== undefined) this.pushMarketing = props.pushMarketing;
+    if (props.pushTransactions !== undefined)
+      this.pushTransactions = props.pushTransactions;
+    if (props.pushSecurity !== undefined)
+      this.pushSecurity = props.pushSecurity;
+    if (props.pushMarketing !== undefined)
+      this.pushMarketing = props.pushMarketing;
 
     if (props.emailEnabled !== undefined) {
       this.emailEnabled = props.emailEnabled;
@@ -152,9 +159,12 @@ export class NotificationPreferences implements INotificationPreferences {
         this.emailMarketing = false;
       }
     }
-    if (props.emailTransactions !== undefined) this.emailTransactions = props.emailTransactions;
-    if (props.emailMonthlyStatement !== undefined) this.emailMonthlyStatement = props.emailMonthlyStatement;
-    if (props.emailMarketing !== undefined) this.emailMarketing = props.emailMarketing;
+    if (props.emailTransactions !== undefined)
+      this.emailTransactions = props.emailTransactions;
+    if (props.emailMonthlyStatement !== undefined)
+      this.emailMonthlyStatement = props.emailMonthlyStatement;
+    if (props.emailMarketing !== undefined)
+      this.emailMarketing = props.emailMarketing;
 
     if (props.smsEnabled !== undefined) {
       this.smsEnabled = props.smsEnabled;
@@ -164,7 +174,8 @@ export class NotificationPreferences implements INotificationPreferences {
         // smsSecurity stays true - cannot be disabled
       }
     }
-    if (props.smsTransactions !== undefined) this.smsTransactions = props.smsTransactions;
+    if (props.smsTransactions !== undefined)
+      this.smsTransactions = props.smsTransactions;
     // smsSecurity cannot be disabled for security reasons
     // if (props.smsSecurity !== undefined) this.smsSecurity = props.smsSecurity;
 
@@ -198,7 +209,9 @@ export class NotificationPreferences implements INotificationPreferences {
   /**
    * Check if user should receive email notification for a given type
    */
-  shouldReceiveEmail(type: 'transaction' | 'monthly_statement' | 'marketing'): boolean {
+  shouldReceiveEmail(
+    type: 'transaction' | 'monthly_statement' | 'marketing',
+  ): boolean {
     if (!this.emailEnabled) return false;
     switch (type) {
       case 'transaction':

@@ -32,7 +32,11 @@ export type ReferralEvent =
   | { type: 'KYC_COMPLETED' }
   | { type: 'FIRST_TRANSACTION'; amount: number }
   | { type: 'QUALIFY' }
-  | { type: 'CREDIT_REWARDS'; referrerRewardId: string; refereeRewardId: string }
+  | {
+      type: 'CREDIT_REWARDS';
+      referrerRewardId: string;
+      refereeRewardId: string;
+    }
   | { type: 'EXPIRE' }
   | { type: 'REJECT'; reason: string };
 

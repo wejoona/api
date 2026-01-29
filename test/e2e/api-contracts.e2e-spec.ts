@@ -1,7 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('API Contracts E2E Tests', () => {
   let setup: E2ETestSetup;
@@ -206,7 +212,9 @@ describe('API Contracts E2E Tests', () => {
         const user = await userHelper.createUser('+2250700000022');
 
         const response = await request(app.getHttpServer())
-          .get('/wallet/rate?sourceCurrency=XOF&targetCurrency=USD&amount=10000')
+          .get(
+            '/wallet/rate?sourceCurrency=XOF&targetCurrency=USD&amount=10000',
+          )
           .set('Authorization', `Bearer ${user.accessToken}`)
           .expect(200);
 

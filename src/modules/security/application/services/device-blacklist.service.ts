@@ -6,7 +6,12 @@ import { BlacklistedDeviceOrmEntity } from '../../infrastructure/orm-entities/bl
 
 export interface BlacklistDeviceInput {
   deviceFingerprint: string;
-  identifierType: 'device_id' | 'fingerprint' | 'ip_address' | 'ip_range' | 'user_agent';
+  identifierType:
+    | 'device_id'
+    | 'fingerprint'
+    | 'ip_address'
+    | 'ip_range'
+    | 'user_agent';
   reason: string;
   blacklistedBy: string;
   associatedUserId?: string;
@@ -26,7 +31,10 @@ export class DeviceBlacklistService {
   private readonly logger = new Logger(DeviceBlacklistService.name);
 
   // In-memory cache for frequently checked devices (improves performance)
-  private blacklistCache: Map<string, { isBlacklisted: boolean; expiresAt: number }> = new Map();
+  private blacklistCache: Map<
+    string,
+    { isBlacklisted: boolean; expiresAt: number }
+  > = new Map();
   private readonly CACHE_TTL_MS = 60000; // 1 minute cache
 
   constructor(
@@ -56,12 +64,18 @@ export class DeviceBlacklistService {
     // Query database
     const queryBuilder = this.blacklistRepository
       .createQueryBuilder('device')
-      .where('device.device_fingerprint = :fingerprint', { fingerprint: deviceFingerprint })
+      .where('device.device_fingerprint = :fingerprint', {
+        fingerprint: deviceFingerprint,
+      })
       .andWhere('device.is_active = :active', { active: true })
-      .andWhere('(device.expires_at IS NULL OR device.expires_at > :now)', { now: new Date() });
+      .andWhere('(device.expires_at IS NULL OR device.expires_at > :now)', {
+        now: new Date(),
+      });
 
     if (identifierType) {
-      queryBuilder.andWhere('device.identifier_type = :type', { type: identifierType });
+      queryBuilder.andWhere('device.identifier_type = :type', {
+        type: identifierType,
+      });
     }
 
     const blacklistedDevice = await queryBuilder.getOne();
@@ -102,19 +116,25 @@ export class DeviceBlacklistService {
       checks.push(this.isDeviceBlacklisted(identifiers.deviceId, 'device_id'));
     }
     if (identifiers.ipAddress) {
-      checks.push(this.isDeviceBlacklisted(identifiers.ipAddress, 'ip_address'));
+      checks.push(
+        this.isDeviceBlacklisted(identifiers.ipAddress, 'ip_address'),
+      );
       // Also check IP ranges
       checks.push(this.checkIpRange(identifiers.ipAddress));
     }
     if (identifiers.fingerprint) {
-      checks.push(this.isDeviceBlacklisted(identifiers.fingerprint, 'fingerprint'));
+      checks.push(
+        this.isDeviceBlacklisted(identifiers.fingerprint, 'fingerprint'),
+      );
     }
     if (identifiers.userAgent) {
-      checks.push(this.isDeviceBlacklisted(identifiers.userAgent, 'user_agent'));
+      checks.push(
+        this.isDeviceBlacklisted(identifiers.userAgent, 'user_agent'),
+      );
     }
 
     const results = await Promise.all(checks);
-    const blacklisted = results.find(r => r.isBlacklisted);
+    const blacklisted = results.find((r) => r.isBlacklisted);
 
     return blacklisted || { isBlacklisted: false };
   }
@@ -165,13 +185,18 @@ export class DeviceBlacklistService {
   }
 
   private ipToNumber(ip: string): number {
-    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>> 0;
+    return (
+      ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet), 0) >>>
+      0
+    );
   }
 
   /**
    * Add a device to the blacklist
    */
-  async blacklistDevice(input: BlacklistDeviceInput): Promise<BlacklistedDeviceOrmEntity> {
+  async blacklistDevice(
+    input: BlacklistDeviceInput,
+  ): Promise<BlacklistedDeviceOrmEntity> {
     // Check if already blacklisted
     const existing = await this.blacklistRepository.findOne({
       where: {
@@ -230,7 +255,8 @@ export class DeviceBlacklistService {
       { deviceFingerprint, isActive: true },
       {
         isActive: false,
-        metadata: () => `jsonb_set(COALESCE(metadata, '{}'), '{removedBy}', '"${removedBy}"')`,
+        metadata: () =>
+          `jsonb_set(COALESCE(metadata, '{}'), '{removedBy}', '"${removedBy}"')`,
       },
     );
 
@@ -261,7 +287,9 @@ export class DeviceBlacklistService {
     }
 
     if (options.identifierType) {
-      queryBuilder.andWhere('device.identifier_type = :type', { type: options.identifierType });
+      queryBuilder.andWhere('device.identifier_type = :type', {
+        type: options.identifierType,
+      });
     }
 
     queryBuilder
@@ -277,14 +305,18 @@ export class DeviceBlacklistService {
   /**
    * Get blacklist entry by ID
    */
-  async getBlacklistEntry(id: string): Promise<BlacklistedDeviceOrmEntity | null> {
+  async getBlacklistEntry(
+    id: string,
+  ): Promise<BlacklistedDeviceOrmEntity | null> {
     return this.blacklistRepository.findOne({ where: { id } });
   }
 
   /**
    * Increment blocked attempts counter
    */
-  private async incrementBlockedAttempts(deviceFingerprint: string): Promise<void> {
+  private async incrementBlockedAttempts(
+    deviceFingerprint: string,
+  ): Promise<void> {
     await this.blacklistRepository
       .createQueryBuilder()
       .update()
@@ -292,7 +324,9 @@ export class DeviceBlacklistService {
         blockedAttempts: () => 'blocked_attempts + 1',
         lastBlockedAt: new Date(),
       })
-      .where('device_fingerprint = :fingerprint', { fingerprint: deviceFingerprint })
+      .where('device_fingerprint = :fingerprint', {
+        fingerprint: deviceFingerprint,
+      })
       .andWhere('is_active = :active', { active: true })
       .execute();
   }
@@ -322,7 +356,9 @@ export class DeviceBlacklistService {
     );
 
     if (result.affected && result.affected > 0) {
-      this.logger.log(`Cleaned up ${result.affected} expired blacklist entries`);
+      this.logger.log(
+        `Cleaned up ${result.affected} expired blacklist entries`,
+      );
     }
 
     // Clear cache
@@ -354,17 +390,22 @@ export class DeviceBlacklistService {
       this.blacklistRepository
         .createQueryBuilder('d')
         .select('SUM(d.blocked_attempts)', 'total')
-        .where('d.last_blocked_at > :since', { since: new Date(Date.now() - 24 * 60 * 60 * 1000) })
+        .where('d.last_blocked_at > :since', {
+          since: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        })
         .getRawOne(),
     ]);
 
     return {
       totalActive,
       totalBlocked: parseInt(totalBlocked?.total || '0'),
-      byType: byType.reduce((acc, item) => {
-        acc[item.type] = parseInt(item.count);
-        return acc;
-      }, {} as Record<string, number>),
+      byType: byType.reduce(
+        (acc, item) => {
+          acc[item.type] = parseInt(item.count);
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
       last24hBlocked: parseInt(last24h?.total || '0'),
     };
   }

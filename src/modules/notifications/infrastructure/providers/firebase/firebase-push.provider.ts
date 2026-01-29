@@ -6,16 +6,16 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  IPushNotificationProvider,
-} from '../../../domain/interfaces/notification-provider.interface';
+import { IPushNotificationProvider } from '../../../domain/interfaces/notification-provider.interface';
 import {
   PushNotificationPayload,
   DeliveryResult,
 } from '../../../domain/interfaces/notification.types';
 
 @Injectable()
-export class FirebasePushProvider implements IPushNotificationProvider, OnModuleInit {
+export class FirebasePushProvider
+  implements IPushNotificationProvider, OnModuleInit
+{
   private readonly logger = new Logger(FirebasePushProvider.name);
   readonly name = 'firebase';
   private initialized = false;
@@ -29,11 +29,15 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
   private async initialize() {
     try {
       const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
-      const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+      const clientEmail = this.configService.get<string>(
+        'FIREBASE_CLIENT_EMAIL',
+      );
       const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
 
       if (!projectId || !clientEmail || !privateKey) {
-        this.logger.warn('Firebase credentials not configured, push notifications disabled');
+        this.logger.warn(
+          'Firebase credentials not configured, push notifications disabled',
+        );
         return;
       }
 
@@ -55,7 +59,10 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
     }
   }
 
-  async send(token: string, payload: PushNotificationPayload): Promise<DeliveryResult> {
+  async send(
+    token: string,
+    payload: PushNotificationPayload,
+  ): Promise<DeliveryResult> {
     const notificationId = uuidv4();
 
     if (!this.initialized) {
@@ -88,7 +95,7 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
           headers: {
             'apns-priority': payload.priority === 'high' ? '10' : '5',
             'apns-expiration': String(
-              Math.floor(Date.now() / 1000) + (payload.ttlSeconds || 86400)
+              Math.floor(Date.now() / 1000) + (payload.ttlSeconds || 86400),
             ),
           },
           payload: {
@@ -105,8 +112,8 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
       };
 
       if (payload.collapseKey) {
-        message.android!.collapseKey = payload.collapseKey;
-        message.apns!.headers!['apns-collapse-id'] = payload.collapseKey;
+        message.android.collapseKey = payload.collapseKey;
+        message.apns.headers['apns-collapse-id'] = payload.collapseKey;
       }
 
       const response = await admin.messaging().send(message);
@@ -180,13 +187,15 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
       return response.responses.map((res, index) => ({
         notificationId: uuidv4(),
         channel: 'push' as const,
-        status: res.success ? 'sent' as const : 'failed' as const,
+        status: res.success ? ('sent' as const) : ('failed' as const),
         providerMessageId: res.messageId,
         error: res.error?.message,
         metadata: { token: tokens[index] },
       }));
     } catch (error: any) {
-      this.logger.error(`Failed to send batch push notifications: ${error.message}`);
+      this.logger.error(
+        `Failed to send batch push notifications: ${error.message}`,
+      );
 
       return tokens.map(() => ({
         notificationId: uuidv4(),
@@ -207,7 +216,7 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
           token,
           data: { test: 'true' },
         },
-        true // dryRun
+        true, // dryRun
       );
       return true;
     } catch (error) {
@@ -282,12 +291,15 @@ export class FirebasePushProvider implements IPushNotificationProvider, OnModule
     }
   }
 
-  private stringifyData(data?: Record<string, any>): Record<string, string> | undefined {
+  private stringifyData(
+    data?: Record<string, any>,
+  ): Record<string, string> | undefined {
     if (!data) return undefined;
 
     const stringified: Record<string, string> = {};
     for (const [key, value] of Object.entries(data)) {
-      stringified[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      stringified[key] =
+        typeof value === 'string' ? value : JSON.stringify(value);
     }
     return stringified;
   }

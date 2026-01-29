@@ -31,7 +31,11 @@ export interface TransactionNotificationParams {
 
 export interface SecurityNotificationParams {
   userId: string;
-  type: 'new_device_login' | 'large_transaction' | 'address_whitelisted' | 'security_alert';
+  type:
+    | 'new_device_login'
+    | 'large_transaction'
+    | 'address_whitelisted'
+    | 'security_alert';
   title: string;
   body: string;
   data?: Record<string, string>;
@@ -137,7 +141,10 @@ export class PushNotificationService {
 
     // Check specific notification type preferences
     if (notificationType && prefs) {
-      const shouldSend = this.shouldSendNotificationType(prefs, notificationType);
+      const shouldSend = this.shouldSendNotificationType(
+        prefs,
+        notificationType,
+      );
       if (!shouldSend) {
         this.logger.log(
           `Notification type ${notificationType} disabled for user ${userId}`,
@@ -203,7 +210,11 @@ export class PushNotificationService {
     let totalFailed = 0;
 
     for (const userId of userIds) {
-      const result = await this.sendToUser(userId, notification, notificationType);
+      const result = await this.sendToUser(
+        userId,
+        notification,
+        notificationType,
+      );
       totalSent += result.devicesNotified;
       totalFailed += result.failedDevices;
     }
@@ -221,8 +232,15 @@ export class PushNotificationService {
   async sendTransactionNotification(
     params: TransactionNotificationParams,
   ): Promise<void> {
-    const { userId, type, amount, currency, transactionId, recipientName, senderName } =
-      params;
+    const {
+      userId,
+      type,
+      amount,
+      currency,
+      transactionId,
+      recipientName,
+      senderName,
+    } = params;
 
     const titles: Record<string, string> = {
       received: 'Money Received',
@@ -341,9 +359,12 @@ export class PushNotificationService {
     };
 
     const bodies: Record<string, string> = {
-      approved: 'Your identity has been verified. You now have full access to all features.',
-      rejected: reason || 'Your verification was not successful. Please try again.',
-      pending: 'Your documents are being reviewed. This usually takes 1-2 business days.',
+      approved:
+        'Your identity has been verified. You now have full access to all features.',
+      rejected:
+        reason || 'Your verification was not successful. Please try again.',
+      pending:
+        'Your documents are being reviewed. This usually takes 1-2 business days.',
     };
 
     await this.sendToUser(

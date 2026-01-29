@@ -24,18 +24,21 @@ export class BillProviderRepository {
     }
 
     if (query.category) {
-      qb.andWhere('provider.category = :category', { category: query.category });
+      qb.andWhere('provider.category = :category', {
+        category: query.category,
+      });
     }
 
     if (query.isActive !== undefined) {
-      qb.andWhere('provider.isActive = :isActive', { isActive: query.isActive });
+      qb.andWhere('provider.isActive = :isActive', {
+        isActive: query.isActive,
+      });
     } else {
       // Default to active providers only
       qb.andWhere('provider.isActive = true');
     }
 
-    qb.orderBy('provider.priority', 'DESC')
-      .addOrderBy('provider.name', 'ASC');
+    qb.orderBy('provider.priority', 'DESC').addOrderBy('provider.name', 'ASC');
 
     const entities = await qb.getMany();
     return entities.map(this.toDomain);
@@ -61,7 +64,10 @@ export class BillProviderRepository {
     };
   }
 
-  async findByCategory(category: BillCategory, country?: SupportedCountry): Promise<BillProvider[]> {
+  async findByCategory(
+    category: BillCategory,
+    country?: SupportedCountry,
+  ): Promise<BillProvider[]> {
     const query: GetProvidersQuery = { category, isActive: true };
     if (country) {
       query.country = country;
@@ -74,7 +80,8 @@ export class BillProviderRepository {
   }
 
   async getCategories(country?: SupportedCountry): Promise<BillCategory[]> {
-    const qb = this.repository.createQueryBuilder('provider')
+    const qb = this.repository
+      .createQueryBuilder('provider')
       .select('DISTINCT provider.category', 'category')
       .where('provider.isActive = true');
 
@@ -83,25 +90,31 @@ export class BillProviderRepository {
     }
 
     const results = await qb.getRawMany();
-    return results.map(r => r.category as BillCategory);
+    return results.map((r) => r.category as BillCategory);
   }
 
   async getCountries(): Promise<SupportedCountry[]> {
-    const results = await this.repository.createQueryBuilder('provider')
+    const results = await this.repository
+      .createQueryBuilder('provider')
       .select('DISTINCT provider.country', 'country')
       .where('provider.isActive = true')
       .getRawMany();
 
-    return results.map(r => r.country as SupportedCountry);
+    return results.map((r) => r.country as SupportedCountry);
   }
 
-  async create(provider: Partial<BillProviderOrmEntity>): Promise<BillProvider> {
+  async create(
+    provider: Partial<BillProviderOrmEntity>,
+  ): Promise<BillProvider> {
     const entity = this.repository.create(provider);
     const saved = await this.repository.save(entity);
     return this.toDomain(saved);
   }
 
-  async update(id: string, data: Partial<BillProviderOrmEntity>): Promise<BillProvider | null> {
+  async update(
+    id: string,
+    data: Partial<BillProviderOrmEntity>,
+  ): Promise<BillProvider | null> {
     await this.repository.update(id, data);
     return this.findById(id);
   }

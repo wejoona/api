@@ -31,7 +31,9 @@ export class RegisterUserUsecase {
 
     if (existingUser) {
       // User exists - send login OTP instead
-      this.logger.debug(`Phone ${input.phone} already registered, sending login OTP`);
+      this.logger.debug(
+        `Phone ${input.phone} already registered, sending login OTP`,
+      );
       await this.otpService.sendOtp(input.phone);
 
       // SECURITY: Return same response to prevent enumeration

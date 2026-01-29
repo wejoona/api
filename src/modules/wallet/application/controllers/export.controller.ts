@@ -55,7 +55,8 @@ export class ExportController {
       'text/csv': {
         schema: {
           type: 'string',
-          example: 'Date,Type,Description,Amount,Currency,Status,Reference,Completed At\n2026-01-18T12:00:00.000Z,deposit,Deposit (On-ramp),16.45,USD,completed,yc_dep_1234567890,2026-01-18T12:05:00.000Z',
+          example:
+            'Date,Type,Description,Amount,Currency,Status,Reference,Completed At\n2026-01-18T12:00:00.000Z,deposit,Deposit (On-ramp),16.45,USD,completed,yc_dep_1234567890,2026-01-18T12:05:00.000Z',
         },
       },
       'application/json': {
@@ -105,14 +106,18 @@ export class ExportController {
     if (startDate) {
       parsedStartDate = this.parseDate(startDate);
       if (!parsedStartDate) {
-        throw new BadRequestException('Invalid startDate format. Use ISO 8601 format (e.g., 2026-01-01)');
+        throw new BadRequestException(
+          'Invalid startDate format. Use ISO 8601 format (e.g., 2026-01-01)',
+        );
       }
     }
 
     if (endDate) {
       parsedEndDate = this.parseDate(endDate);
       if (!parsedEndDate) {
-        throw new BadRequestException('Invalid endDate format. Use ISO 8601 format (e.g., 2026-01-31)');
+        throw new BadRequestException(
+          'Invalid endDate format. Use ISO 8601 format (e.g., 2026-01-31)',
+        );
       }
     }
 

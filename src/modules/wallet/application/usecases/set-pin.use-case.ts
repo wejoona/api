@@ -58,7 +58,9 @@ export class SetPinUseCase {
 
     return {
       success: true,
-      message: user.pinSetAt ? 'PIN updated successfully' : 'PIN set successfully',
+      message: user.pinSetAt
+        ? 'PIN updated successfully'
+        : 'PIN set successfully',
     };
   }
 

@@ -31,7 +31,10 @@ import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { AlertRepository } from '../../infrastructure/repositories/alert.repository';
-import { UserAlertPreferencesUseCase, UpdatePreferencesInput } from '../usecases/user-alert-preferences.use-case';
+import {
+  UserAlertPreferencesUseCase,
+  UpdatePreferencesInput,
+} from '../usecases/user-alert-preferences.use-case';
 import { TransactionMonitorService } from '../services/transaction-monitor.service';
 import { AlertRulesService } from '../services/alert-rules.service';
 import {
@@ -171,9 +174,7 @@ export class MonitoringController {
   @Get('statistics')
   @ApiOperation({ summary: 'Get alert statistics' })
   @ApiResponse({ status: 200, description: 'Returns alert statistics' })
-  async getStatistics(
-    @CurrentUser('userId') userId: string,
-  ): Promise<{
+  async getStatistics(@CurrentUser('userId') userId: string): Promise<{
     total: number;
     unread: number;
     critical: number;
@@ -244,12 +245,18 @@ export class MonitoringController {
     @Param('id', ParseUUIDPipe) alertId: string,
     @Body() body: TakeActionDto,
   ): Promise<TransactionAlert> {
-    const alert = await this.alertRepository.recordAction(alertId, userId, body.action);
+    const alert = await this.alertRepository.recordAction(
+      alertId,
+      userId,
+      body.action,
+    );
     if (!alert) {
       throw new BadRequestException('Alert not found');
     }
 
-    this.logger.log(`User ${userId} took action ${body.action} on alert ${alertId}`);
+    this.logger.log(
+      `User ${userId} took action ${body.action} on alert ${alertId}`,
+    );
     return alert;
   }
 
@@ -258,9 +265,7 @@ export class MonitoringController {
   @Get('preferences')
   @ApiOperation({ summary: 'Get alert preferences' })
   @ApiResponse({ status: 200, description: 'Returns user preferences' })
-  async getPreferences(
-    @CurrentUser('userId') userId: string,
-  ) {
+  async getPreferences(@CurrentUser('userId') userId: string) {
     return this.preferencesUseCase.getPreferences(userId);
   }
 
@@ -281,7 +286,10 @@ export class MonitoringController {
     @CurrentUser('userId') userId: string,
     @Body() body: SetThresholdDto,
   ) {
-    return this.preferencesUseCase.setLargeTransactionThreshold(userId, body.value);
+    return this.preferencesUseCase.setLargeTransactionThreshold(
+      userId,
+      body.value,
+    );
   }
 
   @Put('preferences/threshold/balance-low')
@@ -301,7 +309,11 @@ export class MonitoringController {
     @CurrentUser('userId') userId: string,
     @Body() body: ToggleAlertTypeDto,
   ) {
-    return this.preferencesUseCase.toggleAlertType(userId, body.alertType, body.enabled);
+    return this.preferencesUseCase.toggleAlertType(
+      userId,
+      body.alertType,
+      body.enabled,
+    );
   }
 
   @Put('preferences/channel/:channel')
@@ -316,7 +328,11 @@ export class MonitoringController {
     if (!['email', 'push', 'sms'].includes(channel)) {
       throw new BadRequestException('Invalid channel');
     }
-    return this.preferencesUseCase.toggleNotificationChannel(userId, channel, body.enabled);
+    return this.preferencesUseCase.toggleNotificationChannel(
+      userId,
+      channel,
+      body.enabled,
+    );
   }
 
   @Put('preferences/quiet-hours')
@@ -339,9 +355,7 @@ export class MonitoringController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset preferences to default' })
   @ApiResponse({ status: 200, description: 'Preferences reset' })
-  async resetPreferences(
-    @CurrentUser('userId') userId: string,
-  ) {
+  async resetPreferences(@CurrentUser('userId') userId: string) {
     return this.preferencesUseCase.resetToDefault(userId);
   }
 
@@ -358,7 +372,10 @@ export class MonitoringController {
   @UseGuards(RolesGuard)
   @Roles('admin', 'super_admin')
   @ApiOperation({ summary: 'Get admin alerts dashboard' })
-  @ApiResponse({ status: 200, description: 'Returns system-wide alert statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns system-wide alert statistics',
+  })
   async getAdminDashboard(
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
@@ -368,7 +385,9 @@ export class MonitoringController {
     totalAlerts: number;
     rulesCount: number;
   }> {
-    const from = fromDate ? new Date(fromDate) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const from = fromDate
+      ? new Date(fromDate)
+      : new Date(Date.now() - 24 * 60 * 60 * 1000);
     const to = toDate ? new Date(toDate) : new Date();
 
     const [recentCriticalAlerts, alertCountByType] = await Promise.all([
@@ -376,7 +395,10 @@ export class MonitoringController {
       this.alertRepository.getAlertCountByType(from, to),
     ]);
 
-    const totalAlerts = Object.values(alertCountByType).reduce((a, b) => a + b, 0);
+    const totalAlerts = Object.values(alertCountByType).reduce(
+      (a, b) => a + b,
+      0,
+    );
     const rulesCount = this.rulesService.getCachedRulesCount();
 
     return {

@@ -26,7 +26,8 @@ export class MockProvidersHelper {
    * Mock Circle API endpoints
    */
   private mockCircleAPI() {
-    const circleBaseUrl = process.env.CIRCLE_API_URL || 'http://localhost:3999/circle';
+    const circleBaseUrl =
+      process.env.CIRCLE_API_URL || 'http://localhost:3999/circle';
 
     this.circleScope = nock(circleBaseUrl);
 
@@ -113,7 +114,8 @@ export class MockProvidersHelper {
    * Mock Blnk API endpoints (Ledger system)
    */
   private mockBlnkAPI() {
-    const blnkBaseUrl = process.env.BLNK_API_URL || 'http://localhost:3999/blnk';
+    const blnkBaseUrl =
+      process.env.BLNK_API_URL || 'http://localhost:3999/blnk';
 
     this.blnkScope = nock(blnkBaseUrl);
 
@@ -185,7 +187,8 @@ export class MockProvidersHelper {
    * Mock YellowCard API endpoints (On-ramp/Off-ramp)
    */
   private mockYellowCardAPI() {
-    const yellowcardBaseUrl = process.env.YELLOWCARD_API_URL || 'http://localhost:3999/yellowcard';
+    const yellowcardBaseUrl =
+      process.env.YELLOWCARD_API_URL || 'http://localhost:3999/yellowcard';
 
     this.yellowcardScope = nock(yellowcardBaseUrl);
 
@@ -253,7 +256,8 @@ export class MockProvidersHelper {
           provider: 'orange',
           accountNumber: '+2250700000000',
           reference: 'DEP-MOCK123',
-          instructions: 'Send 10000 XOF to the number above with reference DEP-MOCK123',
+          instructions:
+            'Send 10000 XOF to the number above with reference DEP-MOCK123',
         },
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       })

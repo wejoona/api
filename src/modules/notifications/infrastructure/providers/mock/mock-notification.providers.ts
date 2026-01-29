@@ -22,7 +22,10 @@ export class MockPushProvider implements IPushNotificationProvider {
   private readonly logger = new Logger(MockPushProvider.name);
   readonly name = 'mock_push';
 
-  async send(token: string, payload: PushNotificationPayload): Promise<DeliveryResult> {
+  async send(
+    token: string,
+    payload: PushNotificationPayload,
+  ): Promise<DeliveryResult> {
     this.logger.debug(`[MOCK PUSH] Sending to ${token.substring(0, 20)}...`);
     this.logger.debug(`[MOCK PUSH] Title: ${payload.title}`);
     this.logger.debug(`[MOCK PUSH] Body: ${payload.body}`);
@@ -38,7 +41,10 @@ export class MockPushProvider implements IPushNotificationProvider {
     };
   }
 
-  async sendBatch(tokens: string[], payload: PushNotificationPayload): Promise<DeliveryResult[]> {
+  async sendBatch(
+    tokens: string[],
+    payload: PushNotificationPayload,
+  ): Promise<DeliveryResult[]> {
     this.logger.debug(`[MOCK PUSH] Batch sending to ${tokens.length} devices`);
 
     await this.delay(100);
@@ -58,14 +64,21 @@ export class MockPushProvider implements IPushNotificationProvider {
   }
 
   async subscribeToTopic(token: string, topic: string): Promise<void> {
-    this.logger.debug(`[MOCK PUSH] Subscribed ${token.substring(0, 20)}... to topic: ${topic}`);
+    this.logger.debug(
+      `[MOCK PUSH] Subscribed ${token.substring(0, 20)}... to topic: ${topic}`,
+    );
   }
 
   async unsubscribeFromTopic(token: string, topic: string): Promise<void> {
-    this.logger.debug(`[MOCK PUSH] Unsubscribed ${token.substring(0, 20)}... from topic: ${topic}`);
+    this.logger.debug(
+      `[MOCK PUSH] Unsubscribed ${token.substring(0, 20)}... from topic: ${topic}`,
+    );
   }
 
-  async sendToTopic(topic: string, payload: PushNotificationPayload): Promise<DeliveryResult> {
+  async sendToTopic(
+    topic: string,
+    payload: PushNotificationPayload,
+  ): Promise<DeliveryResult> {
     this.logger.debug(`[MOCK PUSH] Sending to topic: ${topic}`);
 
     await this.delay(50);
@@ -80,7 +93,7 @@ export class MockPushProvider implements IPushNotificationProvider {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -104,7 +117,9 @@ export class MockSmsProvider implements ISmsNotificationProvider {
     };
   }
 
-  async sendBatch(payloads: SmsNotificationPayload[]): Promise<DeliveryResult[]> {
+  async sendBatch(
+    payloads: SmsNotificationPayload[],
+  ): Promise<DeliveryResult[]> {
     this.logger.debug(`[MOCK SMS] Batch sending to ${payloads.length} numbers`);
 
     await this.delay(200);
@@ -134,7 +149,7 @@ export class MockSmsProvider implements ISmsNotificationProvider {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -158,8 +173,12 @@ export class MockEmailProvider implements IEmailNotificationProvider {
     };
   }
 
-  async sendBatch(payloads: EmailNotificationPayload[]): Promise<DeliveryResult[]> {
-    this.logger.debug(`[MOCK EMAIL] Batch sending to ${payloads.length} addresses`);
+  async sendBatch(
+    payloads: EmailNotificationPayload[],
+  ): Promise<DeliveryResult[]> {
+    this.logger.debug(
+      `[MOCK EMAIL] Batch sending to ${payloads.length} addresses`,
+    );
 
     await this.delay(200);
 
@@ -197,6 +216,6 @@ export class MockEmailProvider implements IEmailNotificationProvider {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

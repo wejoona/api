@@ -60,7 +60,9 @@ describe('AMLCFTService', () => {
     }).compile();
 
     service = module.get<AMLCFTService>(AMLCFTService);
-    transactionRepository = module.get(getRepositoryToken(TransactionOrmEntity));
+    transactionRepository = module.get(
+      getRepositoryToken(TransactionOrmEntity),
+    );
     userRepository = module.get(getRepositoryToken(UserOrmEntity));
     alertRepository = module.get(getRepositoryToken(ComplianceAlertOrmEntity));
     configService = module.get(ConfigService);
@@ -120,7 +122,11 @@ describe('AMLCFTService', () => {
       configService.get.mockReturnValue(5); // Velocity threshold
 
       // Mock alert creation for high-risk scenarios
-      const mockAlert = { id: 'alert-123', userId, severity: 'high' } as ComplianceAlertOrmEntity;
+      const mockAlert = {
+        id: 'alert-123',
+        userId,
+        severity: 'high',
+      } as ComplianceAlertOrmEntity;
       alertRepository.create.mockReturnValue(mockAlert);
       alertRepository.save.mockResolvedValue(mockAlert);
 
@@ -144,7 +150,11 @@ describe('AMLCFTService', () => {
       transactionRepository.find.mockResolvedValue([]);
 
       // Mock alert creation for critical-risk scenarios
-      const mockAlert = { id: 'alert-456', userId, severity: 'critical' } as ComplianceAlertOrmEntity;
+      const mockAlert = {
+        id: 'alert-456',
+        userId,
+        severity: 'critical',
+      } as ComplianceAlertOrmEntity;
       alertRepository.create.mockReturnValue(mockAlert);
       alertRepository.save.mockResolvedValue(mockAlert);
 

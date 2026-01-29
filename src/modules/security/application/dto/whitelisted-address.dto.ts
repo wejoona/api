@@ -22,7 +22,9 @@ export class CreateWhitelistedAddressDto {
   @IsString()
   @MinLength(10)
   @MaxLength(100)
-  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toLowerCase() : value,
+  )
   address: string;
 
   @ApiProperty({

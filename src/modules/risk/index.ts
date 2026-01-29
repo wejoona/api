@@ -24,7 +24,10 @@ export { RiskManagerClient } from './infrastructure/clients/risk-manager.client'
 export { MockRiskClient } from './infrastructure/clients/mock-risk.client';
 
 // Interfaces & Types
-export { IRiskClient, RISK_CLIENT } from './domain/interfaces/risk-client.interface';
+export {
+  IRiskClient,
+  RISK_CLIENT,
+} from './domain/interfaces/risk-client.interface';
 export type {
   RiskLevel,
   RiskDecision,

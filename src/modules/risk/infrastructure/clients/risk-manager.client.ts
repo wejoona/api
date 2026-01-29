@@ -8,9 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom, timeout, catchError } from 'rxjs';
 import { AxiosError } from 'axios';
-import {
-  IRiskClient,
-} from '../../domain/interfaces/risk-client.interface';
+import { IRiskClient } from '../../domain/interfaces/risk-client.interface';
 import {
   TransactionAnalysisRequest,
   TransactionAnalysisResult,
@@ -35,41 +33,56 @@ export class RiskManagerClient implements IRiskClient {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.baseUrl = this.configService.get<string>('RISK_MANAGER_URL', 'http://localhost:3001');
+    this.baseUrl = this.configService.get<string>(
+      'RISK_MANAGER_URL',
+      'http://localhost:3001',
+    );
     this.apiKey = this.configService.get<string>('RISK_MANAGER_API_KEY', '');
-    this.timeoutMs = this.configService.get<number>('RISK_MANAGER_TIMEOUT_MS', 5000);
+    this.timeoutMs = this.configService.get<number>(
+      'RISK_MANAGER_TIMEOUT_MS',
+      5000,
+    );
   }
 
   private getHeaders() {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.apiKey}`,
       'X-Client-Service': 'usdc-wallet',
     };
   }
 
-  private async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, data?: any): Promise<T> {
+  private async request<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    path: string,
+    data?: any,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const startTime = Date.now();
 
     try {
       const response = await firstValueFrom(
-        this.httpService.request<T>({
-          method,
-          url,
-          headers: this.getHeaders(),
-          data,
-        }).pipe(
-          timeout(this.timeoutMs),
-          catchError((error: AxiosError) => {
-            this.logger.error(`Risk Manager request failed: ${method} ${path}`, {
-              status: error.response?.status,
-              message: error.message,
-              latencyMs: Date.now() - startTime,
-            });
-            throw error;
-          }),
-        ),
+        this.httpService
+          .request<T>({
+            method,
+            url,
+            headers: this.getHeaders(),
+            data,
+          })
+          .pipe(
+            timeout(this.timeoutMs),
+            catchError((error: AxiosError) => {
+              this.logger.error(
+                `Risk Manager request failed: ${method} ${path}`,
+                {
+                  status: error.response?.status,
+                  message: error.message,
+                  latencyMs: Date.now() - startTime,
+                },
+              );
+              throw error;
+            }),
+          ),
       );
 
       this.logger.debug(`Risk Manager request completed: ${method} ${path}`, {
@@ -82,7 +95,9 @@ export class RiskManagerClient implements IRiskClient {
     }
   }
 
-  async analyzeTransaction(request: TransactionAnalysisRequest): Promise<TransactionAnalysisResult> {
+  async analyzeTransaction(
+    request: TransactionAnalysisRequest,
+  ): Promise<TransactionAnalysisResult> {
     const response = await this.request<{
       risk_score: number;
       risk_level: string;
@@ -117,7 +132,9 @@ export class RiskManagerClient implements IRiskClient {
     };
   }
 
-  async analyzeTransactionBatch(requests: TransactionAnalysisRequest[]): Promise<{
+  async analyzeTransactionBatch(
+    requests: TransactionAnalysisRequest[],
+  ): Promise<{
     results: TransactionAnalysisResult[];
     summary: {
       total: number;
@@ -142,7 +159,7 @@ export class RiskManagerClient implements IRiskClient {
         average_score: number;
       };
     }>('POST', '/transactions/analyze/batch', {
-      transactions: requests.map(r => ({
+      transactions: requests.map((r) => ({
         transactionId: r.transactionId,
         userId: r.userId,
         type: r.type,
@@ -154,7 +171,7 @@ export class RiskManagerClient implements IRiskClient {
     });
 
     return {
-      results: response.results.map(r => ({
+      results: response.results.map((r) => ({
         analysisId: r.analysis_id,
         riskScore: r.risk_score,
         riskLevel: r.risk_level as any,
@@ -172,7 +189,9 @@ export class RiskManagerClient implements IRiskClient {
     };
   }
 
-  async screenIndividual(request: IndividualScreeningRequest): Promise<ScreeningResult> {
+  async screenIndividual(
+    request: IndividualScreeningRequest,
+  ): Promise<ScreeningResult> {
     const response = await this.request<{
       screening_id: string;
       reference_id: string;
@@ -209,7 +228,9 @@ export class RiskManagerClient implements IRiskClient {
     return this.mapScreeningResponse(response, 'individual');
   }
 
-  async screenEntity(request: EntityScreeningRequest): Promise<ScreeningResult> {
+  async screenEntity(
+    request: EntityScreeningRequest,
+  ): Promise<ScreeningResult> {
     const response = await this.request<{
       screening_id: string;
       reference_id: string;
@@ -242,12 +263,15 @@ export class RiskManagerClient implements IRiskClient {
     return this.mapScreeningResponse(response, 'entity');
   }
 
-  private mapScreeningResponse(response: any, subjectType: 'individual' | 'entity'): ScreeningResult {
+  private mapScreeningResponse(
+    response: any,
+    subjectType: 'individual' | 'entity',
+  ): ScreeningResult {
     return {
       screeningId: response.screening_id,
       referenceId: response.reference_id,
       subjectType,
-      status: response.status as any,
+      status: response.status,
       totalMatches: response.total_matches,
       matches: response.matches.map((m: any) => ({
         matchId: m.match_id,
@@ -255,7 +279,7 @@ export class RiskManagerClient implements IRiskClient {
         listName: m.list_name,
         entryId: m.entry_id,
         matchedName: m.matched_name,
-        matchConfidence: m.match_confidence as any,
+        matchConfidence: m.match_confidence,
         matchScore: m.match_score,
         matchedFields: m.matched_fields,
         sanctionPrograms: m.sanction_programs,
@@ -266,12 +290,14 @@ export class RiskManagerClient implements IRiskClient {
     };
   }
 
-  async screenBatch(requests: (IndividualScreeningRequest | EntityScreeningRequest)[]): Promise<{
+  async screenBatch(
+    requests: (IndividualScreeningRequest | EntityScreeningRequest)[],
+  ): Promise<{
     batchId: string;
     status: 'completed' | 'processing';
     results?: ScreeningResult[];
   }> {
-    const subjects = requests.map(r => {
+    const subjects = requests.map((r) => {
       if ('firstName' in r) {
         return {
           type: 'individual',
@@ -301,14 +327,22 @@ export class RiskManagerClient implements IRiskClient {
       batchId: response.batch_id,
       status: response.status as any,
       results: response.results?.map((r, i) =>
-        this.mapScreeningResponse(r, 'firstName' in requests[i] ? 'individual' : 'entity')
+        this.mapScreeningResponse(
+          r,
+          'firstName' in requests[i] ? 'individual' : 'entity',
+        ),
       ),
     };
   }
 
-  async getScreeningResult(screeningId: string): Promise<ScreeningResult | null> {
+  async getScreeningResult(
+    screeningId: string,
+  ): Promise<ScreeningResult | null> {
     try {
-      const response = await this.request<any>('GET', `/screening/result/${screeningId}`);
+      const response = await this.request<any>(
+        'GET',
+        `/screening/result/${screeningId}`,
+      );
       return this.mapScreeningResponse(response, response.subject_type);
     } catch (error) {
       if ((error as AxiosError).response?.status === 404) {
@@ -318,7 +352,9 @@ export class RiskManagerClient implements IRiskClient {
     }
   }
 
-  async checkVelocity(request: VelocityCheckRequest): Promise<VelocityCheckResult> {
+  async checkVelocity(
+    request: VelocityCheckRequest,
+  ): Promise<VelocityCheckResult> {
     const response = await this.request<{
       check_id: string;
       user_id: string;
@@ -347,7 +383,10 @@ export class RiskManagerClient implements IRiskClient {
     };
   }
 
-  async registerDevice(userId: string, fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async registerDevice(
+    userId: string,
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     const response = await this.request<{
       fingerprint_id: string;
       is_known_device: boolean;
@@ -372,12 +411,18 @@ export class RiskManagerClient implements IRiskClient {
       isKnownDevice: response.is_known_device,
       deviceTrustScore: response.device_trust_score,
       riskIndicators: response.risk_indicators,
-      lastSeenAt: response.last_seen_at ? new Date(response.last_seen_at) : undefined,
-      firstSeenAt: response.first_seen_at ? new Date(response.first_seen_at) : undefined,
+      lastSeenAt: response.last_seen_at
+        ? new Date(response.last_seen_at)
+        : undefined,
+      firstSeenAt: response.first_seen_at
+        ? new Date(response.first_seen_at)
+        : undefined,
     };
   }
 
-  async analyzeDevice(fingerprint: DeviceFingerprint): Promise<DeviceFingerprintResult> {
+  async analyzeDevice(
+    fingerprint: DeviceFingerprint,
+  ): Promise<DeviceFingerprintResult> {
     const response = await this.request<{
       fingerprint_id: string;
       is_known_device: boolean;
@@ -430,15 +475,21 @@ export class RiskManagerClient implements IRiskClient {
         transactionLimits: {
           dailyLimit: response.transaction_limits.daily_limit,
           monthlyLimit: response.transaction_limits.monthly_limit,
-          singleTransactionLimit: response.transaction_limits.single_transaction_limit,
+          singleTransactionLimit:
+            response.transaction_limits.single_transaction_limit,
         },
         velocityLimits: {
-          maxTransactionsPerHour: response.velocity_limits.max_transactions_per_hour,
-          maxTransactionsPerDay: response.velocity_limits.max_transactions_per_day,
-          maxUniqueRecipientsPerDay: response.velocity_limits.max_unique_recipients_per_day,
+          maxTransactionsPerHour:
+            response.velocity_limits.max_transactions_per_hour,
+          maxTransactionsPerDay:
+            response.velocity_limits.max_transactions_per_day,
+          maxUniqueRecipientsPerDay:
+            response.velocity_limits.max_unique_recipients_per_day,
         },
         screeningStatus: response.screening_status as any,
-        lastScreenedAt: response.last_screened_at ? new Date(response.last_screened_at) : undefined,
+        lastScreenedAt: response.last_screened_at
+          ? new Date(response.last_screened_at)
+          : undefined,
         riskFactors: response.risk_factors,
         updatedAt: new Date(response.updated_at),
       };
@@ -450,15 +501,22 @@ export class RiskManagerClient implements IRiskClient {
     }
   }
 
-  async updateUserRiskProfile(userId: string, updates: Partial<UserRiskProfile>): Promise<UserRiskProfile> {
-    const response = await this.request<any>('PUT', `/entities/risk-profiles/${userId}`, {
-      overall_risk_score: updates.overallRiskScore,
-      risk_level: updates.riskLevel,
-      kyc_level: updates.kycLevel,
-      risk_factors: updates.riskFactors,
-    });
+  async updateUserRiskProfile(
+    userId: string,
+    updates: Partial<UserRiskProfile>,
+  ): Promise<UserRiskProfile> {
+    const response = await this.request<any>(
+      'PUT',
+      `/entities/risk-profiles/${userId}`,
+      {
+        overall_risk_score: updates.overallRiskScore,
+        risk_level: updates.riskLevel,
+        kyc_level: updates.kycLevel,
+        risk_factors: updates.riskFactors,
+      },
+    );
 
-    return this.getUserRiskProfile(userId) as Promise<UserRiskProfile>;
+    return this.getUserRiskProfile(userId);
   }
 
   async getAvailableSanctionLists(): Promise<{
@@ -481,7 +539,7 @@ export class RiskManagerClient implements IRiskClient {
     }>('GET', '/lists');
 
     return {
-      lists: response.lists.map(l => ({
+      lists: response.lists.map((l) => ({
         code: l.code,
         name: l.name,
         description: l.description,
@@ -491,7 +549,10 @@ export class RiskManagerClient implements IRiskClient {
     };
   }
 
-  async healthCheck(): Promise<{ status: 'ok' | 'degraded' | 'down'; latencyMs: number }> {
+  async healthCheck(): Promise<{
+    status: 'ok' | 'degraded' | 'down';
+    latencyMs: number;
+  }> {
     const startTime = Date.now();
     try {
       await this.request<any>('GET', '/transactions/health');

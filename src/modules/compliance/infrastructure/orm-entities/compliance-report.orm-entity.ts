@@ -91,7 +91,12 @@ export class ComplianceReportOrmEntity {
   @Column({ name: 'report_data', type: 'jsonb', nullable: true })
   reportData: Record<string, unknown> | null; // Full report payload
 
-  @Column({ name: 'bceao_reference', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'bceao_reference',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Index()
   bceaoReference: string | null; // BCEAO submission reference number
 

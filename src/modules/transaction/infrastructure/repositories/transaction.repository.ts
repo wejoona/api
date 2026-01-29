@@ -112,7 +112,10 @@ export class TransactionRepository {
    * Used for KYC-based daily transfer limit enforcement
    * Note: This provides application-level limits on top of Blnk ledger
    */
-  async getDailyTransferVolume(userId: string, sinceDate: Date): Promise<number> {
+  async getDailyTransferVolume(
+    userId: string,
+    sinceDate: Date,
+  ): Promise<number> {
     // First get the user's wallet ID
     const result = await this.repository
       .createQueryBuilder('transaction')
@@ -121,10 +124,10 @@ export class TransactionRepository {
       .where('wallet.userId = :userId', { userId })
       .andWhere('transaction.createdAt >= :sinceDate', { sinceDate })
       .andWhere('transaction.type IN (:...types)', {
-        types: ['internal_transfer', 'external_transfer', 'withdrawal']
+        types: ['internal_transfer', 'external_transfer', 'withdrawal'],
       })
       .andWhere('transaction.status IN (:...statuses)', {
-        statuses: ['completed', 'pending', 'processing']
+        statuses: ['completed', 'pending', 'processing'],
       })
       .getRawOne();
 
@@ -155,7 +158,9 @@ export class TransactionRepository {
       query.andWhere('transaction.type = :type', { type: options.type });
     }
     if (options.status) {
-      query.andWhere('transaction.status = :status', { status: options.status });
+      query.andWhere('transaction.status = :status', {
+        status: options.status,
+      });
     }
 
     // Execute paginated query with count
@@ -282,7 +287,11 @@ export class TransactionRepository {
     todayVolume: number;
   }> {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
 
     // Get all stats in parallel for performance
     const [countStats, volumeStats, todayVolumeStats] = await Promise.all([
@@ -319,8 +328,8 @@ export class TransactionRepository {
       {} as Record<string, number>,
     );
 
-    const total = (Object.values(statusCounts) as number[]).reduce(
-      (sum: number, count: number) => sum + count,
+    const total: number = (Object.values(statusCounts) as number[]).reduce(
+      (sum, count) => sum + count,
       0,
     );
     const pending = statusCounts['pending'] || 0;

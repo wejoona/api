@@ -30,7 +30,11 @@ export interface RiskCheckOptions {
  */
 export function RiskCheck(options: RiskCheckOptions) {
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
-    Reflect.defineMetadata(RISK_CHECK_KEY, options, descriptor?.value || target);
+    Reflect.defineMetadata(
+      RISK_CHECK_KEY,
+      options,
+      descriptor?.value || target,
+    );
     return descriptor;
   };
 }
@@ -40,7 +44,11 @@ export function RiskCheck(options: RiskCheckOptions) {
  */
 export function SkipRiskCheck() {
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
-    Reflect.defineMetadata(SKIP_RISK_CHECK_KEY, true, descriptor?.value || target);
+    Reflect.defineMetadata(
+      SKIP_RISK_CHECK_KEY,
+      true,
+      descriptor?.value || target,
+    );
     return descriptor;
   };
 }
@@ -56,13 +64,19 @@ export class RiskAssessmentGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if risk check should be skipped
-    const skipCheck = this.reflector.get<boolean>(SKIP_RISK_CHECK_KEY, context.getHandler());
+    const skipCheck = this.reflector.get<boolean>(
+      SKIP_RISK_CHECK_KEY,
+      context.getHandler(),
+    );
     if (skipCheck) {
       return true;
     }
 
     // Get risk check options
-    const options = this.reflector.get<RiskCheckOptions>(RISK_CHECK_KEY, context.getHandler());
+    const options = this.reflector.get<RiskCheckOptions>(
+      RISK_CHECK_KEY,
+      context.getHandler(),
+    );
     if (!options) {
       return true; // No risk check configured
     }
@@ -72,14 +86,23 @@ export class RiskAssessmentGuard implements CanActivate {
     const body = request.body;
 
     if (!user) {
-      throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'User not authenticated',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // Extract transaction details from request
     const transactionId = body.transactionId || `tx_${Date.now()}_${user.id}`;
-    const amount = options.amountField ? body[options.amountField] : body.amount;
-    const currency = options.currencyField ? body[options.currencyField] : body.currency || 'USDC';
-    const recipientId = options.recipientField ? body[options.recipientField] : body.recipientId;
+    const amount = options.amountField
+      ? body[options.amountField]
+      : body.amount;
+    const currency = options.currencyField
+      ? body[options.currencyField]
+      : body.currency || 'USDC';
+    const recipientId = options.recipientField
+      ? body[options.recipientField]
+      : body.recipientId;
 
     // Get device fingerprint from headers
     const deviceFingerprint = this.extractDeviceFingerprint(request);
@@ -127,7 +150,8 @@ export class RiskAssessmentGuard implements CanActivate {
             {
               statusCode: HttpStatus.PRECONDITION_REQUIRED,
               error: 'Step-up authentication required',
-              message: 'Additional verification is required for this transaction',
+              message:
+                'Additional verification is required for this transaction',
               code: 'STEP_UP_REQUIRED',
               stepUpType: result.stepUpType,
               riskScore: result.riskScore,
@@ -137,7 +161,9 @@ export class RiskAssessmentGuard implements CanActivate {
         }
 
         // TODO: Validate step-up token
-        this.logger.log(`Step-up token provided for transaction: ${transactionId}`);
+        this.logger.log(
+          `Step-up token provided for transaction: ${transactionId}`,
+        );
       }
 
       return true;
@@ -146,7 +172,10 @@ export class RiskAssessmentGuard implements CanActivate {
         throw error;
       }
 
-      this.logger.error(`Risk check failed for transaction: ${transactionId}`, error);
+      this.logger.error(
+        `Risk check failed for transaction: ${transactionId}`,
+        error,
+      );
 
       // On error, allow transaction but log for review
       // This prevents risk service outage from blocking all transactions
@@ -168,7 +197,7 @@ export class RiskAssessmentGuard implements CanActivate {
 
     return {
       deviceId,
-      platform: request.headers['x-device-platform'] as any || 'web',
+      platform: request.headers['x-device-platform'] || 'web',
       osVersion: request.headers['x-os-version'],
       appVersion: request.headers['x-app-version'],
       ipAddress: request.ip || request.headers['x-forwarded-for'],
@@ -178,7 +207,9 @@ export class RiskAssessmentGuard implements CanActivate {
     };
   }
 
-  private determineRecipientType(recipientId?: string): 'internal' | 'external' | 'merchant' {
+  private determineRecipientType(
+    recipientId?: string,
+  ): 'internal' | 'external' | 'merchant' {
     if (!recipientId) return 'external';
     if (recipientId.startsWith('merchant_')) return 'merchant';
     // TODO: Check if recipient is internal user

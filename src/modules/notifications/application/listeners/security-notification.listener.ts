@@ -19,7 +19,9 @@ export class SecurityNotificationListener {
     // Only notify for new device logins
     if (event.type !== 'new_device') return;
 
-    this.logger.log(`Sending new device login notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending new device login notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -44,7 +46,9 @@ export class SecurityNotificationListener {
 
   @OnEvent('security.password.changed')
   async handlePasswordChanged(event: SecurityNotificationEvent) {
-    this.logger.log(`Sending password changed notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending password changed notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -64,7 +68,9 @@ export class SecurityNotificationListener {
 
   @OnEvent('security.suspicious_activity')
   async handleSuspiciousActivity(event: SecurityNotificationEvent) {
-    this.logger.log(`Sending suspicious activity notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending suspicious activity notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -83,7 +89,9 @@ export class SecurityNotificationListener {
 
   @OnEvent('security.pin.changed')
   async handlePinChanged(event: SecurityNotificationEvent) {
-    this.logger.log(`Sending PIN changed notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending PIN changed notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,

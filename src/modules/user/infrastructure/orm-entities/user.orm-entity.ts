@@ -7,7 +7,7 @@ import {
   Index,
 } from 'typeorm';
 
-@Entity('users')
+@Entity({ name: 'users', schema: 'auth' })
 export class UserOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

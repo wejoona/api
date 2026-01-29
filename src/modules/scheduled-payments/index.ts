@@ -21,4 +21,7 @@ export type {
 
 // Machine
 export { scheduleMachine } from './domain/machines/schedule.machine';
-export type { ScheduleContext, ScheduleEvent } from './domain/machines/schedule.machine';
+export type {
+  ScheduleContext,
+  ScheduleEvent,
+} from './domain/machines/schedule.machine';

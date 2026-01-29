@@ -1,7 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import { IQrCodePayload, QrCodeType } from '../../domain/entities/merchant.types';
+import {
+  IQrCodePayload,
+  QrCodeType,
+} from '../../domain/entities/merchant.types';
 
 /**
  * QR Code Service
@@ -21,7 +24,9 @@ export class QrCodeService {
   private readonly baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.secretKey = configService.get<string>('QR_SECRET_KEY') || 'joonapay-qr-secret-key-2024';
+    this.secretKey =
+      configService.get<string>('QR_SECRET_KEY') ||
+      'joonapay-qr-secret-key-2024';
     this.baseUrl = 'joonapay://pay';
   }
 

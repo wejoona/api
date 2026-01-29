@@ -147,10 +147,7 @@ describe('PII Sanitizer', () => {
 
     it('should handle arrays', () => {
       const obj = {
-        users: [
-          { email: 'user1@example.com' },
-          { email: 'user2@example.com' },
-        ],
+        users: [{ email: 'user1@example.com' }, { email: 'user2@example.com' }],
       };
 
       const sanitized = sanitizeForLogging(obj) as {

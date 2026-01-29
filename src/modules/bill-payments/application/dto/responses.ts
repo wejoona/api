@@ -24,7 +24,19 @@ export class BillProviderResponseDto implements BillProvider {
   @ApiProperty({ example: 'CIE' })
   shortName: string;
 
-  @ApiProperty({ example: 'electricity', enum: ['electricity', 'water', 'internet', 'tv', 'phone_credit', 'insurance', 'education', 'government'] })
+  @ApiProperty({
+    example: 'electricity',
+    enum: [
+      'electricity',
+      'water',
+      'internet',
+      'tv',
+      'phone_credit',
+      'insurance',
+      'education',
+      'government',
+    ],
+  })
   category: BillCategory;
 
   @ApiProperty({ example: 'CI' })
@@ -139,7 +151,10 @@ export class PayBillResponseDto implements BillPaymentResult {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174001' })
   transactionId: string;
 
-  @ApiProperty({ example: 'completed', enum: ['pending', 'processing', 'completed', 'failed', 'refunded'] })
+  @ApiProperty({
+    example: 'completed',
+    enum: ['pending', 'processing', 'completed', 'failed', 'refunded'],
+  })
   status: BillPaymentStatus;
 
   @ApiPropertyOptional({ example: 'RCP-20260125-123456' })

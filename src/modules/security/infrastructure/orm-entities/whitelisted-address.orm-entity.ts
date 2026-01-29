@@ -25,7 +25,12 @@ export class WhitelistedAddressOrmEntity {
   @Column({ type: 'varchar', length: 100 })
   label: string;
 
-  @Column({ name: 'address_type', type: 'varchar', length: 20, default: 'external' })
+  @Column({
+    name: 'address_type',
+    type: 'varchar',
+    length: 20,
+    default: 'external',
+  })
   addressType: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true })

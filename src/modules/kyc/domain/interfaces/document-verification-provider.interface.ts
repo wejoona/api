@@ -5,7 +5,9 @@
  * Implementations: Onfido, Jumio, Veriff, Smile Identity, Mock
  */
 
-export const DOCUMENT_VERIFICATION_PROVIDER = Symbol('DOCUMENT_VERIFICATION_PROVIDER');
+export const DOCUMENT_VERIFICATION_PROVIDER = Symbol(
+  'DOCUMENT_VERIFICATION_PROVIDER',
+);
 
 /**
  * Supported document types
@@ -178,7 +180,9 @@ export interface IDocumentVerificationProvider {
    * @param input - Document verification input
    * @returns Verification result
    */
-  verifyDocument(input: VerifyDocumentInput): Promise<DocumentVerificationResult>;
+  verifyDocument(
+    input: VerifyDocumentInput,
+  ): Promise<DocumentVerificationResult>;
 
   /**
    * Get status of a pending verification
@@ -186,7 +190,9 @@ export interface IDocumentVerificationProvider {
    * @param verificationId - Provider's verification ID
    * @returns Current verification result
    */
-  getVerificationStatus(verificationId: string): Promise<DocumentVerificationResult>;
+  getVerificationStatus(
+    verificationId: string,
+  ): Promise<DocumentVerificationResult>;
 
   /**
    * Validate webhook signature
@@ -203,5 +209,7 @@ export interface IDocumentVerificationProvider {
    * @param payload - Parsed webhook payload
    * @returns Verification result
    */
-  parseWebhookPayload(payload: Record<string, unknown>): DocumentVerificationResult;
+  parseWebhookPayload(
+    payload: Record<string, unknown>,
+  ): DocumentVerificationResult;
 }

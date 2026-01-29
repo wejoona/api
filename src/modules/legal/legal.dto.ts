@@ -5,7 +5,10 @@ export class LegalDocumentDto {
   @ApiProperty({ description: 'Unique document identifier' })
   id: string;
 
-  @ApiProperty({ description: 'Document type', enum: ['terms_of_service', 'privacy_policy'] })
+  @ApiProperty({
+    description: 'Document type',
+    enum: ['terms_of_service', 'privacy_policy'],
+  })
   type: 'terms_of_service' | 'privacy_policy';
 
   @ApiProperty({ description: 'Semantic version (e.g., 1.2.0)' })
@@ -42,7 +45,10 @@ export class LegalConsentDto {
   @IsString()
   document_version: string;
 
-  @ApiProperty({ description: 'Document type', enum: ['terms_of_service', 'privacy_policy'] })
+  @ApiProperty({
+    description: 'Document type',
+    enum: ['terms_of_service', 'privacy_policy'],
+  })
   @IsEnum(['terms_of_service', 'privacy_policy'])
   document_type: 'terms_of_service' | 'privacy_policy';
 
@@ -62,7 +68,10 @@ export class LegalConsentDto {
 }
 
 export class GetLegalDocumentQueryDto {
-  @ApiPropertyOptional({ description: 'Locale for document (default: en)', default: 'en' })
+  @ApiPropertyOptional({
+    description: 'Locale for document (default: en)',
+    default: 'en',
+  })
   @IsOptional()
   @IsString()
   locale?: string;

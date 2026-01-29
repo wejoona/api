@@ -16,7 +16,9 @@ export class RiskNotificationListener {
 
   @OnEvent('risk.transaction.blocked')
   async handleTransactionBlocked(event: RiskNotificationEvent) {
-    this.logger.log(`Sending transaction blocked notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending transaction blocked notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -40,7 +42,9 @@ export class RiskNotificationListener {
 
   @OnEvent('risk.step_up.required')
   async handleStepUpRequired(event: RiskNotificationEvent) {
-    this.logger.log(`Sending step-up required notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending step-up required notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,

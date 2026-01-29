@@ -22,7 +22,10 @@ export class MtnAdapter extends BaseBillAdapter {
 
   constructor(private readonly configService: ConfigService) {
     const config: BillProviderConfig = {
-      apiBaseUrl: configService.get<string>('MTN_API_URL', 'https://sandbox.momodeveloper.mtn.com'),
+      apiBaseUrl: configService.get<string>(
+        'MTN_API_URL',
+        'https://sandbox.momodeveloper.mtn.com',
+      ),
       apiKey: configService.get<string>('MTN_SUBSCRIPTION_KEY', ''),
       apiSecret: configService.get<string>('MTN_API_KEY'),
       timeout: 30000,
@@ -39,7 +42,10 @@ export class MtnAdapter extends BaseBillAdapter {
     const token = await this.getAccessToken();
     config.headers['Authorization'] = `Bearer ${token}`;
     config.headers['Ocp-Apim-Subscription-Key'] = this.config.apiKey;
-    config.headers['X-Target-Environment'] = this.configService.get<string>('MTN_ENVIRONMENT', 'sandbox');
+    config.headers['X-Target-Environment'] = this.configService.get<string>(
+      'MTN_ENVIRONMENT',
+      'sandbox',
+    );
     return config;
   }
 
@@ -59,16 +65,18 @@ export class MtnAdapter extends BaseBillAdapter {
         {},
         {
           headers: {
-            'Authorization': `Basic ${credentials}`,
+            Authorization: `Basic ${credentials}`,
             'Ocp-Apim-Subscription-Key': this.config.apiKey,
           },
         },
       );
 
       this.accessToken = response.data.access_token;
-      this.tokenExpiry = new Date(Date.now() + (response.data.expires_in - 60) * 1000);
+      this.tokenExpiry = new Date(
+        Date.now() + (response.data.expires_in - 60) * 1000,
+      );
 
-      return this.accessToken!;
+      return this.accessToken;
     } catch (error) {
       throw new BillPaymentError(
         'Failed to authenticate with MTN API',
@@ -78,7 +86,9 @@ export class MtnAdapter extends BaseBillAdapter {
     }
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     return this.withRetry(async () => {
       try {
         const phoneNumber = this.formatPhoneNumber(request.accountNumber);
@@ -133,7 +143,9 @@ export class MtnAdapter extends BaseBillAdapter {
     return formatted;
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     return this.withRetry(async () => {
       try {
         const referenceId = uuidv4();
@@ -247,12 +259,17 @@ export class MtnAdapter extends BaseBillAdapter {
     }
   }
 
-  private mapStatus(providerStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
-    const statusMap: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-      'PENDING': 'pending',
-      'PROCESSING': 'processing',
-      'SUCCESSFUL': 'completed',
-      'FAILED': 'failed',
+  private mapStatus(
+    providerStatus: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
+    const statusMap: Record<
+      string,
+      'pending' | 'processing' | 'completed' | 'failed'
+    > = {
+      PENDING: 'pending',
+      PROCESSING: 'processing',
+      SUCCESSFUL: 'completed',
+      FAILED: 'failed',
     };
     return statusMap[providerStatus?.toUpperCase()] || 'pending';
   }

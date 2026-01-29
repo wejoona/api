@@ -13,7 +13,8 @@ import { Transform, Type } from 'class-transformer';
 
 export class CheckUsernameDto {
   @ApiProperty({
-    description: 'Username to check availability (3-20 chars, alphanumeric and underscores)',
+    description:
+      'Username to check availability (3-20 chars, alphanumeric and underscores)',
     example: 'amadou_diallo',
   })
   @IsString()

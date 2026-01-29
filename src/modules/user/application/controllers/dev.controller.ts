@@ -28,7 +28,9 @@ export class DevController {
   private ensureDevMode(): void {
     const nodeEnv = this.configService.get<string>('nodeEnv');
     if (nodeEnv !== 'development') {
-      throw new ForbiddenException('This endpoint is only available in development mode');
+      throw new ForbiddenException(
+        'This endpoint is only available in development mode',
+      );
     }
   }
 

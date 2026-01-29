@@ -51,10 +51,22 @@ export class SubAccountOrmEntity {
   walletId: string | null;
 
   // Spending limits for sub-accounts
-  @Column({ name: 'daily_limit', type: 'decimal', precision: 18, scale: 6, nullable: true })
+  @Column({
+    name: 'daily_limit',
+    type: 'decimal',
+    precision: 18,
+    scale: 6,
+    nullable: true,
+  })
   dailyLimit: number | null;
 
-  @Column({ name: 'monthly_limit', type: 'decimal', precision: 18, scale: 6, nullable: true })
+  @Column({
+    name: 'monthly_limit',
+    type: 'decimal',
+    precision: 18,
+    scale: 6,
+    nullable: true,
+  })
   monthlyLimit: number | null;
 
   @CreateDateColumn({ name: 'created_at' })

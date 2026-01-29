@@ -33,7 +33,9 @@ export class MockKycProvider implements IKycVerificationProvider {
   // Store mock verifications for status checks
   private verifications = new Map<string, VerificationResult>();
 
-  async verifyIdentity(input: VerifyIdentityInput): Promise<VerificationResult> {
+  async verifyIdentity(
+    input: VerifyIdentityInput,
+  ): Promise<VerificationResult> {
     this.logger.log(`[MOCK] Verifying identity for user ${input.userId}`);
 
     // Simulate processing delay
@@ -51,7 +53,10 @@ export class MockKycProvider implements IKycVerificationProvider {
         documentAuthenticity: {
           passed: score >= 50,
           score: Math.min(100, score + 10),
-          details: score >= 50 ? 'Document appears authentic' : 'Document quality issues detected',
+          details:
+            score >= 50
+              ? 'Document appears authentic'
+              : 'Document quality issues detected',
         },
         documentExpiry: {
           passed: true,
@@ -70,17 +75,20 @@ export class MockKycProvider implements IKycVerificationProvider {
         faceMatch: {
           passed: score >= 60,
           score: Math.min(100, score + 5),
-          details: score >= 60 ? 'Face matches ID photo' : 'Face match confidence low',
+          details:
+            score >= 60 ? 'Face matches ID photo' : 'Face match confidence low',
         },
         livenessCheck: {
           passed: score >= 50,
           score: Math.min(100, score + 8),
           isLive: score >= 50,
-          details: score >= 50 ? 'Liveness confirmed' : 'Liveness check inconclusive',
+          details:
+            score >= 50 ? 'Liveness confirmed' : 'Liveness check inconclusive',
         },
         dataMatch: {
           passed: score >= 70,
-          mismatches: score < 70 ? ['Name spelling variation detected'] : undefined,
+          mismatches:
+            score < 70 ? ['Name spelling variation detected'] : undefined,
         },
       },
       rawResponse: {
@@ -100,7 +108,9 @@ export class MockKycProvider implements IKycVerificationProvider {
     return result;
   }
 
-  async getVerificationStatus(input: GetVerificationStatusInput): Promise<VerificationResult> {
+  async getVerificationStatus(
+    input: GetVerificationStatusInput,
+  ): Promise<VerificationResult> {
     const result = this.verifications.get(input.verificationId);
 
     if (!result) {
@@ -131,20 +141,22 @@ export class MockKycProvider implements IKycVerificationProvider {
 
   parseWebhookPayload(payload: Record<string, unknown>): VerificationResult {
     const verificationId = payload.verificationId as string;
-    return this.verifications.get(verificationId) || {
-      verificationId,
-      score: 0,
-      status: 'failed' as const,
-      checks: {
-        documentAuthenticity: { passed: false, score: 0 },
-        documentExpiry: { passed: false },
-        dataExtraction: { passed: false },
-        faceMatch: { passed: false, score: 0 },
-        livenessCheck: { passed: false, score: 0, isLive: false },
-        dataMatch: { passed: false },
-      },
-      verifiedAt: new Date(),
-    };
+    return (
+      this.verifications.get(verificationId) || {
+        verificationId,
+        score: 0,
+        status: 'failed' as const,
+        checks: {
+          documentAuthenticity: { passed: false, score: 0 },
+          documentExpiry: { passed: false },
+          dataExtraction: { passed: false },
+          faceMatch: { passed: false, score: 0 },
+          livenessCheck: { passed: false, score: 0, isLive: false },
+          dataMatch: { passed: false },
+        },
+        verifiedAt: new Date(),
+      }
+    );
   }
 
   // ==========================================

@@ -1,1 +1,5 @@
-export { KycVerificationOrmEntity, KycVerificationStatus, IdDocumentType } from './kyc-verification.orm-entity';
+export {
+  KycVerificationOrmEntity,
+  KycVerificationStatus,
+  IdDocumentType,
+} from './kyc-verification.orm-entity';

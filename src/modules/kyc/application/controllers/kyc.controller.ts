@@ -17,7 +17,13 @@ import {
 import { JwtAuthGuard, JwtUser } from '../../../../common/guards';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { KycService, SubmitKycDocumentsInput } from '../services/kyc.service';
-import { IsString, IsOptional, IsEnum, IsDateString, Length } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  Length,
+} from 'class-validator';
 
 // ==========================================
 // DTOs

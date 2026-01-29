@@ -6,10 +6,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 // Notification templates
-const TEMPLATES: Record<string, {
-  title: Record<string, string>;
-  body: Record<string, string>;
-}> = {
+const TEMPLATES: Record<
+  string,
+  {
+    title: Record<string, string>;
+    body: Record<string, string>;
+  }
+> = {
   // Transaction templates
   'transaction.deposit.received': {
     title: {
@@ -58,7 +61,7 @@ const TEMPLATES: Record<string, {
     },
     body: {
       en: 'Your withdrawal of {{amount}} {{currency}} could not be processed. Reason: {{reason}}',
-      fr: 'Votre retrait de {{amount}} {{currency}} n\'a pas pu être traité. Raison: {{reason}}',
+      fr: "Votre retrait de {{amount}} {{currency}} n'a pas pu être traité. Raison: {{reason}}",
     },
   },
 
@@ -90,7 +93,7 @@ const TEMPLATES: Record<string, {
     },
     body: {
       en: 'We could not verify your documents. Reason: {{reason}}. Please resubmit.',
-      fr: 'Nous n\'avons pas pu vérifier vos documents. Raison: {{reason}}. Veuillez resoumettre.',
+      fr: "Nous n'avons pas pu vérifier vos documents. Raison: {{reason}}. Veuillez resoumettre.",
     },
   },
 
@@ -101,8 +104,8 @@ const TEMPLATES: Record<string, {
       fr: 'Connexion Nouvel Appareil',
     },
     body: {
-      en: 'A new device logged into your account from {{location}}. If this wasn\'t you, please secure your account immediately.',
-      fr: 'Un nouvel appareil s\'est connecté à votre compte depuis {{location}}. Si ce n\'était pas vous, sécurisez votre compte immédiatement.',
+      en: "A new device logged into your account from {{location}}. If this wasn't you, please secure your account immediately.",
+      fr: "Un nouvel appareil s'est connecté à votre compte depuis {{location}}. Si ce n'était pas vous, sécurisez votre compte immédiatement.",
     },
   },
   'security.password.changed': {
@@ -111,8 +114,8 @@ const TEMPLATES: Record<string, {
       fr: 'Mot de Passe Modifié',
     },
     body: {
-      en: 'Your password was changed successfully. If you didn\'t make this change, contact support immediately.',
-      fr: 'Votre mot de passe a été modifié avec succès. Si vous n\'avez pas effectué ce changement, contactez le support immédiatement.',
+      en: "Your password was changed successfully. If you didn't make this change, contact support immediately.",
+      fr: "Votre mot de passe a été modifié avec succès. Si vous n'avez pas effectué ce changement, contactez le support immédiatement.",
     },
   },
 
@@ -124,7 +127,7 @@ const TEMPLATES: Record<string, {
     },
     body: {
       en: 'Your transaction was blocked for security reasons. Please contact support if you believe this is an error.',
-      fr: 'Votre transaction a été bloquée pour des raisons de sécurité. Contactez le support si vous pensez qu\'il s\'agit d\'une erreur.',
+      fr: "Votre transaction a été bloquée pour des raisons de sécurité. Contactez le support si vous pensez qu'il s'agit d'une erreur.",
     },
   },
   'risk.step_up.required': {
@@ -145,8 +148,8 @@ const TEMPLATES: Record<string, {
       fr: 'Nouveau Parrainage',
     },
     body: {
-      en: '{{refereeName}} signed up using your referral code! You\'ll receive your reward once they complete KYC.',
-      fr: '{{refereeName}} s\'est inscrit avec votre code de parrainage ! Vous recevrez votre récompense une fois qu\'il aura complété le KYC.',
+      en: "{{refereeName}} signed up using your referral code! You'll receive your reward once they complete KYC.",
+      fr: "{{refereeName}} s'est inscrit avec votre code de parrainage ! Vous recevrez votre récompense une fois qu'il aura complété le KYC.",
     },
   },
   'referral.reward.earned': {
@@ -155,7 +158,7 @@ const TEMPLATES: Record<string, {
       fr: 'Récompense Gagnée !',
     },
     body: {
-      en: 'You\'ve earned {{amount}} {{currency}} from your referral. Check your rewards balance.',
+      en: "You've earned {{amount}} {{currency}} from your referral. Check your rewards balance.",
       fr: 'Vous avez gagné {{amount}} {{currency}} grâce à votre parrainage. Vérifiez votre solde de récompenses.',
     },
   },
@@ -208,7 +211,7 @@ const TEMPLATES: Record<string, {
     },
     body: {
       en: 'Your upcoming payment of {{amount}} {{currency}} may fail due to insufficient balance. Please fund your account.',
-      fr: 'Votre prochain paiement de {{amount}} {{currency}} pourrait échouer en raison d\'un solde insuffisant. Veuillez alimenter votre compte.',
+      fr: "Votre prochain paiement de {{amount}} {{currency}} pourrait échouer en raison d'un solde insuffisant. Veuillez alimenter votre compte.",
     },
   },
 };

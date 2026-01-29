@@ -34,7 +34,8 @@ export class GetBalanceUseCase {
     const cacheKey = `balance:${input.userId}`;
 
     // Try to get from cache first
-    const cachedBalance = await this.cacheManager.get<GetBalanceOutput>(cacheKey);
+    const cachedBalance =
+      await this.cacheManager.get<GetBalanceOutput>(cacheKey);
     if (cachedBalance) {
       return cachedBalance;
     }
@@ -45,13 +46,38 @@ export class GetBalanceUseCase {
       throw new NotFoundException('Wallet not found');
     }
 
-    if (!wallet.yellowCardWalletId) {
-      throw new NotFoundException('Wallet not linked to payment provider');
+    // Check for provider wallet ID (Circle or Yellow Card)
+    const providerWalletId = wallet.circleWalletId || wallet.yellowCardWalletId;
+
+    // If no provider linked, return local balance from database
+    if (!providerWalletId) {
+      const result: GetBalanceOutput = {
+        walletId: wallet.id,
+        currency: wallet.currency,
+        balances: [
+          {
+            currency: 'USD',
+            available: wallet.balance,
+            pending: 0,
+            total: wallet.balance,
+          },
+          {
+            currency: 'USDC',
+            available: 0,
+            pending: 0,
+            total: 0,
+          },
+        ],
+      };
+
+      // Cache for shorter time since it's local balance
+      await this.cacheManager.set(cacheKey, result, 10);
+      return result;
     }
 
-    const balanceResponse = await this.paymentGateway.getBalance(
-      wallet.yellowCardWalletId,
-    );
+    // Fetch from payment gateway
+    const balanceResponse =
+      await this.paymentGateway.getBalance(providerWalletId);
 
     const result: GetBalanceOutput = {
       walletId: wallet.id,

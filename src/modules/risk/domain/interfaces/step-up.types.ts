@@ -7,7 +7,13 @@
 export type RiskFlow = 'green' | 'yellow' | 'red';
 
 // Step-up requirements
-export type StepUpRequirement = 'none' | 'biometric' | 'otp' | 'liveness' | 'biometric_and_liveness' | 'manual_review';
+export type StepUpRequirement =
+  | 'none'
+  | 'biometric'
+  | 'otp'
+  | 'liveness'
+  | 'biometric_and_liveness'
+  | 'manual_review';
 
 export interface StepUpDecision {
   flow: RiskFlow;
@@ -39,9 +45,9 @@ export interface StepUpResult {
 // Step-up thresholds configuration
 export interface StepUpConfig {
   // Risk score thresholds
-  greenMaxScore: number;      // 0-30: No step-up
-  yellowMaxScore: number;     // 31-60: Biometric
-  redMinScore: number;        // 61+: Liveness
+  greenMaxScore: number; // 0-30: No step-up
+  yellowMaxScore: number; // 31-60: Biometric
+  redMinScore: number; // 61+: Liveness
 
   // Amount-based overrides (always trigger regardless of score)
   highValueThreshold: number; // e.g., $1000 always requires liveness
@@ -56,6 +62,10 @@ export const DEFAULT_STEP_UP_CONFIG: StepUpConfig = {
   yellowMaxScore: 60,
   redMinScore: 61,
   highValueThreshold: 1000,
-  alwaysRequireLiveness: ['first_external_withdrawal', 'account_recovery', 'kyc_selfie'],
+  alwaysRequireLiveness: [
+    'first_external_withdrawal',
+    'account_recovery',
+    'kyc_selfie',
+  ],
   alwaysRequireBiometric: ['external_transfer', 'pin_change', 'add_recipient'],
 };

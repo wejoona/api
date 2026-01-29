@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
 import { HealthController } from './health.controller';
-import { CircleHealthIndicator, BlnkHealthIndicator, RedisHealthIndicator } from './health-indicators';
+import {
+  CircleHealthIndicator,
+  BlnkHealthIndicator,
+  RedisHealthIndicator,
+} from './health-indicators';
 
 @Module({
   imports: [TerminusModule],

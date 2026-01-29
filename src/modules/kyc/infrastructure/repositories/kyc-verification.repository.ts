@@ -29,8 +29,13 @@ export class KycVerificationRepository {
     return this.repository.findOne({ where: { id } });
   }
 
-  async findByStatus(status: KycVerificationStatus): Promise<KycVerificationOrmEntity[]> {
-    return this.repository.find({ where: { status }, order: { createdAt: 'ASC' } });
+  async findByStatus(
+    status: KycVerificationStatus,
+  ): Promise<KycVerificationOrmEntity[]> {
+    return this.repository.find({
+      where: { status },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   async findPendingManualReview(): Promise<KycVerificationOrmEntity[]> {
@@ -40,7 +45,9 @@ export class KycVerificationRepository {
     });
   }
 
-  async save(entity: KycVerificationOrmEntity): Promise<KycVerificationOrmEntity> {
+  async save(
+    entity: KycVerificationOrmEntity,
+  ): Promise<KycVerificationOrmEntity> {
     return this.repository.save(entity);
   }
 
@@ -130,15 +137,24 @@ export class KycVerificationRepository {
     if (data.idFrontKey !== undefined) entity.idFrontKey = data.idFrontKey;
     if (data.idBackKey !== undefined) entity.idBackKey = data.idBackKey;
     if (data.selfieKey !== undefined) entity.selfieKey = data.selfieKey;
-    if (data.autoVerificationProvider !== undefined) entity.autoVerificationProvider = data.autoVerificationProvider;
-    if (data.autoVerificationId !== undefined) entity.autoVerificationId = data.autoVerificationId;
-    if (data.autoVerificationScore !== undefined) entity.autoVerificationScore = data.autoVerificationScore;
-    if (data.autoVerificationResult !== undefined) entity.autoVerificationResult = data.autoVerificationResult;
-    if (data.autoVerifiedAt !== undefined) entity.autoVerifiedAt = data.autoVerifiedAt;
-    if (data.manualReviewedBy !== undefined) entity.manualReviewedBy = data.manualReviewedBy;
-    if (data.manualReviewNotes !== undefined) entity.manualReviewNotes = data.manualReviewNotes;
-    if (data.rejectionReason !== undefined) entity.rejectionReason = data.rejectionReason;
-    if (data.manualReviewedAt !== undefined) entity.manualReviewedAt = data.manualReviewedAt;
+    if (data.autoVerificationProvider !== undefined)
+      entity.autoVerificationProvider = data.autoVerificationProvider;
+    if (data.autoVerificationId !== undefined)
+      entity.autoVerificationId = data.autoVerificationId;
+    if (data.autoVerificationScore !== undefined)
+      entity.autoVerificationScore = data.autoVerificationScore;
+    if (data.autoVerificationResult !== undefined)
+      entity.autoVerificationResult = data.autoVerificationResult;
+    if (data.autoVerifiedAt !== undefined)
+      entity.autoVerifiedAt = data.autoVerifiedAt;
+    if (data.manualReviewedBy !== undefined)
+      entity.manualReviewedBy = data.manualReviewedBy;
+    if (data.manualReviewNotes !== undefined)
+      entity.manualReviewNotes = data.manualReviewNotes;
+    if (data.rejectionReason !== undefined)
+      entity.rejectionReason = data.rejectionReason;
+    if (data.manualReviewedAt !== undefined)
+      entity.manualReviewedAt = data.manualReviewedAt;
     if (data.submittedAt !== undefined) entity.submittedAt = data.submittedAt;
     if (data.approvedAt !== undefined) entity.approvedAt = data.approvedAt;
 

@@ -16,7 +16,9 @@ export class TransactionNotificationListener {
 
   @OnEvent('transaction.deposit.completed')
   async handleDepositCompleted(event: TransactionNotificationEvent) {
-    this.logger.log(`Sending deposit notification for transaction ${event.transactionId}`);
+    this.logger.log(
+      `Sending deposit notification for transaction ${event.transactionId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -43,7 +45,9 @@ export class TransactionNotificationListener {
 
   @OnEvent('transaction.transfer.sent')
   async handleTransferSent(event: TransactionNotificationEvent) {
-    this.logger.log(`Sending transfer sent notification for ${event.transactionId}`);
+    this.logger.log(
+      `Sending transfer sent notification for ${event.transactionId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -70,7 +74,9 @@ export class TransactionNotificationListener {
 
   @OnEvent('transaction.transfer.received')
   async handleTransferReceived(event: TransactionNotificationEvent) {
-    this.logger.log(`Sending transfer received notification for ${event.transactionId}`);
+    this.logger.log(
+      `Sending transfer received notification for ${event.transactionId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -97,7 +103,9 @@ export class TransactionNotificationListener {
 
   @OnEvent('transaction.withdrawal.completed')
   async handleWithdrawalCompleted(event: TransactionNotificationEvent) {
-    this.logger.log(`Sending withdrawal completed notification for ${event.transactionId}`);
+    this.logger.log(
+      `Sending withdrawal completed notification for ${event.transactionId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -121,8 +129,12 @@ export class TransactionNotificationListener {
   }
 
   @OnEvent('transaction.withdrawal.failed')
-  async handleWithdrawalFailed(event: TransactionNotificationEvent & { reason?: string }) {
-    this.logger.log(`Sending withdrawal failed notification for ${event.transactionId}`);
+  async handleWithdrawalFailed(
+    event: TransactionNotificationEvent & { reason?: string },
+  ) {
+    this.logger.log(
+      `Sending withdrawal failed notification for ${event.transactionId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,

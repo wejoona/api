@@ -47,8 +47,18 @@ export class CreatePaymentRequestUseCase {
     private readonly qrCodeService: QrCodeService,
   ) {}
 
-  async execute(input: CreatePaymentRequestInput): Promise<CreatePaymentRequestOutput> {
-    const { userId, merchantId, amount, currency, description, reference, expiresInMinutes } = input;
+  async execute(
+    input: CreatePaymentRequestInput,
+  ): Promise<CreatePaymentRequestOutput> {
+    const {
+      userId,
+      merchantId,
+      amount,
+      currency,
+      description,
+      reference,
+      expiresInMinutes,
+    } = input;
 
     this.logger.log(`Creating payment request for merchant ${merchantId}`);
 
@@ -58,7 +68,9 @@ export class CreatePaymentRequestUseCase {
     }
 
     if (amount > 10000) {
-      throw new BadRequestException('Amount exceeds maximum allowed (10,000 USDC)');
+      throw new BadRequestException(
+        'Amount exceeds maximum allowed (10,000 USDC)',
+      );
     }
 
     // 2. Find and validate merchant
@@ -69,7 +81,9 @@ export class CreatePaymentRequestUseCase {
 
     // 3. Verify ownership
     if (merchant.ownerId !== userId) {
-      throw new ForbiddenException('You are not authorized to create payment requests for this merchant');
+      throw new ForbiddenException(
+        'You are not authorized to create payment requests for this merchant',
+      );
     }
 
     // 4. Validate merchant status
@@ -117,11 +131,14 @@ export class CreatePaymentRequestUseCase {
     });
 
     // 8. Save payment request
-    const savedRequest = await this.paymentRequestRepository.save(finalPaymentRequest);
+    const savedRequest =
+      await this.paymentRequestRepository.save(finalPaymentRequest);
 
     const qrCodeUrl = this.qrCodeService.generateQrCodeUrl(qrData);
 
-    this.logger.log(`Payment request ${savedRequest.requestId} created successfully`);
+    this.logger.log(
+      `Payment request ${savedRequest.requestId} created successfully`,
+    );
 
     return {
       requestId: savedRequest.requestId,

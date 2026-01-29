@@ -1,5 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiExcludeEndpoint,
+} from '@nestjs/swagger';
 import { MetricsService } from './metrics.service';
 
 @ApiTags('Metrics')
@@ -27,7 +32,8 @@ export class MetricsController {
 
     return {
       timestamp: new Date().toISOString(),
-      message: 'Metrics are being collected. Access /metrics endpoint for Prometheus format.',
+      message:
+        'Metrics are being collected. Access /metrics endpoint for Prometheus format.',
       prometheus_endpoint: '/metrics',
     };
   }

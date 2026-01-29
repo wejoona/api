@@ -21,11 +21,11 @@ export interface GetPaymentHistoryInput {
 export class GetPaymentHistoryUseCase {
   private readonly logger = new Logger(GetPaymentHistoryUseCase.name);
 
-  constructor(
-    private readonly paymentRepository: BillPaymentRepository,
-  ) {}
+  constructor(private readonly paymentRepository: BillPaymentRepository) {}
 
-  async execute(input: GetPaymentHistoryInput): Promise<PaginatedBillPaymentHistory> {
+  async execute(
+    input: GetPaymentHistoryInput,
+  ): Promise<PaginatedBillPaymentHistory> {
     this.logger.debug(
       `Getting payment history: userId=${input.userId}, page=${input.page}, category=${input.category}`,
     );

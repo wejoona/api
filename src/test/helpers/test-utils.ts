@@ -27,7 +27,11 @@ import {
   SendSmsRequest,
   SmsResponse,
 } from '../../modules/shared/domain/gateways/sms.gateway';
-import { User, IUser, KycStatus } from '../../modules/user/application/domain/entities/user.entity';
+import {
+  User,
+  IUser,
+  KycStatus,
+} from '../../modules/user/application/domain/entities/user.entity';
 import { WalletOrmEntity } from '../../modules/wallet/infrastructure/orm-entities/wallet.orm-entity';
 import {
   TransactionEntity,
@@ -227,8 +231,8 @@ export function createMockPaymentGateway(): jest.Mocked<IPaymentGateway> {
       (payload: Record<string, unknown>): WebhookEvent => ({
         id: uuidv4(),
         type: 'deposit.completed',
-        referenceId: payload.referenceId as string || uuidv4(),
-        externalId: payload.externalId as string || uuidv4(),
+        referenceId: (payload.referenceId as string) || uuidv4(),
+        externalId: (payload.externalId as string) || uuidv4(),
         data: payload,
         createdAt: new Date(),
       }),
@@ -330,6 +334,8 @@ export interface MockRedisClient {
   del: jest.Mock;
   incr: jest.Mock;
   expire: jest.Mock;
+  sadd: jest.Mock;
+  sismember: jest.Mock;
   pipeline: jest.Mock;
   quit: jest.Mock;
   on: jest.Mock;
@@ -349,6 +355,8 @@ export function createMockRedisClient(): MockRedisClient {
     del: jest.fn().mockResolvedValue(1),
     incr: jest.fn().mockResolvedValue(1),
     expire: jest.fn().mockResolvedValue(1),
+    sadd: jest.fn().mockResolvedValue(1),
+    sismember: jest.fn().mockResolvedValue(0),
     pipeline: jest.fn().mockReturnValue(mockPipeline),
     quit: jest.fn().mockResolvedValue('OK'),
     on: jest.fn(),
@@ -410,7 +418,7 @@ export function createTestUser(options: CreateTestUserOptions = {}): User {
     status: options.isActive !== false ? 'active' : 'suspended',
     suspendedAt: null,
     suspendedReason: null,
-    pinHash: options.hasPin ? (options.pinHash || 'hashed_pin_123') : null,
+    pinHash: options.hasPin ? options.pinHash || 'hashed_pin_123' : null,
     pinSetAt: options.hasPin ? now : null,
     pinAttempts: options.pinAttempts || 0,
     pinLockedUntil: options.pinLockedUntil || null,
@@ -430,7 +438,9 @@ export interface CreateTestWalletOptions {
   version?: number;
 }
 
-export function createTestWallet(options: CreateTestWalletOptions = {}): WalletOrmEntity {
+export function createTestWallet(
+  options: CreateTestWalletOptions = {},
+): WalletOrmEntity {
   const wallet = new WalletOrmEntity();
   wallet.id = options.id || uuidv4();
   wallet.userId = options.userId || uuidv4();

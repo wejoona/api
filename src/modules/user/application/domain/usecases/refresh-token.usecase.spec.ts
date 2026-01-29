@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { RefreshTokenUsecase, RefreshTokenInput } from './refresh-token.usecase';
+import {
+  RefreshTokenUsecase,
+  RefreshTokenInput,
+} from './refresh-token.usecase';
 import { UserRepository } from '../../../infrastructure/repositories';
 import {
   createMockRepository,
@@ -172,8 +175,12 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
-      await expect(useCase.execute(input)).rejects.toThrow('Token has been revoked');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Token has been revoked',
+      );
     });
   });
 
@@ -192,8 +199,12 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid token type');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid token type',
+      );
     });
 
     it('should accept tokens with type "refresh"', async () => {
@@ -236,7 +247,9 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
       await expect(useCase.execute(input)).rejects.toThrow(
         'Invalid or expired refresh token',
       );
@@ -261,7 +274,9 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
       await expect(useCase.execute(input)).rejects.toThrow(
         'User account is not active',
       );
@@ -360,7 +375,9 @@ describe('RefreshTokenUsecase', () => {
 
       // Act & Assert
       // Note: The execute method catches all errors and wraps them in UnauthorizedException
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid or expired refresh token');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid or expired refresh token',
+      );
     });
   });
 
@@ -388,7 +405,9 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for invalid signature', async () => {
@@ -404,7 +423,9 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      await expect(useCase.execute(input)).rejects.toThrow(UnauthorizedException);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

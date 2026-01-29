@@ -34,7 +34,12 @@ export class BlacklistedDeviceOrmEntity {
    */
   @Column({ name: 'identifier_type', type: 'varchar', length: 50 })
   @Index()
-  identifierType: 'device_id' | 'fingerprint' | 'ip_address' | 'ip_range' | 'user_agent';
+  identifierType:
+    | 'device_id'
+    | 'fingerprint'
+    | 'ip_address'
+    | 'ip_range'
+    | 'user_agent';
 
   /**
    * Reason for blacklisting

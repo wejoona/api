@@ -22,7 +22,8 @@ export class LegalService {
       content_html: this.getTermsContentHtml(),
       effective_date: '2024-01-15T00:00:00Z',
       last_updated: '2024-01-15T00:00:00Z',
-      summary: 'Updated payment processing terms and added USDC stablecoin disclosures.',
+      summary:
+        'Updated payment processing terms and added USDC stablecoin disclosures.',
       locale: 'en',
     },
     privacy_policy_en: {
@@ -34,7 +35,8 @@ export class LegalService {
       content_html: this.getPrivacyContentHtml(),
       effective_date: '2024-01-15T00:00:00Z',
       last_updated: '2024-01-15T00:00:00Z',
-      summary: 'Added details about biometric data handling and third-party integrations.',
+      summary:
+        'Added details about biometric data handling and third-party integrations.',
       locale: 'en',
     },
     terms_of_service_fr: {
@@ -73,7 +75,10 @@ export class LegalService {
     return this.documents[key] || this.documents['privacy_policy_en'];
   }
 
-  async recordConsent(consent: LegalConsentDto, userId?: string): Promise<void> {
+  async recordConsent(
+    consent: LegalConsentDto,
+    userId?: string,
+  ): Promise<void> {
     // In production, store this in database
     // SECURITY: PII (ipAddress, deviceId) intentionally excluded from logs
     // to comply with data protection regulations (GDPR, CCPA)

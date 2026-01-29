@@ -58,7 +58,12 @@ export class KycVerificationOrmEntity {
   @Column({ name: 'last_name', type: 'varchar', length: 100, nullable: true })
   lastName: string | null;
 
-  @Column({ name: 'date_of_birth', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'date_of_birth',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   dateOfBirth: string | null; // YYYY-MM-DD
 
   @Column({ name: 'country', type: 'varchar', length: 3, nullable: true })
@@ -70,14 +75,24 @@ export class KycVerificationOrmEntity {
   @Column({ name: 'id_number', type: 'varchar', length: 50, nullable: true })
   idNumber: string | null;
 
-  @Column({ name: 'id_expiry_date', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'id_expiry_date',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   idExpiryDate: string | null;
 
   // ==========================================
   // Document S3 Keys
   // ==========================================
 
-  @Column({ name: 'id_front_key', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'id_front_key',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   idFrontKey: string | null;
 
   @Column({ name: 'id_back_key', type: 'varchar', length: 255, nullable: true })
@@ -90,13 +105,29 @@ export class KycVerificationOrmEntity {
   // Auto-Verification Results
   // ==========================================
 
-  @Column({ name: 'auto_verification_provider', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'auto_verification_provider',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   autoVerificationProvider: string | null; // 'smile_identity', 'onfido', 'jumio'
 
-  @Column({ name: 'auto_verification_id', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'auto_verification_id',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   autoVerificationId: string | null;
 
-  @Column({ name: 'auto_verification_score', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'auto_verification_score',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   autoVerificationScore: number | null; // 0-100 score
 
   @Column({ name: 'auto_verification_result', type: 'jsonb', nullable: true })

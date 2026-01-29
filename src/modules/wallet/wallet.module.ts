@@ -62,6 +62,11 @@ import {
   providers: [
     // Repositories
     WalletRepository,
+    // Alias for dependency injection by token
+    {
+      provide: 'WALLET_REPOSITORY',
+      useExisting: WalletRepository,
+    },
     // Mappers
     WalletMapper,
     // Guards & Services
@@ -86,6 +91,7 @@ import {
   controllers: [WalletController, KycUploadController, ExportController],
   exports: [
     WalletRepository,
+    'WALLET_REPOSITORY', // Token alias for ReconciliationService
     CreateWalletUseCase,
     InternalTransferUseCase,
     ExternalTransferUseCase,

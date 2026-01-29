@@ -15,14 +15,18 @@ export class ReferralNotificationListener {
   constructor(private readonly notificationService: NotificationService) {}
 
   @OnEvent('referral.signed_up')
-  async handleReferralSignedUp(event: ReferralNotificationEvent & { refereeId?: string }) {
-    this.logger.log(`Sending referral signed up notification for user ${event.userId}`);
+  async handleReferralSignedUp(
+    event: ReferralNotificationEvent & { refereeId?: string },
+  ) {
+    this.logger.log(
+      `Sending referral signed up notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
       category: 'referral',
       title: 'New Referral!',
-      body: 'Someone signed up using your referral code! You\'ll earn rewards once they complete verification.',
+      body: "Someone signed up using your referral code! You'll earn rewards once they complete verification.",
       templateId: 'referral.signed_up',
       templateData: {
         refereeName: 'A new user', // Privacy: don't reveal name
@@ -39,7 +43,9 @@ export class ReferralNotificationListener {
 
   @OnEvent('referral.reward.earned')
   async handleRewardEarned(event: ReferralNotificationEvent) {
-    this.logger.log(`Sending reward earned notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending reward earned notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -64,7 +70,9 @@ export class ReferralNotificationListener {
 
   @OnEvent('referral.reward.credited')
   async handleRewardCredited(event: ReferralNotificationEvent) {
-    this.logger.log(`Sending reward credited notification for user ${event.userId}`);
+    this.logger.log(
+      `Sending reward credited notification for user ${event.userId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -88,8 +96,14 @@ export class ReferralNotificationListener {
   }
 
   @OnEvent('referral.tier.upgraded')
-  async handleTierUpgraded(event: { userId: string; oldTier: string; newTier: string }) {
-    this.logger.log(`Sending tier upgrade notification for user ${event.userId}`);
+  async handleTierUpgraded(event: {
+    userId: string;
+    oldTier: string;
+    newTier: string;
+  }) {
+    this.logger.log(
+      `Sending tier upgrade notification for user ${event.userId}`,
+    );
 
     const tierBenefits: Record<string, string> = {
       silver: '25% bonus on referral rewards',

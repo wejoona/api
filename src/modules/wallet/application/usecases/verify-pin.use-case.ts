@@ -56,7 +56,7 @@ export class VerifyPinUseCase {
     }
 
     // Verify the PIN
-    const isValid = await bcrypt.compare(input.pin, user.pinHash!);
+    const isValid = await bcrypt.compare(input.pin, user.pinHash);
 
     if (!isValid) {
       // Record failed attempt

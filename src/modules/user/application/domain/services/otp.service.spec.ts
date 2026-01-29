@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OtpService } from './otp.service';
-import { SMS_GATEWAY, ISmsGateway } from '../../../../shared/domain/gateways/sms.gateway';
+import {
+  SMS_GATEWAY,
+  ISmsGateway,
+} from '../../../../shared/domain/gateways/sms.gateway';
 import {
   createMockSmsGateway,
   createMockConfigService,
@@ -101,10 +104,12 @@ describe('OtpService', () => {
     it('should store OTP with correct TTL', async () => {
       // Arrange
       mockRedisClient.get.mockResolvedValue(null);
-      configService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'otp.expiresIn') return 300; // 5 minutes
-        return defaultValue;
-      });
+      configService.get.mockImplementation(
+        (key: string, defaultValue?: any) => {
+          if (key === 'otp.expiresIn') return 300; // 5 minutes
+          return defaultValue;
+        },
+      );
 
       // Act
       await otpService.sendOtp(testPhone);
@@ -147,7 +152,9 @@ describe('OtpService', () => {
       mockRedisClient.get.mockResolvedValue('5'); // 5 requests made (at limit)
 
       // Act & Assert
-      await expect(otpService.sendOtp(testPhone)).rejects.toThrow(BadRequestException);
+      await expect(otpService.sendOtp(testPhone)).rejects.toThrow(
+        BadRequestException,
+      );
       await expect(otpService.sendOtp(testPhone)).rejects.toThrow(
         'Too many OTP requests. Please try again later.',
       );
@@ -235,7 +242,9 @@ describe('OtpService', () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(mockRedisClient.del).toHaveBeenCalledWith(`otp:${testPhone}:lockout`);
+      expect(mockRedisClient.del).toHaveBeenCalledWith(
+        `otp:${testPhone}:lockout`,
+      );
     });
   });
 
@@ -341,8 +350,12 @@ describe('OtpService', () => {
 
       // Assert
       expect(mockRedisClient.del).toHaveBeenCalledWith(`otp:${testPhone}`);
-      expect(mockRedisClient.del).toHaveBeenCalledWith(`otp:${testPhone}:attempts`);
-      expect(mockRedisClient.del).toHaveBeenCalledWith(`otp:${testPhone}:lockout`);
+      expect(mockRedisClient.del).toHaveBeenCalledWith(
+        `otp:${testPhone}:attempts`,
+      );
+      expect(mockRedisClient.del).toHaveBeenCalledWith(
+        `otp:${testPhone}:lockout`,
+      );
     });
   });
 
@@ -384,7 +397,10 @@ describe('OtpService', () => {
       await otpService.sendOtp(testPhone);
 
       // Assert
-      expect(smsGateway.sendOtp).toHaveBeenCalledWith(testPhone, expect.any(String));
+      expect(smsGateway.sendOtp).toHaveBeenCalledWith(
+        testPhone,
+        expect.any(String),
+      );
     });
 
     it('should not throw even if SMS sending fails', async () => {

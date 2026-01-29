@@ -82,7 +82,7 @@ describe('AdminService - Dashboard Stats', () => {
         pending: 25,
         completed: 4800,
         failed: 175,
-        totalVolume: 250000.50,
+        totalVolume: 250000.5,
         todayVolume: 5420.75,
       });
 
@@ -101,7 +101,7 @@ describe('AdminService - Dashboard Stats', () => {
         pendingTransactions: 25,
         completedTransactions: 4800,
         failedTransactions: 175,
-        totalVolume: 250000.50,
+        totalVolume: 250000.5,
         todayVolume: 5420.75,
       });
 
@@ -123,7 +123,7 @@ describe('AdminService - Dashboard Stats', () => {
         pendingTransactions: 25,
         completedTransactions: 4800,
         failedTransactions: 175,
-        totalVolume: 250000.50,
+        totalVolume: 250000.5,
         todayVolume: 5420.75,
       };
 
@@ -156,14 +156,14 @@ describe('AdminService - Dashboard Stats', () => {
         pending: 25,
         completed: 4800,
         failed: 175,
-        totalVolume: 250000.50,
+        totalVolume: 250000.5,
         todayVolume: 5420.75,
       });
 
       // Mock time-series data
       transactionRepository.getTransactionTimeSeries.mockResolvedValue([
         { date: '2026-01-20', count: 150, volume: 8500.25 },
-        { date: '2026-01-21', count: 165, volume: 9200.50 },
+        { date: '2026-01-21', count: 165, volume: 9200.5 },
       ]);
 
       transactionRepository.getTransactionCountByType.mockResolvedValue({
@@ -192,7 +192,9 @@ describe('AdminService - Dashboard Stats', () => {
         getCount: jest.fn().mockResolvedValue(950),
       };
 
-      userRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
+      userRepository.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder as any,
+      );
 
       const result = await service.getEnhancedDashboardStats(7);
 
@@ -214,9 +216,15 @@ describe('AdminService - Dashboard Stats', () => {
 
       expect(cacheManager.del).toHaveBeenCalledTimes(4);
       expect(cacheManager.del).toHaveBeenCalledWith('admin:dashboard:stats');
-      expect(cacheManager.del).toHaveBeenCalledWith('admin:dashboard:enhanced:7');
-      expect(cacheManager.del).toHaveBeenCalledWith('admin:dashboard:enhanced:30');
-      expect(cacheManager.del).toHaveBeenCalledWith('admin:dashboard:enhanced:90');
+      expect(cacheManager.del).toHaveBeenCalledWith(
+        'admin:dashboard:enhanced:7',
+      );
+      expect(cacheManager.del).toHaveBeenCalledWith(
+        'admin:dashboard:enhanced:30',
+      );
+      expect(cacheManager.del).toHaveBeenCalledWith(
+        'admin:dashboard:enhanced:90',
+      );
     });
   });
 });

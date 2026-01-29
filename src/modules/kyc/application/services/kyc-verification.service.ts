@@ -1,7 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createActor, Snapshot } from 'xstate';
-import { kycMachine, KycContext, KycEvent, KycState } from '../../domain/machines/kyc.machine';
+import {
+  kycMachine,
+  KycContext,
+  KycEvent,
+  KycState,
+} from '../../domain/machines/kyc.machine';
 import { KycProviderFactory } from '../../infrastructure/providers/kyc-provider.factory';
 import { KycVerificationRepository } from '../../infrastructure/repositories/kyc-verification.repository';
 import { UploadService } from '../../../upload';
@@ -116,7 +121,13 @@ export class KycVerificationService {
    * Upload KYC documents and personal info
    */
   async uploadDocuments(input: UploadDocumentsInput): Promise<KycStatusOutput> {
-    const { userId, documentFrontKey, documentBackKey, selfieKey, personalInfo } = input;
+    const {
+      userId,
+      documentFrontKey,
+      documentBackKey,
+      selfieKey,
+      personalInfo,
+    } = input;
 
     const actor = await this.getOrRestoreActor(userId);
     const currentState = this.getStateValue(actor.getSnapshot());
@@ -235,7 +246,8 @@ export class KycVerificationService {
 
       return this.buildStatusOutput(userId, snapshot);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Verification failed';
 
       actor.send({
         type: 'VERIFICATION_FAILED',
@@ -245,7 +257,9 @@ export class KycVerificationService {
       snapshot = actor.getSnapshot();
       await this.persistState(userId, snapshot);
 
-      this.logger.error(`KYC verification failed for ${userId}: ${errorMessage}`);
+      this.logger.error(
+        `KYC verification failed for ${userId}: ${errorMessage}`,
+      );
 
       return this.buildStatusOutput(userId, snapshot);
     }
@@ -401,10 +415,10 @@ export class KycVerificationService {
     });
 
     const documentUrl = await this.uploadService.getSignedUrl(
-      context.documentFrontKey!,
+      context.documentFrontKey,
     );
     const documentBackUrl = await this.uploadService.getSignedUrl(
-      context.documentBackKey!,
+      context.documentBackKey,
     );
 
     const result = await provider.verifyDocument({
@@ -434,9 +448,9 @@ export class KycVerificationService {
       country: context.country,
     });
 
-    const selfieUrl = await this.uploadService.getSignedUrl(context.selfieKey!);
+    const selfieUrl = await this.uploadService.getSignedUrl(context.selfieKey);
     const documentUrl = await this.uploadService.getSignedUrl(
-      context.documentFrontKey!,
+      context.documentFrontKey,
     );
 
     const result = await provider.checkLiveness({
@@ -461,21 +475,21 @@ export class KycVerificationService {
     });
 
     const documentUrl = await this.uploadService.getSignedUrl(
-      context.documentFrontKey!,
+      context.documentFrontKey,
     );
     const documentBackUrl = await this.uploadService.getSignedUrl(
-      context.documentBackKey!,
+      context.documentBackKey,
     );
-    const selfieUrl = await this.uploadService.getSignedUrl(context.selfieKey!);
+    const selfieUrl = await this.uploadService.getSignedUrl(context.selfieKey);
 
     const result = await provider.verifyIdentity({
       requestId: `id-${context.userId}-${Date.now()}`,
       userId: context.userId,
       level: 'standard',
       personalInfo: {
-        firstName: context.firstName!,
-        lastName: context.lastName!,
-        dateOfBirth: context.dateOfBirth!,
+        firstName: context.firstName,
+        lastName: context.lastName,
+        dateOfBirth: context.dateOfBirth,
         nationality: context.country,
       },
       document: {
@@ -559,7 +573,10 @@ export class KycVerificationService {
     return actor;
   }
 
-  private async persistState(userId: string, snapshot: Snapshot<unknown>): Promise<void> {
+  private async persistState(
+    userId: string,
+    snapshot: Snapshot<unknown>,
+  ): Promise<void> {
     const context = (snapshot as any).context as KycContext;
     const fsmState = this.getStateValue(snapshot);
     const ormStatus = FSM_TO_ORM_STATUS[fsmState] || 'documents_pending';
@@ -576,8 +593,14 @@ export class KycVerificationService {
       idFrontKey: context.documentFrontKey,
       idBackKey: context.documentBackKey,
       selfieKey: context.selfieKey,
-      autoVerificationProvider: context.documentProvider || context.livenessProvider || context.identityProvider,
-      autoVerificationId: context.documentVerificationId || context.livenessCheckId || context.identityVerificationId,
+      autoVerificationProvider:
+        context.documentProvider ||
+        context.livenessProvider ||
+        context.identityProvider,
+      autoVerificationId:
+        context.documentVerificationId ||
+        context.livenessCheckId ||
+        context.identityVerificationId,
       autoVerificationScore: context.overallScore,
       autoVerifiedAt: context.verifiedAt,
       manualReviewedBy: context.reviewedBy,
@@ -593,7 +616,10 @@ export class KycVerificationService {
     return typeof value === 'string' ? (value as KycState) : 'none';
   }
 
-  private buildStatusOutput(userId: string, snapshot: Snapshot<unknown>): KycStatusOutput {
+  private buildStatusOutput(
+    userId: string,
+    snapshot: Snapshot<unknown>,
+  ): KycStatusOutput {
     const context = (snapshot as any).context as KycContext;
     const state = this.getStateValue(snapshot);
 
@@ -605,7 +631,8 @@ export class KycVerificationService {
       livenessScore: context.livenessScore,
       identityScore: context.identityScore,
       rejectionReason: context.rejectionReason,
-      canResubmit: state === 'rejected' && context.attempts < context.maxAttempts,
+      canResubmit:
+        state === 'rejected' && context.attempts < context.maxAttempts,
       attemptsRemaining: context.maxAttempts - context.attempts,
     };
   }

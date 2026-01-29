@@ -8,30 +8,30 @@ export type AlertSeverity = 'info' | 'warning' | 'critical';
 
 // Alert types for various monitoring scenarios
 export type AlertType =
-  | 'large_transaction'      // Transaction above threshold
-  | 'unusual_location'       // Different country/IP from usual
-  | 'rapid_transactions'     // Multiple transactions in short time
-  | 'new_recipient'          // First transaction to an address
-  | 'suspicious_pattern'     // ML-detected anomaly
-  | 'failed_attempts'        // Multiple failed transactions
-  | 'account_change'         // Profile/security changes
-  | 'login_new_device'       // New device detected
-  | 'balance_threshold'      // Balance below/above threshold
-  | 'external_withdrawal'    // Funds leaving platform
-  | 'time_anomaly'          // Transaction at unusual hour
-  | 'round_amount'          // Suspiciously round numbers (structuring indicator)
-  | 'cumulative_daily'      // Daily volume exceeds limit
-  | 'velocity_limit';       // Transaction velocity exceeded
+  | 'large_transaction' // Transaction above threshold
+  | 'unusual_location' // Different country/IP from usual
+  | 'rapid_transactions' // Multiple transactions in short time
+  | 'new_recipient' // First transaction to an address
+  | 'suspicious_pattern' // ML-detected anomaly
+  | 'failed_attempts' // Multiple failed transactions
+  | 'account_change' // Profile/security changes
+  | 'login_new_device' // New device detected
+  | 'balance_threshold' // Balance below/above threshold
+  | 'external_withdrawal' // Funds leaving platform
+  | 'time_anomaly' // Transaction at unusual hour
+  | 'round_amount' // Suspiciously round numbers (structuring indicator)
+  | 'cumulative_daily' // Daily volume exceeds limit
+  | 'velocity_limit'; // Transaction velocity exceeded
 
 // Alert action types
 export type AlertAction =
-  | 'block_recipient'        // Block future transactions to recipient
-  | 'verify_identity'        // Verify this was the user
-  | 'report_suspicious'      // Report as suspicious activity
-  | 'contact_support'        // Contact customer support
-  | 'dismiss'                // Dismiss alert
-  | 'require_2fa'            // Require 2FA for future transactions
-  | 'freeze_account';        // Temporarily freeze account
+  | 'block_recipient' // Block future transactions to recipient
+  | 'verify_identity' // Verify this was the user
+  | 'report_suspicious' // Report as suspicious activity
+  | 'contact_support' // Contact customer support
+  | 'dismiss' // Dismiss alert
+  | 'require_2fa' // Require 2FA for future transactions
+  | 'freeze_account'; // Temporarily freeze account
 
 // Transaction alert entity
 export interface TransactionAlert {
@@ -109,7 +109,7 @@ export interface UserAlertPreferences {
   // Quiet hours
   quietHoursEnabled: boolean;
   quietHoursStart?: string; // HH:mm
-  quietHoursEnd?: string;   // HH:mm
+  quietHoursEnd?: string; // HH:mm
   timezone: string;
   // Settings
   instantCriticalAlerts: boolean;
@@ -136,7 +136,16 @@ export type RuleConditionType =
 export interface RuleCondition {
   type: RuleConditionType;
   field?: string;
-  operator?: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'not_in' | 'regex';
+  operator?:
+    | 'eq'
+    | 'ne'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'in'
+    | 'not_in'
+    | 'regex';
   value?: any;
   timeWindowMinutes?: number;
   countThreshold?: number;
@@ -278,7 +287,10 @@ export interface RealTimeAlert {
 }
 
 // Default alert preferences
-export const DEFAULT_ALERT_PREFERENCES: Omit<UserAlertPreferences, 'userId' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_ALERT_PREFERENCES: Omit<
+  UserAlertPreferences,
+  'userId' | 'createdAt' | 'updatedAt'
+> = {
   emailAlerts: true,
   pushAlerts: true,
   smsAlerts: false,
@@ -305,13 +317,16 @@ export const DEFAULT_ALERT_PREFERENCES: Omit<UserAlertPreferences, 'userId' | 'c
 };
 
 // Alert type configurations
-export const ALERT_TYPE_CONFIG: Record<AlertType, {
-  defaultSeverity: AlertSeverity;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-}> = {
+export const ALERT_TYPE_CONFIG: Record<
+  AlertType,
+  {
+    defaultSeverity: AlertSeverity;
+    title: string;
+    description: string;
+    icon: string;
+    color: string;
+  }
+> = {
   large_transaction: {
     defaultSeverity: 'warning',
     title: 'Large Transaction',

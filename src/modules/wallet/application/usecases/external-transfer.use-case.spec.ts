@@ -1,13 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm';
-import { ExternalTransferUseCase, ExternalTransferInput } from './external-transfer.use-case';
+import {
+  ExternalTransferUseCase,
+  ExternalTransferInput,
+} from './external-transfer.use-case';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services/cache-invalidation.service';
 import { TransactionRiskService } from '../../../risk/application/services/transaction-risk.service';
-import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../shared/domain/gateways';
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+} from '../../../shared/domain/gateways';
 import {
   createMockRepository,
   createMockPaymentGateway,
@@ -68,7 +78,10 @@ describe('ExternalTransferUseCase', () => {
         { provide: UserRepository, useValue: userRepository },
         { provide: DataSource, useValue: mockDataSource },
         { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
-        { provide: CacheInvalidationService, useValue: cacheInvalidationService },
+        {
+          provide: CacheInvalidationService,
+          useValue: cacheInvalidationService,
+        },
         { provide: TransactionRiskService, useValue: riskService },
       ],
     }).compile();
@@ -200,7 +213,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid wallet address format');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid wallet address format',
+      );
     });
 
     it('should reject address with wrong length (too short)', async () => {
@@ -211,7 +226,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid wallet address format');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid wallet address format',
+      );
     });
 
     it('should reject address with wrong length (too long)', async () => {
@@ -222,7 +239,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid wallet address format');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid wallet address format',
+      );
     });
 
     it('should reject address with invalid hex characters', async () => {
@@ -233,7 +252,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid wallet address format');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid wallet address format',
+      );
     });
   });
 
@@ -306,7 +327,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid wallet address format');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid wallet address format',
+      );
     });
   });
 
@@ -319,7 +342,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Minimum transfer amount is $1');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Minimum transfer amount is $1',
+      );
     });
 
     it('should reject amount > $10,000', async () => {
@@ -330,7 +355,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Maximum transfer amount is $10000');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Maximum transfer amount is $10000',
+      );
     });
 
     it('should reject amount <= 0', async () => {
@@ -341,7 +368,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Amount must be greater than 0');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Amount must be greater than 0',
+      );
     });
 
     it('should reject amount with more than 2 decimal places', async () => {
@@ -352,7 +381,9 @@ describe('ExternalTransferUseCase', () => {
       };
 
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Invalid amount precision');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Invalid amount precision',
+      );
     });
 
     it('should accept minimum amount of $1', async () => {
@@ -424,7 +455,9 @@ describe('ExternalTransferUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow(/Daily transfer limit exceeded/);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        /Daily transfer limit exceeded/,
+      );
     });
 
     it('should enforce $10,000 daily limit for verified users', async () => {
@@ -487,10 +520,14 @@ describe('ExternalTransferUseCase', () => {
       transactionRepository.update.mockResolvedValue(undefined);
 
       mockDataSource.manager.findOne.mockResolvedValue(wallet);
-      mockDataSource.manager.save.mockImplementation((entity) => Promise.resolve(entity));
+      mockDataSource.manager.save.mockImplementation((entity) =>
+        Promise.resolve(entity),
+      );
 
       // Payment gateway fails
-      paymentGateway.externalTransfer.mockRejectedValue(new Error('Network error'));
+      paymentGateway.externalTransfer.mockRejectedValue(
+        new Error('Network error'),
+      );
 
       const input: ExternalTransferInput = {
         userId,
@@ -645,7 +682,11 @@ describe('ExternalTransferUseCase', () => {
       // Arrange
       const user = createTestUser({ id: userId });
       (user as any).kycStatus = 'verified';
-      const wallet = createTestWallet({ userId, balance: 1000, status: 'suspended' });
+      const wallet = createTestWallet({
+        userId,
+        balance: 1000,
+        status: 'suspended',
+      });
 
       userRepository.findById.mockResolvedValue(user);
       transactionRepository.getDailyTransferVolume.mockResolvedValue(0);
@@ -660,7 +701,9 @@ describe('ExternalTransferUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow('Wallet is not active');
+      await expect(useCase.execute(input)).rejects.toThrow(
+        'Wallet is not active',
+      );
     });
 
     it('should throw BadRequestException for insufficient balance (including fee)', async () => {
@@ -682,7 +725,9 @@ describe('ExternalTransferUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(input)).rejects.toThrow(BadRequestException);
-      await expect(useCase.execute(input)).rejects.toThrow(/Insufficient balance/);
+      await expect(useCase.execute(input)).rejects.toThrow(
+        /Insufficient balance/,
+      );
     });
   });
 

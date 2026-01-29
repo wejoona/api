@@ -26,7 +26,12 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
   private readonly logger = new Logger(MockIdentityVerificationProvider.name);
 
   readonly providerName = 'mock_identity';
-  readonly supportedLevels: VerificationLevel[] = ['basic', 'standard', 'enhanced', 'full'];
+  readonly supportedLevels: VerificationLevel[] = [
+    'basic',
+    'standard',
+    'enhanced',
+    'full',
+  ];
   readonly supportedCountries = ['*'];
   readonly thresholds = {
     autoApprove: 80,
@@ -35,11 +40,14 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
 
   private verifications = new Map<string, IdentityVerificationResult>();
 
-  async verifyIdentity(input: VerifyIdentityInput): Promise<IdentityVerificationResult> {
+  async verifyIdentity(
+    input: VerifyIdentityInput,
+  ): Promise<IdentityVerificationResult> {
     this.logger.log(`[MOCK] Verifying identity for user ${input.userId}`);
 
     // Simulate processing delay (longer for higher levels)
-    const delayMs = input.level === 'full' ? 2000 : input.level === 'enhanced' ? 1500 : 1000;
+    const delayMs =
+      input.level === 'full' ? 2000 : input.level === 'enhanced' ? 1500 : 1000;
     await this.delay(delayMs);
 
     const scenario = this.detectTestScenario(input);
@@ -57,7 +65,12 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
         factors: this.getRiskFactors(scenario),
       },
       documentVerification: {
-        status: scores.document >= 70 ? 'passed' : scores.document >= 50 ? 'review' : 'failed',
+        status:
+          scores.document >= 70
+            ? 'passed'
+            : scores.document >= 50
+              ? 'review'
+              : 'failed',
         score: scores.document,
         documentType: input.document.type,
         extractedData: {
@@ -67,13 +80,21 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
           documentNumber: input.document.number,
         },
         checks: {
-          authenticity: { passed: scores.document >= 70, details: 'Document appears authentic' },
+          authenticity: {
+            passed: scores.document >= 70,
+            details: 'Document appears authentic',
+          },
           expiry: { passed: true, details: 'Document within validity' },
           readability: { passed: true, details: 'All fields readable' },
         },
       },
       livenessCheck: {
-        status: scores.liveness >= 80 ? 'passed' : scores.liveness >= 60 ? 'review' : 'failed',
+        status:
+          scores.liveness >= 80
+            ? 'passed'
+            : scores.liveness >= 60
+              ? 'review'
+              : 'failed',
         score: scores.liveness,
         isLive: scores.liveness >= 80,
         spoofAttempt: scenario.spoof,
@@ -106,15 +127,19 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
           : [],
       },
       fraudSignals: scenario.fraudSignals,
-      verifiedInfo: status === 'approved' ? {
-        firstName: input.personalInfo.firstName,
-        lastName: input.personalInfo.lastName,
-        dateOfBirth: input.personalInfo.dateOfBirth,
-        nationality: input.personalInfo.nationality,
-        documentNumber: input.document.number,
-      } : undefined,
+      verifiedInfo:
+        status === 'approved'
+          ? {
+              firstName: input.personalInfo.firstName,
+              lastName: input.personalInfo.lastName,
+              dateOfBirth: input.personalInfo.dateOfBirth,
+              nationality: input.personalInfo.nationality,
+              documentNumber: input.document.number,
+            }
+          : undefined,
       reason: this.getStatusReason(status, scenario),
-      rejectionReasons: status === 'declined' ? this.getRejectionReasons(scenario) : undefined,
+      rejectionReasons:
+        status === 'declined' ? this.getRejectionReasons(scenario) : undefined,
       provider: this.providerName,
       rawResponse: {
         mock: true,
@@ -134,7 +159,9 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     return result;
   }
 
-  async getVerificationStatus(verificationId: string): Promise<IdentityVerificationResult> {
+  async getVerificationStatus(
+    verificationId: string,
+  ): Promise<IdentityVerificationResult> {
     const result = this.verifications.get(verificationId);
     if (!result) {
       return {
@@ -142,7 +169,11 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
         status: 'error',
         score: 0,
         level: 'basic',
-        risk: { level: 'critical', score: 100, factors: ['verification_not_found'] },
+        risk: {
+          level: 'critical',
+          score: 100,
+          factors: ['verification_not_found'],
+        },
         reason: 'Verification not found',
         provider: this.providerName,
         submittedAt: new Date(),
@@ -207,7 +238,9 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     return true;
   }
 
-  parseWebhookPayload(payload: Record<string, unknown>): IdentityVerificationResult {
+  parseWebhookPayload(
+    payload: Record<string, unknown>,
+  ): IdentityVerificationResult {
     const verificationId = payload.verificationId as string;
     return (
       this.verifications.get(verificationId) || {
@@ -235,9 +268,14 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     mismatch: boolean;
     spoof: boolean;
     watchlistHits: WatchlistHit[];
-    fraudSignals: Array<{ type: string; severity: 'low' | 'medium' | 'high'; description: string }>;
+    fraudSignals: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high';
+      description: string;
+    }>;
   } {
-    const fullName = `${input.personalInfo.firstName} ${input.personalInfo.lastName}`.toUpperCase();
+    const fullName =
+      `${input.personalInfo.firstName} ${input.personalInfo.lastName}`.toUpperCase();
     const docNumber = (input.document.number || '').toUpperCase();
 
     const watchlistHits: WatchlistHit[] = [];
@@ -246,7 +284,8 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
         listType: 'pep',
         listName: 'Politically Exposed Persons',
         matchScore: 95,
-        matchedName: input.personalInfo.firstName + ' ' + input.personalInfo.lastName,
+        matchedName:
+          input.personalInfo.firstName + ' ' + input.personalInfo.lastName,
       });
     }
     if (fullName.includes('SANCTION')) {
@@ -254,11 +293,16 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
         listType: 'sanctions',
         listName: 'OFAC SDN List',
         matchScore: 98,
-        matchedName: input.personalInfo.firstName + ' ' + input.personalInfo.lastName,
+        matchedName:
+          input.personalInfo.firstName + ' ' + input.personalInfo.lastName,
       });
     }
 
-    const fraudSignals: Array<{ type: string; severity: 'low' | 'medium' | 'high'; description: string }> = [];
+    const fraudSignals: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high';
+      description: string;
+    }> = [];
     if (fullName.includes('FRAUD') || docNumber.includes('FRAUD')) {
       fraudSignals.push({
         type: 'synthetic_identity',
@@ -270,8 +314,14 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     return {
       name: this.getScenarioName(fullName, docNumber),
       approve: fullName.includes('APPROVE') || docNumber.includes('APPROVE'),
-      decline: fullName.includes('DECLINE') || docNumber.includes('DECLINE') || fullName.includes('SANCTION'),
-      review: fullName.includes('REVIEW') || docNumber.includes('REVIEW') || fullName.includes('PEP'),
+      decline:
+        fullName.includes('DECLINE') ||
+        docNumber.includes('DECLINE') ||
+        fullName.includes('SANCTION'),
+      review:
+        fullName.includes('REVIEW') ||
+        docNumber.includes('REVIEW') ||
+        fullName.includes('PEP'),
       mismatch: fullName.includes('MISMATCH') || docNumber.includes('MISMATCH'),
       spoof: fullName.includes('SPOOF') || docNumber.includes('SPOOF'),
       watchlistHits,
@@ -280,16 +330,22 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
   }
 
   private getScenarioName(fullName: string, docNumber: string): string {
-    if (fullName.includes('APPROVE') || docNumber.includes('APPROVE')) return 'forced_approve';
-    if (fullName.includes('DECLINE') || docNumber.includes('DECLINE')) return 'forced_decline';
+    if (fullName.includes('APPROVE') || docNumber.includes('APPROVE'))
+      return 'forced_approve';
+    if (fullName.includes('DECLINE') || docNumber.includes('DECLINE'))
+      return 'forced_decline';
     if (fullName.includes('SANCTION')) return 'sanctions_hit';
     if (fullName.includes('PEP')) return 'pep_hit';
-    if (fullName.includes('REVIEW') || docNumber.includes('REVIEW')) return 'forced_review';
-    if (fullName.includes('MISMATCH') || docNumber.includes('MISMATCH')) return 'data_mismatch';
+    if (fullName.includes('REVIEW') || docNumber.includes('REVIEW'))
+      return 'forced_review';
+    if (fullName.includes('MISMATCH') || docNumber.includes('MISMATCH'))
+      return 'data_mismatch';
     return 'default';
   }
 
-  private calculateScores(scenario: ReturnType<typeof this.detectTestScenario>): {
+  private calculateScores(
+    scenario: ReturnType<typeof this.detectTestScenario>,
+  ): {
     document: number;
     liveness: number;
     faceMatch: number;
@@ -322,10 +378,18 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     score: number,
     scenario: ReturnType<typeof this.detectTestScenario>,
   ): 'approved' | 'declined' | 'review' | 'pending' | 'error' {
-    if (scenario.decline || scenario.spoof || scenario.watchlistHits.some(h => h.listType === 'sanctions')) {
+    if (
+      scenario.decline ||
+      scenario.spoof ||
+      scenario.watchlistHits.some((h) => h.listType === 'sanctions')
+    ) {
       return 'declined';
     }
-    if (scenario.review || scenario.mismatch || scenario.watchlistHits.length > 0) {
+    if (
+      scenario.review ||
+      scenario.mismatch ||
+      scenario.watchlistHits.length > 0
+    ) {
       return 'review';
     }
     if (score >= this.thresholds.autoApprove) return 'approved';
@@ -337,7 +401,8 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     score: number,
     scenario: ReturnType<typeof this.detectTestScenario>,
   ): 'low' | 'medium' | 'high' | 'critical' {
-    if (scenario.watchlistHits.some(h => h.listType === 'sanctions')) return 'critical';
+    if (scenario.watchlistHits.some((h) => h.listType === 'sanctions'))
+      return 'critical';
     if (scenario.fraudSignals.length > 0) return 'high';
     if (scenario.watchlistHits.length > 0) return 'high';
     if (score >= 85) return 'low';
@@ -346,7 +411,9 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     return 'critical';
   }
 
-  private getRiskFactors(scenario: ReturnType<typeof this.detectTestScenario>): string[] {
+  private getRiskFactors(
+    scenario: ReturnType<typeof this.detectTestScenario>,
+  ): string[] {
     const factors: string[] = [];
     if (scenario.watchlistHits.length > 0) factors.push('watchlist_match');
     if (scenario.mismatch) factors.push('data_inconsistency');
@@ -360,23 +427,29 @@ export class MockIdentityVerificationProvider implements IIdentityVerificationPr
     scenario: ReturnType<typeof this.detectTestScenario>,
   ): string | undefined {
     if (status === 'approved') return undefined;
-    if (scenario.watchlistHits.some(h => h.listType === 'sanctions')) {
+    if (scenario.watchlistHits.some((h) => h.listType === 'sanctions')) {
       return 'Matched against sanctions list';
     }
-    if (scenario.spoof) return 'Liveness check failed - potential spoof attempt';
+    if (scenario.spoof)
+      return 'Liveness check failed - potential spoof attempt';
     if (scenario.mismatch) return 'Data inconsistency detected';
-    if (scenario.watchlistHits.length > 0) return 'Requires additional review due to watchlist match';
+    if (scenario.watchlistHits.length > 0)
+      return 'Requires additional review due to watchlist match';
     return 'Verification score below threshold';
   }
 
-  private getRejectionReasons(scenario: ReturnType<typeof this.detectTestScenario>): string[] {
+  private getRejectionReasons(
+    scenario: ReturnType<typeof this.detectTestScenario>,
+  ): string[] {
     const reasons: string[] = [];
-    if (scenario.watchlistHits.some(h => h.listType === 'sanctions')) {
+    if (scenario.watchlistHits.some((h) => h.listType === 'sanctions')) {
       reasons.push('Matched against international sanctions list');
     }
     if (scenario.spoof) reasons.push('Failed liveness verification');
-    if (scenario.mismatch) reasons.push('Provided information does not match documents');
-    if (scenario.decline) reasons.push('Verification score below acceptable threshold');
+    if (scenario.mismatch)
+      reasons.push('Provided information does not match documents');
+    if (scenario.decline)
+      reasons.push('Verification score below acceptable threshold');
     return reasons.length > 0 ? reasons : ['Verification requirements not met'];
   }
 

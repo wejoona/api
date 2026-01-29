@@ -6,7 +6,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { BillProviderRepository, BillPaymentRepository } from '../../infrastructure/repositories';
+import {
+  BillProviderRepository,
+  BillPaymentRepository,
+} from '../../infrastructure/repositories';
 import { BillAdapterService } from '../services/bill-adapter.service';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
@@ -66,15 +69,21 @@ export class PayBillUseCase {
 
     // Check for idempotency
     if (input.idempotencyKey) {
-      const existingPayment = await this.paymentRepository.findByIdempotencyKey(input.idempotencyKey);
+      const existingPayment = await this.paymentRepository.findByIdempotencyKey(
+        input.idempotencyKey,
+      );
       if (existingPayment) {
-        this.logger.debug(`Found existing payment for idempotency key: ${input.idempotencyKey}`);
+        this.logger.debug(
+          `Found existing payment for idempotency key: ${input.idempotencyKey}`,
+        );
         return this.mapToOutput(existingPayment);
       }
     }
 
     // Get provider
-    const providerData = await this.providerRepository.findByIdWithConfig(input.providerId);
+    const providerData = await this.providerRepository.findByIdWithConfig(
+      input.providerId,
+    );
     if (!providerData) {
       throw new NotFoundException('Bill provider not found');
     }
@@ -82,7 +91,9 @@ export class PayBillUseCase {
     const { provider, adapterType } = providerData;
 
     if (!provider.isActive) {
-      throw new BadRequestException('This bill provider is currently unavailable');
+      throw new BadRequestException(
+        'This bill provider is currently unavailable',
+      );
     }
 
     const currency = input.currency || provider.currency;
@@ -101,9 +112,10 @@ export class PayBillUseCase {
     }
 
     // Calculate fee
-    const fee = provider.processingFeeType === 'percentage'
-      ? (input.amount * provider.processingFee) / 100
-      : provider.processingFee;
+    const fee =
+      provider.processingFeeType === 'percentage'
+        ? (input.amount * provider.processingFee) / 100
+        : provider.processingFee;
 
     const totalAmount = input.amount + fee;
 
@@ -118,15 +130,21 @@ export class PayBillUseCase {
     }
 
     // Check daily limit based on KYC status
-    await this.checkDailyLimits(input.userId, wallet.kycStatus, totalAmount, currency);
+    await this.checkDailyLimits(
+      input.userId,
+      wallet.kycStatus,
+      totalAmount,
+      currency,
+    );
 
     // Check for duplicate payment within 5 minutes
-    const recentPayment = await this.paymentRepository.getRecentPaymentForAccount(
-      input.userId,
-      input.providerId,
-      input.accountNumber,
-      5,
-    );
+    const recentPayment =
+      await this.paymentRepository.getRecentPaymentForAccount(
+        input.userId,
+        input.providerId,
+        input.accountNumber,
+        5,
+      );
 
     if (recentPayment && Number(recentPayment.amount) === input.amount) {
       throw new ConflictException(
@@ -159,8 +177,10 @@ export class PayBillUseCase {
     amount: number,
     currency: string,
   ): Promise<void> {
-    const dailyLimit = DAILY_BILL_PAYMENT_LIMITS[kycStatus as keyof typeof DAILY_BILL_PAYMENT_LIMITS]
-      ?? DAILY_BILL_PAYMENT_LIMITS.none;
+    const dailyLimit =
+      DAILY_BILL_PAYMENT_LIMITS[
+        kycStatus as keyof typeof DAILY_BILL_PAYMENT_LIMITS
+      ] ?? DAILY_BILL_PAYMENT_LIMITS.none;
 
     if (dailyLimit === 0) {
       throw new BadRequestException(
@@ -171,13 +191,16 @@ export class PayBillUseCase {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const dailyVolume = await this.paymentRepository.getDailyPaymentVolume(userId, todayStart);
+    const dailyVolume = await this.paymentRepository.getDailyPaymentVolume(
+      userId,
+      todayStart,
+    );
 
     if (dailyVolume + amount > dailyLimit) {
       const remaining = Math.max(0, dailyLimit - dailyVolume);
       throw new BadRequestException(
         `Daily bill payment limit exceeded. Your limit is ${dailyLimit} ${currency}/day. ` +
-        `You have ${remaining.toFixed(0)} ${currency} remaining today.`,
+          `You have ${remaining.toFixed(0)} ${currency} remaining today.`,
       );
     }
   }
@@ -309,7 +332,9 @@ export class PayBillUseCase {
           throw new BadRequestException(error.message);
         }
 
-        throw new BadRequestException('Bill payment failed. Your account has been refunded.');
+        throw new BadRequestException(
+          'Bill payment failed. Your account has been refunded.',
+        );
       }
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -351,12 +376,15 @@ export class PayBillUseCase {
 
       // Update payment status
       await this.paymentRepository.updateStatus(paymentId, 'failed', {
-        failureReason: error instanceof Error ? error.message : 'Provider error',
+        failureReason:
+          error instanceof Error ? error.message : 'Provider error',
       });
 
       await queryRunner.commitTransaction();
 
-      this.logger.log(`Payment refunded: paymentId=${paymentId}, amount=${amount}`);
+      this.logger.log(
+        `Payment refunded: paymentId=${paymentId}, amount=${amount}`,
+      );
     } catch (refundError) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to refund payment: ${refundError}`);

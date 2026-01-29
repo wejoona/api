@@ -41,7 +41,10 @@ export class VerifyOtpUsecase {
     if (!this.refreshSecret) {
       throw new Error('JWT_REFRESH_SECRET environment variable is required');
     }
-    this.refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');
+    this.refreshExpiresIn = this.configService.get<string>(
+      'jwt.refreshExpiresIn',
+      '7d',
+    );
   }
 
   async execute(input: VerifyOtpInput): Promise<VerifyOtpOutput> {

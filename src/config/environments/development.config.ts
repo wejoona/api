@@ -10,7 +10,11 @@ export const developmentConfig = {
   server: {
     port: 3000,
     apiPrefix: 'api/v1',
-    corsOrigins: ['http://localhost:3001', 'http://localhost:8080', 'http://localhost:5173'],
+    corsOrigins: [
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://localhost:5173',
+    ],
     enableSwagger: true,
     enableDebugRoutes: true,
   },
@@ -41,7 +45,9 @@ export const developmentConfig = {
   // JWT Settings
   jwt: {
     secret: process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_jwt_refresh_secret_change_in_production',
+    refreshSecret:
+      process.env.JWT_REFRESH_SECRET ||
+      'dev_jwt_refresh_secret_change_in_production',
     expiresIn: '1h', // Longer expiry for dev convenience
     refreshExpiresIn: '30d',
   },

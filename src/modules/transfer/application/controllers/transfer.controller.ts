@@ -25,7 +25,11 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard, AuthenticatedRequest, PinVerificationGuard } from '../../../../common/guards';
+import {
+  JwtAuthGuard,
+  AuthenticatedRequest,
+  PinVerificationGuard,
+} from '../../../../common/guards';
 import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   CreateInternalTransferDto,
@@ -63,7 +67,8 @@ export class TransferController {
   })
   @ApiHeader({
     name: 'X-Idempotency-Key',
-    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    description:
+      'Unique key to prevent duplicate transfer requests (e.g., UUID)',
     required: false,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -95,7 +100,8 @@ export class TransferController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid input, insufficient balance, or PIN verification required',
+    description:
+      'Bad request - invalid input, insufficient balance, or PIN verification required',
     schema: {
       example: {
         message: 'PIN verification required for this operation',
@@ -164,7 +170,8 @@ export class TransferController {
   })
   @ApiHeader({
     name: 'X-Idempotency-Key',
-    description: 'Unique key to prevent duplicate transfer requests (e.g., UUID)',
+    description:
+      'Unique key to prevent duplicate transfer requests (e.g., UUID)',
     required: false,
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -194,7 +201,8 @@ export class TransferController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid address, amount, or PIN verification required',
+    description:
+      'Bad request - invalid address, amount, or PIN verification required',
     schema: {
       example: {
         message: 'PIN verification required for this operation',

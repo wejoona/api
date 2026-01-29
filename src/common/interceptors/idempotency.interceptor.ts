@@ -31,7 +31,9 @@ import { Request, Response } from 'express';
  * async transfer(@Body() dto: TransferDto) { ... }
  */
 @Injectable()
-export class IdempotencyInterceptor implements NestInterceptor, OnModuleDestroy {
+export class IdempotencyInterceptor
+  implements NestInterceptor, OnModuleDestroy
+{
   private readonly logger = new Logger(IdempotencyInterceptor.name);
   private readonly redis: Redis;
   private isRedisConnected = false;
@@ -91,7 +93,9 @@ export class IdempotencyInterceptor implements NestInterceptor, OnModuleDestroy 
     // If no idempotency key provided, skip idempotency check
     // This allows the endpoint to work without the header if desired
     if (!idempotencyKey) {
-      this.logger.debug('No idempotency key provided, processing request normally');
+      this.logger.debug(
+        'No idempotency key provided, processing request normally',
+      );
       return next.handle();
     }
 
@@ -208,7 +212,12 @@ export class IdempotencyInterceptor implements NestInterceptor, OnModuleDestroy 
    */
   private isValidIdempotencyKey(key: string): boolean {
     // Must be a string with reasonable length
-    if (!key || typeof key !== 'string' || key.length < 16 || key.length > 128) {
+    if (
+      !key ||
+      typeof key !== 'string' ||
+      key.length < 16 ||
+      key.length > 128
+    ) {
       return false;
     }
 

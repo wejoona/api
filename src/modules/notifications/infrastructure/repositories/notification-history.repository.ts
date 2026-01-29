@@ -17,8 +17,8 @@ export class NotificationHistoryRepository {
     const { offset = 0, limit = 20, category } = options;
 
     let entries = Array.from(this.history.values())
-      .filter(e => e.userId === userId)
-      .filter(e => !category || e.category === category)
+      .filter((e) => e.userId === userId)
+      .filter((e) => !category || e.category === category)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const total = entries.length;
@@ -31,7 +31,9 @@ export class NotificationHistoryRepository {
     return this.history.get(id) || null;
   }
 
-  async create(entry: NotificationHistoryEntry): Promise<NotificationHistoryEntry> {
+  async create(
+    entry: NotificationHistoryEntry,
+  ): Promise<NotificationHistoryEntry> {
     this.history.set(entry.id, entry);
     return entry;
   }
@@ -56,9 +58,9 @@ export class NotificationHistoryRepository {
   }
 
   async getUnreadCount(userId: string): Promise<number> {
-    return Array.from(this.history.values())
-      .filter(e => e.userId === userId && !e.readAt)
-      .length;
+    return Array.from(this.history.values()).filter(
+      (e) => e.userId === userId && !e.readAt,
+    ).length;
   }
 
   async delete(id: string): Promise<void> {

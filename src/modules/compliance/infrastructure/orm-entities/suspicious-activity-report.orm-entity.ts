@@ -69,10 +69,20 @@ export class SuspiciousActivityReportOrmEntity {
   @Column({ name: 'user_phone', type: 'varchar', length: 20 })
   userPhone: string;
 
-  @Column({ name: 'user_first_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'user_first_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   userFirstName: string | null;
 
-  @Column({ name: 'user_last_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'user_last_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   userLastName: string | null;
 
   @Column({ name: 'user_country_code', type: 'varchar', length: 3 })
@@ -113,7 +123,11 @@ export class SuspiciousActivityReportOrmEntity {
   @Column({ name: 'investigation_notes', type: 'text', nullable: true })
   investigationNotes: string | null;
 
-  @Column({ name: 'investigation_started_at', type: 'timestamp', nullable: true })
+  @Column({
+    name: 'investigation_started_at',
+    type: 'timestamp',
+    nullable: true,
+  })
   investigationStartedAt: Date | null;
 
   // Submission details
@@ -124,7 +138,12 @@ export class SuspiciousActivityReportOrmEntity {
   @Index()
   submittedAt: Date | null;
 
-  @Column({ name: 'bceao_reference', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'bceao_reference',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Index()
   bceaoReference: string | null;
 

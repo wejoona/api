@@ -16,7 +16,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ScheduledPaymentService } from '../services/scheduled-payment.service';
@@ -105,10 +110,7 @@ export class ScheduledPaymentController {
   @Get('upcoming')
   @ApiOperation({ summary: 'Get upcoming payments' })
   @ApiResponse({ status: 200, description: 'Upcoming payments retrieved' })
-  async getUpcoming(
-    @CurrentUser() user: any,
-    @Query('days') days?: number,
-  ) {
+  async getUpcoming(@CurrentUser() user: any, @Query('days') days?: number) {
     const upcoming = await this.service.getUpcomingPayments(user.id, days || 7);
     return {
       success: true,
@@ -119,10 +121,7 @@ export class ScheduledPaymentController {
   @Get(':id')
   @ApiOperation({ summary: 'Get schedule details' })
   @ApiResponse({ status: 200, description: 'Schedule retrieved' })
-  async getSchedule(
-    @CurrentUser() user: any,
-    @Param('id') scheduleId: string,
-  ) {
+  async getSchedule(@CurrentUser() user: any, @Param('id') scheduleId: string) {
     const schedule = await this.service.getSchedule(scheduleId, user.id);
     return {
       success: true,
@@ -211,11 +210,10 @@ export class ScheduledPaymentController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    const result = await this.service.getExecutionHistory(
-      scheduleId,
-      user.id,
-      { page: page || 1, limit: limit || 20 },
-    );
+    const result = await this.service.getExecutionHistory(scheduleId, user.id, {
+      page: page || 1,
+      limit: limit || 20,
+    });
 
     return {
       success: true,

@@ -16,7 +16,11 @@ export const SKIP_DEVICE_CHECK = 'skipDeviceCheck';
  */
 export const SkipDeviceCheck = () => {
   return (target: any, key?: string, descriptor?: PropertyDescriptor) => {
-    Reflect.defineMetadata(SKIP_DEVICE_CHECK, true, descriptor?.value || target);
+    Reflect.defineMetadata(
+      SKIP_DEVICE_CHECK,
+      true,
+      descriptor?.value || target,
+    );
     return descriptor || target;
   };
 };
@@ -50,12 +54,17 @@ export class DeviceBlacklistGuard implements CanActivate {
 
     // If no identifiers could be extracted, allow request (fail-open for accessibility)
     // In stricter mode, you might want to block requests without identifiers
-    if (!identifiers.deviceId && !identifiers.fingerprint && !identifiers.ipAddress) {
+    if (
+      !identifiers.deviceId &&
+      !identifiers.fingerprint &&
+      !identifiers.ipAddress
+    ) {
       this.logger.warn('No device identifiers found in request');
       return true;
     }
 
-    const result = await this.blacklistService.checkMultipleIdentifiers(identifiers);
+    const result =
+      await this.blacklistService.checkMultipleIdentifiers(identifiers);
 
     if (result.isBlacklisted) {
       this.logger.warn(
@@ -87,7 +96,8 @@ export class DeviceBlacklistGuard implements CanActivate {
     const headers = request.headers;
 
     // Get device ID from custom header (set by mobile app)
-    const deviceId = headers['x-device-id'] || headers['x-android-id'] || headers['x-idfv'];
+    const deviceId =
+      headers['x-device-id'] || headers['x-android-id'] || headers['x-idfv'];
 
     // Get IP address (handle proxies)
     const ipAddress = this.getClientIp(request);
@@ -136,7 +146,9 @@ export class DeviceBlacklistGuard implements CanActivate {
   /**
    * Generate a fingerprint hash from device characteristics
    */
-  private generateFingerprint(characteristics: Record<string, string | undefined>): string | undefined {
+  private generateFingerprint(
+    characteristics: Record<string, string | undefined>,
+  ): string | undefined {
     const relevantChars = Object.entries(characteristics)
       .filter(([_, value]) => value)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -154,6 +166,10 @@ export class DeviceBlacklistGuard implements CanActivate {
    * Create SHA-256 hash of a string
    */
   private hashString(input: string): string {
-    return crypto.createHash('sha256').update(input).digest('hex').substring(0, 32);
+    return crypto
+      .createHash('sha256')
+      .update(input)
+      .digest('hex')
+      .substring(0, 32);
   }
 }

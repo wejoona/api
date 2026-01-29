@@ -12,15 +12,17 @@ import {
 export class ProcessPaymentDto {
   @ApiProperty({
     description: 'QR code data scanned from merchant',
-    example: 'joonapay://pay?v=1&t=static&m=123e4567-e89b-12d3-a456-426614174000&ts=1706000000000&s=abc123',
+    example:
+      'joonapay://pay?v=1&t=static&m=123e4567-e89b-12d3-a456-426614174000&ts=1706000000000&s=abc123',
   })
   @IsString()
   @IsNotEmpty()
   qrData: string;
 
   @ApiPropertyOptional({
-    description: 'Payment amount (required for static QR, optional for dynamic QR)',
-    example: 25.50,
+    description:
+      'Payment amount (required for static QR, optional for dynamic QR)',
+    example: 25.5,
     minimum: 0.01,
     maximum: 10000,
   })
@@ -35,7 +37,8 @@ export class ProcessPaymentDto {
 export class DecodeQrDto {
   @ApiProperty({
     description: 'QR code data to decode',
-    example: 'joonapay://pay?v=1&t=static&m=123e4567-e89b-12d3-a456-426614174000&ts=1706000000000&s=abc123',
+    example:
+      'joonapay://pay?v=1&t=static&m=123e4567-e89b-12d3-a456-426614174000&ts=1706000000000&s=abc123',
   })
   @IsString()
   @IsNotEmpty()

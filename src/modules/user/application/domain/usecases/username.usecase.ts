@@ -32,9 +32,12 @@ export interface FindByUsernameInput {
 export class UsernameUsecase {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async checkAvailability(input: CheckUsernameInput): Promise<CheckUsernameOutput> {
+  async checkAvailability(
+    input: CheckUsernameInput,
+  ): Promise<CheckUsernameOutput> {
     const normalizedUsername = input.username.toLowerCase().replace(/^@/, '');
-    const exists = await this.userRepository.existsByUsername(normalizedUsername);
+    const exists =
+      await this.userRepository.existsByUsername(normalizedUsername);
 
     return {
       available: !exists,
@@ -50,7 +53,7 @@ export class UsernameUsecase {
 
     return users.map((user) => ({
       id: user.id,
-      username: user.username!,
+      username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
       phone: this.maskPhone(user.phone),

@@ -21,7 +21,10 @@ export class MoovAdapter extends BaseBillAdapter {
 
   constructor(private readonly configService: ConfigService) {
     const config: BillProviderConfig = {
-      apiBaseUrl: configService.get<string>('MOOV_API_URL', 'https://api.moov-africa.com'),
+      apiBaseUrl: configService.get<string>(
+        'MOOV_API_URL',
+        'https://api.moov-africa.com',
+      ),
       apiKey: configService.get<string>('MOOV_API_KEY', ''),
       apiSecret: configService.get<string>('MOOV_API_SECRET'),
       merchantId: configService.get<string>('MOOV_MERCHANT_ID'),
@@ -53,7 +56,9 @@ export class MoovAdapter extends BaseBillAdapter {
     return crypto.createHash('sha256').update(payload).digest('hex');
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     return this.withRetry(async () => {
       try {
         const phoneNumber = this.formatPhoneNumber(request.accountNumber);
@@ -103,7 +108,9 @@ export class MoovAdapter extends BaseBillAdapter {
     return formatted;
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     return this.withRetry(async () => {
       try {
         const reference = this.generateReference('MOV');
@@ -140,8 +147,10 @@ export class MoovAdapter extends BaseBillAdapter {
           fee: data.transaction.fee || 0,
           totalAmount: request.amount + (data.transaction.fee || 0),
           currency: request.currency || 'XOF',
-          paidAt: data.transaction.status === 'COMPLETED' ? new Date() : undefined,
-          estimatedCompletionTime: data.transaction.status === 'PENDING' ? '1-5 minutes' : undefined,
+          paidAt:
+            data.transaction.status === 'COMPLETED' ? new Date() : undefined,
+          estimatedCompletionTime:
+            data.transaction.status === 'PENDING' ? '1-5 minutes' : undefined,
           metadata: {
             msisdn: phoneNumber,
             country: country,
@@ -170,7 +179,9 @@ export class MoovAdapter extends BaseBillAdapter {
 
   async checkPaymentStatus(paymentId: string): Promise<BillPaymentResult> {
     try {
-      const response = await this.httpClient.get(`/v1/airtime/status/${paymentId}`);
+      const response = await this.httpClient.get(
+        `/v1/airtime/status/${paymentId}`,
+      );
       const data = response.data;
 
       if (data.code !== '200') {
@@ -191,7 +202,9 @@ export class MoovAdapter extends BaseBillAdapter {
         fee: parseFloat(data.transaction.fee) || 0,
         totalAmount: parseFloat(data.transaction.totalAmount),
         currency: data.transaction.currency,
-        paidAt: data.transaction.completedAt ? new Date(data.transaction.completedAt) : undefined,
+        paidAt: data.transaction.completedAt
+          ? new Date(data.transaction.completedAt)
+          : undefined,
       };
     } catch (error) {
       if (error instanceof BillPaymentError) throw error;
@@ -205,25 +218,32 @@ export class MoovAdapter extends BaseBillAdapter {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await this.httpClient.get('/v1/health', { timeout: 5000 });
+      const response = await this.httpClient.get('/v1/health', {
+        timeout: 5000,
+      });
       return response.status === 200 && response.data?.status === 'UP';
     } catch {
       return false;
     }
   }
 
-  private mapStatus(providerStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
-    const statusMap: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-      'PENDING': 'pending',
-      'INITIATED': 'pending',
-      'PROCESSING': 'processing',
-      'IN_PROGRESS': 'processing',
-      'COMPLETED': 'completed',
-      'SUCCESS': 'completed',
-      'SUCCESSFUL': 'completed',
-      'FAILED': 'failed',
-      'REJECTED': 'failed',
-      'CANCELLED': 'failed',
+  private mapStatus(
+    providerStatus: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
+    const statusMap: Record<
+      string,
+      'pending' | 'processing' | 'completed' | 'failed'
+    > = {
+      PENDING: 'pending',
+      INITIATED: 'pending',
+      PROCESSING: 'processing',
+      IN_PROGRESS: 'processing',
+      COMPLETED: 'completed',
+      SUCCESS: 'completed',
+      SUCCESSFUL: 'completed',
+      FAILED: 'failed',
+      REJECTED: 'failed',
+      CANCELLED: 'failed',
     };
     return statusMap[providerStatus?.toUpperCase()] || 'pending';
   }

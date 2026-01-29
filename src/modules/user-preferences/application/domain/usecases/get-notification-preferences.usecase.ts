@@ -16,7 +16,9 @@ export class GetNotificationPreferencesUsecase {
    * Get notification preferences for a user
    * Creates default preferences if none exist
    */
-  async execute(input: GetNotificationPreferencesInput): Promise<NotificationPreferences> {
+  async execute(
+    input: GetNotificationPreferencesInput,
+  ): Promise<NotificationPreferences> {
     return this.preferencesRepository.getOrCreate(input.userId);
   }
 }

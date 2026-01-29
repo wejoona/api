@@ -1,7 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('User Journey E2E Tests', () => {
   let setup: E2ETestSetup;
@@ -274,7 +280,9 @@ describe('User Journey E2E Tests', () => {
     it('should search for users by username', async () => {
       // Create user with username
       const user = await userHelper.createUser('+2250700000031');
-      await userHelper.updateProfile(user.accessToken, { username: 'searchme' });
+      await userHelper.updateProfile(user.accessToken, {
+        username: 'searchme',
+      });
 
       // Search from another user
       const searcher = await userHelper.createUser('+2250700000032');
@@ -344,9 +352,7 @@ describe('User Journey E2E Tests', () => {
     });
 
     it('should reject requests without authentication', async () => {
-      await request(app.getHttpServer())
-        .get('/user/profile')
-        .expect(401);
+      await request(app.getHttpServer()).get('/user/profile').expect(401);
     });
 
     it('should reject invalid JWT tokens', async () => {

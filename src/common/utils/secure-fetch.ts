@@ -59,7 +59,12 @@ export class ExternalApiError extends Error {
   readonly url: string;
   readonly responseBody?: string;
 
-  constructor(url: string, status: number, message: string, responseBody?: string) {
+  constructor(
+    url: string,
+    status: number,
+    message: string,
+    responseBody?: string,
+  ) {
     super(message);
     this.name = 'ExternalApiError';
     this.status = status;
@@ -154,7 +159,8 @@ export function createSecureFetcher(
     ...defaultOptions.circuitBreakerOptions,
   });
 
-  const logger = defaultOptions.logger ?? new Logger(`SecureFetch:${serviceName}`);
+  const logger =
+    defaultOptions.logger ?? new Logger(`SecureFetch:${serviceName}`);
 
   return {
     fetch: (url: string, options: SecureFetchOptions = {}) =>
@@ -175,7 +181,14 @@ export function createSecureFetcher(
 export function maskUrlForLogging(url: string): string {
   try {
     const parsed = new URL(url);
-    const sensitiveParams = ['api_key', 'apikey', 'token', 'secret', 'password', 'key'];
+    const sensitiveParams = [
+      'api_key',
+      'apikey',
+      'token',
+      'secret',
+      'password',
+      'key',
+    ];
 
     for (const param of sensitiveParams) {
       if (parsed.searchParams.has(param)) {
@@ -186,6 +199,9 @@ export function maskUrlForLogging(url: string): string {
     return parsed.toString();
   } catch {
     // If URL parsing fails, return a generic masked version
-    return url.replace(/([?&](api_key|apikey|token|secret|password|key)=)[^&]*/gi, '$1***MASKED***');
+    return url.replace(
+      /([?&](api_key|apikey|token|secret|password|key)=)[^&]*/gi,
+      '$1***MASKED***',
+    );
   }
 }

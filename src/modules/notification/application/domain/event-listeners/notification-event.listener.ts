@@ -354,9 +354,7 @@ export class NotificationEventListener {
 
   @OnEvent('balance.low')
   async handleLowBalance(event: LowBalanceEvent): Promise<void> {
-    this.logger.log(
-      `Processing balance.low event for user ${event.userId}`,
-    );
+    this.logger.log(`Processing balance.low event for user ${event.userId}`);
 
     await this.pushNotificationService.sendLowBalanceAlert(
       event.userId,
@@ -413,7 +411,9 @@ export class NotificationEventListener {
   }
 
   @OnEvent('withdrawal.completed')
-  async handleWithdrawalCompleted(event: WithdrawalCompletedEvent): Promise<void> {
+  async handleWithdrawalCompleted(
+    event: WithdrawalCompletedEvent,
+  ): Promise<void> {
     this.logger.log(
       `Processing withdrawal.completed event for user ${event.userId}`,
     );

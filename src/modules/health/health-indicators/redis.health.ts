@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
+import {
+  HealthIndicator,
+  HealthIndicatorResult,
+  HealthCheckError,
+} from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -40,7 +44,8 @@ export class RedisHealthIndicator extends HealthIndicator {
       throw new Error('Redis ping failed');
     } catch (error) {
       const latency = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       throw new HealthCheckError(
         'Redis check failed',

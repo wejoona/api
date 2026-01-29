@@ -4,7 +4,11 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { Reward, RewardStatus, RewardType } from '../../domain/interfaces/referral.types';
+import {
+  Reward,
+  RewardStatus,
+  RewardType,
+} from '../../domain/interfaces/referral.types';
 
 @Injectable()
 export class RewardRepository {
@@ -16,31 +20,35 @@ export class RewardRepository {
 
   async findByUserId(userId: string): Promise<Reward[]> {
     return Array.from(this.rewards.values())
-      .filter(r => r.userId === userId)
+      .filter((r) => r.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async findByStatus(status: RewardStatus): Promise<Reward[]> {
-    return Array.from(this.rewards.values()).filter(r => r.status === status);
+    return Array.from(this.rewards.values()).filter((r) => r.status === status);
   }
 
   async findByType(type: RewardType): Promise<Reward[]> {
-    return Array.from(this.rewards.values()).filter(r => r.type === type);
+    return Array.from(this.rewards.values()).filter((r) => r.type === type);
   }
 
   async findByReferralId(referralId: string): Promise<Reward[]> {
-    return Array.from(this.rewards.values()).filter(r => r.referralId === referralId);
+    return Array.from(this.rewards.values()).filter(
+      (r) => r.referralId === referralId,
+    );
   }
 
   async findPendingByUserId(userId: string): Promise<Reward[]> {
-    return Array.from(this.rewards.values())
-      .filter(r => r.userId === userId && r.status === 'pending');
+    return Array.from(this.rewards.values()).filter(
+      (r) => r.userId === userId && r.status === 'pending',
+    );
   }
 
   async findExpired(): Promise<Reward[]> {
     const now = new Date();
-    return Array.from(this.rewards.values())
-      .filter(r => r.status === 'pending' && r.expiresAt && r.expiresAt < now);
+    return Array.from(this.rewards.values()).filter(
+      (r) => r.status === 'pending' && r.expiresAt && r.expiresAt < now,
+    );
   }
 
   async create(reward: Reward): Promise<Reward> {
@@ -68,7 +76,7 @@ export class RewardRepository {
   async getTotalEarnings(userId: string): Promise<number> {
     const rewards = await this.findByUserId(userId);
     return rewards
-      .filter(r => r.status === 'credited' || r.status === 'claimed')
+      .filter((r) => r.status === 'credited' || r.status === 'claimed')
       .reduce((sum, r) => sum + r.amount, 0);
   }
 

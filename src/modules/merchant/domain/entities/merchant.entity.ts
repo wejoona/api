@@ -270,7 +270,7 @@ export class MerchantEntity implements IMerchant {
    * Calculate fee for a given amount
    */
   calculateFee(amount: number): number {
-    return Math.round((amount * this.feePercent) / 100 * 100) / 100; // Round to 2 decimal places
+    return Math.round(((amount * this.feePercent) / 100) * 100) / 100; // Round to 2 decimal places
   }
 
   /**

@@ -9,15 +9,18 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   GetDeadletterStatsQuery,
   DeadletterStatsResult,
 } from '../queries/get-deadletter-stats.query';
-import {
-  GetPendingDeadlettersQuery,
-} from '../queries/get-pending-deadletters.query';
+import { GetPendingDeadlettersQuery } from '../queries/get-pending-deadletters.query';
 import { ResolveDeadletterCommand } from '../commands/resolve-deadletter.command';
 import { IgnoreDeadletterCommand } from '../commands/ignore-deadletter.command';
 import {

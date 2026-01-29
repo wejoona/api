@@ -20,7 +20,12 @@ export type NotificationCategory =
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'critical';
 
 // Delivery status
-export type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced';
+export type DeliveryStatus =
+  | 'pending'
+  | 'sent'
+  | 'delivered'
+  | 'failed'
+  | 'bounced';
 
 // Notification payload
 export interface NotificationPayload {

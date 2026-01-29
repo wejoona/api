@@ -115,7 +115,11 @@ export interface ScreeningResult {
 // Velocity Check
 export interface VelocityCheckRequest {
   userId: string;
-  checkType: 'transaction_count' | 'transaction_amount' | 'unique_recipients' | 'failed_attempts';
+  checkType:
+    | 'transaction_count'
+    | 'transaction_amount'
+    | 'unique_recipients'
+    | 'failed_attempts';
   timeWindowMinutes: number;
   currentValue?: number;
 }

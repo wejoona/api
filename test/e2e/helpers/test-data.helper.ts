@@ -133,7 +133,9 @@ export class TestDataHelper {
     await this.dataSource.query('SET session_replication_role = replica;');
 
     for (const entity of entities) {
-      await this.dataSource.query(`TRUNCATE TABLE "${entity.tableName}" CASCADE;`);
+      await this.dataSource.query(
+        `TRUNCATE TABLE "${entity.tableName}" CASCADE;`,
+      );
     }
 
     // Re-enable foreign key checks

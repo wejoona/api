@@ -24,7 +24,11 @@ export class MockLivenessCheckProvider implements ILivenessCheckProvider {
   private readonly logger = new Logger(MockLivenessCheckProvider.name);
 
   readonly providerName = 'mock_liveness';
-  readonly supportedCheckTypes: LivenessCheckType[] = ['passive', 'active', 'video'];
+  readonly supportedCheckTypes: LivenessCheckType[] = [
+    'passive',
+    'active',
+    'video',
+  ];
   readonly passThreshold = 80;
 
   private checks = new Map<string, LivenessCheckResult>();
@@ -120,7 +124,9 @@ export class MockLivenessCheckProvider implements ILivenessCheckProvider {
     return result;
   }
 
-  async generateSessionToken(userId: string): Promise<{ sessionToken: string; expiresAt: Date }> {
+  async generateSessionToken(
+    userId: string,
+  ): Promise<{ sessionToken: string; expiresAt: Date }> {
     return {
       sessionToken: `mock_session_${userId}_${Date.now()}`,
       expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
@@ -164,16 +170,40 @@ export class MockLivenessCheckProvider implements ILivenessCheckProvider {
       return { name: 'forced_live', live: true, spoof: false, fail: false };
     }
     if (userId.includes('PHOTO')) {
-      return { name: 'photo_attack', live: false, spoof: true, spoofType: 'photo', fail: true };
+      return {
+        name: 'photo_attack',
+        live: false,
+        spoof: true,
+        spoofType: 'photo',
+        fail: true,
+      };
     }
     if (userId.includes('VIDEO')) {
-      return { name: 'video_attack', live: false, spoof: true, spoofType: 'video', fail: true };
+      return {
+        name: 'video_attack',
+        live: false,
+        spoof: true,
+        spoofType: 'video',
+        fail: true,
+      };
     }
     if (userId.includes('MASK')) {
-      return { name: 'mask_attack', live: false, spoof: true, spoofType: 'mask', fail: true };
+      return {
+        name: 'mask_attack',
+        live: false,
+        spoof: true,
+        spoofType: 'mask',
+        fail: true,
+      };
     }
     if (userId.includes('SPOOF')) {
-      return { name: 'spoof_attempt', live: false, spoof: true, spoofType: 'photo', fail: true };
+      return {
+        name: 'spoof_attempt',
+        live: false,
+        spoof: true,
+        spoofType: 'photo',
+        fail: true,
+      };
     }
     if (userId.includes('FAIL')) {
       return { name: 'forced_fail', live: false, spoof: false, fail: true };
@@ -182,7 +212,9 @@ export class MockLivenessCheckProvider implements ILivenessCheckProvider {
     return { name: 'default', live: true, spoof: false, fail: false };
   }
 
-  private calculateScore(scenario: ReturnType<typeof this.detectTestScenario>): number {
+  private calculateScore(
+    scenario: ReturnType<typeof this.detectTestScenario>,
+  ): number {
     if (scenario.live && !scenario.spoof && !scenario.fail) {
       return 90 + Math.floor(Math.random() * 10);
     }

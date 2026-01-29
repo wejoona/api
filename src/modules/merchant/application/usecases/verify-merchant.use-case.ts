@@ -76,7 +76,9 @@ export class SuspendMerchantUseCase {
   async execute(input: { merchantId: string; reason?: string }): Promise<void> {
     const { merchantId, reason } = input;
 
-    this.logger.log(`Suspending merchant ${merchantId}. Reason: ${reason || 'Not specified'}`);
+    this.logger.log(
+      `Suspending merchant ${merchantId}. Reason: ${reason || 'Not specified'}`,
+    );
 
     // 1. Find merchant
     const merchant = await this.merchantRepository.findById(merchantId);

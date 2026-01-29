@@ -76,10 +76,14 @@ export class NotificationService {
    */
   async send(input: SendNotificationInput): Promise<SendNotificationResult> {
     const notificationId = uuidv4();
-    this.logger.log(`Sending notification ${notificationId} to user ${input.userId}`);
+    this.logger.log(
+      `Sending notification ${notificationId} to user ${input.userId}`,
+    );
 
     // Get user preferences
-    const preferences = await this.preferencesRepository.findByUserId(input.userId);
+    const preferences = await this.preferencesRepository.findByUserId(
+      input.userId,
+    );
     const userLanguage = preferences?.language || 'en';
 
     // Determine channels to use
@@ -117,15 +121,17 @@ export class NotificationService {
           data: input.data,
           imageUrl: input.imageUrl,
           priority: input.priority === 'critical' ? 'high' : 'normal',
-        }).then(results => {
-          deliveryResults.push(...results);
-          if (results.some(r => r.status === 'sent')) {
-            channelsSent.push('push');
-          }
-        }).catch(err => {
-          this.logger.error(`Push notification failed: ${err.message}`);
-          channelsSkipped.push('push');
         })
+          .then((results) => {
+            deliveryResults.push(...results);
+            if (results.some((r) => r.status === 'sent')) {
+              channelsSent.push('push');
+            }
+          })
+          .catch((err) => {
+            this.logger.error(`Push notification failed: ${err.message}`);
+            channelsSkipped.push('push');
+          }),
       );
     } else {
       channelsSkipped.push('push');
@@ -136,15 +142,17 @@ export class NotificationService {
         this.sendSms({
           phoneNumber: input.phoneNumber,
           message: body,
-        }).then(result => {
-          deliveryResults.push(result);
-          if (result.status === 'sent') {
-            channelsSent.push('sms');
-          }
-        }).catch(err => {
-          this.logger.error(`SMS notification failed: ${err.message}`);
-          channelsSkipped.push('sms');
         })
+          .then((result) => {
+            deliveryResults.push(result);
+            if (result.status === 'sent') {
+              channelsSent.push('sms');
+            }
+          })
+          .catch((err) => {
+            this.logger.error(`SMS notification failed: ${err.message}`);
+            channelsSkipped.push('sms');
+          }),
       );
     } else if (channelsToUse.includes('sms')) {
       channelsSkipped.push('sms');
@@ -157,15 +165,17 @@ export class NotificationService {
           subject: title,
           htmlBody: this.wrapEmailHtml(title, body),
           textBody: body,
-        }).then(result => {
-          deliveryResults.push(result);
-          if (result.status === 'sent') {
-            channelsSent.push('email');
-          }
-        }).catch(err => {
-          this.logger.error(`Email notification failed: ${err.message}`);
-          channelsSkipped.push('email');
         })
+          .then((result) => {
+            deliveryResults.push(result);
+            if (result.status === 'sent') {
+              channelsSent.push('email');
+            }
+          })
+          .catch((err) => {
+            this.logger.error(`Email notification failed: ${err.message}`);
+            channelsSkipped.push('email');
+          }),
       );
     } else if (channelsToUse.includes('email')) {
       channelsSkipped.push('email');
@@ -207,7 +217,9 @@ export class NotificationService {
       channelsSkipped,
     });
 
-    this.logger.log(`Notification ${notificationId} sent to ${channelsSent.join(', ')}`);
+    this.logger.log(
+      `Notification ${notificationId} sent to ${channelsSent.join(', ')}`,
+    );
 
     return {
       notificationId,
@@ -225,14 +237,14 @@ export class NotificationService {
     payload: PushNotificationPayload,
   ): Promise<DeliveryResult[]> {
     const tokens = await this.deviceTokenRepository.findByUserId(userId);
-    const activeTokens = tokens.filter(t => t.isActive);
+    const activeTokens = tokens.filter((t) => t.isActive);
 
     if (activeTokens.length === 0) {
       this.logger.debug(`No active device tokens for user ${userId}`);
       return [];
     }
 
-    const tokenStrings = activeTokens.map(t => t.token);
+    const tokenStrings = activeTokens.map((t) => t.token);
     return this.pushProvider.sendBatch(tokenStrings, payload);
   }
 
@@ -397,7 +409,7 @@ export class NotificationService {
     }
 
     // Filter by channel preferences
-    return requestedChannels.filter(channel => {
+    return requestedChannels.filter((channel) => {
       switch (channel) {
         case 'push':
           return preferences.channels.push;

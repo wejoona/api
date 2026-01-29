@@ -1,7 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('Webhooks E2E Tests', () => {
   let setup: E2ETestSetup;
@@ -443,12 +449,12 @@ describe('Webhooks E2E Tests', () => {
           }),
         }));
 
-      const requests = webhooks.map(webhook =>
-        request(app.getHttpServer()).post('/webhooks/circle').send(webhook)
+      const requests = webhooks.map((webhook) =>
+        request(app.getHttpServer()).post('/webhooks/circle').send(webhook),
       );
 
       const responses = await Promise.all(requests);
-      const successCount = responses.filter(r => r.status === 200).length;
+      const successCount = responses.filter((r) => r.status === 200).length;
 
       expect(successCount).toBe(10);
     });

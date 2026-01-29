@@ -4,7 +4,14 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository, LessThan, MoreThan, In, Between } from 'typeorm';
+import {
+  DataSource,
+  Repository,
+  LessThan,
+  MoreThan,
+  In,
+  Between,
+} from 'typeorm';
 import { AlertOrmEntity } from '../orm-entities/alert.orm-entity';
 import {
   TransactionAlert,
@@ -54,8 +61,13 @@ export class AlertRepository {
   /**
    * Find alert by ID for a specific user
    */
-  async findByIdAndUser(alertId: string, userId: string): Promise<TransactionAlert | null> {
-    const entity = await this.repository.findOne({ where: { alertId, userId } });
+  async findByIdAndUser(
+    alertId: string,
+    userId: string,
+  ): Promise<TransactionAlert | null> {
+    const entity = await this.repository.findOne({
+      where: { alertId, userId },
+    });
     return entity ? this.toDomain(entity) : null;
   }
 
@@ -66,14 +78,21 @@ export class AlertRepository {
     filters: AlertFilterOptions,
     pagination: PaginationOptions,
   ): Promise<PaginatedAlerts> {
-    const { page, limit, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+    const {
+      page,
+      limit,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = pagination;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.repository.createQueryBuilder('alert');
 
     // Apply filters
     if (filters.userId) {
-      queryBuilder.andWhere('alert.userId = :userId', { userId: filters.userId });
+      queryBuilder.andWhere('alert.userId = :userId', {
+        userId: filters.userId,
+      });
     }
 
     if (filters.alertTypes && filters.alertTypes.length > 0) {
@@ -89,7 +108,9 @@ export class AlertRepository {
     }
 
     if (filters.isRead !== undefined) {
-      queryBuilder.andWhere('alert.isRead = :isRead', { isRead: filters.isRead });
+      queryBuilder.andWhere('alert.isRead = :isRead', {
+        isRead: filters.isRead,
+      });
     }
 
     if (filters.isActionRequired !== undefined) {
@@ -99,11 +120,15 @@ export class AlertRepository {
     }
 
     if (filters.fromDate) {
-      queryBuilder.andWhere('alert.createdAt >= :fromDate', { fromDate: filters.fromDate });
+      queryBuilder.andWhere('alert.createdAt >= :fromDate', {
+        fromDate: filters.fromDate,
+      });
     }
 
     if (filters.toDate) {
-      queryBuilder.andWhere('alert.createdAt <= :toDate', { toDate: filters.toDate });
+      queryBuilder.andWhere('alert.createdAt <= :toDate', {
+        toDate: filters.toDate,
+      });
     }
 
     if (filters.transactionId) {
@@ -116,10 +141,7 @@ export class AlertRepository {
     const total = await queryBuilder.getCount();
 
     // Apply sorting and pagination
-    queryBuilder
-      .orderBy(`alert.${sortBy}`, sortOrder)
-      .skip(skip)
-      .take(limit);
+    queryBuilder.orderBy(`alert.${sortBy}`, sortOrder).skip(skip).take(limit);
 
     const entities = await queryBuilder.getMany();
     const alerts = entities.map((e) => this.toDomain(e));
@@ -140,7 +162,10 @@ export class AlertRepository {
   /**
    * Find unread alerts for user
    */
-  async findUnreadByUser(userId: string, limit = 50): Promise<TransactionAlert[]> {
+  async findUnreadByUser(
+    userId: string,
+    limit = 50,
+  ): Promise<TransactionAlert[]> {
     const entities = await this.repository.find({
       where: { userId, isRead: false },
       order: { createdAt: 'DESC' },
@@ -305,7 +330,10 @@ export class AlertRepository {
     const results = await this.repository
       .createQueryBuilder('alert')
       .select(['alert.alertType as type', 'COUNT(*) as count'])
-      .where('alert.createdAt BETWEEN :fromDate AND :toDate', { fromDate, toDate })
+      .where('alert.createdAt BETWEEN :fromDate AND :toDate', {
+        fromDate,
+        toDate,
+      })
       .groupBy('alert.alertType')
       .getRawMany();
 

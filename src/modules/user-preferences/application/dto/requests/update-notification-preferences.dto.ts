@@ -78,7 +78,8 @@ export class UpdateNotificationPreferencesDto {
 
   // SMS notification settings
   @ApiProperty({
-    description: 'Enable/disable SMS notifications (security SMS cannot be disabled)',
+    description:
+      'Enable/disable SMS notifications (security SMS cannot be disabled)',
     example: true,
     required: false,
   })
@@ -96,7 +97,8 @@ export class UpdateNotificationPreferencesDto {
   smsTransactions?: boolean;
 
   @ApiProperty({
-    description: 'Enable SMS for security codes (cannot be disabled for security)',
+    description:
+      'Enable SMS for security codes (cannot be disabled for security)',
     example: true,
     required: false,
   })

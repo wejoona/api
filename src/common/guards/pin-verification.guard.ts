@@ -39,10 +39,10 @@ export class PinVerificationGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if PIN verification is skipped for this endpoint
-    const skipPinCheck = this.reflector.getAllAndOverride<boolean>(SKIP_PIN_CHECK, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const skipPinCheck = this.reflector.getAllAndOverride<boolean>(
+      SKIP_PIN_CHECK,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (skipPinCheck) {
       return true;
@@ -68,7 +68,10 @@ export class PinVerificationGuard implements CanActivate {
 
     // Validate PIN token from cache
     const cacheKey = `pin_token:${userId}:${pinToken}`;
-    const tokenData = await this.cacheManager.get<{ verified: boolean; timestamp: number }>(cacheKey);
+    const tokenData = await this.cacheManager.get<{
+      verified: boolean;
+      timestamp: number;
+    }>(cacheKey);
 
     if (!tokenData) {
       throw new ForbiddenException({

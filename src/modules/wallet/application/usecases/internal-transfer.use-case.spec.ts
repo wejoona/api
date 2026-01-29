@@ -11,6 +11,7 @@ import { TransactionRepository } from '../../../transaction/infrastructure/repos
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { PAYMENT_GATEWAY } from '../../../shared/domain/gateways';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { BlnkLedgerAdapter } from '../../../providers/blnk/adapters';
 import {
   createMockRepository,
   createMockDataSource,
@@ -29,6 +30,7 @@ describe('InternalTransferUseCase', () => {
   let dataSource: MockDataSource;
   let paymentGateway: ReturnType<typeof createMockPaymentGateway>;
   let cacheInvalidationService: jest.Mocked<CacheInvalidationService>;
+  let blnkLedgerAdapter: jest.Mocked<BlnkLedgerAdapter>;
   let mockManager: MockEntityManager;
 
   const senderId = 'sender-user-id';
@@ -52,6 +54,15 @@ describe('InternalTransferUseCase', () => {
       clearAll: jest.fn().mockResolvedValue(undefined),
     } as any;
 
+    blnkLedgerAdapter = {
+      recordP2PTransfer: jest.fn().mockResolvedValue(undefined),
+      recordDeposit: jest.fn().mockResolvedValue(undefined),
+      recordWithdrawal: jest.fn().mockResolvedValue(undefined),
+      recordExternalTransfer: jest.fn().mockResolvedValue(undefined),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      voidTransaction: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InternalTransferUseCase,
@@ -60,7 +71,11 @@ describe('InternalTransferUseCase', () => {
         { provide: UserRepository, useValue: userRepository },
         { provide: DataSource, useValue: dataSource },
         { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
-        { provide: CacheInvalidationService, useValue: cacheInvalidationService },
+        {
+          provide: CacheInvalidationService,
+          useValue: cacheInvalidationService,
+        },
+        { provide: BlnkLedgerAdapter, useValue: blnkLedgerAdapter },
       ],
     }).compile();
 
@@ -77,11 +92,11 @@ describe('InternalTransferUseCase', () => {
       const sender = createTestUser({
         id: senderId,
         phone: senderPhone,
-        kycStatus: 'pending'
+        kycStatus: 'pending',
       });
       const recipient = createTestUser({
         id: recipientId,
-        phone: recipientPhone
+        phone: recipientPhone,
       });
 
       const senderWallet = createTestWallet({
@@ -164,10 +179,9 @@ describe('InternalTransferUseCase', () => {
       expect(transactionRepository.save).toHaveBeenCalledTimes(2);
 
       // Verify cache invalidation
-      expect(cacheInvalidationService.invalidateMultipleBalances).toHaveBeenCalledWith([
-        senderId,
-        recipientId,
-      ]);
+      expect(
+        cacheInvalidationService.invalidateMultipleBalances,
+      ).toHaveBeenCalledWith([senderId, recipientId]);
     });
   });
 
@@ -240,7 +254,10 @@ describe('InternalTransferUseCase', () => {
 
     it('should accept amount with exactly 2 decimal places', async () => {
       // Arrange
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
       const senderWallet = createTestWallet({
         userId: senderId,
@@ -372,9 +389,12 @@ describe('InternalTransferUseCase', () => {
       // Arrange
       const sender = createTestUser({
         id: senderId,
-        kycStatus: 'pending' // none, pending, verified, rejected
+        kycStatus: 'pending', // none, pending, verified, rejected
       });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
 
       userRepository.findByPhone.mockResolvedValue(recipient);
       userRepository.findById.mockResolvedValue(sender);
@@ -403,7 +423,10 @@ describe('InternalTransferUseCase', () => {
     it('should allow transfer within $100 daily limit for unverified user', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -442,7 +465,10 @@ describe('InternalTransferUseCase', () => {
       const sender = createTestUser({ id: senderId });
       // Manually set kycStatus to 'verified' to match DAILY_TRANSFER_LIMITS keys
       (sender as any).kycStatus = 'verified';
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
 
       userRepository.findByPhone.mockResolvedValue(recipient);
       userRepository.findById.mockResolvedValue(sender);
@@ -469,7 +495,10 @@ describe('InternalTransferUseCase', () => {
       // Arrange
       const sender = createTestUser({ id: senderId });
       (sender as any).kycStatus = 'verified';
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 10000,
@@ -506,7 +535,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw BadRequestException when sender has insufficient balance', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 30, // Only $30 available
@@ -541,7 +573,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw NotFoundException when sender wallet not found', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
 
       userRepository.findByPhone.mockResolvedValue(recipient);
       userRepository.findById.mockResolvedValue(sender);
@@ -568,7 +603,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw BadRequestException when sender wallet is not active', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -601,7 +639,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw BadRequestException when recipient wallet is not active', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -647,7 +688,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw NotFoundException when recipient wallet not found', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -689,7 +733,10 @@ describe('InternalTransferUseCase', () => {
     it('should retry on OptimisticLockVersionMismatchError and succeed', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -759,7 +806,10 @@ describe('InternalTransferUseCase', () => {
     it('should retry on error with "version" in message and succeed', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -812,7 +862,10 @@ describe('InternalTransferUseCase', () => {
     it('should throw ConflictException after 3 failed retry attempts', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -864,7 +917,10 @@ describe('InternalTransferUseCase', () => {
     it('should not retry on non-version-related errors', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -885,7 +941,9 @@ describe('InternalTransferUseCase', () => {
           .mockResolvedValueOnce(senderWallet)
           .mockResolvedValueOnce(recipientWallet);
         // Non-version error - should not retry
-        mockManager.save.mockRejectedValue(new Error('Database connection failed'));
+        mockManager.save.mockRejectedValue(
+          new Error('Database connection failed'),
+        );
         return callback(mockManager);
       });
 
@@ -906,7 +964,10 @@ describe('InternalTransferUseCase', () => {
   describe('Additional edge cases', () => {
     it('should throw NotFoundException when sender user not found during limit check', async () => {
       // Arrange
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
 
       userRepository.findByPhone.mockResolvedValue(recipient);
       userRepository.findById.mockResolvedValue(null); // Sender not found
@@ -931,7 +992,10 @@ describe('InternalTransferUseCase', () => {
     it('should reject all transfers for users with rejected KYC', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'rejected' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
 
       userRepository.findByPhone.mockResolvedValue(recipient);
       userRepository.findById.mockResolvedValue(sender);
@@ -957,7 +1021,10 @@ describe('InternalTransferUseCase', () => {
     it('should use default currency USD when not specified', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -994,7 +1061,10 @@ describe('InternalTransferUseCase', () => {
     it('should check daily limit using correct date (start of day)', async () => {
       // Arrange
       const sender = createTestUser({ id: senderId, kycStatus: 'pending' });
-      const recipient = createTestUser({ id: recipientId, phone: recipientPhone });
+      const recipient = createTestUser({
+        id: recipientId,
+        phone: recipientPhone,
+      });
       const senderWallet = createTestWallet({
         userId: senderId,
         balance: 500,
@@ -1021,8 +1091,9 @@ describe('InternalTransferUseCase', () => {
       });
 
       // Assert
-      const callArgs = transactionRepository.getDailyTransferVolume.mock.calls[0];
-      const todayStart = callArgs[1] as Date;
+      const callArgs =
+        transactionRepository.getDailyTransferVolume.mock.calls[0];
+      const todayStart = callArgs[1];
       expect(todayStart.getHours()).toBe(0);
       expect(todayStart.getMinutes()).toBe(0);
       expect(todayStart.getSeconds()).toBe(0);
@@ -1099,7 +1170,8 @@ describe('InternalTransferUseCase', () => {
       expect(senderTxCall.recipientPhone).toBe(recipientPhone);
 
       // Verify recipient transaction (credit)
-      const recipientTxCall = transactionRepository.save.mock.calls[1][0] as any;
+      const recipientTxCall = transactionRepository.save.mock
+        .calls[1][0] as any;
       expect(recipientTxCall.walletId).toBe('recipient-wallet-id');
       expect(recipientTxCall.amount).toBe(50); // Positive for credit
       expect(recipientTxCall.type).toBe('transfer_internal');

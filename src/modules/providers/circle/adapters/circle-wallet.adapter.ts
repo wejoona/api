@@ -127,22 +127,25 @@ export class CircleWalletAdapter implements IWalletProvider {
 
   async createWallet(data: CreateWalletData): Promise<ProviderWallet> {
     try {
-      const response = await this.secureFetch(`${this.config.baseUrl}/wallets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
-          'X-Entity-Secret': this.config.entitySecret,
+      const response = await this.secureFetch(
+        `${this.config.baseUrl}/wallets`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.config.apiKey}`,
+            'X-Entity-Secret': this.config.entitySecret,
+          },
+          body: JSON.stringify({
+            idempotencyKey: data.userId,
+            userId: data.userProviderId,
+            blockchains: [this.defaultBlockchain],
+            metadata: data.metadata
+              ? [{ name: 'internalUserId', refId: data.userId }]
+              : undefined,
+          }),
         },
-        body: JSON.stringify({
-          idempotencyKey: data.userId,
-          userId: data.userProviderId,
-          blockchains: [this.defaultBlockchain],
-          metadata: data.metadata
-            ? [{ name: 'internalUserId', refId: data.userId }]
-            : undefined,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const error = (await response.json()) as CircleApiError;

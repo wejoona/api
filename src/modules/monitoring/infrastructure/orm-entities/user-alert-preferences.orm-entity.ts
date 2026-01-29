@@ -30,16 +30,41 @@ export class UserAlertPreferencesOrmEntity {
   smsAlerts: boolean;
 
   // Thresholds
-  @Column({ name: 'large_transaction_threshold', type: 'decimal', precision: 18, scale: 2, default: 1000 })
+  @Column({
+    name: 'large_transaction_threshold',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 1000,
+  })
   largeTransactionThreshold: number;
 
-  @Column({ name: 'balance_low_threshold', type: 'decimal', precision: 18, scale: 2, default: 10 })
+  @Column({
+    name: 'balance_low_threshold',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 10,
+  })
   balanceLowThreshold: number;
 
-  @Column({ name: 'balance_high_threshold', type: 'decimal', precision: 18, scale: 2, nullable: true })
+  @Column({
+    name: 'balance_high_threshold',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    nullable: true,
+  })
   balanceHighThreshold: number | null;
 
-  @Column({ name: 'daily_limit_threshold', type: 'decimal', precision: 18, scale: 2, nullable: true, default: 5000 })
+  @Column({
+    name: 'daily_limit_threshold',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    nullable: true,
+    default: 5000,
+  })
   dailyLimitThreshold: number | null;
 
   // Alert type subscriptions (stored as JSON array)
@@ -50,10 +75,20 @@ export class UserAlertPreferencesOrmEntity {
   @Column({ name: 'quiet_hours_enabled', type: 'boolean', default: false })
   quietHoursEnabled: boolean;
 
-  @Column({ name: 'quiet_hours_start', type: 'varchar', length: 5, nullable: true })
+  @Column({
+    name: 'quiet_hours_start',
+    type: 'varchar',
+    length: 5,
+    nullable: true,
+  })
   quietHoursStart: string | null;
 
-  @Column({ name: 'quiet_hours_end', type: 'varchar', length: 5, nullable: true })
+  @Column({
+    name: 'quiet_hours_end',
+    type: 'varchar',
+    length: 5,
+    nullable: true,
+  })
   quietHoursEnd: string | null;
 
   @Column({ type: 'varchar', length: 50, default: 'UTC' })
@@ -63,7 +98,12 @@ export class UserAlertPreferencesOrmEntity {
   @Column({ name: 'instant_critical_alerts', type: 'boolean', default: true })
   instantCriticalAlerts: boolean;
 
-  @Column({ name: 'digest_frequency', type: 'varchar', length: 20, default: 'realtime' })
+  @Column({
+    name: 'digest_frequency',
+    type: 'varchar',
+    length: 20,
+    default: 'realtime',
+  })
   digestFrequency: string;
 
   @CreateDateColumn({ name: 'created_at' })

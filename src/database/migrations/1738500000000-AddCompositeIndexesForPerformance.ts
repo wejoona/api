@@ -13,9 +13,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * - Eliminates N+1 query problems in transaction listing
  * - Supports efficient covering index scans for common filters
  */
-export class AddCompositeIndexesForPerformance1738500000000
-  implements MigrationInterface
-{
+export class AddCompositeIndexesForPerformance1738500000000 implements MigrationInterface {
   name = 'AddCompositeIndexesForPerformance1738500000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -62,9 +60,7 @@ export class AddCompositeIndexesForPerformance1738500000000
     await queryRunner.query(
       `DROP INDEX IF EXISTS "idx_transactions_wallet_date"`,
     );
-    await queryRunner.query(
-      `DROP INDEX IF EXISTS "idx_transfers_sender_date"`,
-    );
+    await queryRunner.query(`DROP INDEX IF EXISTS "idx_transfers_sender_date"`);
     await queryRunner.query(
       `DROP INDEX IF EXISTS "idx_notifications_user_status"`,
     );

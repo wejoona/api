@@ -11,7 +11,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { TransactionRiskService, PreTransactionCheckInput } from './transaction-risk.service';
+import {
+  TransactionRiskService,
+  PreTransactionCheckInput,
+} from './transaction-risk.service';
 import {
   StepUpDecision,
   StepUpValidation,
@@ -38,7 +41,14 @@ export interface TransactionStepUpInput {
 
 export interface OperationStepUpInput {
   userId: string;
-  operation: 'pin_change' | 'add_recipient' | 'account_recovery' | 'kyc_selfie' | 'biometric_enroll' | 'export_keys' | 'delete_account';
+  operation:
+    | 'pin_change'
+    | 'add_recipient'
+    | 'account_recovery'
+    | 'kyc_selfie'
+    | 'biometric_enroll'
+    | 'export_keys'
+    | 'delete_account';
   metadata?: Record<string, unknown>;
 }
 
@@ -48,11 +58,14 @@ export class StepUpService {
   private readonly config: StepUpConfig;
 
   // Challenge token storage (in production, use Redis)
-  private readonly pendingChallenges = new Map<string, {
-    decision: StepUpDecision;
-    createdAt: Date;
-    userId: string;
-  }>();
+  private readonly pendingChallenges = new Map<
+    string,
+    {
+      decision: StepUpDecision;
+      createdAt: Date;
+      userId: string;
+    }
+  >();
 
   // Completed step-ups (cached for session)
   private readonly completedStepUps = new Map<string, StepUpResult>();
@@ -63,10 +76,22 @@ export class StepUpService {
   ) {
     // Load config from environment or use defaults
     this.config = {
-      greenMaxScore: this.configService.get<number>('STEP_UP_GREEN_MAX', DEFAULT_STEP_UP_CONFIG.greenMaxScore),
-      yellowMaxScore: this.configService.get<number>('STEP_UP_YELLOW_MAX', DEFAULT_STEP_UP_CONFIG.yellowMaxScore),
-      redMinScore: this.configService.get<number>('STEP_UP_RED_MIN', DEFAULT_STEP_UP_CONFIG.redMinScore),
-      highValueThreshold: this.configService.get<number>('STEP_UP_HIGH_VALUE', DEFAULT_STEP_UP_CONFIG.highValueThreshold),
+      greenMaxScore: this.configService.get<number>(
+        'STEP_UP_GREEN_MAX',
+        DEFAULT_STEP_UP_CONFIG.greenMaxScore,
+      ),
+      yellowMaxScore: this.configService.get<number>(
+        'STEP_UP_YELLOW_MAX',
+        DEFAULT_STEP_UP_CONFIG.yellowMaxScore,
+      ),
+      redMinScore: this.configService.get<number>(
+        'STEP_UP_RED_MIN',
+        DEFAULT_STEP_UP_CONFIG.redMinScore,
+      ),
+      highValueThreshold: this.configService.get<number>(
+        'STEP_UP_HIGH_VALUE',
+        DEFAULT_STEP_UP_CONFIG.highValueThreshold,
+      ),
       alwaysRequireLiveness: DEFAULT_STEP_UP_CONFIG.alwaysRequireLiveness,
       alwaysRequireBiometric: DEFAULT_STEP_UP_CONFIG.alwaysRequireBiometric,
     };
@@ -75,8 +100,12 @@ export class StepUpService {
   /**
    * Evaluate step-up requirements for a transaction
    */
-  async evaluateTransaction(input: TransactionStepUpInput): Promise<StepUpDecision> {
-    this.logger.log(`Evaluating step-up for transaction: ${input.type} ${input.amount} ${input.currency}`);
+  async evaluateTransaction(
+    input: TransactionStepUpInput,
+  ): Promise<StepUpDecision> {
+    this.logger.log(
+      `Evaluating step-up for transaction: ${input.type} ${input.amount} ${input.currency}`,
+    );
 
     // Build risk check input
     const riskInput: PreTransactionCheckInput = {
@@ -90,11 +119,13 @@ export class StepUpService {
       recipientId: input.recipientId,
       recipientType: input.recipientType,
       channel: input.channel,
-      deviceFingerprint: input.deviceId ? {
-        deviceId: input.deviceId,
-        platform: input.channel === 'mobile' ? 'ios' : 'web',
-        ipAddress: input.ipAddress,
-      } : undefined,
+      deviceFingerprint: input.deviceId
+        ? {
+            deviceId: input.deviceId,
+            platform: input.channel === 'mobile' ? 'ios' : 'web',
+            ipAddress: input.ipAddress,
+          }
+        : undefined,
       skipSanctionsCheck: input.recipientType === 'internal',
     };
 
@@ -111,17 +142,20 @@ export class StepUpService {
 
     // Store challenge if step-up required
     if (decision.stepUpRequired) {
-      this.pendingChallenges.set(decision.challengeToken!, {
+      this.pendingChallenges.set(decision.challengeToken, {
         decision,
         createdAt: new Date(),
         userId: input.userId,
       });
     }
 
-    this.logger.log(`Step-up decision: ${decision.flow} flow, ${decision.stepUpType}`, {
-      riskScore: decision.riskScore,
-      stepUpRequired: decision.stepUpRequired,
-    });
+    this.logger.log(
+      `Step-up decision: ${decision.flow} flow, ${decision.stepUpType}`,
+      {
+        riskScore: decision.riskScore,
+        stepUpRequired: decision.stepUpRequired,
+      },
+    );
 
     return decision;
   }
@@ -129,7 +163,9 @@ export class StepUpService {
   /**
    * Evaluate step-up for non-transaction operations
    */
-  async evaluateOperation(input: OperationStepUpInput): Promise<StepUpDecision> {
+  async evaluateOperation(
+    input: OperationStepUpInput,
+  ): Promise<StepUpDecision> {
     this.logger.log(`Evaluating step-up for operation: ${input.operation}`);
 
     // Operation-specific step-up requirements
@@ -149,7 +185,8 @@ export class StepUpService {
     const decision: StepUpDecision = {
       flow,
       riskScore: flow === 'green' ? 10 : flow === 'yellow' ? 45 : 75,
-      riskLevel: flow === 'green' ? 'low' : flow === 'yellow' ? 'medium' : 'high',
+      riskLevel:
+        flow === 'green' ? 'low' : flow === 'yellow' ? 'medium' : 'high',
       stepUpRequired: stepUpType !== 'none',
       stepUpType,
       reason: `Operation ${input.operation} requires ${stepUpType}`,
@@ -159,7 +196,7 @@ export class StepUpService {
     };
 
     if (decision.stepUpRequired) {
-      this.pendingChallenges.set(decision.challengeToken!, {
+      this.pendingChallenges.set(decision.challengeToken, {
         decision,
         createdAt: new Date(),
         userId: input.userId,
@@ -201,7 +238,9 @@ export class StepUpService {
         // In production, verify liveness session with liveness service
         break;
       case 'biometric_and_liveness':
-        valid = validation.biometricVerified === true && !!validation.livenessSessionId;
+        valid =
+          validation.biometricVerified === true &&
+          !!validation.livenessSessionId;
         break;
       default:
         valid = true;
@@ -260,13 +299,19 @@ export class StepUpService {
       factors.push(`high_value:${input.amount}`);
     }
     // First transaction to recipient requires liveness
-    else if (input.isFirstTransactionToRecipient && input.recipientType === 'external') {
+    else if (
+      input.isFirstTransactionToRecipient &&
+      input.recipientType === 'external'
+    ) {
       flow = 'red';
       stepUpType = 'liveness';
       factors.push('first_external_withdrawal');
     }
     // External transfers always require at least biometric
-    else if (input.recipientType === 'external' && riskScore <= this.config.greenMaxScore) {
+    else if (
+      input.recipientType === 'external' &&
+      riskScore <= this.config.greenMaxScore
+    ) {
       flow = 'yellow';
       stepUpType = 'biometric';
       factors.push('external_transfer_override');
@@ -276,13 +321,11 @@ export class StepUpService {
       // 🟢 GREEN: Frictionless
       flow = 'green';
       stepUpType = 'none';
-    }
-    else if (riskScore <= this.config.yellowMaxScore) {
+    } else if (riskScore <= this.config.yellowMaxScore) {
       // 🟡 YELLOW: Biometric
       flow = 'yellow';
       stepUpType = 'biometric';
-    }
-    else {
+    } else {
       // 🔴 RED: Liveness
       flow = 'red';
       stepUpType = 'liveness';
@@ -328,7 +371,11 @@ export class StepUpService {
     }
   }
 
-  private buildReason(flow: RiskFlow, stepUpType: StepUpRequirement, factors: string[]): string {
+  private buildReason(
+    flow: RiskFlow,
+    stepUpType: StepUpRequirement,
+    factors: string[],
+  ): string {
     const flowEmoji = { green: '🟢', yellow: '🟡', red: '🔴' };
 
     if (stepUpType === 'none') {

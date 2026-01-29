@@ -18,7 +18,9 @@ export class UserAlertPreferencesRepository {
   private readonly logger = new Logger(UserAlertPreferencesRepository.name);
 
   constructor(private readonly dataSource: DataSource) {
-    this.repository = this.dataSource.getRepository(UserAlertPreferencesOrmEntity);
+    this.repository = this.dataSource.getRepository(
+      UserAlertPreferencesOrmEntity,
+    );
   }
 
   /**
@@ -52,7 +54,9 @@ export class UserAlertPreferencesRepository {
   /**
    * Create preferences
    */
-  async create(preferences: UserAlertPreferences): Promise<UserAlertPreferences> {
+  async create(
+    preferences: UserAlertPreferences,
+  ): Promise<UserAlertPreferences> {
     const entity = this.toEntity(preferences);
     const saved = await this.repository.save(entity);
     this.logger.log(`Created alert preferences for user ${preferences.userId}`);
@@ -96,7 +100,11 @@ export class UserAlertPreferencesRepository {
    */
   async updateThreshold(
     userId: string,
-    thresholdType: 'large_transaction' | 'balance_low' | 'balance_high' | 'daily_limit',
+    thresholdType:
+      | 'large_transaction'
+      | 'balance_low'
+      | 'balance_high'
+      | 'daily_limit',
     value: number,
   ): Promise<void> {
     const fieldMap: Record<string, string> = {
@@ -176,7 +184,10 @@ export class UserAlertPreferencesRepository {
   /**
    * Check if user has alert type enabled
    */
-  async isAlertTypeEnabled(userId: string, alertType: AlertType): Promise<boolean> {
+  async isAlertTypeEnabled(
+    userId: string,
+    alertType: AlertType,
+  ): Promise<boolean> {
     const preferences = await this.findByUserId(userId);
     if (!preferences) {
       // Use default preferences
@@ -228,7 +239,9 @@ export class UserAlertPreferencesRepository {
     return entity;
   }
 
-  private toDomain(entity: UserAlertPreferencesOrmEntity): UserAlertPreferences {
+  private toDomain(
+    entity: UserAlertPreferencesOrmEntity,
+  ): UserAlertPreferences {
     return {
       userId: entity.userId,
       emailAlerts: entity.emailAlerts,
@@ -236,8 +249,12 @@ export class UserAlertPreferencesRepository {
       smsAlerts: entity.smsAlerts,
       largeTransactionThreshold: Number(entity.largeTransactionThreshold),
       balanceLowThreshold: Number(entity.balanceLowThreshold),
-      balanceHighThreshold: entity.balanceHighThreshold ? Number(entity.balanceHighThreshold) : undefined,
-      dailyLimitThreshold: entity.dailyLimitThreshold ? Number(entity.dailyLimitThreshold) : undefined,
+      balanceHighThreshold: entity.balanceHighThreshold
+        ? Number(entity.balanceHighThreshold)
+        : undefined,
+      dailyLimitThreshold: entity.dailyLimitThreshold
+        ? Number(entity.dailyLimitThreshold)
+        : undefined,
       alertTypes: entity.alertTypes as AlertType[],
       quietHoursEnabled: entity.quietHoursEnabled,
       quietHoursStart: entity.quietHoursStart || undefined,

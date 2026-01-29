@@ -216,7 +216,9 @@ export interface IBillProviderAdapter {
   /**
    * Validate customer account with the provider
    */
-  validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult>;
+  validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult>;
 
   /**
    * Process bill payment

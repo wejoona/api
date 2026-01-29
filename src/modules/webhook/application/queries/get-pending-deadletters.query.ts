@@ -12,13 +12,11 @@ export class GetPendingDeadlettersQuery {
  * Returns all pending dead-letter entries, optionally filtered by provider
  */
 @QueryHandler(GetPendingDeadlettersQuery)
-export class GetPendingDeadlettersQueryHandler
-  implements
-    IQueryHandler<GetPendingDeadlettersQuery, WebhookDeadletterOrmEntity[]>
-{
-  constructor(
-    private readonly deadletterService: WebhookDeadletterService,
-  ) {}
+export class GetPendingDeadlettersQueryHandler implements IQueryHandler<
+  GetPendingDeadlettersQuery,
+  WebhookDeadletterOrmEntity[]
+> {
+  constructor(private readonly deadletterService: WebhookDeadletterService) {}
 
   async execute(
     query: GetPendingDeadlettersQuery,

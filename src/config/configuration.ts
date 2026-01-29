@@ -78,7 +78,9 @@ export default () => ({
     length: parseInt(process.env.OTP_LENGTH, 10) || 6,
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 3,
     // Dev mode: use fixed OTP for testing (default: 123456)
-    useDevOtp: process.env.OTP_USE_DEV === 'true' || process.env.NODE_ENV === 'development',
+    useDevOtp:
+      process.env.OTP_USE_DEV === 'true' ||
+      process.env.NODE_ENV === 'development',
     devOtp: process.env.OTP_DEV_CODE || '123456',
     enableDebugLogging: process.env.OTP_DEBUG_LOGGING === 'true',
   },
@@ -100,8 +102,10 @@ export default () => ({
   // KYC Verification Settings
   kyc: {
     autoApprovalEnabled: process.env.KYC_AUTO_APPROVAL_ENABLED !== 'false', // Default true
-    autoApprovalThreshold: parseInt(process.env.KYC_AUTO_APPROVAL_THRESHOLD, 10) || 80,
-    autoRejectThreshold: parseInt(process.env.KYC_AUTO_REJECT_THRESHOLD, 10) || 40,
+    autoApprovalThreshold:
+      parseInt(process.env.KYC_AUTO_APPROVAL_THRESHOLD, 10) || 80,
+    autoRejectThreshold:
+      parseInt(process.env.KYC_AUTO_REJECT_THRESHOLD, 10) || 40,
     provider: process.env.KYC_PROVIDER || 'mock', // 'mock', 'onfido', 'jumio', etc.
   },
 
@@ -111,7 +115,8 @@ export default () => ({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
     s3Bucket: process.env.AWS_S3_BUCKET || 'joonapay-kyc-documents',
-    useMock: process.env.AWS_USE_MOCK === 'true' || !process.env.AWS_ACCESS_KEY_ID,
+    useMock:
+      process.env.AWS_USE_MOCK === 'true' || !process.env.AWS_ACCESS_KEY_ID,
   },
 
   // App-specific settings
@@ -164,8 +169,7 @@ export default () => ({
       parseInt(process.env.STRUCTURING_TIME_WINDOW, 10) || 24,
 
     // Cross-border transaction alerts
-    crossBorderAlertEnabled:
-      process.env.CROSS_BORDER_ALERT_ENABLED !== 'false', // Default true
+    crossBorderAlertEnabled: process.env.CROSS_BORDER_ALERT_ENABLED !== 'false', // Default true
 
     // Auto-generate SARs for critical risk scores
     autoGenerateSar: process.env.AUTO_GENERATE_SAR === 'true', // Default false (manual review)

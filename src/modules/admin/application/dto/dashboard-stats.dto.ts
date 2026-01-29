@@ -57,7 +57,7 @@ export class DashboardStatsDto {
 
   @ApiProperty({
     description: 'Total transaction volume (all time)',
-    example: 125000.50,
+    example: 125000.5,
   })
   totalVolume: number;
 

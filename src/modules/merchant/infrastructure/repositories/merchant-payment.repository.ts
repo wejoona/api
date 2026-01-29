@@ -20,12 +20,16 @@ export class MerchantPaymentRepository implements IMerchantPaymentRepository {
     return orm ? this.mapper.toDomain(orm) : null;
   }
 
-  async findByPaymentId(paymentId: string): Promise<MerchantPaymentEntity | null> {
+  async findByPaymentId(
+    paymentId: string,
+  ): Promise<MerchantPaymentEntity | null> {
     const orm = await this.repository.findOne({ where: { paymentId } });
     return orm ? this.mapper.toDomain(orm) : null;
   }
 
-  async findByReference(reference: string): Promise<MerchantPaymentEntity | null> {
+  async findByReference(
+    reference: string,
+  ): Promise<MerchantPaymentEntity | null> {
     const orm = await this.repository.findOne({ where: { reference } });
     return orm ? this.mapper.toDomain(orm) : null;
   }

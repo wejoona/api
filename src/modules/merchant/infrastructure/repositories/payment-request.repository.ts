@@ -19,7 +19,9 @@ export class PaymentRequestRepository implements IPaymentRequestRepository {
     return orm ? this.mapper.toDomain(orm) : null;
   }
 
-  async findByRequestId(requestId: string): Promise<PaymentRequestEntity | null> {
+  async findByRequestId(
+    requestId: string,
+  ): Promise<PaymentRequestEntity | null> {
     const orm = await this.repository.findOne({ where: { requestId } });
     return orm ? this.mapper.toDomain(orm) : null;
   }
@@ -67,7 +69,9 @@ export class PaymentRequestRepository implements IPaymentRequestRepository {
     return orms.map((orm) => this.mapper.toDomain(orm));
   }
 
-  async save(paymentRequest: PaymentRequestEntity): Promise<PaymentRequestEntity> {
+  async save(
+    paymentRequest: PaymentRequestEntity,
+  ): Promise<PaymentRequestEntity> {
     const persistence = this.mapper.toPersistence(paymentRequest);
     const saved = await this.repository.save(
       persistence as PaymentRequestOrmEntity,

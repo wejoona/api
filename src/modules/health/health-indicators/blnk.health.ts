@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
+import {
+  HealthIndicator,
+  HealthIndicatorResult,
+  HealthCheckError,
+} from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -9,7 +13,10 @@ export class BlnkHealthIndicator extends HealthIndicator {
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const blnkUrl = this.configService.get<string>('blnk.url', 'http://localhost:5001');
+    const blnkUrl = this.configService.get<string>(
+      'blnk.url',
+      'http://localhost:5001',
+    );
     const startTime = Date.now();
 
     try {
@@ -32,7 +39,8 @@ export class BlnkHealthIndicator extends HealthIndicator {
       throw new Error(`Blnk API returned status ${response.status}`);
     } catch (error) {
       const latency = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       throw new HealthCheckError(
         'Blnk API check failed',

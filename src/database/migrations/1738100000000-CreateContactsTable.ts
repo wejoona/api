@@ -153,7 +153,10 @@ export class CreateContactsTable1738100000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropUniqueConstraint('contacts', 'UQ_contacts_user_phone');
+    await queryRunner.dropUniqueConstraint(
+      'contacts',
+      'UQ_contacts_user_phone',
+    );
     await queryRunner.dropUniqueConstraint(
       'contacts',
       'UQ_contacts_user_wallet_address',

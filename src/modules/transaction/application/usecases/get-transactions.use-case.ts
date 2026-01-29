@@ -36,8 +36,18 @@ export class GetTransactionsUseCase {
 
   async execute(input: GetTransactionsInput): Promise<GetTransactionsOutput> {
     const wallet = await this.walletRepository.findByUserId(input.userId);
+
+    // If no wallet exists, return empty transactions list
     if (!wallet) {
-      throw new NotFoundException('Wallet not found');
+      const limit = input.limit || 20;
+      const offset = input.offset || 0;
+      return {
+        transactions: [],
+        total: 0,
+        limit,
+        offset,
+        hasMore: false,
+      };
     }
 
     // Build filters

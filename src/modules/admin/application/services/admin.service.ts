@@ -351,7 +351,11 @@ export class AdminService {
     };
 
     // Cache for 1 minute
-    await this.cacheManager.set(this.DASHBOARD_CACHE_KEY, stats, this.CACHE_TTL * 1000);
+    await this.cacheManager.set(
+      this.DASHBOARD_CACHE_KEY,
+      stats,
+      this.CACHE_TTL * 1000,
+    );
 
     return stats;
   }
@@ -364,7 +368,8 @@ export class AdminService {
     const cacheKey = `${this.ENHANCED_DASHBOARD_CACHE_KEY}:${days}`;
 
     // Try to get from cache first
-    const cached = await this.cacheManager.get<EnhancedDashboardStats>(cacheKey);
+    const cached =
+      await this.cacheManager.get<EnhancedDashboardStats>(cacheKey);
     if (cached) {
       this.logger.debug('Returning cached enhanced dashboard stats');
       return cached;

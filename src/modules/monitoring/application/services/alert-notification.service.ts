@@ -36,7 +36,9 @@ export class AlertNotificationService {
       const channels = this.determineChannels(shouldNotify, alert.severity);
 
       if (channels.length === 0) {
-        this.logger.debug(`No notification channels enabled for alert ${alert.alertId}`);
+        this.logger.debug(
+          `No notification channels enabled for alert ${alert.alertId}`,
+        );
         return;
       }
 
@@ -59,11 +61,13 @@ export class AlertNotificationService {
         email: user.email,
       });
 
-      this.logger.log(`Sent notification for alert ${alert.alertId} via ${channels.join(', ')}`);
+      this.logger.log(
+        `Sent notification for alert ${alert.alertId} via ${channels.join(', ')}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to send notification for alert ${alert.alertId}: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -102,9 +106,14 @@ export class AlertNotificationService {
   /**
    * Send immediate SMS for critical alerts
    */
-  async sendCriticalSms(alert: TransactionAlert, phoneNumber: string): Promise<void> {
+  async sendCriticalSms(
+    alert: TransactionAlert,
+    phoneNumber: string,
+  ): Promise<void> {
     if (!phoneNumber) {
-      this.logger.warn(`No phone number for critical SMS alert ${alert.alertId}`);
+      this.logger.warn(
+        `No phone number for critical SMS alert ${alert.alertId}`,
+      );
       return;
     }
 
@@ -139,12 +148,22 @@ export class AlertNotificationService {
     }
 
     try {
-      const criticalCount = alerts.filter((a) => a.severity === 'critical').length;
-      const warningCount = alerts.filter((a) => a.severity === 'warning').length;
+      const criticalCount = alerts.filter(
+        (a) => a.severity === 'critical',
+      ).length;
+      const warningCount = alerts.filter(
+        (a) => a.severity === 'warning',
+      ).length;
       const infoCount = alerts.filter((a) => a.severity === 'info').length;
 
       const title = `Your ${period} alert summary`;
-      const body = this.formatDigestBody(alerts, criticalCount, warningCount, infoCount, period);
+      const body = this.formatDigestBody(
+        alerts,
+        criticalCount,
+        warningCount,
+        infoCount,
+        period,
+      );
 
       await this.notificationService.send({
         userId,
@@ -187,7 +206,10 @@ export class AlertNotificationService {
     }
 
     // SMS only for critical or if explicitly enabled
-    if (shouldNotify.sms && (severity === 'critical' || severity === 'warning')) {
+    if (
+      shouldNotify.sms &&
+      (severity === 'critical' || severity === 'warning')
+    ) {
       channels.push('sms');
     }
 
@@ -197,7 +219,9 @@ export class AlertNotificationService {
   /**
    * Map severity to notification priority
    */
-  private mapSeverityToPriority(severity: string): 'low' | 'normal' | 'high' | 'critical' {
+  private mapSeverityToPriority(
+    severity: string,
+  ): 'low' | 'normal' | 'high' | 'critical' {
     switch (severity) {
       case 'critical':
         return 'critical';

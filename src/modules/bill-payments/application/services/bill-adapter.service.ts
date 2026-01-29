@@ -1,6 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { IBillProviderAdapter, BillPaymentError, BillPaymentErrorCodes } from '../../domain/types';
+import {
+  IBillProviderAdapter,
+  BillPaymentError,
+  BillPaymentErrorCodes,
+} from '../../domain/types';
 import {
   CieAdapter,
   SodeciAdapter,
@@ -91,7 +95,9 @@ export class BillAdapterService implements OnModuleInit {
     try {
       return await adapter.isAvailable();
     } catch (error) {
-      this.logger.warn(`Health check failed for adapter ${adapterType}: ${error}`);
+      this.logger.warn(
+        `Health check failed for adapter ${adapterType}: ${error}`,
+      );
       return false;
     }
   }

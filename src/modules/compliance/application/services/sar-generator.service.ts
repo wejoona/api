@@ -672,8 +672,7 @@ export class SARGeneratorService {
       (sum, sar) => sum + Number(sar.riskScore),
       0,
     );
-    const averageRiskScore =
-      sars.length > 0 ? totalRiskScore / sars.length : 0;
+    const averageRiskScore = sars.length > 0 ? totalRiskScore / sars.length : 0;
 
     return {
       totalSARs: sars.length,

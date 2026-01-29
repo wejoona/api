@@ -23,7 +23,10 @@ export class RiskClientFactory {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.mode = this.configService.get<RiskClientMode>('RISK_CLIENT_MODE', 'mock');
+    this.mode = this.configService.get<RiskClientMode>(
+      'RISK_CLIENT_MODE',
+      'mock',
+    );
     this.logger.log(`Risk client mode: ${this.mode}`);
   }
 
@@ -46,7 +49,10 @@ export class RiskClientFactory {
 
   private getLiveClient(): RiskManagerClient {
     if (!this.liveClient) {
-      this.liveClient = new RiskManagerClient(this.configService, this.httpService);
+      this.liveClient = new RiskManagerClient(
+        this.configService,
+        this.httpService,
+      );
     }
     return this.liveClient;
   }
@@ -73,7 +79,9 @@ export class RiskClientFactory {
             try {
               return await originalMethod.apply(target, args);
             } catch (error) {
-              logger.warn(`Live risk client failed, falling back to mock for ${String(prop)}`);
+              logger.warn(
+                `Live risk client failed, falling back to mock for ${String(prop)}`,
+              );
               const mockMethod = Reflect.get(mock, prop);
               if (typeof mockMethod === 'function') {
                 return mockMethod.apply(mock, args);

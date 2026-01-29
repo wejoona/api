@@ -23,7 +23,9 @@ import {
   SetupUserBalanceMonitorsUseCase,
   RefreshTokenUsecase,
   LogoutUsecase,
+  LogoutAllUsecase,
   UsernameUsecase,
+  GetUserLimitsUseCase,
 } from './application/domain/usecases';
 
 // Controllers
@@ -36,6 +38,7 @@ import { JwtStrategy } from '../../common/guards';
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
 import { KycModule } from '../kyc/kyc.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
   imports: [
@@ -56,6 +59,7 @@ import { KycModule } from '../kyc/kyc.module';
     }),
     forwardRef(() => WalletModule),
     forwardRef(() => KycModule),
+    forwardRef(() => TransactionModule),
   ],
   controllers: [
     AuthController,
@@ -77,7 +81,9 @@ import { KycModule } from '../kyc/kyc.module';
     SetupUserBalanceMonitorsUseCase,
     RefreshTokenUsecase,
     LogoutUsecase,
+    LogoutAllUsecase,
     UsernameUsecase,
+    GetUserLimitsUseCase,
     // Strategy
     JwtStrategy,
   ],

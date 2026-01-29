@@ -10,7 +10,10 @@ import {
   IsUrl,
   Matches,
 } from 'class-validator';
-import { MerchantCategory, MERCHANT_CATEGORIES } from '../../../domain/entities/merchant.types';
+import {
+  MerchantCategory,
+  MERCHANT_CATEGORIES,
+} from '../../../domain/entities/merchant.types';
 
 export class RegisterMerchantDto {
   @ApiProperty({

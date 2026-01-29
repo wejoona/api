@@ -31,7 +31,12 @@ export class ContactOrmEntity {
   @Index()
   phone: string | null;
 
-  @Column({ name: 'wallet_address', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'wallet_address',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Index()
   walletAddress: string | null;
 

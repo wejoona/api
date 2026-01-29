@@ -4,7 +4,10 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { PaymentSchedule, ScheduleStatus } from '../../domain/interfaces/scheduled-payment.types';
+import {
+  PaymentSchedule,
+  ScheduleStatus,
+} from '../../domain/interfaces/scheduled-payment.types';
 
 @Injectable()
 export class ScheduleRepository {
@@ -16,33 +19,41 @@ export class ScheduleRepository {
 
   async findByUserId(userId: string): Promise<PaymentSchedule[]> {
     return Array.from(this.schedules.values())
-      .filter(s => s.userId === userId)
+      .filter((s) => s.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async findByStatus(status: ScheduleStatus): Promise<PaymentSchedule[]> {
-    return Array.from(this.schedules.values()).filter(s => s.status === status);
+    return Array.from(this.schedules.values()).filter(
+      (s) => s.status === status,
+    );
   }
 
   async findDueForExecution(): Promise<PaymentSchedule[]> {
     const now = new Date();
-    return Array.from(this.schedules.values())
-      .filter(s =>
-        s.status === 'active' &&
-        s.nextExecutionAt &&
-        s.nextExecutionAt <= now
-      );
+    return Array.from(this.schedules.values()).filter(
+      (s) =>
+        s.status === 'active' && s.nextExecutionAt && s.nextExecutionAt <= now,
+    );
   }
 
-  async findUpcoming(userId: string, beforeDate: Date): Promise<PaymentSchedule[]> {
+  async findUpcoming(
+    userId: string,
+    beforeDate: Date,
+  ): Promise<PaymentSchedule[]> {
     return Array.from(this.schedules.values())
-      .filter(s =>
-        s.userId === userId &&
-        s.status === 'active' &&
-        s.nextExecutionAt &&
-        s.nextExecutionAt <= beforeDate
+      .filter(
+        (s) =>
+          s.userId === userId &&
+          s.status === 'active' &&
+          s.nextExecutionAt &&
+          s.nextExecutionAt <= beforeDate,
       )
-      .sort((a, b) => (a.nextExecutionAt?.getTime() || 0) - (b.nextExecutionAt?.getTime() || 0));
+      .sort(
+        (a, b) =>
+          (a.nextExecutionAt?.getTime() || 0) -
+          (b.nextExecutionAt?.getTime() || 0),
+      );
   }
 
   async create(schedule: PaymentSchedule): Promise<PaymentSchedule> {
@@ -50,7 +61,10 @@ export class ScheduleRepository {
     return schedule;
   }
 
-  async update(id: string, updates: Partial<PaymentSchedule>): Promise<PaymentSchedule> {
+  async update(
+    id: string,
+    updates: Partial<PaymentSchedule>,
+  ): Promise<PaymentSchedule> {
     const existing = this.schedules.get(id);
     if (!existing) throw new Error(`Schedule not found: ${id}`);
 
@@ -68,8 +82,8 @@ export class ScheduleRepository {
   }
 
   async countByUserId(userId: string): Promise<number> {
-    return Array.from(this.schedules.values())
-      .filter(s => s.userId === userId && s.status === 'active')
-      .length;
+    return Array.from(this.schedules.values()).filter(
+      (s) => s.userId === userId && s.status === 'active',
+    ).length;
   }
 }

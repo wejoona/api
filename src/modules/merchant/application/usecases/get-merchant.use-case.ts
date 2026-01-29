@@ -100,7 +100,11 @@ export class GetMerchantByQrUseCase {
     private readonly getMerchantUseCase: GetMerchantUseCase,
   ) {}
 
-  async execute(qrData: string): Promise<GetMerchantOutput & { qrType: string; amount?: number; requestId?: string }> {
+  async execute(
+    qrData: string,
+  ): Promise<
+    GetMerchantOutput & { qrType: string; amount?: number; requestId?: string }
+  > {
     // Import QrCodeService to decode
     // For simplicity, we'll parse the URL directly here
     try {
@@ -114,7 +118,9 @@ export class GetMerchantByQrUseCase {
         throw new NotFoundException('Invalid QR code');
       }
 
-      const merchantData = await this.getMerchantUseCase.execute({ merchantId });
+      const merchantData = await this.getMerchantUseCase.execute({
+        merchantId,
+      });
 
       return {
         ...merchantData,

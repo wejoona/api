@@ -22,10 +22,10 @@ import { TransactionRiskService } from '../../../risk/application/services/trans
 
 // SECURITY: KYC-based daily transfer limits (shared with internal transfers)
 const DAILY_TRANSFER_LIMITS = {
-  none: 100,        // $100/day for unverified users
-  pending: 100,     // $100/day while KYC is pending
-  verified: 10000,  // $10,000/day for verified users
-  rejected: 0,      // No transfers for rejected KYC
+  none: 100, // $100/day for unverified users
+  pending: 100, // $100/day while KYC is pending
+  verified: 10000, // $10,000/day for verified users
+  rejected: 0, // No transfers for rejected KYC
 };
 
 export interface ExternalTransferInput {
@@ -120,7 +120,14 @@ export class ExternalTransferUseCase {
 
     // PHASE 1: Reserve funds with short-lived lock
     const { walletId, transactionId, yellowCardWalletId } =
-      await this.reserveFunds(input.userId, totalAmount, input.toAddress, currency, fee, input.network);
+      await this.reserveFunds(
+        input.userId,
+        totalAmount,
+        input.toAddress,
+        currency,
+        fee,
+        input.network,
+      );
 
     // PHASE 2: Execute external transfer (no lock held)
     try {
@@ -133,7 +140,11 @@ export class ExternalTransferUseCase {
       });
 
       // PHASE 3: Finalize transaction (short lock)
-      await this.finalizeTransaction(transactionId, transferResponse, 'completed');
+      await this.finalizeTransaction(
+        transactionId,
+        transferResponse,
+        'completed',
+      );
 
       this.logger.log(
         `External transfer completed: ${transactionId}, amount: ${input.amount}, fee: ${fee}`,
@@ -179,7 +190,11 @@ export class ExternalTransferUseCase {
     fee: number,
     network?: string,
     attempt = 1,
-  ): Promise<{ walletId: string; transactionId: string; yellowCardWalletId: string }> {
+  ): Promise<{
+    walletId: string;
+    transactionId: string;
+    yellowCardWalletId: string;
+  }> {
     try {
       return await this.dataSource.transaction(async (manager) => {
         // Get wallet without pessimistic lock - using optimistic locking via version column
@@ -247,7 +262,15 @@ export class ExternalTransferUseCase {
           );
           // Small delay before retry to reduce contention
           await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-          return this.reserveFunds(userId, totalAmount, toAddress, currency, fee, network, attempt + 1);
+          return this.reserveFunds(
+            userId,
+            totalAmount,
+            toAddress,
+            currency,
+            fee,
+            network,
+            attempt + 1,
+          );
         }
         throw new ConflictException(
           'Transfer failed due to concurrent modification. Please try again.',
@@ -309,7 +332,9 @@ export class ExternalTransferUseCase {
         });
       });
 
-      this.logger.log(`Refunded ${amount} for failed transaction ${transactionId}`);
+      this.logger.log(
+        `Refunded ${amount} for failed transaction ${transactionId}`,
+      );
     } catch (error) {
       // Handle optimistic lock conflict - retry refund
       if (
@@ -321,7 +346,12 @@ export class ExternalTransferUseCase {
             `Optimistic lock conflict on refund, retrying (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
           );
           await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-          return this.refundTransaction(transactionId, userId, amount, attempt + 1);
+          return this.refundTransaction(
+            transactionId,
+            userId,
+            amount,
+            attempt + 1,
+          );
         }
       }
       // Log but don't throw - refund failure needs manual intervention
@@ -337,18 +367,25 @@ export class ExternalTransferUseCase {
    * SECURITY: Check if user has exceeded their daily transfer limit based on KYC status
    * Note: Blnk provides ledger-level tracking, this is additional application-level security
    */
-  private async checkTransferLimits(userId: string, amount: number): Promise<void> {
+  private async checkTransferLimits(
+    userId: string,
+    amount: number,
+  ): Promise<void> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const kycStatus = user.kycStatus || 'none';
-    const dailyLimit = DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ?? DAILY_TRANSFER_LIMITS.none;
+    const dailyLimit =
+      DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ??
+      DAILY_TRANSFER_LIMITS.none;
 
     // If KYC is rejected, block all transfers
     if (dailyLimit === 0) {
-      throw new BadRequestException('Transfers are disabled. Please contact support regarding your KYC status.');
+      throw new BadRequestException(
+        'Transfers are disabled. Please contact support regarding your KYC status.',
+      );
     }
 
     // Get today's transfer volume
@@ -365,13 +402,13 @@ export class ExternalTransferUseCase {
       const remaining = Math.max(0, dailyLimit - dailyVolume);
       throw new BadRequestException(
         `Daily transfer limit exceeded. Your limit is $${dailyLimit}/day (KYC: ${kycStatus}). ` +
-        `You have $${remaining.toFixed(2)} remaining today.`
+          `You have $${remaining.toFixed(2)} remaining today.`,
       );
     }
 
     this.logger.debug(
       `Transfer limit check passed: user=${userId}, kycStatus=${kycStatus}, ` +
-      `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`
+        `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`,
     );
   }
 
@@ -458,7 +495,9 @@ export class ExternalTransferUseCase {
   ): Promise<void> {
     const blockchain = this.mapNetworkToBlockchain(network);
 
-    this.logger.log(`[COMPLIANCE] Screening address: ${address} on ${blockchain}`);
+    this.logger.log(
+      `[COMPLIANCE] Screening address: ${address} on ${blockchain}`,
+    );
 
     const result = await this.riskService.isAddressSafe(address, blockchain);
 
@@ -470,7 +509,7 @@ export class ExternalTransferUseCase {
 
       throw new ForbiddenException(
         `Transfer blocked: This destination address has been flagged by our compliance system. ` +
-        `Reason: ${result.reason || 'Compliance check failed'}`,
+          `Reason: ${result.reason || 'Compliance check failed'}`,
       );
     }
 
@@ -480,8 +519,13 @@ export class ExternalTransferUseCase {
   /**
    * Map network name to Circle blockchain identifier
    */
-  private mapNetworkToBlockchain(network?: string): 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL' {
-    const networkMap: Record<string, 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL'> = {
+  private mapNetworkToBlockchain(
+    network?: string,
+  ): 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL' {
+    const networkMap: Record<
+      string,
+      'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL'
+    > = {
       ethereum: 'ETH',
       eth: 'ETH',
       polygon: 'MATIC',

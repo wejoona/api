@@ -4,7 +4,10 @@
  */
 
 import { setup, assign } from 'xstate';
-import { ScheduleStatus, ScheduleFrequency } from '../interfaces/scheduled-payment.types';
+import {
+  ScheduleStatus,
+  ScheduleFrequency,
+} from '../interfaces/scheduled-payment.types';
 
 // Context
 export interface ScheduleContext {
@@ -45,7 +48,10 @@ export const scheduleMachine = setup({
   guards: {
     isCompleted: ({ context }) => {
       // Check if all occurrences completed
-      if (context.maxOccurrences && context.totalExecuted >= context.maxOccurrences) {
+      if (
+        context.maxOccurrences &&
+        context.totalExecuted >= context.maxOccurrences
+      ) {
         return true;
       }
       // Check if end date reached

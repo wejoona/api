@@ -46,15 +46,50 @@ import {
 } from '../usecases';
 import { BillCategory } from '../../domain/types';
 
-const CATEGORY_INFO: Record<BillCategory, { displayName: string; description: string; icon: string }> = {
-  electricity: { displayName: 'Electricity', description: 'Pay your electricity bills', icon: 'bolt' },
-  water: { displayName: 'Water', description: 'Pay your water bills', icon: 'water_drop' },
-  internet: { displayName: 'Internet', description: 'Pay for internet services', icon: 'wifi' },
-  tv: { displayName: 'TV', description: 'Pay for cable and TV subscriptions', icon: 'tv' },
-  phone_credit: { displayName: 'Phone Credit', description: 'Top up mobile phone credit', icon: 'phone_android' },
-  insurance: { displayName: 'Insurance', description: 'Pay insurance premiums', icon: 'security' },
-  education: { displayName: 'Education', description: 'Pay school fees and tuition', icon: 'school' },
-  government: { displayName: 'Government', description: 'Pay government fees and taxes', icon: 'account_balance' },
+const CATEGORY_INFO: Record<
+  BillCategory,
+  { displayName: string; description: string; icon: string }
+> = {
+  electricity: {
+    displayName: 'Electricity',
+    description: 'Pay your electricity bills',
+    icon: 'bolt',
+  },
+  water: {
+    displayName: 'Water',
+    description: 'Pay your water bills',
+    icon: 'water_drop',
+  },
+  internet: {
+    displayName: 'Internet',
+    description: 'Pay for internet services',
+    icon: 'wifi',
+  },
+  tv: {
+    displayName: 'TV',
+    description: 'Pay for cable and TV subscriptions',
+    icon: 'tv',
+  },
+  phone_credit: {
+    displayName: 'Phone Credit',
+    description: 'Top up mobile phone credit',
+    icon: 'phone_android',
+  },
+  insurance: {
+    displayName: 'Insurance',
+    description: 'Pay insurance premiums',
+    icon: 'security',
+  },
+  education: {
+    displayName: 'Education',
+    description: 'Pay school fees and tuition',
+    icon: 'school',
+  },
+  government: {
+    displayName: 'Government',
+    description: 'Pay government fees and taxes',
+    icon: 'account_balance',
+  },
 };
 
 @ApiTags('Bill Payments')
@@ -104,11 +139,14 @@ export class BillPaymentController {
       country: country as any,
     });
 
-    const categories: CategoryInfoDto[] = result.availableCategories.map((category) => ({
-      category,
-      ...CATEGORY_INFO[category],
-      providerCount: result.providers.filter((p) => p.category === category).length,
-    }));
+    const categories: CategoryInfoDto[] = result.availableCategories.map(
+      (category) => ({
+        category,
+        ...CATEGORY_INFO[category],
+        providerCount: result.providers.filter((p) => p.category === category)
+          .length,
+      }),
+    );
 
     return { categories };
   }
@@ -181,7 +219,9 @@ export class BillPaymentController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: PayBillDto,
   ): Promise<PayBillResponseDto> {
-    const idempotencyKey = req.headers['x-idempotency-key'] as string | undefined;
+    const idempotencyKey = req.headers['x-idempotency-key'] as
+      | string
+      | undefined;
 
     return this.payBillUseCase.execute({
       userId: req.user.id,

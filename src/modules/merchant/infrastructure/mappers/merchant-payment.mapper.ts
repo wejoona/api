@@ -37,7 +37,9 @@ export class MerchantPaymentMapper {
   /**
    * Convert domain entity to ORM entity for persistence
    */
-  toPersistence(domain: MerchantPaymentEntity): Partial<MerchantPaymentOrmEntity> {
+  toPersistence(
+    domain: MerchantPaymentEntity,
+  ): Partial<MerchantPaymentOrmEntity> {
     return {
       id: domain.id,
       paymentId: domain.paymentId,

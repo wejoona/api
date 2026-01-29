@@ -31,7 +31,9 @@ export class WebhookDeadletterService {
    */
   async log(params: LogDeadletterParams): Promise<WebhookDeadletterOrmEntity> {
     const errorMessage =
-      params.error instanceof Error ? params.error.message : String(params.error);
+      params.error instanceof Error
+        ? params.error.message
+        : String(params.error);
     const errorStack =
       params.error instanceof Error ? params.error.stack : undefined;
 
@@ -67,7 +69,9 @@ export class WebhookDeadletterService {
   /**
    * Find dead-letter entries by provider
    */
-  async findByProvider(provider: string): Promise<WebhookDeadletterOrmEntity[]> {
+  async findByProvider(
+    provider: string,
+  ): Promise<WebhookDeadletterOrmEntity[]> {
     return this.repository.find({
       where: { provider },
       order: { createdAt: 'DESC' },
@@ -77,11 +81,7 @@ export class WebhookDeadletterService {
   /**
    * Mark a dead-letter entry as resolved
    */
-  async resolve(
-    id: string,
-    resolvedBy: string,
-    notes?: string,
-  ): Promise<void> {
+  async resolve(id: string, resolvedBy: string, notes?: string): Promise<void> {
     await this.repository.update(id, {
       status: 'resolved',
       resolvedAt: new Date(),
@@ -94,18 +94,16 @@ export class WebhookDeadletterService {
   /**
    * Mark a dead-letter entry as ignored
    */
-  async ignore(
-    id: string,
-    ignoredBy: string,
-    reason?: string,
-  ): Promise<void> {
+  async ignore(id: string, ignoredBy: string, reason?: string): Promise<void> {
     await this.repository.update(id, {
       status: 'ignored',
       resolvedAt: new Date(),
       resolvedBy: ignoredBy,
       resolutionNotes: reason || null,
     });
-    this.logger.log(`Dead-letter ${id} ignored by ${ignoredBy}: ${reason || 'No reason provided'}`);
+    this.logger.log(
+      `Dead-letter ${id} ignored by ${ignoredBy}: ${reason || 'No reason provided'}`,
+    );
   }
 
   /**

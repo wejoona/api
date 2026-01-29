@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import {
+  Repository,
+  Between,
+  In,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+} from 'typeorm';
 import { BillPaymentOrmEntity } from '../orm-entities';
 import {
   BillPaymentStatus,
@@ -17,7 +23,9 @@ export class BillPaymentRepository {
     private readonly repository: Repository<BillPaymentOrmEntity>,
   ) {}
 
-  async create(payment: Partial<BillPaymentOrmEntity>): Promise<BillPaymentOrmEntity> {
+  async create(
+    payment: Partial<BillPaymentOrmEntity>,
+  ): Promise<BillPaymentOrmEntity> {
     const entity = this.repository.create(payment);
     return this.repository.save(entity);
   }
@@ -29,14 +37,18 @@ export class BillPaymentRepository {
     });
   }
 
-  async findByIdempotencyKey(key: string): Promise<BillPaymentOrmEntity | null> {
+  async findByIdempotencyKey(
+    key: string,
+  ): Promise<BillPaymentOrmEntity | null> {
     return this.repository.findOne({
       where: { idempotencyKey: key },
       relations: ['provider'],
     });
   }
 
-  async findByReceiptNumber(receiptNumber: string): Promise<BillPaymentOrmEntity | null> {
+  async findByReceiptNumber(
+    receiptNumber: string,
+  ): Promise<BillPaymentOrmEntity | null> {
     return this.repository.findOne({
       where: { receiptNumber },
       relations: ['provider'],
@@ -57,7 +69,8 @@ export class BillPaymentRepository {
   }
 
   async findPendingPayments(olderThan?: Date): Promise<BillPaymentOrmEntity[]> {
-    const qb = this.repository.createQueryBuilder('payment')
+    const qb = this.repository
+      .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.provider', 'provider')
       .where('payment.status IN (:...statuses)', {
         statuses: ['pending', 'processing'],
@@ -70,12 +83,15 @@ export class BillPaymentRepository {
     return qb.orderBy('payment.createdAt', 'ASC').getMany();
   }
 
-  async getPaginatedHistory(query: GetPaymentHistoryQuery): Promise<PaginatedBillPaymentHistory> {
+  async getPaginatedHistory(
+    query: GetPaymentHistoryQuery,
+  ): Promise<PaginatedBillPaymentHistory> {
     const page = query.page || 1;
     const limit = Math.min(query.limit || 20, 100);
     const offset = (page - 1) * limit;
 
-    const qb = this.repository.createQueryBuilder('payment')
+    const qb = this.repository
+      .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.provider', 'provider')
       .where('payment.userId = :userId', { userId: query.userId });
 
@@ -88,7 +104,9 @@ export class BillPaymentRepository {
     }
 
     if (query.startDate) {
-      qb.andWhere('payment.createdAt >= :startDate', { startDate: query.startDate });
+      qb.andWhere('payment.createdAt >= :startDate', {
+        startDate: query.startDate,
+      });
     }
 
     if (query.endDate) {
@@ -142,7 +160,10 @@ export class BillPaymentRepository {
     });
   }
 
-  async getDailyPaymentVolume(userId: string, startOfDay: Date): Promise<number> {
+  async getDailyPaymentVolume(
+    userId: string,
+    startOfDay: Date,
+  ): Promise<number> {
     const result = await this.repository
       .createQueryBuilder('payment')
       .select('SUM(payment.totalAmount)', 'total')

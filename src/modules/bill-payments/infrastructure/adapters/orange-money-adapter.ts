@@ -22,7 +22,10 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
 
   constructor(private readonly configService: ConfigService) {
     const config: BillProviderConfig = {
-      apiBaseUrl: configService.get<string>('ORANGE_API_URL', 'https://api.orange.com'),
+      apiBaseUrl: configService.get<string>(
+        'ORANGE_API_URL',
+        'https://api.orange.com',
+      ),
       apiKey: configService.get<string>('ORANGE_CLIENT_ID', ''),
       apiSecret: configService.get<string>('ORANGE_CLIENT_SECRET'),
       timeout: 30000,
@@ -56,16 +59,18 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
         'grant_type=client_credentials',
         {
           headers: {
-            'Authorization': `Basic ${credentials}`,
+            Authorization: `Basic ${credentials}`,
             'Content-Type': 'application/x-www-form-urlencoded',
           },
         },
       );
 
       this.accessToken = response.data.access_token;
-      this.tokenExpiry = new Date(Date.now() + (response.data.expires_in - 60) * 1000);
+      this.tokenExpiry = new Date(
+        Date.now() + (response.data.expires_in - 60) * 1000,
+      );
 
-      return this.accessToken!;
+      return this.accessToken;
     } catch (error) {
       throw new BillPaymentError(
         'Failed to authenticate with Orange API',
@@ -75,7 +80,9 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
     }
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     return this.withRetry(async () => {
       try {
         // Orange airtime doesn't require validation, just verify phone format
@@ -103,7 +110,9 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
           isValid: isActive,
           accountNumber: phoneNumber,
           customerName: isActive ? 'Orange Subscriber' : undefined,
-          message: isActive ? 'Valid Orange subscriber' : 'Subscriber not found or inactive',
+          message: isActive
+            ? 'Valid Orange subscriber'
+            : 'Subscriber not found or inactive',
         };
       } catch (error) {
         // For airtime, we can proceed even if validation fails
@@ -126,10 +135,12 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
       /^226(5[4-9]|6[0-9]|7[0-9])\d{6}$/, // Burkina Faso
     ];
 
-    return patterns.some(pattern => pattern.test(phone));
+    return patterns.some((pattern) => pattern.test(phone));
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     return this.withRetry(async () => {
       try {
         const reference = this.generateReference('ONG');
@@ -146,7 +157,9 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
             currency: request.currency || 'XOF',
             orderId: reference,
             description: `Airtime top-up for ${phoneNumber}`,
-            notificationUrl: this.configService.get<string>('BILL_PAYMENT_WEBHOOK_URL'),
+            notificationUrl: this.configService.get<string>(
+              'BILL_PAYMENT_WEBHOOK_URL',
+            ),
           },
         );
 
@@ -171,7 +184,8 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
           totalAmount: request.amount + (data.fee || 0),
           currency: request.currency || 'XOF',
           paidAt: data.status === 'SUCCESS' ? new Date() : undefined,
-          estimatedCompletionTime: data.status === 'PENDING' ? '1-5 minutes' : undefined,
+          estimatedCompletionTime:
+            data.status === 'PENDING' ? '1-5 minutes' : undefined,
           metadata: {
             msisdn: phoneNumber,
             country: country,
@@ -235,16 +249,21 @@ export class OrangeMoneyAdapter extends BaseBillAdapter {
     }
   }
 
-  private mapStatus(providerStatus: string): 'pending' | 'processing' | 'completed' | 'failed' {
-    const statusMap: Record<string, 'pending' | 'processing' | 'completed' | 'failed'> = {
-      'PENDING': 'pending',
-      'INITIATED': 'pending',
-      'PROCESSING': 'processing',
-      'SUCCESS': 'completed',
-      'SUCCESSFUL': 'completed',
-      'FAILED': 'failed',
-      'CANCELLED': 'failed',
-      'EXPIRED': 'failed',
+  private mapStatus(
+    providerStatus: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
+    const statusMap: Record<
+      string,
+      'pending' | 'processing' | 'completed' | 'failed'
+    > = {
+      PENDING: 'pending',
+      INITIATED: 'pending',
+      PROCESSING: 'processing',
+      SUCCESS: 'completed',
+      SUCCESSFUL: 'completed',
+      FAILED: 'failed',
+      CANCELLED: 'failed',
+      EXPIRED: 'failed',
     };
     return statusMap[providerStatus?.toUpperCase()] || 'pending';
   }

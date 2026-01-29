@@ -83,10 +83,7 @@ export class LogoutUsecase implements OnModuleDestroy {
 
     try {
       // Decode the refresh token to get expiry (without verifying signature)
-      const decoded = this.jwtService.decode(input.refreshToken) as {
-        exp?: number;
-        sub?: string;
-      };
+      const decoded = this.jwtService.decode(input.refreshToken);
 
       if (!decoded || !decoded.exp) {
         throw new UnauthorizedException('Invalid refresh token format');

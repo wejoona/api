@@ -14,7 +14,11 @@ import {
   Matches,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { BillCategory, BillPaymentStatus, SupportedCountry } from '../../domain/types';
+import {
+  BillCategory,
+  BillPaymentStatus,
+  SupportedCountry,
+} from '../../domain/types';
 
 // ============================================================================
 // GET PROVIDERS
@@ -24,7 +28,21 @@ export class GetProvidersQueryDto {
   @ApiPropertyOptional({
     description: 'Country code (ISO 3166-1 alpha-2)',
     example: 'CI',
-    enum: ['CI', 'SN', 'ML', 'BF', 'BJ', 'TG', 'NE', 'GW', 'CM', 'GA', 'CG', 'GH', 'NG'],
+    enum: [
+      'CI',
+      'SN',
+      'ML',
+      'BF',
+      'BJ',
+      'TG',
+      'NE',
+      'GW',
+      'CM',
+      'GA',
+      'CG',
+      'GH',
+      'NG',
+    ],
   })
   @IsOptional()
   @IsString()
@@ -34,10 +52,28 @@ export class GetProvidersQueryDto {
   @ApiPropertyOptional({
     description: 'Bill category',
     example: 'electricity',
-    enum: ['electricity', 'water', 'internet', 'tv', 'phone_credit', 'insurance', 'education', 'government'],
+    enum: [
+      'electricity',
+      'water',
+      'internet',
+      'tv',
+      'phone_credit',
+      'insurance',
+      'education',
+      'government',
+    ],
   })
   @IsOptional()
-  @IsEnum(['electricity', 'water', 'internet', 'tv', 'phone_credit', 'insurance', 'education', 'government'])
+  @IsEnum([
+    'electricity',
+    'water',
+    'internet',
+    'tv',
+    'phone_credit',
+    'insurance',
+    'education',
+    'government',
+  ])
   category?: BillCategory;
 }
 
@@ -191,10 +227,28 @@ export class GetPaymentHistoryQueryDto {
   @ApiPropertyOptional({
     description: 'Filter by category',
     example: 'electricity',
-    enum: ['electricity', 'water', 'internet', 'tv', 'phone_credit', 'insurance', 'education', 'government'],
+    enum: [
+      'electricity',
+      'water',
+      'internet',
+      'tv',
+      'phone_credit',
+      'insurance',
+      'education',
+      'government',
+    ],
   })
   @IsOptional()
-  @IsEnum(['electricity', 'water', 'internet', 'tv', 'phone_credit', 'insurance', 'education', 'government'])
+  @IsEnum([
+    'electricity',
+    'water',
+    'internet',
+    'tv',
+    'phone_credit',
+    'insurance',
+    'education',
+    'government',
+  ])
   category?: BillCategory;
 
   @ApiPropertyOptional({
@@ -211,7 +265,7 @@ export class GetPaymentHistoryQueryDto {
     example: '2026-01-01T00:00:00.000Z',
   })
   @IsOptional()
-  @Transform(({ value }) => value ? new Date(value) : undefined)
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
   startDate?: Date;
 
   @ApiPropertyOptional({
@@ -219,6 +273,6 @@ export class GetPaymentHistoryQueryDto {
     example: '2026-01-31T23:59:59.999Z',
   })
   @IsOptional()
-  @Transform(({ value }) => value ? new Date(value) : undefined)
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
   endDate?: Date;
 }

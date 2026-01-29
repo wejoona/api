@@ -87,7 +87,8 @@ export class MerchantController {
   })
   @ApiResponse({
     status: 409,
-    description: 'User already has a merchant account or business name is taken',
+    description:
+      'User already has a merchant account or business name is taken',
   })
   async register(
     @Request() req: AuthenticatedRequest,
@@ -116,7 +117,9 @@ export class MerchantController {
     status: 404,
     description: 'Merchant not found',
   })
-  async getMyMerchant(@Request() req: AuthenticatedRequest): Promise<MerchantResponse> {
+  async getMyMerchant(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<MerchantResponse> {
     return this.getMerchantUseCase.execute({ userId: req.user.id });
   }
 
@@ -261,7 +264,8 @@ export class MerchantController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid QR code, insufficient balance, or merchant not accepting payments',
+    description:
+      'Invalid QR code, insufficient balance, or merchant not accepting payments',
   })
   async processPayment(
     @Request() req: AuthenticatedRequest,

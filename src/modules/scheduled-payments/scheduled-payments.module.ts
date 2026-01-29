@@ -18,10 +18,7 @@ import { ExecutionRepository } from './infrastructure/repositories/execution.rep
 import { ScheduledPaymentController } from './application/controllers/scheduled-payment.controller';
 
 @Module({
-  imports: [
-    ConfigModule,
-    EventEmitterModule.forRoot(),
-  ],
+  imports: [ConfigModule, EventEmitterModule.forRoot()],
   controllers: [ScheduledPaymentController],
   providers: [
     // Repositories

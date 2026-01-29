@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
+import {
+  HealthIndicator,
+  HealthIndicatorResult,
+  HealthCheckError,
+} from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -9,7 +13,10 @@ export class CircleHealthIndicator extends HealthIndicator {
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const circleApiUrl = this.configService.get<string>('circle.apiUrl', 'https://api.circle.com');
+    const circleApiUrl = this.configService.get<string>(
+      'circle.apiUrl',
+      'https://api.circle.com',
+    );
     const startTime = Date.now();
 
     try {
@@ -17,7 +24,7 @@ export class CircleHealthIndicator extends HealthIndicator {
       const response = await fetch(`${circleApiUrl}/v1/ping`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         signal: AbortSignal.timeout(5000),
       });
@@ -37,7 +44,8 @@ export class CircleHealthIndicator extends HealthIndicator {
       throw new Error(`Circle API returned status ${response.status}`);
     } catch (error) {
       const latency = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       throw new HealthCheckError(
         'Circle API check failed',

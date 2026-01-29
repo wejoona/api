@@ -51,7 +51,10 @@ export interface PersistedState {
  * FSM Service interface
  */
 export interface IFsmService<TContext, TEvent extends BaseFsmEvent> {
-  start(entityId: string, initialContext?: Partial<TContext>): Promise<StateValue>;
+  start(
+    entityId: string,
+    initialContext?: Partial<TContext>,
+  ): Promise<StateValue>;
   send(entityId: string, event: TEvent): Promise<StateValue>;
   getState(entityId: string): Promise<StateValue | null>;
   canTransition(entityId: string, eventType: string): Promise<boolean>;

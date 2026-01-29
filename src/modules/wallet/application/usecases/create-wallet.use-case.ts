@@ -103,7 +103,10 @@ export class CreateWalletUseCase {
     // Step 3: Create Blnk ledger balance
     try {
       this.logger.log(`Creating Blnk balance for user ${userId}`);
-      blnkBalanceId = await this.ledgerProvider.createUserBalance(userId, 'USDC');
+      blnkBalanceId = await this.ledgerProvider.createUserBalance(
+        userId,
+        'USDC',
+      );
       this.logger.log(`Blnk balance created: ${blnkBalanceId}`);
     } catch (error) {
       this.logger.warn(

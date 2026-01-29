@@ -41,10 +41,7 @@ import { ScheduledPaymentNotificationListener } from './application/listeners/sc
 import { NotificationController } from './application/controllers/notification.controller';
 
 @Module({
-  imports: [
-    ConfigModule,
-    EventEmitterModule.forRoot(),
-  ],
+  imports: [ConfigModule, EventEmitterModule.forRoot()],
   controllers: [NotificationController],
   providers: [
     // Repositories
@@ -73,7 +70,11 @@ import { NotificationController } from './application/controllers/notification.c
     // Dynamic provider selection based on environment
     {
       provide: PUSH_NOTIFICATION_PROVIDER,
-      useFactory: (configService: ConfigService, firebase: FirebasePushProvider, mock: MockPushProvider) => {
+      useFactory: (
+        configService: ConfigService,
+        firebase: FirebasePushProvider,
+        mock: MockPushProvider,
+      ) => {
         const mode = configService.get<string>('NOTIFICATION_MODE', 'mock');
         return mode === 'live' ? firebase : mock;
       },

@@ -5,31 +5,31 @@
 
 // Schedule status
 export type ScheduleStatus =
-  | 'active'       // Schedule is active and will execute
-  | 'paused'       // Schedule is paused by user
-  | 'completed'    // All occurrences completed
-  | 'cancelled'    // Cancelled by user
-  | 'failed'       // Failed too many times, suspended
-  | 'expired';     // End date reached
+  | 'active' // Schedule is active and will execute
+  | 'paused' // Schedule is paused by user
+  | 'completed' // All occurrences completed
+  | 'cancelled' // Cancelled by user
+  | 'failed' // Failed too many times, suspended
+  | 'expired'; // End date reached
 
 // Execution status
 export type ExecutionStatus =
-  | 'pending'      // Waiting to execute
-  | 'processing'   // Currently executing
-  | 'completed'    // Successfully executed
-  | 'failed'       // Execution failed
-  | 'skipped'      // Skipped (e.g., insufficient balance)
-  | 'cancelled';   // Cancelled before execution
+  | 'pending' // Waiting to execute
+  | 'processing' // Currently executing
+  | 'completed' // Successfully executed
+  | 'failed' // Execution failed
+  | 'skipped' // Skipped (e.g., insufficient balance)
+  | 'cancelled'; // Cancelled before execution
 
 // Frequency types
 export type ScheduleFrequency =
-  | 'once'         // One-time scheduled payment
-  | 'daily'        // Every day
-  | 'weekly'       // Every week
-  | 'biweekly'     // Every 2 weeks
-  | 'monthly'      // Every month
-  | 'quarterly'    // Every 3 months
-  | 'yearly';      // Every year
+  | 'once' // One-time scheduled payment
+  | 'daily' // Every day
+  | 'weekly' // Every week
+  | 'biweekly' // Every 2 weeks
+  | 'monthly' // Every month
+  | 'quarterly' // Every 3 months
+  | 'yearly'; // Every year
 
 // Payment schedule
 export interface PaymentSchedule {
@@ -55,9 +55,9 @@ export interface PaymentSchedule {
 
   // Schedule configuration
   frequency: ScheduleFrequency;
-  dayOfWeek?: number;       // 0-6 for weekly
-  dayOfMonth?: number;      // 1-31 for monthly
-  time: string;             // HH:mm in user's timezone
+  dayOfWeek?: number; // 0-6 for weekly
+  dayOfMonth?: number; // 1-31 for monthly
+  time: string; // HH:mm in user's timezone
   timezone: string;
 
   // Limits

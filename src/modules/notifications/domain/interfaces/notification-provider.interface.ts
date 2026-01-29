@@ -50,7 +50,10 @@ export interface IPushNotificationProvider {
   /**
    * Send to topic
    */
-  sendToTopic?(topic: string, payload: PushNotificationPayload): Promise<DeliveryResult>;
+  sendToTopic?(
+    topic: string,
+    payload: PushNotificationPayload,
+  ): Promise<DeliveryResult>;
 }
 
 /**
@@ -114,4 +117,6 @@ export interface IEmailNotificationProvider {
 // Provider tokens for dependency injection
 export const PUSH_NOTIFICATION_PROVIDER = Symbol('PUSH_NOTIFICATION_PROVIDER');
 export const SMS_NOTIFICATION_PROVIDER = Symbol('SMS_NOTIFICATION_PROVIDER');
-export const EMAIL_NOTIFICATION_PROVIDER = Symbol('EMAIL_NOTIFICATION_PROVIDER');
+export const EMAIL_NOTIFICATION_PROVIDER = Symbol(
+  'EMAIL_NOTIFICATION_PROVIDER',
+);

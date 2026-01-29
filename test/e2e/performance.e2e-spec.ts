@@ -1,7 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('Performance E2E Tests', () => {
   let setup: E2ETestSetup;
@@ -33,9 +39,7 @@ describe('Performance E2E Tests', () => {
     it('should respond to health check within 100ms', async () => {
       const start = Date.now();
 
-      await request(app.getHttpServer())
-        .get('/health')
-        .expect(200);
+      await request(app.getHttpServer()).get('/health').expect(200);
 
       const duration = Date.now() - start;
       expect(duration).toBeLessThan(100);
@@ -121,14 +125,14 @@ describe('Performance E2E Tests', () => {
         .map(() =>
           request(app.getHttpServer())
             .get('/wallet')
-            .set('Authorization', `Bearer ${user.accessToken}`)
+            .set('Authorization', `Bearer ${user.accessToken}`),
         );
 
       const start = Date.now();
       const responses = await Promise.all(requests);
       const duration = Date.now() - start;
 
-      const successCount = responses.filter(r => r.status === 200).length;
+      const successCount = responses.filter((r) => r.status === 200).length;
       expect(successCount).toBe(concurrentRequests);
       expect(duration).toBeLessThan(5000); // All should complete within 5 seconds
     });
@@ -155,14 +159,16 @@ describe('Performance E2E Tests', () => {
             toPhone: recipient.phone,
             amount: 1,
             currency: 'USDC',
-          })
+          }),
       );
 
       const start = Date.now();
       const responses = await Promise.all(transferPromises);
       const duration = Date.now() - start;
 
-      const successCount = responses.filter(r => r.status === 200 || r.status === 201).length;
+      const successCount = responses.filter(
+        (r) => r.status === 200 || r.status === 201,
+      ).length;
       expect(successCount).toBeGreaterThan(0);
       expect(duration).toBeLessThan(10000);
     });
@@ -177,14 +183,14 @@ describe('Performance E2E Tests', () => {
             .send({
               phone: `+22507${String(index).padStart(8, '0')}`,
               countryCode: 'CI',
-            })
+            }),
         );
 
       const start = Date.now();
       const responses = await Promise.all(registrations);
       const duration = Date.now() - start;
 
-      const successCount = responses.filter(r => r.status === 201).length;
+      const successCount = responses.filter((r) => r.status === 201).length;
       expect(successCount).toBeGreaterThan(0);
       expect(duration).toBeLessThan(10000);
     });
@@ -291,14 +297,13 @@ describe('Performance E2E Tests', () => {
       for (let i = 0; i < iterations; i++) {
         const start = Date.now();
 
-        await request(app.getHttpServer())
-          .get('/health')
-          .expect(200);
+        await request(app.getHttpServer()).get('/health').expect(200);
 
         durations.push(Date.now() - start);
       }
 
-      const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+      const avgDuration =
+        durations.reduce((a, b) => a + b, 0) / durations.length;
       const maxDuration = Math.max(...durations);
 
       expect(avgDuration).toBeLessThan(100);
@@ -317,7 +322,7 @@ describe('Performance E2E Tests', () => {
         requests.push(
           request(app.getHttpServer())
             .get('/wallet')
-            .set('Authorization', `Bearer ${user.accessToken}`)
+            .set('Authorization', `Bearer ${user.accessToken}`),
         );
       }
 
@@ -325,7 +330,7 @@ describe('Performance E2E Tests', () => {
       const responses = await Promise.all(requests);
       const duration = Date.now() - start;
 
-      const successCount = responses.filter(r => r.status === 200).length;
+      const successCount = responses.filter((r) => r.status === 200).length;
       expect(successCount).toBe(burstSize);
       expect(duration).toBeLessThan(5000);
     });
@@ -340,9 +345,7 @@ describe('Performance E2E Tests', () => {
 
       // Make many requests
       for (let i = 0; i < 100; i++) {
-        await request(app.getHttpServer())
-          .get('/health')
-          .expect(200);
+        await request(app.getHttpServer()).get('/health').expect(200);
       }
 
       // Force garbage collection if available
@@ -366,17 +369,17 @@ describe('Performance E2E Tests', () => {
       }
 
       // Request different pages
-      const pageTests = [0, 20, 40, 60, 80].map(offset =>
+      const pageTests = [0, 20, 40, 60, 80].map((offset) =>
         request(app.getHttpServer())
           .get(`/transfers?limit=20&offset=${offset}`)
-          .set('Authorization', `Bearer ${user.accessToken}`)
+          .set('Authorization', `Bearer ${user.accessToken}`),
       );
 
       const start = Date.now();
       const responses = await Promise.all(pageTests);
       const duration = Date.now() - start;
 
-      expect(responses.every(r => r.status === 200)).toBe(true);
+      expect(responses.every((r) => r.status === 200)).toBe(true);
       expect(duration).toBeLessThan(3000);
     });
   });
@@ -386,17 +389,17 @@ describe('Performance E2E Tests', () => {
       const users = await userHelper.createUsers(10);
 
       // Make concurrent database-heavy requests
-      const requests = users.map(user =>
+      const requests = users.map((user) =>
         request(app.getHttpServer())
           .get('/wallet')
-          .set('Authorization', `Bearer ${user.accessToken}`)
+          .set('Authorization', `Bearer ${user.accessToken}`),
       );
 
       const start = Date.now();
       const responses = await Promise.all(requests);
       const duration = Date.now() - start;
 
-      expect(responses.every(r => r.status === 200)).toBe(true);
+      expect(responses.every((r) => r.status === 200)).toBe(true);
       expect(duration).toBeLessThan(2000);
     });
   });

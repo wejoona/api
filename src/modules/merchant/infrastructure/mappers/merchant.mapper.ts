@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MerchantEntity } from '../../domain/entities/merchant.entity';
-import { MerchantCategory, MerchantStatus } from '../../domain/entities/merchant.types';
+import {
+  MerchantCategory,
+  MerchantStatus,
+} from '../../domain/entities/merchant.types';
 import { MerchantOrmEntity } from '../orm-entities/merchant.orm-entity';
 
 @Injectable()

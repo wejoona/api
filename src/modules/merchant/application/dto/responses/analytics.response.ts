@@ -44,7 +44,7 @@ export class MerchantAnalyticsResponse {
   @ApiProperty({ example: 67.51 })
   totalFees: number;
 
-  @ApiProperty({ example: 30.00 })
+  @ApiProperty({ example: 30.0 })
   averageTransactionSize: number;
 
   @ApiProperty({ example: 85 })
@@ -56,6 +56,9 @@ export class MerchantAnalyticsResponse {
   @ApiProperty({ type: [HourlyBreakdown], description: 'Top 5 busiest hours' })
   topHours: HourlyBreakdown[];
 
-  @ApiProperty({ type: [DailyBreakdown], description: 'Daily transaction breakdown' })
+  @ApiProperty({
+    type: [DailyBreakdown],
+    description: 'Daily transaction breakdown',
+  })
   transactionsByDay: DailyBreakdown[];
 }

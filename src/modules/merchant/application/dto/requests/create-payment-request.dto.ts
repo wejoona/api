@@ -12,7 +12,7 @@ import {
 export class CreatePaymentRequestDto {
   @ApiProperty({
     description: 'Payment amount in USDC',
-    example: 25.50,
+    example: 25.5,
     minimum: 0.01,
     maximum: 10000,
   })

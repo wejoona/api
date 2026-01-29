@@ -222,12 +222,18 @@ export function sanitizeForLogging<T extends Record<string, unknown>>(
       result[key] = maskFn(value);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       // Recursively sanitize nested objects
-      result[key] = sanitizeForLogging(value as Record<string, unknown>, additionalPiiFields);
+      result[key] = sanitizeForLogging(
+        value as Record<string, unknown>,
+        additionalPiiFields,
+      );
     } else if (Array.isArray(value)) {
       // Sanitize arrays
       result[key] = value.map((item) =>
         typeof item === 'object' && item !== null
-          ? sanitizeForLogging(item as Record<string, unknown>, additionalPiiFields)
+          ? sanitizeForLogging(
+              item as Record<string, unknown>,
+              additionalPiiFields,
+            )
           : item,
       );
     } else {

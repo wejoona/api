@@ -32,7 +32,9 @@ export class PaymentRequestMapper {
   /**
    * Convert domain entity to ORM entity for persistence
    */
-  toPersistence(domain: PaymentRequestEntity): Partial<PaymentRequestOrmEntity> {
+  toPersistence(
+    domain: PaymentRequestEntity,
+  ): Partial<PaymentRequestOrmEntity> {
     return {
       id: domain.id,
       requestId: domain.requestId,

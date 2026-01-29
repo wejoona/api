@@ -22,12 +22,12 @@ export interface GetProvidersOutput {
 export class GetProvidersUseCase {
   private readonly logger = new Logger(GetProvidersUseCase.name);
 
-  constructor(
-    private readonly providerRepository: BillProviderRepository,
-  ) {}
+  constructor(private readonly providerRepository: BillProviderRepository) {}
 
   async execute(input: GetProvidersInput = {}): Promise<GetProvidersOutput> {
-    this.logger.debug(`Getting providers: country=${input.country}, category=${input.category}`);
+    this.logger.debug(
+      `Getting providers: country=${input.country}, category=${input.category}`,
+    );
 
     const query: GetProvidersQuery = {
       country: input.country,

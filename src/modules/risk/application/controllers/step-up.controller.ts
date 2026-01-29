@@ -13,10 +13,19 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
-import { StepUpService, TransactionStepUpInput, OperationStepUpInput } from '../services/step-up.service';
+import {
+  StepUpService,
+  TransactionStepUpInput,
+  OperationStepUpInput,
+} from '../services/step-up.service';
 import { StepUpValidation } from '../../domain/interfaces/step-up.types';
 
 class EvaluateTransactionDto {
@@ -30,7 +39,14 @@ class EvaluateTransactionDto {
 }
 
 class EvaluateOperationDto {
-  operation: 'pin_change' | 'add_recipient' | 'account_recovery' | 'kyc_selfie' | 'biometric_enroll' | 'export_keys' | 'delete_account';
+  operation:
+    | 'pin_change'
+    | 'add_recipient'
+    | 'account_recovery'
+    | 'kyc_selfie'
+    | 'biometric_enroll'
+    | 'export_keys'
+    | 'delete_account';
   metadata?: Record<string, unknown>;
 }
 

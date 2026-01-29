@@ -201,7 +201,10 @@ export class LivenessService {
   /**
    * Complete session and get final result
    */
-  async completeSession(sessionId: string, userId?: string): Promise<LivenessResult> {
+  async completeSession(
+    sessionId: string,
+    userId?: string,
+  ): Promise<LivenessResult> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -262,7 +265,10 @@ export class LivenessService {
   /**
    * Get session status
    */
-  async getSessionStatus(sessionId: string, userId?: string): Promise<LivenessResult | null> {
+  async getSessionStatus(
+    sessionId: string,
+    userId?: string,
+  ): Promise<LivenessResult | null> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -291,8 +297,10 @@ export class LivenessService {
         : 0;
 
     const allPassed = session.completedChallenges.every((c) => c.passed);
-    const isComplete = session.currentChallengeIndex >= session.challenges.length;
-    const isLive = isComplete && allPassed && averageConfidence >= this.minPassConfidence;
+    const isComplete =
+      session.currentChallengeIndex >= session.challenges.length;
+    const isLive =
+      isComplete && allPassed && averageConfidence >= this.minPassConfidence;
 
     return {
       sessionId,
@@ -304,7 +312,47 @@ export class LivenessService {
       completedAt: isComplete ? new Date() : session.createdAt,
       riskSignals: this.detectRiskSignals(session),
       failureReason:
-        session.status === 'failed' ? this.getFailureReason(session) : undefined,
+        session.status === 'failed'
+          ? this.getFailureReason(session)
+          : undefined,
+    };
+  }
+
+  /**
+   * Cancel a liveness session
+   */
+  async cancelSession(
+    sessionId: string,
+    userId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      throw new NotFoundException('Liveness session not found or expired');
+    }
+
+    // Validate user ownership
+    if (userId && session.userId !== userId) {
+      throw new UnauthorizedException('Session does not belong to this user');
+    }
+
+    // Check if session is already completed or failed
+    if (session.status === 'completed' || session.status === 'failed') {
+      throw new BadRequestException(
+        `Cannot cancel session that is already ${session.status}`,
+      );
+    }
+
+    // Mark session as cancelled by setting status to 'expired'
+    // (Using 'expired' as there's no 'cancelled' status in the current type)
+    session.status = 'expired';
+    this.sessions.set(sessionId, session);
+
+    this.logger.log(`Session ${sessionId} cancelled by user ${userId}`);
+
+    return {
+      success: true,
+      message: 'Session cancelled successfully',
     };
   }
 
@@ -374,7 +422,9 @@ export class LivenessService {
     const signals: string[] = [];
 
     // Check for suspicious patterns
-    const failedChallenges = session.completedChallenges.filter((c) => !c.passed);
+    const failedChallenges = session.completedChallenges.filter(
+      (c) => !c.passed,
+    );
     if (failedChallenges.length > 0) {
       signals.push('failed_challenges_detected');
     }
@@ -391,8 +441,9 @@ export class LivenessService {
     if (session.completedChallenges.length >= 2) {
       const firstSubmit = session.completedChallenges[0].submittedAt.getTime();
       const lastSubmit =
-        session.completedChallenges[session.completedChallenges.length - 1]
-          .submittedAt.getTime();
+        session.completedChallenges[
+          session.completedChallenges.length - 1
+        ].submittedAt.getTime();
       const timeDiff = lastSubmit - firstSubmit;
 
       // If all challenges completed in less than 3 seconds, suspicious
@@ -408,7 +459,9 @@ export class LivenessService {
    * Get failure reason based on session
    */
   private getFailureReason(session: LivenessSession): string {
-    const failedChallenges = session.completedChallenges.filter((c) => !c.passed);
+    const failedChallenges = session.completedChallenges.filter(
+      (c) => !c.passed,
+    );
 
     if (session.status === 'expired') {
       return 'Session expired before completion';

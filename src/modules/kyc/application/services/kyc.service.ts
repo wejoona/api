@@ -75,8 +75,14 @@ export class KycService {
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
-    this.autoApprovalEnabled = this.configService.get<boolean>('kyc.autoApprovalEnabled', true);
-    this.autoApprovalThreshold = this.configService.get<number>('kyc.autoApprovalThreshold', 80);
+    this.autoApprovalEnabled = this.configService.get<boolean>(
+      'kyc.autoApprovalEnabled',
+      true,
+    );
+    this.autoApprovalThreshold = this.configService.get<number>(
+      'kyc.autoApprovalThreshold',
+      80,
+    );
   }
 
   /**
@@ -112,7 +118,8 @@ export class KycService {
       submittedAt: kyc.submittedAt || undefined,
       approvedAt: kyc.approvedAt || undefined,
       rejectionReason: kyc.rejectionReason || undefined,
-      canResubmit: kyc.status === 'rejected' || kyc.status === 'documents_pending',
+      canResubmit:
+        kyc.status === 'rejected' || kyc.status === 'documents_pending',
     };
   }
 
@@ -120,7 +127,9 @@ export class KycService {
    * Submit KYC documents for verification
    * Triggers auto-verification with third-party provider
    */
-  async submitDocuments(input: SubmitKycDocumentsInput): Promise<KycVerificationOrmEntity> {
+  async submitDocuments(
+    input: SubmitKycDocumentsInput,
+  ): Promise<KycVerificationOrmEntity> {
     const { userId } = input;
 
     // Get or create KYC record
@@ -171,14 +180,16 @@ export class KycService {
   /**
    * Trigger auto-verification with third-party provider
    */
-  private async triggerAutoVerification(kyc: KycVerificationOrmEntity): Promise<void> {
+  private async triggerAutoVerification(
+    kyc: KycVerificationOrmEntity,
+  ): Promise<void> {
     this.logger.log(`Starting auto-verification for user ${kyc.userId}`);
 
     // Get signed URLs for documents (valid for 1 hour)
     const [idFrontUrl, idBackUrl, selfieUrl] = await Promise.all([
-      this.uploadService.getSignedUrl(kyc.idFrontKey!, 3600),
-      this.uploadService.getSignedUrl(kyc.idBackKey!, 3600),
-      this.uploadService.getSignedUrl(kyc.selfieKey!, 3600),
+      this.uploadService.getSignedUrl(kyc.idFrontKey, 3600),
+      this.uploadService.getSignedUrl(kyc.idBackKey, 3600),
+      this.uploadService.getSignedUrl(kyc.selfieKey, 3600),
     ]);
 
     // Call verification provider
@@ -186,12 +197,12 @@ export class KycService {
       idFrontUrl,
       idBackUrl,
       selfieUrl,
-      firstName: kyc.firstName!,
-      lastName: kyc.lastName!,
-      dateOfBirth: kyc.dateOfBirth!,
-      idType: kyc.idType!,
-      idNumber: kyc.idNumber!,
-      country: kyc.country!,
+      firstName: kyc.firstName,
+      lastName: kyc.lastName,
+      dateOfBirth: kyc.dateOfBirth,
+      idType: kyc.idType,
+      idNumber: kyc.idNumber,
+      country: kyc.country,
       userId: kyc.userId,
       kycVerificationId: kyc.id,
     });
@@ -220,7 +231,11 @@ export class KycService {
       `Verification result for user ${kyc.userId}: score=${score}, status=${status}`,
     );
 
-    if (status === 'passed' && score >= this.autoApprovalThreshold && this.autoApprovalEnabled) {
+    if (
+      status === 'passed' &&
+      score >= this.autoApprovalThreshold &&
+      this.autoApprovalEnabled
+    ) {
       // Auto-approve
       kyc.status = 'auto_approved';
       await this.repository.save(kyc);
@@ -230,7 +245,8 @@ export class KycService {
     } else if (status === 'failed' && score < 40) {
       // Auto-reject for very low scores
       kyc.status = 'rejected';
-      kyc.rejectionReason = 'Identity verification failed. Please ensure your documents are clear and valid.';
+      kyc.rejectionReason =
+        'Identity verification failed. Please ensure your documents are clear and valid.';
       await this.repository.save(kyc);
 
       this.eventEmitter.emit('kyc.rejected', {
@@ -250,14 +266,18 @@ export class KycService {
         score,
       });
 
-      this.logger.log(`KYC for user ${kyc.userId} routed to manual review (score: ${score})`);
+      this.logger.log(
+        `KYC for user ${kyc.userId} routed to manual review (score: ${score})`,
+      );
     }
   }
 
   /**
    * Admin reviews and approves/rejects KYC
    */
-  async adminReview(input: AdminReviewInput): Promise<KycVerificationOrmEntity> {
+  async adminReview(
+    input: AdminReviewInput,
+  ): Promise<KycVerificationOrmEntity> {
     const kyc = await this.repository.findById(input.kycVerificationId);
 
     if (!kyc) {
@@ -279,7 +299,8 @@ export class KycService {
       await this.finalizeApproval(kyc);
     } else {
       kyc.status = 'rejected';
-      kyc.rejectionReason = input.rejectionReason || 'KYC verification rejected by reviewer.';
+      kyc.rejectionReason =
+        input.rejectionReason || 'KYC verification rejected by reviewer.';
       await this.repository.save(kyc);
 
       this.eventEmitter.emit('kyc.rejected', {

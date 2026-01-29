@@ -7,6 +7,7 @@ import { ScheduledJobEntity } from '@modules/admin/infrastructure/persistence/ty
 import { AuditLogEntity } from '@modules/admin/infrastructure/persistence/typeorm/entities/audit-log.entity';
 import { FcmTokenOrmEntity } from '@modules/notification/infrastructure/fcm';
 import { NotificationOrmEntity } from '@modules/notification/infrastructure/orm-entities';
+import { SessionService } from '@modules/session/application/services/session.service';
 
 @Injectable()
 export class ScheduledJobsService {
@@ -23,6 +24,7 @@ export class ScheduledJobsService {
     private readonly fcmTokenRepository: Repository<FcmTokenOrmEntity>,
     @InjectRepository(NotificationOrmEntity)
     private readonly notificationRepository: Repository<NotificationOrmEntity>,
+    private readonly sessionService: SessionService,
   ) {}
 
   // ==========================================
@@ -240,6 +242,37 @@ export class ScheduledJobsService {
   }
 
   // ==========================================
+  // Session Cleanup Jobs
+  // ==========================================
+
+  /**
+   * Cleanup expired sessions
+   * Runs every hour
+   *
+   * Marks expired sessions as inactive for security and housekeeping.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupExpiredSessions(): Promise<void> {
+    const jobName = 'cleanup_expired_sessions';
+    const job = await this.startJob(jobName);
+
+    try {
+      this.logger.log('Starting expired session cleanup job');
+
+      const count = await this.sessionService.cleanupExpiredSessions();
+
+      await this.completeJob(job.id, count);
+      if (count > 0) {
+        this.logger.log(`Cleaned up ${count} expired sessions`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await this.failJob(job.id, message);
+      this.logger.error(`Session cleanup failed: ${message}`);
+    }
+  }
+
+  // ==========================================
   // Notification Cleanup Jobs
   // ==========================================
 
@@ -393,6 +426,7 @@ export class ScheduledJobsService {
       | 'cleanup_audit_logs'
       | 'cleanup_fcm_tokens'
       | 'cleanup_notifications'
+      | 'cleanup_expired_sessions'
       | 'daily_reconciliation',
   ): Promise<{ message: string }> {
     switch (jobName) {
@@ -410,6 +444,9 @@ export class ScheduledJobsService {
         break;
       case 'cleanup_notifications':
         await this.cleanupOldNotifications();
+        break;
+      case 'cleanup_expired_sessions':
+        await this.cleanupExpiredSessions();
         break;
       case 'daily_reconciliation':
         await this.dailyReconciliation();

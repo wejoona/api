@@ -27,13 +27,23 @@ export class MetricsInterceptor implements NestInterceptor {
           const duration = Date.now() - startTime;
           const statusCode = response.statusCode;
 
-          this.metricsService.recordHttpRequest(method, path, statusCode, duration);
+          this.metricsService.recordHttpRequest(
+            method,
+            path,
+            statusCode,
+            duration,
+          );
         },
         error: (error) => {
           const duration = Date.now() - startTime;
           const statusCode = error.status || 500;
 
-          this.metricsService.recordHttpRequest(method, path, statusCode, duration);
+          this.metricsService.recordHttpRequest(
+            method,
+            path,
+            statusCode,
+            duration,
+          );
         },
       }),
     );
@@ -45,7 +55,10 @@ export class MetricsInterceptor implements NestInterceptor {
    */
   private normalizePath(path: string): string {
     return path
-      .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id') // UUIDs
+      .replace(
+        /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        '/:id',
+      ) // UUIDs
       .replace(/\/\d+/g, '/:id') // Numeric IDs
       .replace(/\/0x[a-fA-F0-9]{40}/g, '/:address') // Ethereum addresses
       .replace(/\?.*$/, ''); // Remove query strings

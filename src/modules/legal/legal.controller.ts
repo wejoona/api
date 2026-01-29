@@ -8,7 +8,12 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { LegalService } from './legal.service';
 import {
@@ -51,9 +56,7 @@ export class LegalController {
     description: 'Privacy Policy document',
     type: LegalDocumentDto,
   })
-  getPrivacyPolicy(
-    @Query() query: GetLegalDocumentQueryDto,
-  ): LegalDocumentDto {
+  getPrivacyPolicy(@Query() query: GetLegalDocumentQueryDto): LegalDocumentDto {
     return this.legalService.getPrivacyPolicy(query.locale || 'en');
   }
 
@@ -62,7 +65,8 @@ export class LegalController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Record legal consent',
-    description: 'Record user consent for a legal document (Terms or Privacy Policy)',
+    description:
+      'Record user consent for a legal document (Terms or Privacy Policy)',
   })
   @ApiResponse({
     status: 201,

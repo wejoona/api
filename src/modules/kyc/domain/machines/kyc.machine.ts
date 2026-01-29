@@ -382,7 +382,10 @@ export const kycMachine = setup({
               identityVerificationId: ({ event }) => event.verificationId,
               identityProvider: ({ event }) => event.provider,
               overallScore: ({ context, event }) =>
-                calculateOverallScore({ ...context, identityScore: event.score }),
+                calculateOverallScore({
+                  ...context,
+                  identityScore: event.score,
+                }),
               verifiedAt: () => new Date(),
               updatedAt: () => new Date(),
             }),
@@ -396,7 +399,10 @@ export const kycMachine = setup({
               identityVerificationId: ({ event }) => event.verificationId,
               identityProvider: ({ event }) => event.provider,
               overallScore: ({ context, event }) =>
-                calculateOverallScore({ ...context, identityScore: event.score }),
+                calculateOverallScore({
+                  ...context,
+                  identityScore: event.score,
+                }),
               rejectionReason: () =>
                 'Identity verification failed. The information provided does not match our records.',
               updatedAt: () => new Date(),
@@ -410,7 +416,10 @@ export const kycMachine = setup({
               identityVerificationId: ({ event }) => event.verificationId,
               identityProvider: ({ event }) => event.provider,
               overallScore: ({ context, event }) =>
-                calculateOverallScore({ ...context, identityScore: event.score }),
+                calculateOverallScore({
+                  ...context,
+                  identityScore: event.score,
+                }),
               verifiedAt: () => new Date(),
               updatedAt: () => new Date(),
             }),

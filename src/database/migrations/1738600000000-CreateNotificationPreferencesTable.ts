@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+} from 'typeorm';
 
 export class CreateNotificationPreferencesTable1738600000000 implements MigrationInterface {
   name = 'CreateNotificationPreferencesTable1738600000000';
@@ -139,7 +145,10 @@ export class CreateNotificationPreferencesTable1738600000000 implements Migratio
         (fk) => fk.columnNames.indexOf('user_id') !== -1,
       );
       if (foreignKey) {
-        await queryRunner.dropForeignKey('notification_preferences', foreignKey);
+        await queryRunner.dropForeignKey(
+          'notification_preferences',
+          foreignKey,
+        );
       }
     }
 

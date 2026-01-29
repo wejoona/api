@@ -71,7 +71,7 @@ export class GenericBillAdapter implements IBillProviderAdapter {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -99,7 +99,9 @@ export class GenericBillAdapter implements IBillProviderAdapter {
     });
   }
 
-  async validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult> {
+  async validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult> {
     if (!this.config.endpoints.validate) {
       // Provider doesn't support validation
       return {
@@ -118,11 +120,16 @@ export class GenericBillAdapter implements IBillProviderAdapter {
         payload['meterNumber'] = request.meterNumber;
       }
 
-      const response = await this.httpClient.post(this.config.endpoints.validate, payload);
+      const response = await this.httpClient.post(
+        this.config.endpoints.validate,
+        payload,
+      );
       const data = response.data;
 
       // Map response based on configuration
-      const isValid = this.isSuccessStatus(data[this.config.responseMapping.statusField]);
+      const isValid = this.isSuccessStatus(
+        data[this.config.responseMapping.statusField],
+      );
 
       return {
         isValid,
@@ -130,7 +137,8 @@ export class GenericBillAdapter implements IBillProviderAdapter {
         meterNumber: request.meterNumber,
         customerName: data.customerName || data.name || data.subscriber?.name,
         outstandingBalance: data.balance || data.outstandingAmount,
-        message: data.message || (isValid ? 'Account validated' : 'Validation failed'),
+        message:
+          data.message || (isValid ? 'Account validated' : 'Validation failed'),
         metadata: data,
       };
     } catch (error) {
@@ -143,7 +151,9 @@ export class GenericBillAdapter implements IBillProviderAdapter {
     }
   }
 
-  async processPayment(request: BillPaymentRequest): Promise<BillPaymentResult> {
+  async processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult> {
     const reference = this.generateReference();
 
     try {
@@ -156,7 +166,9 @@ export class GenericBillAdapter implements IBillProviderAdapter {
 
       // Add additional configured fields
       if (this.config.requestMapping.additionalFields) {
-        for (const [key, value] of Object.entries(this.config.requestMapping.additionalFields)) {
+        for (const [key, value] of Object.entries(
+          this.config.requestMapping.additionalFields,
+        )) {
           payload[key] = (request as any)[value] || value;
         }
       }
@@ -173,28 +185,41 @@ export class GenericBillAdapter implements IBillProviderAdapter {
         payload['phone'] = request.phone;
       }
 
-      const response = await this.httpClient.post(this.config.endpoints.payment, payload);
+      const response = await this.httpClient.post(
+        this.config.endpoints.payment,
+        payload,
+      );
       const data = response.data;
 
-      const status = this.mapStatus(data[this.config.responseMapping.statusField]);
+      const status = this.mapStatus(
+        data[this.config.responseMapping.statusField],
+      );
 
       return {
-        paymentId: data[this.config.responseMapping.paymentIdField] || reference,
+        paymentId:
+          data[this.config.responseMapping.paymentIdField] || reference,
         transactionId: reference,
         status,
-        receiptNumber: data[this.config.responseMapping.receiptField || 'receiptNumber'],
+        receiptNumber:
+          data[this.config.responseMapping.receiptField || 'receiptNumber'],
         providerReference: data.providerReference || data.transactionId,
         tokenNumber: data[this.config.responseMapping.tokenField || 'token'],
         amount: request.amount,
-        fee: parseFloat(data[this.config.responseMapping.feeField || 'fee']) || 0,
-        totalAmount: request.amount + (parseFloat(data[this.config.responseMapping.feeField || 'fee']) || 0),
+        fee:
+          parseFloat(data[this.config.responseMapping.feeField || 'fee']) || 0,
+        totalAmount:
+          request.amount +
+          (parseFloat(data[this.config.responseMapping.feeField || 'fee']) ||
+            0),
         currency: request.currency,
         paidAt: status === 'completed' ? new Date() : undefined,
-        estimatedCompletionTime: status === 'pending' ? '1-30 minutes' : undefined,
+        estimatedCompletionTime:
+          status === 'pending' ? '1-30 minutes' : undefined,
         metadata: data,
       };
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Payment failed';
+      const errorMessage =
+        error.response?.data?.message || error.message || 'Payment failed';
       throw new BillPaymentError(
         errorMessage,
         BillPaymentErrorCodes.PAYMENT_FAILED,
@@ -210,14 +235,17 @@ export class GenericBillAdapter implements IBillProviderAdapter {
       const data = response.data;
 
       return {
-        paymentId: data[this.config.responseMapping.paymentIdField] || paymentId,
+        paymentId:
+          data[this.config.responseMapping.paymentIdField] || paymentId,
         transactionId: data.reference || data.externalId,
         status: this.mapStatus(data[this.config.responseMapping.statusField]),
-        receiptNumber: data[this.config.responseMapping.receiptField || 'receiptNumber'],
+        receiptNumber:
+          data[this.config.responseMapping.receiptField || 'receiptNumber'],
         providerReference: data.providerReference,
         tokenNumber: data[this.config.responseMapping.tokenField || 'token'],
         amount: parseFloat(data.amount),
-        fee: parseFloat(data[this.config.responseMapping.feeField || 'fee']) || 0,
+        fee:
+          parseFloat(data[this.config.responseMapping.feeField || 'fee']) || 0,
         totalAmount: parseFloat(data.totalAmount) || parseFloat(data.amount),
         currency: data.currency,
         paidAt: data.completedAt ? new Date(data.completedAt) : undefined,
@@ -237,7 +265,9 @@ export class GenericBillAdapter implements IBillProviderAdapter {
     }
 
     try {
-      const response = await this.httpClient.get(this.config.endpoints.health, { timeout: 5000 });
+      const response = await this.httpClient.get(this.config.endpoints.health, {
+        timeout: 5000,
+      });
       return response.status === 200;
     } catch {
       return false;
@@ -245,10 +275,14 @@ export class GenericBillAdapter implements IBillProviderAdapter {
   }
 
   private isSuccessStatus(status: string): boolean {
-    return this.config.responseMapping.successStatuses.includes(status?.toUpperCase());
+    return this.config.responseMapping.successStatuses.includes(
+      status?.toUpperCase(),
+    );
   }
 
-  private mapStatus(status: string): 'pending' | 'processing' | 'completed' | 'failed' {
+  private mapStatus(
+    status: string,
+  ): 'pending' | 'processing' | 'completed' | 'failed' {
     const upperStatus = status?.toUpperCase();
 
     if (this.config.responseMapping.successStatuses.includes(upperStatus)) {

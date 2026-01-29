@@ -16,12 +16,11 @@ export interface DeadletterStatsResult {
  * Returns statistics about the webhook dead-letter queue
  */
 @QueryHandler(GetDeadletterStatsQuery)
-export class GetDeadletterStatsQueryHandler
-  implements IQueryHandler<GetDeadletterStatsQuery, DeadletterStatsResult>
-{
-  constructor(
-    private readonly deadletterService: WebhookDeadletterService,
-  ) {}
+export class GetDeadletterStatsQueryHandler implements IQueryHandler<
+  GetDeadletterStatsQuery,
+  DeadletterStatsResult
+> {
+  constructor(private readonly deadletterService: WebhookDeadletterService) {}
 
   async execute(): Promise<DeadletterStatsResult> {
     return this.deadletterService.getStats();

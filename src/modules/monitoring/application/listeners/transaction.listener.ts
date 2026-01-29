@@ -43,7 +43,8 @@ export class TransactionEventListener {
   private readonly logger = new Logger(TransactionEventListener.name);
 
   // Track failed attempts per user for velocity checks
-  private failedAttemptsCache: Map<string, { count: number; firstAt: Date }> = new Map();
+  private failedAttemptsCache: Map<string, { count: number; firstAt: Date }> =
+    new Map();
   private readonly FAILED_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
   constructor(private readonly monitorService: TransactionMonitorService) {}
@@ -60,12 +61,12 @@ export class TransactionEventListener {
       const result = await this.monitorService.monitorTransaction(context);
 
       this.logger.log(
-        `Monitored transaction ${event.transactionId}: ${result.alertsCreated.length} alerts created`
+        `Monitored transaction ${event.transactionId}: ${result.alertsCreated.length} alerts created`,
       );
 
       if (result.transactionBlocked) {
         this.logger.warn(
-          `Transaction ${event.transactionId} blocked by monitoring: ${result.blockReason}`
+          `Transaction ${event.transactionId} blocked by monitoring: ${result.blockReason}`,
         );
         // Emit event to notify transaction service
         // This would typically trigger a transaction cancellation
@@ -73,7 +74,7 @@ export class TransactionEventListener {
     } catch (error) {
       this.logger.error(
         `Error handling transaction created event: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -97,13 +98,13 @@ export class TransactionEventListener {
       if (event.amount >= 500 || event.type === 'transfer_external') {
         const result = await this.monitorService.monitorTransaction(context);
         this.logger.debug(
-          `Completed transaction monitoring: ${result.alertsCreated.length} alerts`
+          `Completed transaction monitoring: ${result.alertsCreated.length} alerts`,
         );
       }
     } catch (error) {
       this.logger.error(
         `Error handling transaction completed event: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -120,20 +121,22 @@ export class TransactionEventListener {
       this.trackFailedAttempt(event.userId);
 
       const failedCount = this.getFailedAttemptCount(event.userId);
-      const context = this.buildTransactionContext(event, { recentFailedCount: failedCount });
+      const context = this.buildTransactionContext(event, {
+        recentFailedCount: failedCount,
+      });
 
       // Run monitoring with failed attempt context
       const result = await this.monitorService.monitorTransaction(context);
 
       if (result.alertsCreated.length > 0) {
         this.logger.warn(
-          `Failed transaction ${event.transactionId} triggered ${result.alertsCreated.length} alerts`
+          `Failed transaction ${event.transactionId} triggered ${result.alertsCreated.length} alerts`,
         );
       }
     } catch (error) {
       this.logger.error(
         `Error handling transaction failed event: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -150,7 +153,9 @@ export class TransactionEventListener {
     previousBalance: number;
     newBalance: number;
   }): Promise<void> {
-    this.logger.log(`Deposit received for wallet ${event.walletId}: ${event.amount} ${event.currency}`);
+    this.logger.log(
+      `Deposit received for wallet ${event.walletId}: ${event.amount} ${event.currency}`,
+    );
 
     try {
       // Check balance threshold after deposit
@@ -178,7 +183,9 @@ export class TransactionEventListener {
     newBalance: number;
     recipientAddress: string;
   }): Promise<void> {
-    this.logger.log(`Withdrawal completed for wallet ${event.walletId}: ${event.amount} ${event.currency}`);
+    this.logger.log(
+      `Withdrawal completed for wallet ${event.walletId}: ${event.amount} ${event.currency}`,
+    );
 
     try {
       // Check balance threshold after withdrawal
@@ -189,7 +196,9 @@ export class TransactionEventListener {
         event.currency,
       );
     } catch (error) {
-      this.logger.error(`Error handling withdrawal completed: ${error.message}`);
+      this.logger.error(
+        `Error handling withdrawal completed: ${error.message}`,
+      );
     }
   }
 
@@ -236,7 +245,10 @@ export class TransactionEventListener {
    */
   @OnEvent('security.password_changed')
   async handlePasswordChanged(event: { userId: string }): Promise<void> {
-    await this.monitorService.createAccountChangeAlert(event.userId, 'password');
+    await this.monitorService.createAccountChangeAlert(
+      event.userId,
+      'password',
+    );
   }
 
   @OnEvent('security.pin_changed')
@@ -245,7 +257,10 @@ export class TransactionEventListener {
   }
 
   @OnEvent('security.2fa_changed')
-  async handleTwoFactorChanged(event: { userId: string; enabled: boolean }): Promise<void> {
+  async handleTwoFactorChanged(event: {
+    userId: string;
+    enabled: boolean;
+  }): Promise<void> {
     await this.monitorService.createAccountChangeAlert(event.userId, '2fa', {
       enabled: event.enabled,
     });

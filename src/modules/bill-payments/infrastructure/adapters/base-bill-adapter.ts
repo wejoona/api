@@ -22,10 +22,7 @@ export abstract class BaseBillAdapter implements IBillProviderAdapter {
 
   abstract readonly providerId: string;
 
-  constructor(
-    providerName: string,
-    config: BillProviderConfig,
-  ) {
+  constructor(providerName: string, config: BillProviderConfig) {
     this.logger = new Logger(`${providerName}Adapter`);
     this.config = config;
 
@@ -34,7 +31,7 @@ export abstract class BaseBillAdapter implements IBillProviderAdapter {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -48,7 +45,9 @@ export abstract class BaseBillAdapter implements IBillProviderAdapter {
     // Request interceptor - add authentication
     this.httpClient.interceptors.request.use(
       (config) => {
-        this.logger.debug(`Request: ${config.method?.toUpperCase()} ${config.url}`);
+        this.logger.debug(
+          `Request: ${config.method?.toUpperCase()} ${config.url}`,
+        );
         return this.addAuthentication(config);
       },
       (error) => {
@@ -60,7 +59,9 @@ export abstract class BaseBillAdapter implements IBillProviderAdapter {
     // Response interceptor - handle errors
     this.httpClient.interceptors.response.use(
       (response) => {
-        this.logger.debug(`Response: ${response.status} ${response.config.url}`);
+        this.logger.debug(
+          `Response: ${response.status} ${response.config.url}`,
+        );
         return response;
       },
       (error: AxiosError) => {
@@ -198,8 +199,12 @@ export abstract class BaseBillAdapter implements IBillProviderAdapter {
   }
 
   // Abstract methods to be implemented by specific adapters
-  abstract validateAccount(request: AccountValidationRequest): Promise<AccountValidationResult>;
-  abstract processPayment(request: BillPaymentRequest): Promise<BillPaymentResult>;
+  abstract validateAccount(
+    request: AccountValidationRequest,
+  ): Promise<AccountValidationResult>;
+  abstract processPayment(
+    request: BillPaymentRequest,
+  ): Promise<BillPaymentResult>;
   abstract checkPaymentStatus(paymentId: string): Promise<BillPaymentResult>;
   abstract isAvailable(): Promise<boolean>;
 }

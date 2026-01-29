@@ -50,13 +50,17 @@ interface UpcomingPaymentEvent {
 
 @Injectable()
 export class ScheduledPaymentNotificationListener {
-  private readonly logger = new Logger(ScheduledPaymentNotificationListener.name);
+  private readonly logger = new Logger(
+    ScheduledPaymentNotificationListener.name,
+  );
 
   constructor(private readonly notificationService: NotificationService) {}
 
   @OnEvent('schedule.created')
   async handleScheduleCreated(event: ScheduleCreatedEvent) {
-    this.logger.log(`Sending schedule created notification for ${event.scheduleId}`);
+    this.logger.log(
+      `Sending schedule created notification for ${event.scheduleId}`,
+    );
 
     await this.notificationService.send({
       userId: event.userId,
@@ -76,7 +80,9 @@ export class ScheduledPaymentNotificationListener {
 
   @OnEvent('scheduled.payment.executed')
   async handlePaymentExecuted(event: PaymentExecutedEvent) {
-    this.logger.log(`Sending payment executed notification for ${event.executionId}`);
+    this.logger.log(
+      `Sending payment executed notification for ${event.executionId}`,
+    );
 
     if (event.status === 'completed') {
       await this.notificationService.send({
@@ -127,7 +133,9 @@ export class ScheduledPaymentNotificationListener {
 
   @OnEvent('scheduled.payment.upcoming')
   async handleUpcomingPayment(event: UpcomingPaymentEvent) {
-    this.logger.log(`Sending upcoming payment reminder for ${event.scheduleId}`);
+    this.logger.log(
+      `Sending upcoming payment reminder for ${event.scheduleId}`,
+    );
 
     const scheduledDate = new Date(event.scheduledAt);
     const dateStr = scheduledDate.toLocaleDateString();
@@ -200,7 +208,11 @@ export class ScheduledPaymentNotificationListener {
   }
 
   @OnEvent('schedule.resumed')
-  async handleScheduleResumed(event: { scheduleId: string; userId: string; nextExecutionAt: Date }) {
+  async handleScheduleResumed(event: {
+    scheduleId: string;
+    userId: string;
+    nextExecutionAt: Date;
+  }) {
     await this.notificationService.send({
       userId: event.userId,
       category: 'transaction',
