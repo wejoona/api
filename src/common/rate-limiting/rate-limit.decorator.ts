@@ -14,6 +14,10 @@ export interface RateLimitConfig {
   keyPrefix?: string;
   /** Skip rate limiting for this endpoint */
   skip?: boolean;
+  /** Allow API keys to override with custom limits */
+  allowApiKeyOverride?: boolean;
+  /** Bypass rate limiting for specific roles */
+  bypassRoles?: string[];
 }
 
 export const RATE_LIMIT_KEY = 'rate_limit';
@@ -71,6 +75,28 @@ export const RateLimitPresets = {
    * 200 requests per minute per IP.
    */
   webhook: () => RateLimit({ limit: 200, windowSeconds: 60, byIp: true }),
+
+  /**
+   * Admin endpoints - higher limits with role bypass.
+   * 200 requests per minute, but admins/superadmins bypass limits.
+   */
+  admin: () =>
+    RateLimit({
+      limit: 200,
+      windowSeconds: 60,
+      bypassRoles: ['admin', 'superadmin'],
+    }),
+
+  /**
+   * Enterprise API endpoints - support custom API key limits.
+   * 500 requests per minute by default, but API keys can override.
+   */
+  enterprise: () =>
+    RateLimit({
+      limit: 500,
+      windowSeconds: 60,
+      allowApiKeyOverride: true,
+    }),
 
   /**
    * Skip rate limiting for this endpoint.

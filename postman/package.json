@@ -1,0 +1,37 @@
+{
+  "name": "joonapay-api-tests",
+  "version": "1.0.0",
+  "description": "Postman/Newman API tests for JoonaPay USDC Wallet",
+  "scripts": {
+    "test": "npm run test:local",
+    "test:local": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --reporters cli",
+    "test:staging": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Staging.postman_environment.json --reporters cli",
+    "test:production": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Production.postman_environment.json --reporters cli",
+    "test:auth": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder Authentication",
+    "test:wallet": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder Wallet",
+    "test:transfers": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder Transfers",
+    "test:merchants": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder Merchants",
+    "test:bills": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder 'Bill Payments'",
+    "test:health": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --folder Health",
+    "report": "npm run report:local",
+    "report:local": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Local.postman_environment.json --reporters htmlextra --reporter-htmlextra-export test-results/report.html --reporter-htmlextra-darkTheme",
+    "report:staging": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Staging.postman_environment.json --reporters htmlextra --reporter-htmlextra-export test-results/report.html --reporter-htmlextra-darkTheme",
+    "ci": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Staging.postman_environment.json --reporters cli,junit --reporter-junit-export test-results/results.xml --bail",
+    "ci:full": "newman run JoonaPay_API.postman_collection.json -e JoonaPay_Staging.postman_environment.json --reporters cli,htmlextra,junit --reporter-htmlextra-export test-results/report.html --reporter-junit-export test-results/results.xml --delay-request 500"
+  },
+  "keywords": [
+    "postman",
+    "newman",
+    "api-testing",
+    "joonapay",
+    "usdc",
+    "wallet",
+    "west-africa"
+  ],
+  "author": "JoonaPay Team",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "newman": "^6.1.0",
+    "newman-reporter-htmlextra": "^1.23.0"
+  }
+}

@@ -1,0 +1,2197 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "JoonaPay USDC Wallet API",
+		"description": "Complete API collection for JoonaPay - USDC Wallet platform for West Africa. Supports mobile money integration (Orange Money, MTN, Wave), bill payments, merchant QR payments, and P2P transfers.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-refresh token if expired",
+					"const tokenExpiry = pm.environment.get('tokenExpiry');",
+					"const now = new Date().getTime();",
+					"",
+					"if (tokenExpiry && now >= tokenExpiry) {",
+					"    console.log('Token expired, refreshing...');",
+					"    const refreshToken = pm.environment.get('refreshToken');",
+					"    ",
+					"    if (refreshToken) {",
+					"        pm.sendRequest({",
+					"            url: pm.environment.get('baseUrl') + '/auth/refresh',",
+					"            method: 'POST',",
+					"            header: {",
+					"                'Content-Type': 'application/json'",
+					"            },",
+					"            body: {",
+					"                mode: 'raw',",
+					"                raw: JSON.stringify({ refreshToken })",
+					"            }",
+					"        }, (err, res) => {",
+					"            if (!err && res.code === 200) {",
+					"                const data = res.json();",
+					"                pm.environment.set('accessToken', data.accessToken);",
+					"                pm.environment.set('refreshToken', data.refreshToken);",
+					"                // Set expiry to 14 minutes from now (15min - 1min buffer)",
+					"                pm.environment.set('tokenExpiry', now + (14 * 60 * 1000));",
+					"                console.log('Token refreshed successfully');",
+					"            } else {",
+					"                console.error('Token refresh failed:', err || res.text());",
+					"            }",
+					"        });",
+					"    }",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-save tokens from auth responses",
+					"if (pm.response.code === 200 || pm.response.code === 201) {",
+					"    const jsonData = pm.response.json();",
+					"    ",
+					"    if (jsonData.accessToken) {",
+					"        pm.environment.set('accessToken', jsonData.accessToken);",
+					"        const now = new Date().getTime();",
+					"        pm.environment.set('tokenExpiry', now + (14 * 60 * 1000));",
+					"        console.log('Access token saved');",
+					"    }",
+					"    ",
+					"    if (jsonData.refreshToken) {",
+					"        pm.environment.set('refreshToken', jsonData.refreshToken);",
+					"        console.log('Refresh token saved');",
+					"    }",
+					"    ",
+					"    if (jsonData.user && jsonData.user.id) {",
+					"        pm.environment.set('userId', jsonData.user.id);",
+					"        console.log('User ID saved:', jsonData.user.id);",
+					"    }",
+					"    ",
+					"    if (jsonData.pinToken) {",
+					"        pm.environment.set('pinToken', jsonData.pinToken);",
+					"        console.log('PIN token saved');",
+					"    }",
+					"}",
+					"",
+					"// Log response time",
+					"console.log('Response time:', pm.response.responseTime + 'ms');"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has success message', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.message).to.include('OTP');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"+2250701234567\",\n  \"countryCode\": \"CI\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user with phone number. Sends OTP for verification."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has tokens', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.accessToken).to.exist;",
+									"    pm.expect(jsonData.refreshToken).to.exist;",
+									"    pm.expect(jsonData.user).to.exist;",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"+2250701234567\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/verify-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-otp"
+							]
+						},
+						"description": "Verify OTP code and receive access/refresh tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Request OTP)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('OTP sent successfully', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"+2250701234567\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Request login OTP for existing user."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('New tokens received', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.accessToken).to.exist;",
+									"    pm.expect(jsonData.refreshToken).to.exist;",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh access token using refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout All Devices",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentRefreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout-all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout-all"
+							]
+						},
+						"description": "Logout from all devices. Optionally preserve current session."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for user registration, login, and token management."
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/user/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"profile"
+							]
+						},
+						"description": "Get current user profile information."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"kouame_ibrahim\",\n  \"firstName\": \"Ibrahim\",\n  \"lastName\": \"Kouame\",\n  \"email\": \"ibrahim.kouame@example.ci\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/user/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"profile"
+							]
+						},
+						"description": "Update user profile (username, name, email)."
+					},
+					"response": []
+				},
+				{
+					"name": "Check Username Availability",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/user/username/check/kouame_ibrahim",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"username",
+								"check",
+								"kouame_ibrahim"
+							]
+						},
+						"description": "Check if a username is available."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/user/username/search?query=kouame&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"username",
+								"search"
+							],
+							"query": [
+								{
+									"key": "query",
+									"value": "kouame"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for users by username."
+					},
+					"response": []
+				},
+				{
+					"name": "Find User by Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/user/by-username/kouame_ibrahim",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"by-username",
+								"kouame_ibrahim"
+							]
+						},
+						"description": "Find user by exact username."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Limits",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/user/limits",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user",
+								"limits"
+							]
+						},
+						"description": "Get user transaction limits based on KYC status."
+					},
+					"response": []
+				}
+			],
+			"description": "User profile management endpoints."
+		},
+		{
+			"name": "Wallet",
+			"item": [
+				{
+					"name": "Get Balance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Balance data exists', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.walletId).to.exist;",
+									"    pm.expect(jsonData.balances).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet"
+							]
+						},
+						"description": "Get current wallet balance."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Wallet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/create",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"create"
+							]
+						},
+						"description": "Create/activate wallet for current user."
+					},
+					"response": []
+				},
+				{
+					"name": "Set PIN",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pin\": \"1234\",\n  \"confirmPin\": \"1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/pin/set",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"pin",
+								"set"
+							]
+						},
+						"description": "Set or update transaction PIN."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify PIN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.pinToken) {",
+									"        pm.environment.set('pinToken', jsonData.pinToken);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pin\": \"1234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/pin/verify",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"pin",
+								"verify"
+							]
+						},
+						"description": "Verify PIN and get token for transactions (valid 5 minutes)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exchange Rate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet/rate?sourceCurrency=XOF&targetCurrency=USD&amount=10000",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"rate"
+							],
+							"query": [
+								{
+									"key": "sourceCurrency",
+									"value": "XOF"
+								},
+								{
+									"key": "targetCurrency",
+									"value": "USD"
+								},
+								{
+									"key": "amount",
+									"value": "10000"
+								}
+							]
+						},
+						"description": "Get exchange rate quote (XOF to USD or USD to XOF)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Deposit Channels",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet/deposit/channels?currency=XOF",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"deposit",
+								"channels"
+							],
+							"query": [
+								{
+									"key": "currency",
+									"value": "XOF"
+								}
+							]
+						},
+						"description": "Get available deposit channels (Orange Money, MTN, Wave)."
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Deposit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 10000,\n  \"sourceCurrency\": \"XOF\",\n  \"channelId\": \"orange_money_ci\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/deposit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"deposit"
+							]
+						},
+						"description": "Initiate a deposit from mobile money to USDC wallet."
+					},
+					"response": []
+				},
+				{
+					"name": "Internal Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"toPhone\": \"+2250707654321\",\n  \"amount\": 5,\n  \"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/transfer/internal",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"transfer",
+								"internal"
+							]
+						},
+						"description": "Transfer to another JoonaPay user by phone number."
+					},
+					"response": []
+				},
+				{
+					"name": "External Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"toAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0\",\n  \"amount\": 10,\n  \"currency\": \"USD\",\n  \"network\": \"polygon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/transfer/external",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"transfer",
+								"external"
+							]
+						},
+						"description": "Transfer USDC to external blockchain address."
+					},
+					"response": []
+				},
+				{
+					"name": "Withdraw to External Wallet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"destinationAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0\",\n  \"amount\": 50,\n  \"network\": \"polygon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/wallet/withdraw",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"withdraw"
+							]
+						},
+						"description": "Withdraw USDC to external blockchain wallet."
+					},
+					"response": []
+				}
+			],
+			"description": "Wallet operations including balance, deposits, transfers, and withdrawals."
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "Get Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet/transactions?limit=20&offset=0&type=deposit&status=completed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "type",
+									"value": "deposit",
+									"description": "deposit, withdrawal, transfer_in, transfer_out"
+								},
+								{
+									"key": "status",
+									"value": "completed",
+									"description": "pending, completed, failed"
+								},
+								{
+									"key": "startDate",
+									"value": "2026-01-01",
+									"disabled": true
+								},
+								{
+									"key": "endDate",
+									"value": "2026-01-31",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get transaction history with filtering options."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"transactions",
+								"{{transactionId}}"
+							]
+						},
+						"description": "Get detailed transaction information."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Deposit Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/wallet/transactions/deposit/{{transactionId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"wallet",
+								"transactions",
+								"deposit",
+								"{{transactionId}}",
+								"status"
+							]
+						},
+						"description": "Get live deposit status from payment provider."
+					},
+					"response": []
+				}
+			],
+			"description": "Transaction history and status endpoints."
+		},
+		{
+			"name": "Transfers",
+			"item": [
+				{
+					"name": "Create Internal Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipientPhone\": \"+2250707654321\",\n  \"amount\": 5000,\n  \"currency\": \"USDC\",\n  \"note\": \"Déjeuner au restaurant\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transfers/internal",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transfers",
+								"internal"
+							]
+						},
+						"description": "P2P transfer to another JoonaPay user."
+					},
+					"response": []
+				},
+				{
+					"name": "Create External Transfer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recipientAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0\",\n  \"amount\": 5000,\n  \"currency\": \"USDC\",\n  \"network\": \"polygon\",\n  \"note\": \"Retrait vers wallet personnel\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transfers/external",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transfers",
+								"external"
+							]
+						},
+						"description": "Send USDC to external blockchain address."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transfer History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transfers?limit=20&offset=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transfers"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get user transfer history."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transfer by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transfers/{{transferId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transfers",
+								"{{transferId}}"
+							]
+						},
+						"description": "Get transfer details by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Transfer management endpoints."
+		},
+		{
+			"name": "Beneficiaries",
+			"item": [
+				{
+					"name": "Get Beneficiaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "joonapay",
+									"description": "joonapay, wallet, bank, mobile_money",
+									"disabled": true
+								},
+								{
+									"key": "favorites",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "recent",
+									"value": "true",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get saved beneficiaries with optional filters."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Beneficiary by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries/{{beneficiaryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries",
+								"{{beneficiaryId}}"
+							]
+						},
+						"description": "Get specific beneficiary details."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Beneficiary",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Aminata Traore\",\n  \"phoneE164\": \"+2250707654321\",\n  \"accountType\": \"joonapay\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries"
+							]
+						},
+						"description": "Add a new beneficiary for quick transfers."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Beneficiary",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Aminata Traore (Travail)\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries/{{beneficiaryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries",
+								"{{beneficiaryId}}"
+							]
+						},
+						"description": "Update beneficiary information."
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Favorite",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries/{{beneficiaryId}}/favorite",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries",
+								"{{beneficiaryId}}",
+								"favorite"
+							]
+						},
+						"description": "Mark/unmark beneficiary as favorite."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Beneficiary",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/beneficiaries/{{beneficiaryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"beneficiaries",
+								"{{beneficiaryId}}"
+							]
+						},
+						"description": "Remove a beneficiary."
+					},
+					"response": []
+				}
+			],
+			"description": "Saved beneficiaries for quick transfers."
+		},
+		{
+			"name": "Sessions",
+			"item": [
+				{
+					"name": "Get Active Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sessions"
+							]
+						},
+						"description": "Get all active user sessions."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sessions/all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sessions",
+								"all"
+							]
+						},
+						"description": "Get all sessions (active and revoked)."
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Session",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Logged in from different device\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sessions/{{sessionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sessions",
+								"{{sessionId}}"
+							]
+						},
+						"description": "Revoke a specific session."
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Sessions",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Security cleanup\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sessions"
+							]
+						},
+						"description": "Revoke all user sessions."
+					},
+					"response": []
+				}
+			],
+			"description": "Session management for multi-device support."
+		},
+		{
+			"name": "Devices",
+			"item": [
+				{
+					"name": "Register Device",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deviceIdentifier\": \"{{$guid}}\",\n  \"displayName\": \"Samsung Galaxy A54\",\n  \"brand\": \"Samsung\",\n  \"model\": \"Galaxy A54\",\n  \"os\": \"Android\",\n  \"osVersion\": \"14\",\n  \"platform\": \"android\",\n  \"fcmToken\": \"fcm_token_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/devices/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"register"
+							]
+						},
+						"description": "Register or update device for current user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update FCM Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deviceIdentifier\": \"device-id-here\",\n  \"fcmToken\": \"new_fcm_token_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/devices/fcm-token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"fcm-token"
+							]
+						},
+						"description": "Update Firebase Cloud Messaging token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Devices",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices"
+							]
+						},
+						"description": "Get all active devices for current user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Devices",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices/all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"all"
+							]
+						},
+						"description": "Get all devices including inactive ones."
+					},
+					"response": []
+				},
+				{
+					"name": "Trust Device",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices/{{deviceId}}/trust",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"{{deviceId}}",
+								"trust"
+							]
+						},
+						"description": "Trust device (skip OTP for future logins)."
+					},
+					"response": []
+				},
+				{
+					"name": "Untrust Device",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices/{{deviceId}}/untrust",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"{{deviceId}}",
+								"untrust"
+							]
+						},
+						"description": "Untrust device (require OTP for logins)."
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Device",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices/{{deviceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices",
+								"{{deviceId}}"
+							]
+						},
+						"description": "Deactivate a device."
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Devices",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/devices",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"devices"
+							]
+						},
+						"description": "Logout from all devices."
+					},
+					"response": []
+				}
+			],
+			"description": "Device management for security and push notifications."
+		},
+		{
+			"name": "Merchants",
+			"item": [
+				{
+					"name": "Register Merchant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"businessName\": \"Café Abidjan\",\n  \"displayName\": \"Café Abidjan - Plateau\",\n  \"category\": \"restaurant\",\n  \"address\": \"Boulevard Clozel, Plateau, Abidjan\",\n  \"phone\": \"+2250701234567\",\n  \"email\": \"contact@cafeabidjan.ci\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/merchants/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"register"
+							]
+						},
+						"description": "Register as a merchant to accept payments."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Merchant Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/merchants/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"me"
+							]
+						},
+						"description": "Get current user's merchant profile."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Merchant by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/merchants/{{merchantId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchantId}}"
+							]
+						},
+						"description": "Get merchant details by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Merchant QR Code",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/merchants/{{merchantId}}/qr",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchantId}}",
+								"qr"
+							]
+						},
+						"description": "Get merchant static QR code for payments."
+					},
+					"response": []
+				},
+				{
+					"name": "Decode QR Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"qrData\": \"joonapay://pay?v=1&t=static&m=merchant-id-here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/merchants/decode-qr",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"decode-qr"
+							]
+						},
+						"description": "Decode and validate merchant QR code."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 2500,\n  \"currency\": \"USDC\",\n  \"description\": \"Café latte + croissant\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/merchants/{{merchantId}}/payment-request",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchantId}}",
+								"payment-request"
+							]
+						},
+						"description": "Create dynamic QR code for specific amount."
+					},
+					"response": []
+				},
+				{
+					"name": "Pay Merchant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"qrData\": \"joonapay://pay?v=1&t=static&m=merchant-id-here\",\n  \"amount\": 2500\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/merchants/pay",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"pay"
+							]
+						},
+						"description": "Pay a merchant by scanning QR code."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Merchant Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/merchants/{{merchantId}}/transactions?limit=50&offset=0",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchantId}}",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get merchant transaction history."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Merchant Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/merchants/{{merchantId}}/analytics?period=month",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchantId}}",
+								"analytics"
+							],
+							"query": [
+								{
+									"key": "period",
+									"value": "month",
+									"description": "day, week, month, year"
+								}
+							]
+						},
+						"description": "Get merchant sales analytics."
+					},
+					"response": []
+				}
+			],
+			"description": "Merchant QR payment system endpoints."
+		},
+		{
+			"name": "Bill Payments",
+			"item": [
+				{
+					"name": "Get Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/categories?country=CI",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"categories"
+							],
+							"query": [
+								{
+									"key": "country",
+									"value": "CI"
+								}
+							]
+						},
+						"description": "Get available bill payment categories."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Providers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/providers?country=CI&category=electricity",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"providers"
+							],
+							"query": [
+								{
+									"key": "country",
+									"value": "CI"
+								},
+								{
+									"key": "category",
+									"value": "electricity",
+									"description": "electricity, water, internet, tv, phone_credit, etc."
+								}
+							]
+						},
+						"description": "Get bill payment providers by country/category."
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"providerId\": \"cie_ci\",\n  \"accountNumber\": \"1234567890\",\n  \"meterNumber\": \"987654321\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/validate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"validate"
+							]
+						},
+						"description": "Validate customer account with provider."
+					},
+					"response": []
+				},
+				{
+					"name": "Pay Bill",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Pin-Token",
+								"value": "{{pinToken}}",
+								"description": "PIN verification token"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{$guid}}",
+								"description": "Unique key to prevent duplicates"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"providerId\": \"cie_ci\",\n  \"accountNumber\": \"1234567890\",\n  \"meterNumber\": \"987654321\",\n  \"customerName\": \"Ibrahim Kouame\",\n  \"amount\": 15000,\n  \"currency\": \"XOF\",\n  \"phone\": \"+2250701234567\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/pay",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"pay"
+							]
+						},
+						"description": "Pay a bill (electricity, water, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/history?page=1&limit=20&category=electricity&status=completed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "category",
+									"value": "electricity"
+								},
+								{
+									"key": "status",
+									"value": "completed"
+								}
+							]
+						},
+						"description": "Get bill payment history with filters."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Receipt",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/{{paymentId}}/receipt",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"{{paymentId}}",
+								"receipt"
+							]
+						},
+						"description": "Get payment receipt with QR code."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/bill-payments/{{paymentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"bill-payments",
+								"{{paymentId}}"
+							]
+						},
+						"description": "Get bill payment details by ID."
+					},
+					"response": []
+				}
+			],
+			"description": "Bill payment endpoints for utilities and services."
+		},
+		{
+			"name": "Feature Flags",
+			"item": [
+				{
+					"name": "Check Feature",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/feature-flags/check/merchant_payments?appVersion=1.0.0&platform=android",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"feature-flags",
+								"check",
+								"merchant_payments"
+							],
+							"query": [
+								{
+									"key": "appVersion",
+									"value": "1.0.0"
+								},
+								{
+									"key": "platform",
+									"value": "android"
+								}
+							]
+						},
+						"description": "Check if a feature is enabled for current user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Feature Flags",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/feature-flags/me?appVersion=1.0.0&platform=android",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"feature-flags",
+								"me"
+							],
+							"query": [
+								{
+									"key": "appVersion",
+									"value": "1.0.0"
+								},
+								{
+									"key": "platform",
+									"value": "android"
+								}
+							]
+						},
+						"description": "Get all enabled features for current user context."
+					},
+					"response": []
+				}
+			],
+			"description": "Feature flag endpoints for gradual rollout."
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Basic Health Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Basic health check (database only)."
+					},
+					"response": []
+				},
+				{
+					"name": "Liveness Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/live",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"live"
+							]
+						},
+						"description": "Liveness probe for Kubernetes."
+					},
+					"response": []
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/ready",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"ready"
+							]
+						},
+						"description": "Readiness probe (all dependencies)."
+					},
+					"response": []
+				},
+				{
+					"name": "Detailed Health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/detailed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"detailed"
+							]
+						},
+						"description": "Detailed health status of all services."
+					},
+					"response": []
+				},
+				{
+					"name": "Provider Health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/providers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health",
+								"providers"
+							]
+						},
+						"description": "Provider health status for dashboard."
+					},
+					"response": []
+				}
+			],
+			"description": "Health check endpoints for monitoring."
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "pinToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "transactionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "transferId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "beneficiaryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sessionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "deviceId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "merchantId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "paymentId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

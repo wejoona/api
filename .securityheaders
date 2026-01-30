@@ -1,0 +1,112 @@
+# Security Headers Configuration
+# Target: A+ rating on securityheaders.com
+#
+# This file documents the expected security headers for the USDC Wallet API.
+# Use securityheaders.com to verify these headers in production.
+
+# ===================================================================
+# EXPECTED HEADERS (A+ Rating Requirements)
+# ===================================================================
+
+# Content-Security-Policy (Required for A+)
+# Production: Strict, no resources allowed
+Content-Security-Policy: default-src 'none'; script-src 'none'; style-src 'none'; img-src 'none'; font-src 'none'; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content
+
+# X-Frame-Options (Required for A+)
+X-Frame-Options: DENY
+
+# X-Content-Type-Options (Required for A+)
+X-Content-Type-Options: nosniff
+
+# Strict-Transport-Security (Required for A+)
+# 2 years, includeSubDomains, preload for HSTS preload list
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+# Referrer-Policy (Required for A+)
+Referrer-Policy: strict-origin-when-cross-origin
+
+# Permissions-Policy (Required for A+)
+# Disable all browser features not needed by API
+Permissions-Policy: accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), gamepad=(), geolocation=(), gyroscope=(), hid=(), identity-credentials-get=(), idle-detection=(), local-fonts=(), magnetometer=(), microphone=(), midi=(), otp-credentials=(), payment=(), picture-in-picture=(), publickey-credentials-create=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), speaker-selection=(), usb=(), web-share=(), xr-spatial-tracking=()
+
+# ===================================================================
+# ADDITIONAL SECURITY HEADERS (Best Practices)
+# ===================================================================
+
+# Cross-Origin-Opener-Policy
+Cross-Origin-Opener-Policy: same-origin
+
+# Cross-Origin-Embedder-Policy
+Cross-Origin-Embedder-Policy: require-corp
+
+# Cross-Origin-Resource-Policy
+Cross-Origin-Resource-Policy: same-origin
+
+# X-DNS-Prefetch-Control
+X-DNS-Prefetch-Control: off
+
+# X-Download-Options (IE specific)
+X-Download-Options: noopen
+
+# X-Permitted-Cross-Domain-Policies
+X-Permitted-Cross-Domain-Policies: none
+
+# X-XSS-Protection (Deprecated but harmless)
+X-XSS-Protection: 0
+
+# ===================================================================
+# HEADERS TO REMOVE/HIDE
+# ===================================================================
+
+# X-Powered-By: REMOVE (reveals technology stack)
+# Server: REMOVE or strip version (reveals server software)
+
+# ===================================================================
+# CORS HEADERS (On preflight responses)
+# ===================================================================
+
+# Access-Control-Allow-Origin: [specific origin, never *]
+# Access-Control-Allow-Credentials: true
+# Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
+# Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Idempotency-Key, X-Request-ID, Accept, Accept-Language, Origin
+# Access-Control-Max-Age: 86400
+
+# ===================================================================
+# CACHE HEADERS (For API responses)
+# ===================================================================
+
+Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+Pragma: no-cache
+Expires: 0
+Surrogate-Control: no-store
+
+# ===================================================================
+# VERIFICATION COMMANDS
+# ===================================================================
+
+# Quick verification with curl:
+# curl -I https://api.joonapay.com/api/v1/health
+
+# Check specific header:
+# curl -sI https://api.joonapay.com/api/v1/health | grep -i "content-security-policy"
+
+# Full security scan:
+# Visit https://securityheaders.com/?q=https://api.joonapay.com
+
+# ===================================================================
+# HSTS PRELOAD SUBMISSION
+# ===================================================================
+
+# When ready to submit to HSTS preload list:
+# 1. Verify all subdomains support HTTPS
+# 2. Verify HSTS header includes preload directive
+# 3. Submit at https://hstspreload.org/
+
+# Requirements for HSTS preload:
+# - Serve valid certificate
+# - Redirect HTTP to HTTPS on same host
+# - All subdomains support HTTPS
+# - HSTS header with:
+#   - max-age at least 1 year (31536000)
+#   - includeSubDomains directive
+#   - preload directive

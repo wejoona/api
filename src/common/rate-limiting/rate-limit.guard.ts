@@ -5,9 +5,12 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Optional,
+  Inject,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
+import { Counter } from 'prom-client';
 import { RateLimitService } from './rate-limit.service';
 import { RATE_LIMIT_KEY, RateLimitConfig } from './rate-limit.decorator';
 
@@ -26,10 +29,25 @@ export class RateLimitGuard implements CanActivate {
     byIp: false,
   };
 
+  // Metrics counters (optional - only if prometheus is available)
+  private rateLimitChecksCounter?: Counter<string>;
+  private rateLimitViolationsCounter?: Counter<string>;
+
   constructor(
     private readonly reflector: Reflector,
     private readonly rateLimitService: RateLimitService,
-  ) {}
+    @Optional() @Inject('PROMETHEUS_COUNTERS') prometheusCounters?: any,
+  ) {
+    // Initialize metrics if prometheus is available
+    if (prometheusCounters) {
+      try {
+        this.rateLimitChecksCounter = prometheusCounters.rateLimitChecks;
+        this.rateLimitViolationsCounter = prometheusCounters.rateLimitViolations;
+      } catch (error) {
+        this.logger.debug('Prometheus metrics not available for rate limiting');
+      }
+    }
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -47,18 +65,54 @@ export class RateLimitGuard implements CanActivate {
       return true;
     }
 
+    // Check for role-based bypass
+    const user = (request as any).user;
+    if (config.bypassRoles && user?.role) {
+      if (config.bypassRoles.includes(user.role)) {
+        this.logger.debug(
+          `Rate limit bypassed for user ${user.id} with role ${user.role}`,
+        );
+        return true;
+      }
+    }
+
     // Determine the key for rate limiting
     const key = this.buildKey(request, config, context);
+    const endpoint = this.getEndpointKey(context);
 
-    // Check rate limit
+    // Check for API key override (if enabled)
+    let effectiveLimit = config.limit;
+    let effectiveWindow = config.windowSeconds;
+
+    if (config.allowApiKeyOverride) {
+      const apiKeyId = (request as any).apiKeyId;
+      if (apiKeyId) {
+        const customLimit = await this.rateLimitService.getCustomLimitForApiKey(
+          apiKeyId,
+          endpoint,
+        );
+        if (customLimit) {
+          effectiveLimit = customLimit.limit;
+          effectiveWindow = customLimit.windowSeconds;
+          this.logger.debug(
+            `Using custom rate limit for API key ${apiKeyId}: ${effectiveLimit}/${effectiveWindow}s`,
+          );
+        }
+      }
+    }
+
+    // Check rate limit with effective limits (may be overridden by API key)
     const result = await this.rateLimitService.consume(
       key,
-      config.limit,
-      config.windowSeconds,
+      effectiveLimit,
+      effectiveWindow,
     );
 
     // Set rate limit headers
     this.setRateLimitHeaders(response, result);
+
+    // Track metrics
+    this.trackMetrics(endpoint, result.allowed);
 
     if (!result.allowed) {
       const retryAfter = Math.max(
@@ -67,8 +121,19 @@ export class RateLimitGuard implements CanActivate {
       );
       response.setHeader('Retry-After', retryAfter.toString());
 
+      // Enhanced logging with context
       this.logger.warn(
         `Rate limit exceeded for ${key}: ${result.limit} requests per ${config.windowSeconds}s`,
+        {
+          key,
+          endpoint,
+          limit: config.limit,
+          windowSeconds: config.windowSeconds,
+          ip: this.getClientIp(request),
+          userId: (request as any).user?.id,
+          userAgent: request.headers['user-agent'],
+          resetAt: new Date(result.resetAt * 1000).toISOString(),
+        },
       );
 
       throw new HttpException(
@@ -79,6 +144,21 @@ export class RateLimitGuard implements CanActivate {
           retryAfter,
         },
         HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // Log high usage warnings (>80% of limit consumed)
+    const usagePercent = ((result.limit - result.remaining) / result.limit) * 100;
+    if (usagePercent > 80) {
+      this.logger.debug(
+        `High rate limit usage for ${key}: ${usagePercent.toFixed(1)}% (${result.remaining}/${result.limit} remaining)`,
+        {
+          key,
+          endpoint,
+          remaining: result.remaining,
+          limit: result.limit,
+          usagePercent: usagePercent.toFixed(1),
+        },
       );
     }
 
@@ -152,5 +232,26 @@ export class RateLimitGuard implements CanActivate {
     response.setHeader('X-RateLimit-Limit', result.limit.toString());
     response.setHeader('X-RateLimit-Remaining', result.remaining.toString());
     response.setHeader('X-RateLimit-Reset', result.resetAt.toString());
+  }
+
+  /**
+   * Track rate limit metrics (if prometheus is available).
+   */
+  private trackMetrics(endpoint: string, allowed: boolean): void {
+    try {
+      if (this.rateLimitChecksCounter) {
+        this.rateLimitChecksCounter.inc({
+          endpoint,
+          result: allowed ? 'allowed' : 'blocked',
+        });
+      }
+
+      if (!allowed && this.rateLimitViolationsCounter) {
+        this.rateLimitViolationsCounter.inc({ endpoint });
+      }
+    } catch (error) {
+      // Silently fail - metrics should never break the application
+      this.logger.debug(`Failed to track rate limit metrics: ${error}`);
+    }
   }
 }

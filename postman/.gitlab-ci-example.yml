@@ -1,0 +1,207 @@
+# GitLab CI - API Tests
+# Example pipeline for running Postman tests in GitLab CI/CD
+#
+# To use:
+# 1. Copy content to .gitlab-ci.yml (merge with existing)
+# 2. Commit to repository
+# 3. Tests run on every push and merge request
+
+stages:
+  - health
+  - test
+  - report
+
+variables:
+  NEWMAN_VERSION: "latest"
+
+# Health check (fast fail)
+health-check:
+  stage: health
+  image: postman/newman:alpine
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Health" \
+        --reporters cli \
+        --bail
+  only:
+    - branches
+    - merge_requests
+
+# Authentication tests
+test-auth:
+  stage: test
+  image: postman/newman:alpine
+  needs: [health-check]
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Authentication" \
+        --reporters cli,junit \
+        --reporter-junit-export test-results/auth.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/auth.xml
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+# Wallet tests
+test-wallet:
+  stage: test
+  image: postman/newman:alpine
+  needs: [health-check]
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Wallet" \
+        --reporters cli,junit \
+        --reporter-junit-export test-results/wallet.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/wallet.xml
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+# Transfer tests
+test-transfers:
+  stage: test
+  image: postman/newman:alpine
+  needs: [health-check]
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Transfers" \
+        --reporters cli,junit \
+        --reporter-junit-export test-results/transfers.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/transfers.xml
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+# Merchant tests
+test-merchants:
+  stage: test
+  image: postman/newman:alpine
+  needs: [health-check]
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Merchants" \
+        --reporters cli,junit \
+        --reporter-junit-export test-results/merchants.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/merchants.xml
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+# Bill payment tests
+test-bills:
+  stage: test
+  image: postman/newman:alpine
+  needs: [health-check]
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --folder "Bill Payments" \
+        --reporters cli,junit \
+        --reporter-junit-export test-results/bills.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/bills.xml
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - branches
+    - merge_requests
+
+# Full test suite with HTML report
+full-test-suite:
+  stage: test
+  image: node:18-alpine
+  needs: [health-check]
+  before_script:
+    - npm install -g newman newman-reporter-htmlextra
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Staging.postman_environment.json \
+        --reporters cli,htmlextra,junit \
+        --reporter-htmlextra-export test-results/report.html \
+        --reporter-htmlextra-darkTheme \
+        --reporter-htmlextra-title "JoonaPay API Test Report - Build $CI_PIPELINE_ID" \
+        --reporter-junit-export test-results/results.xml \
+        --delay-request 500
+  artifacts:
+    reports:
+      junit: test-results/results.xml
+    paths:
+      - test-results/
+    expire_in: 1 month
+  only:
+    - main
+    - develop
+
+# Deploy HTML report to GitLab Pages
+pages:
+  stage: report
+  image: alpine:latest
+  needs: [full-test-suite]
+  script:
+    - mkdir -p public
+    - cp test-results/report.html public/index.html
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+# Scheduled nightly tests
+nightly-tests:
+  stage: test
+  image: node:18-alpine
+  before_script:
+    - npm install -g newman newman-reporter-htmlextra
+  script:
+    - |
+      newman run usdc-wallet/postman/JoonaPay_API.postman_collection.json \
+        -e usdc-wallet/postman/JoonaPay_Production.postman_environment.json \
+        --reporters cli,htmlextra \
+        --reporter-htmlextra-export test-results/nightly-report.html \
+        --delay-request 1000
+  artifacts:
+    paths:
+      - test-results/
+    expire_in: 1 week
+  only:
+    - schedules
+  allow_failure: true

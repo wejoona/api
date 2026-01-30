@@ -1,0 +1,371 @@
+###
+# JoonaPay API Rate Limiting Tests
+# Use with VS Code REST Client extension
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###
+
+@baseUrl = http://localhost:3000/api/v1
+@accessToken = YOUR_ACCESS_TOKEN_HERE
+@refreshToken = YOUR_REFRESH_TOKEN_HERE
+@testPhone = +2250700000000
+
+###############################################################################
+# Authentication Endpoints - Rate Limit: 5 requests/minute (by IP)
+###############################################################################
+
+### Test 1: Register User (5/minute)
+# Expected: First 5 succeed, 6th returns 429
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "countryCode": "CI"
+}
+
+### Test 2: Login (5/minute)
+# Send this request 6 times quickly to trigger rate limit
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}"
+}
+
+### Test 3: Verify OTP (5/minute)
+# Expected: Rate limited after 5 attempts
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "otp": "123456"
+}
+
+### Test 4: Refresh Token (10/minute)
+# More lenient than login
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Test 5: Logout All Devices (3/minute)
+# Very strict - only 3 attempts per minute
+POST {{baseUrl}}/auth/logout-all
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentRefreshToken": "{{refreshToken}}"
+}
+
+###############################################################################
+# Wallet Endpoints - Rate Limit: Varies by operation
+###############################################################################
+
+### Test 6: Get Wallet Balance (60/minute)
+# Lenient read operation
+GET {{baseUrl}}/wallet/balance
+Authorization: Bearer {{accessToken}}
+
+### Test 7: Get Transactions (30/minute)
+# Moderate read operation
+GET {{baseUrl}}/wallet/transactions?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Test 8: Get Transaction by ID (30/minute)
+GET {{baseUrl}}/wallet/transactions/txn_123456
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Transfer Endpoints - Rate Limit: 10 requests/minute (by user)
+###############################################################################
+
+### Test 9: Create Transfer (10/minute)
+# Financial operation - moderate limit
+POST {{baseUrl}}/transfers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientId": "usr_recipient123",
+  "amount": "10.00",
+  "currency": "USDC",
+  "note": "Test transfer"
+}
+
+### Test 10: Get Transfer History (30/minute)
+GET {{baseUrl}}/transfers/history?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Test 11: Cancel Transfer (5/minute)
+# Critical operation - strict limit
+POST {{baseUrl}}/transfers/txn_123456/cancel
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}
+
+###############################################################################
+# User Endpoints - Rate Limit: Varies by operation
+###############################################################################
+
+### Test 12: Get User Profile (100/minute)
+# Standard authenticated endpoint
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{accessToken}}
+
+### Test 13: Update Profile (100/minute)
+PUT {{baseUrl}}/user/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "username": "johndoe"
+}
+
+### Test 14: Check Username Availability (30/minute by IP)
+# Public endpoint - moderate limit
+GET {{baseUrl}}/user/username/check/johndoe
+
+### Test 15: Search Username (20/minute)
+# Authenticated search - moderate limit
+GET {{baseUrl}}/user/username/search?query=john&limit=10
+Authorization: Bearer {{accessToken}}
+
+### Test 16: Find User by Username (100/minute)
+GET {{baseUrl}}/user/by-username/johndoe
+Authorization: Bearer {{accessToken}}
+
+### Test 17: Get User Limits (100/minute)
+GET {{baseUrl}}/user/limits
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# KYC Endpoints - Rate Limit: Varies by operation
+###############################################################################
+
+### Test 18: Submit KYC (3 requests/5 minutes)
+# Very strict - prevents spam submissions
+POST {{baseUrl}}/kyc/submit
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "documentType": "PASSPORT",
+  "documentNumber": "AB123456",
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-01"
+}
+
+### Test 19: Check KYC Status (30/minute)
+GET {{baseUrl}}/kyc/status
+Authorization: Bearer {{accessToken}}
+
+### Test 20: Upload KYC Document (10 requests/5 minutes)
+POST {{baseUrl}}/kyc/documents/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="id_document.jpg"
+Content-Type: image/jpeg
+
+< ./test-documents/id_document.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Test 21: Start Liveness Challenge (5 requests/5 minutes)
+POST {{baseUrl}}/liveness/start-challenge
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}
+
+###############################################################################
+# Contacts & Beneficiaries - Rate Limit: 30/minute
+###############################################################################
+
+### Test 22: Get Contacts (30/minute)
+GET {{baseUrl}}/contacts?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Test 23: Get Beneficiaries (30/minute)
+GET {{baseUrl}}/beneficiaries
+Authorization: Bearer {{accessToken}}
+
+### Test 24: Create Beneficiary (10/minute)
+POST {{baseUrl}}/beneficiaries
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userId": "usr_recipient123",
+  "nickname": "Mom"
+}
+
+###############################################################################
+# Rate Limit Verification Tests
+###############################################################################
+
+### Test 25: Verify Rate Limit Headers (Any Endpoint)
+# Check that all endpoints return rate limit headers
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{accessToken}}
+
+# Expected Response Headers:
+# X-RateLimit-Limit: 100
+# X-RateLimit-Remaining: 99
+# X-RateLimit-Reset: 1706553600
+
+### Test 26: Trigger Rate Limit (Login Endpoint)
+# Send 6 requests in quick succession
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}"
+}
+
+# Expected Response (6th request):
+# HTTP/1.1 429 Too Many Requests
+# X-RateLimit-Limit: 5
+# X-RateLimit-Remaining: 0
+# X-RateLimit-Reset: 1706553660
+# Retry-After: 42
+#
+# {
+#   "statusCode": 429,
+#   "message": "Too many requests. Please try again later.",
+#   "error": "Too Many Requests",
+#   "retryAfter": 42
+# }
+
+###############################################################################
+# Load Testing Scenarios
+###############################################################################
+
+### Scenario 1: Burst Traffic
+# Simulate burst of requests from single user
+# Copy and send this request 10 times rapidly
+
+GET {{baseUrl}}/wallet/balance
+Authorization: Bearer {{accessToken}}
+
+### Scenario 2: Authentication Brute Force
+# Simulate brute force attack on login endpoint
+# Send 10 login requests with different phone numbers
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phone": "+2250700000001"
+}
+
+### Scenario 3: Transfer Spam
+# Simulate transfer spam (should be rate limited)
+# Send 15 transfer requests rapidly
+
+POST {{baseUrl}}/transfers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientId": "usr_test",
+  "amount": "1.00",
+  "currency": "USDC",
+  "note": "Load test"
+}
+
+###############################################################################
+# Edge Cases
+###############################################################################
+
+### Test 27: Rate Limit with Invalid Token
+# Should still apply rate limits even with invalid auth
+GET {{baseUrl}}/user/profile
+Authorization: Bearer invalid_token_here
+
+### Test 28: Rate Limit on Public Endpoint
+# Public endpoints use IP-based rate limiting
+GET {{baseUrl}}/user/username/check/testuser123
+
+### Test 29: Rate Limit Recovery
+# Wait 60 seconds, then send request - should succeed
+# @note Manual test - wait for rate limit window to reset
+
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}"
+}
+
+###############################################################################
+# Admin Endpoints (Higher Limits)
+###############################################################################
+
+### Test 30: Admin - Get Users (100/minute)
+GET {{baseUrl}}/admin/users?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+### Test 31: Admin - Get Transactions (100/minute)
+GET {{baseUrl}}/admin/transactions?page=1&limit=20
+Authorization: Bearer {{accessToken}}
+
+###############################################################################
+# Webhook Endpoints (High Limits - 200/minute)
+###############################################################################
+
+### Test 32: Circle Webhook (200/minute by IP)
+POST {{baseUrl}}/webhooks/circle
+Content-Type: application/json
+X-Circle-Signature: test_signature
+
+{
+  "eventType": "transaction.completed",
+  "transactionId": "txn_123456"
+}
+
+### Test 33: Twilio Webhook (200/minute by IP)
+POST {{baseUrl}}/webhooks/twilio
+Content-Type: application/x-www-form-urlencoded
+
+MessageSid=SM123456&From=+2250700000000&Body=Test
+
+###############################################################################
+# Notes
+###############################################################################
+
+# Rate Limit Testing Tips:
+#
+# 1. Use a loop to send multiple requests quickly:
+#    - In VS Code: Click "Send Request" multiple times
+#    - Or use bash: for i in {1..10}; do curl ...; done
+#
+# 2. Watch for rate limit headers in responses:
+#    - X-RateLimit-Limit: Maximum allowed
+#    - X-RateLimit-Remaining: Requests left
+#    - X-RateLimit-Reset: Unix timestamp when limit resets
+#
+# 3. When rate limited (429):
+#    - Wait for Retry-After seconds
+#    - Or wait until X-RateLimit-Reset timestamp
+#
+# 4. Rate limits are per:
+#    - IP address (for auth endpoints)
+#    - User ID (for authenticated endpoints)
+#
+# 5. Test with different users/IPs:
+#    - Same IP, different users: Separate rate limits
+#    - Same user, different IPs: Shared rate limit
+#
+# 6. Redis-backed limits:
+#    - Limits are shared across server instances
+#    - Survives server restarts
+#    - Check Redis: redis-cli GET "rate_limit:user:123:endpoint"

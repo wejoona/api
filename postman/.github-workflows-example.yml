@@ -1,0 +1,173 @@
+# GitHub Actions - API Tests
+# Example workflow for running Postman tests in CI/CD
+#
+# To use:
+# 1. Copy to .github/workflows/api-tests.yml
+# 2. Commit to repository
+# 3. Tests run on every push and PR
+
+name: API Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  # Health check job (fast, runs first)
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Run health checks
+        run: |
+          cd usdc-wallet/postman
+          newman run JoonaPay_API.postman_collection.json \
+            -e JoonaPay_Staging.postman_environment.json \
+            --folder "Health" \
+            --reporters cli \
+            --bail
+
+  # Main API test suite
+  api-tests:
+    name: API Test Suite
+    runs-on: ubuntu-latest
+    needs: health-check  # Only run if health check passes
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        folder:
+          - Authentication
+          - User
+          - Wallet
+          - Transactions
+          - Transfers
+          - Beneficiaries
+          - Sessions
+          - Devices
+          - Merchants
+          - Bill Payments
+          - Feature Flags
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-htmlextra
+
+      - name: Run ${{ matrix.folder }} tests
+        run: |
+          cd usdc-wallet/postman
+          newman run JoonaPay_API.postman_collection.json \
+            -e JoonaPay_Staging.postman_environment.json \
+            --folder "${{ matrix.folder }}" \
+            --reporters cli,json \
+            --reporter-json-export test-results/${{ matrix.folder }}.json \
+            --delay-request 500
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.folder }}
+          path: usdc-wallet/postman/test-results/
+
+  # Full test suite (all folders)
+  full-test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    needs: health-check
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-htmlextra
+
+      - name: Run all tests
+        run: |
+          cd usdc-wallet/postman
+          newman run JoonaPay_API.postman_collection.json \
+            -e JoonaPay_Staging.postman_environment.json \
+            --reporters cli,htmlextra,junit \
+            --reporter-htmlextra-export test-results/report.html \
+            --reporter-htmlextra-darkTheme \
+            --reporter-htmlextra-title "JoonaPay API Test Report" \
+            --reporter-junit-export test-results/results.xml \
+            --delay-request 500 \
+            --bail-failure
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: html-report
+          path: usdc-wallet/postman/test-results/report.html
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: junit-results
+          path: usdc-wallet/postman/test-results/results.xml
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: usdc-wallet/postman/test-results/results.xml
+
+  # Slack notification
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [api-tests, full-test-suite]
+    if: failure()
+
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'JoonaPay API tests failed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
