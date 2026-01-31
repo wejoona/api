@@ -37,18 +37,28 @@ import { UploadModule } from './modules/upload/upload.module';
 import { LivenessModule } from './modules/liveness/liveness.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { BillPaymentsModule } from './modules/bill-payments/bill-payments.module';
+import { BulkPaymentsModule } from './modules/bulk-payments/bulk-payments.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { VerificationModule } from './modules/verification/verification.module';
 import { DeviceModule } from './modules/device/device.module';
 import { SessionModule } from './modules/session/session.module';
 import { BeneficiaryModule } from './modules/beneficiary/beneficiary.module';
+import { BankLinkingModule } from './modules/bank-linking/bank-linking.module';
 import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
+import { RecurringTransferModule } from './modules/recurring-transfers/recurring-transfer.module';
 import { ApiKeysModule } from './modules/api-keys';
+import { CardsModule } from './modules/cards/cards.module';
 import { SlaConfigurationModule } from './modules/sla-configuration';
 import { SupportModule } from './modules/support';
 import { DataRetentionModule } from './modules/data-retention';
 import { ProfilingModule } from './modules/profiling';
+import { TracingModule } from './modules/tracing';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { CorrelationModule } from './modules/correlation';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { BusinessModule } from './modules/business';
+import { SubBusinessModule } from './modules/sub-business';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -106,7 +116,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
         username: configService.get<string>('database.user'),
         password: configService.get<string>('database.password'),
         autoLoadEntities: true,
-        synchronize: false, // SECURITY: Always use migrations, never auto-sync
+        synchronize: configService.get<boolean>('database.synchronize', false), // Uses DATABASE_SYNCHRONIZE env var
         logging: true,
         logger: new CustomTypeOrmLogger(),
         // PERFORMANCE: Connection pooling for better concurrency and resource management
@@ -142,6 +152,12 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     // Scheduled tasks (reconciliation, cleanup jobs)
     ScheduleModule.forRoot(),
 
+    // Distributed Tracing (OpenTelemetry + Jaeger)
+    TracingModule,
+
+    // Correlation ID Tracking (Request tracing across services)
+    CorrelationModule,
+
     // Provider modules (external integrations)
     CircleModule, // Identity, Wallets, Transfers
     YellowCardModule, // On-ramp/Off-ramp for Africa
@@ -156,6 +172,9 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     SessionModule, // User session management with refresh tokens
     WalletModule,
     BeneficiaryModule, // Saved beneficiaries for faster transfers
+    BankLinkingModule, // Bank account linking for deposits/withdrawals
+    RecurringTransferModule, // Recurring/scheduled transfers
+    CardsModule, // Virtual and physical card management
     TransactionModule,
     TransferModule,
     NotificationModule,
@@ -177,12 +196,17 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     LivenessModule, // Challenge-based liveness detection
     MerchantModule, // Merchant QR payment system
     BillPaymentsModule, // Bill payments for West African utilities
+    BulkPaymentsModule, // Bulk payment processing for batch transfers
     MonitoringModule, // Transaction monitoring and alerts
     ComplianceModule, // BCEAO compliance and AML/CFT
     SlaConfigurationModule, // SLA configurations for support tickets and KYC
     SupportModule, // Customer support ticket system with SLA tracking
     DataRetentionModule, // Data retention policies and GDPR compliance
     ProfilingModule, // Performance profiling and monitoring
+    RealtimeModule, // WebSocket real-time notifications
+    AnalyticsModule, // Spending insights and analytics
+    BusinessModule, // Business account management for organizations
+    SubBusinessModule, // Sub-business entity management for organizations
   ],
   controllers: [AppController],
   providers: [
