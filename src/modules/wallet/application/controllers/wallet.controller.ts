@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiHeader,
+  ApiParam,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
@@ -44,7 +46,10 @@ import {
   VerifyPinUseCase,
   SetPinUseCase,
   CreateWalletUseCase,
+  GetWalletLimitsUseCase,
 } from '../usecases';
+import { WalletLimitsResponse } from '../dto/responses';
+import { GetDepositStatusUseCase } from '../../../transaction/application/usecases';
 
 @ApiTags('Wallet')
 @Controller('wallet')
@@ -63,6 +68,8 @@ export class WalletController {
     private readonly verifyPinUseCase: VerifyPinUseCase,
     private readonly setPinUseCase: SetPinUseCase,
     private readonly createWalletUseCase: CreateWalletUseCase,
+    private readonly getWalletLimitsUseCase: GetWalletLimitsUseCase,
+    private readonly getDepositStatusUseCase: GetDepositStatusUseCase,
   ) {}
 
   // ============================================
@@ -213,6 +220,135 @@ export class WalletController {
   }
 
   // ============================================
+  // DEPOSIT ALIAS ROUTES (Mobile SDK compatibility)
+  // ============================================
+  // NOTE: More specific routes (deposit/providers) must come BEFORE parameterized routes (deposit/:id)
+
+  @Get('deposit/providers')
+  @ApiOperation({
+    summary: 'Get deposit providers (alias for /deposit/channels)',
+    description:
+      'Alias route for mobile SDK compatibility. Transforms channels response to providers format.',
+  })
+  @ApiQuery({ name: 'currency', required: false, example: 'XOF' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns available deposit providers',
+    schema: {
+      example: {
+        providers: [
+          {
+            id: 'orange_money_ci',
+            name: 'Orange Money',
+            logo: 'https://example.com/orange.png',
+            minAmount: 500,
+            maxAmount: 1000000,
+            fee: 0.0,
+            feeType: 'percentage',
+            countries: ['CI', 'SN', 'ML'],
+          },
+        ],
+      },
+    },
+  })
+  async getDepositProvidersAlias(
+    @Request() req: AuthenticatedRequest,
+    @Query('currency') currency?: string,
+  ) {
+    const result = await this.getDepositChannelsUseCase.execute({
+      userId: req.user.id,
+      currency,
+    });
+
+    // Transform channels to providers format for mobile SDK
+    return {
+      providers: result.channels.map((channel) => ({
+        id: channel.id,
+        name: channel.name,
+        logo: `https://example.com/${channel.provider}.png`, // You can enhance this with actual logo URLs
+        minAmount: channel.minAmount,
+        maxAmount: channel.maxAmount,
+        fee: channel.fee,
+        feeType: channel.feeType,
+        countries: [channel.country],
+      })),
+    };
+  }
+
+  @Get('deposit/:id')
+  @ApiOperation({
+    summary: 'Get deposit status (alias for /transactions/deposit/:id/status)',
+    description:
+      'Alias route for mobile SDK compatibility. Delegates to the transaction controller implementation.',
+  })
+  @ApiParam({ name: 'id', description: 'Transaction/Deposit ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns deposit status with payment details',
+    schema: {
+      example: {
+        transactionId: '123e4567-e89b-12d3-a456-426614174000',
+        depositId: 'dep_1234567890',
+        status: 'pending',
+        amount: 16.45,
+        sourceCurrency: 'XOF',
+        targetCurrency: 'USD',
+        rate: 0.00166,
+        fee: 150,
+        createdAt: '2026-01-18T12:00:00.000Z',
+        completedAt: null,
+      },
+    },
+  })
+  async getDepositStatusAlias(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.getDepositStatusUseCase.execute({
+      userId: req.user.id,
+      transactionId: id,
+    });
+  }
+
+  @Get('exchange-rate')
+  @ApiOperation({
+    summary: 'Get exchange rate (alias for /rate)',
+    description:
+      'Alias route for mobile SDK compatibility. Delegates to the rate endpoint.',
+  })
+  @ApiQuery({ name: 'sourceCurrency', required: true, example: 'XOF' })
+  @ApiQuery({ name: 'targetCurrency', required: true, example: 'USD' })
+  @ApiQuery({ name: 'amount', required: true, example: 10000 })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns exchange rate',
+    schema: {
+      example: {
+        fromCurrency: 'XOF',
+        toCurrency: 'USD',
+        rate: 600.0,
+        timestamp: '2026-01-30T12:00:00.000Z',
+      },
+    },
+  })
+  async getExchangeRateAlias(@Query() query: GetRateDto) {
+    const result = await this.getRateUseCase.execute({
+      sourceCurrency: query.sourceCurrency,
+      targetCurrency: query.targetCurrency,
+      amount: query.amount,
+      direction: query.direction,
+    });
+
+    // Transform to mobile SDK format
+    return {
+      fromCurrency: result.sourceCurrency,
+      toCurrency: result.targetCurrency,
+      rate: result.sourceAmount / result.targetAmount, // Inverse rate (1 USD = X XOF)
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // ============================================
   // TRANSFERS
   // ============================================
 
@@ -298,13 +434,20 @@ export class WalletController {
     schema: {
       example: {
         transactionId: '123e4567-e89b-12d3-a456-426614174000',
+        id: '123e4567-e89b-12d3-a456-426614174000',
         walletId: 'wallet-1',
         toAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        recipientAddress: '0x1234567890abcdef1234567890abcdef12345678',
         amount: 50,
         currency: 'USD',
         fee: 1.0,
         status: 'pending',
+        network: 'polygon',
+        txHash:
+          '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         estimatedArrival: '5-30 minutes',
+        timestamp: '2026-01-30T12:00:00.000Z',
+        createdAt: '2026-01-30T12:00:00.000Z',
       },
     },
   })
@@ -322,13 +465,87 @@ export class WalletController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: ExternalTransferDto,
   ) {
-    return this.externalTransferUseCase.execute({
+    const result = await this.externalTransferUseCase.execute({
       userId: req.user.id,
-      toAddress: dto.toAddress,
+      toAddress: dto.getAddress(),
       amount: dto.amount,
       currency: dto.currency,
       network: dto.network,
     });
+
+    // Format response to match mobile SDK expectations
+    const now = new Date();
+    return {
+      transactionId: result.transactionId,
+      id: result.transactionId,
+      walletId: result.walletId,
+      toAddress: result.toAddress,
+      recipientAddress: result.toAddress,
+      amount: result.amount,
+      currency: result.currency,
+      fee: result.fee,
+      status: result.status,
+      network: dto.network || 'polygon',
+      txHash: result.txHash,
+      estimatedArrival: result.estimatedArrival,
+      timestamp: now.toISOString(),
+      createdAt: now.toISOString(),
+    };
+  }
+
+  @Get('transfer/external/estimate-fee')
+  @ApiOperation({ summary: 'Estimate network fee for external transfer' })
+  @ApiQuery({
+    name: 'network',
+    required: false,
+    example: 'polygon',
+    description: 'Blockchain network (defaults to polygon)',
+    enum: ['polygon', 'ethereum', 'base', 'arbitrum', 'avalanche'],
+  })
+  @ApiQuery({
+    name: 'amount',
+    required: false,
+    example: 50,
+    description:
+      'Transfer amount in USD (optional, for more accurate estimates)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns estimated network fee',
+    schema: {
+      example: {
+        network: 'polygon',
+        estimatedFee: 0.01,
+        estimatedTime: '1-2 minutes',
+        currency: 'USD',
+      },
+    },
+  })
+  async estimateExternalTransferFee(
+    @Query('network') network?: string,
+    @Query('amount') amount?: number,
+  ) {
+    const networkName = network || 'polygon';
+
+    // Network-based fee estimates
+    // These are approximations - in production, you might query the payment gateway
+    const feeEstimates: Record<string, { fee: number; time: string }> = {
+      polygon: { fee: 0.01, time: '1-2 minutes' },
+      ethereum: { fee: 2.5, time: '5-10 minutes' },
+      base: { fee: 0.05, time: '2-3 minutes' },
+      arbitrum: { fee: 0.1, time: '2-5 minutes' },
+      avalanche: { fee: 0.15, time: '2-3 minutes' },
+    };
+
+    const estimate =
+      feeEstimates[networkName.toLowerCase()] || feeEstimates.polygon;
+
+    return {
+      network: networkName,
+      estimatedFee: estimate.fee,
+      estimatedTime: estimate.time,
+      currency: 'USD',
+    };
   }
 
   @Post('withdraw')
@@ -565,5 +782,42 @@ export class WalletController {
       pin: dto.pin,
       confirmPin: dto.confirmPin,
     });
+  }
+
+  // ============================================
+  // LIMITS
+  // ============================================
+
+  @Get('limits')
+  @ApiOperation({ summary: 'Get wallet transaction limits based on KYC tier' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns current limits and usage',
+    type: WalletLimitsResponse,
+    schema: {
+      example: {
+        dailyLimit: 500.0,
+        monthlyLimit: 2000.0,
+        singleTransactionLimit: 500.0,
+        withdrawalLimit: 500.0,
+        dailyUsed: 420.0,
+        monthlyUsed: 1250.0,
+        kycTier: 1,
+        tierName: 'Basic',
+        nextTierName: 'Verified',
+        nextTierDailyLimit: 2000.0,
+        nextTierMonthlyLimit: 10000.0,
+        resetTime: '2026-01-31T00:00:00.000Z',
+        hoursUntilReset: 12,
+        minutesUntilReset: 30,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User or wallet not found',
+  })
+  async getLimits(@Request() req: AuthenticatedRequest) {
+    return this.getWalletLimitsUseCase.execute({ userId: req.user.id });
   }
 }

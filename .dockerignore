@@ -107,7 +107,7 @@ eslint.config.mjs
 tsconfig*.json
 !tsconfig.json
 !tsconfig.build.json
-nest-cli.json
+!nest-cli.json
 nodemon.json
 pm2.json
 pm2.config.js

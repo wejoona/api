@@ -31,7 +31,7 @@ export class TypeOrmPaymentLinkRepository extends PaymentLinkRepository {
 
   async findByUserId(userId: string): Promise<PaymentLink[]> {
     const entities = await this.repo.find({
-      where!: { userId },
+      where: { userId },
       order: { createdAt: 'DESC' },
     });
     return entities.map((e) => this.mapper.toDomain(e));
@@ -39,7 +39,7 @@ export class TypeOrmPaymentLinkRepository extends PaymentLinkRepository {
 
   async findActiveByUserId(userId: string): Promise<PaymentLink[]> {
     const entities = await this.repo.find({
-      where!: { userId, status: PaymentLinkStatus.ACTIVE },
+      where: { userId, status: PaymentLinkStatus.ACTIVE },
       order: { createdAt: 'DESC' },
     });
     return entities.map((e) => this.mapper.toDomain(e));

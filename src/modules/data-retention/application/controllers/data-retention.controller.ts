@@ -1,24 +1,15 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
 import { DataRetentionService } from '../services/data-retention.service';
 import { RetentionPolicyRepository } from '../../domain/repositories/retention-policy.repository';
+import { CreateDeletionRequestDto, UpdateRetentionPolicyDto } from '../dto';
 import {
-  CreateDeletionRequestDto,
-  UpdateRetentionPolicyDto,
-} from '../dto';
-import { DeletionStatus } from '../../infrastructure/orm-entities/data-deletion-request.orm-entity';
+  DeletionStatus,
+  DeletionType,
+} from '../../infrastructure/orm-entities/data-deletion-request.orm-entity';
 
 // Note: Add JwtAuthGuard and AdminGuard when implementing auth
-// import { JwtAuthGuard } from '@/shared/guards/jwt-auth.guard';
-// import { AdminGuard } from '@/shared/guards/admin.guard';
+// import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+// import { AdminGuard } from '@common/guards/admin.guard';
 
 @Controller('data-retention')
 // @UseGuards(JwtAuthGuard, AdminGuard) // Enable when auth is ready
@@ -93,10 +84,17 @@ export class DataRetentionController {
     @Body() dto: CreateDeletionRequestDto,
     // @CurrentUser() currentUser: User, // Enable when auth is ready
   ) {
+    // Map string to enum
+    const deletionTypeMap: Record<string, DeletionType> = {
+      gdpr: DeletionType.GDPR,
+      account_closure: DeletionType.ACCOUNT_CLOSURE,
+      admin: DeletionType.ADMIN,
+    };
+
     const request = await this.retentionService.createDeletionRequest(
       dto.userId,
       null, // currentUser.id when auth is enabled
-      dto.deletionType,
+      deletionTypeMap[dto.deletionType],
       dto.reason,
       dto.daysDelay,
     );

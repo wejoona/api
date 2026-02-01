@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateSlaConfigurationsTable1743000000000
-  implements MigrationInterface
-{
+export class CreateSlaConfigurationsTable1743000000000 implements MigrationInterface {
   name = 'CreateSlaConfigurationsTable1743000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -99,6 +97,8 @@ export class CreateSlaConfigurationsTable1743000000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE IF EXISTS "system"."sla_configurations"`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS "system"."sla_configurations"`,
+    );
   }
 }

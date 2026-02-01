@@ -193,18 +193,8 @@ export class WatchlistScreeningService {
     }
 
     // Search by identifiers if available
-    if (user.identificationNumber) {
-      const idMatches = await this.screenByIdentifier(
-        user.identificationNumber,
-        listType,
-      );
-      for (const match of idMatches) {
-        // Avoid duplicates
-        if (!matches.find((m) => m.entryId === match.entryId)) {
-          matches.push(match);
-        }
-      }
-    }
+    // Note: identificationNumber not yet available in UserOrmEntity
+    // TODO: Add identificationNumber field to UserOrmEntity when KYC data is integrated
 
     return matches;
   }
@@ -279,20 +269,8 @@ export class WatchlistScreeningService {
     }
 
     // Boost score if DOB matches
-    if (user.dateOfBirth && entry.dateOfBirth) {
-      const userDob = new Date(user.dateOfBirth);
-      const entryDob = new Date(entry.dateOfBirth);
-      if (
-        userDob.getFullYear() === entryDob.getFullYear() &&
-        userDob.getMonth() === entryDob.getMonth() &&
-        userDob.getDate() === entryDob.getDate()
-      ) {
-        highestScore = Math.min(100, highestScore + 15);
-        if (highestScore >= 80) {
-          matchType = 'date_of_birth';
-        }
-      }
-    }
+    // Note: dateOfBirth not yet available in UserOrmEntity
+    // TODO: Add dateOfBirth field when KYC data is integrated
 
     // Boost score if nationality matches
     if (user.countryCode && entry.nationality) {
@@ -589,7 +567,7 @@ export class WatchlistScreeningService {
     this.logger.log('Starting batch user screening');
 
     const users = await this.userRepository.find({
-      where: { isActive: true },
+      where: { status: 'active' },
     });
 
     let matchesFound = 0;

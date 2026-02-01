@@ -46,7 +46,7 @@ export class VelocityRuleService {
     this.validateThresholds(dto.ruleType, dto.thresholdAmount, dto.thresholdCount);
 
     const rule = VelocityRule.create({
-      name!: dto.name,
+      name: dto.name,
       description: dto.description,
       ruleType: dto.ruleType,
       thresholdAmount: dto.thresholdAmount,
@@ -94,7 +94,7 @@ export class VelocityRuleService {
       action: dto.action ?? existing.action,
       appliesToTier: dto.appliesToTier ?? existing.appliesToTier,
       isActive: dto.isActive ?? existing.isActive,
-      createdAt!: existing.createdAt,
+      createdAt: existing.createdAt,
       updatedAt: new Date(),
     });
 
@@ -220,7 +220,7 @@ export class VelocityRuleService {
 
     if (triggeredRules.length === 0) {
       return {
-        allowed!: true,
+        allowed: true,
         triggeredRules: [],
         action: null,
         message: null,
@@ -304,7 +304,7 @@ export class VelocityRuleService {
    */
   private toResponseDto(rule: VelocityRule): VelocityRuleResponseDto {
     return {
-      id!: rule.id,
+      id: rule.id,
       name: rule.name,
       description: rule.description,
       ruleType: rule.ruleType,

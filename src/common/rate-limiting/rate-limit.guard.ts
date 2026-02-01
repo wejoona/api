@@ -24,7 +24,7 @@ export class RateLimitGuard implements CanActivate {
 
   // Default rate limit if not specified by decorator
   private readonly defaultConfig: RateLimitConfig = {
-    limit!: 100,
+    limit: 100,
     windowSeconds: 60,
     byIp: false,
   };
@@ -138,7 +138,7 @@ export class RateLimitGuard implements CanActivate {
 
       throw new HttpException(
         {
-          statusCode!: HttpStatus.TOO_MANY_REQUESTS,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
           message: 'Too many requests. Please try again later.',
           error: 'Too Many Requests',
           retryAfter,

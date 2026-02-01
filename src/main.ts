@@ -145,7 +145,12 @@ async function bootstrap() {
     ],
 
     // SECURITY: Only expose headers that clients need
-    exposedHeaders: ['X-Idempotency-Key', 'X-Request-ID', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+    exposedHeaders: [
+      'X-Idempotency-Key',
+      'X-Request-ID',
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+    ],
 
     // PERFORMANCE: Cache preflight requests for 24 hours
     // Reduces OPTIONS requests for better performance

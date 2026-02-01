@@ -23,7 +23,7 @@ import { ScheduleRepository } from '../../infrastructure/repositories/schedule.r
 import { ExecutionRepository } from '../../infrastructure/repositories/execution.repository';
 
 // Frequency to milliseconds mapping
-const _FREQUENCY_MS: Record<ScheduleFrequency, number> = {
+const __FREQUENCY_MS: Record<ScheduleFrequency, number> = {
   once: 0,
   daily: 24 * 60 * 60 * 1000,
   weekly: 7 * 24 * 60 * 60 * 1000,
@@ -489,7 +489,7 @@ export class ScheduledPaymentService {
     fromDate: Date,
     frequency: ScheduleFrequency,
     time: string,
-    timezone: string,
+    _timezone: string,
     dayOfWeek?: number,
     dayOfMonth?: number,
   ): Date {

@@ -105,7 +105,12 @@ export class ComplianceCaseService {
     dto: SearchCasesDto,
     page: number = 1,
     limit: number = 20,
-  ): Promise<PaginatedCases & { items: CaseResponseDto[] }> {
+  ): Promise<{
+    items: CaseResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const criteria: CaseSearchCriteria = {
       caseType: dto.caseType,
       status: dto.status,
@@ -116,8 +121,10 @@ export class ComplianceCaseService {
 
     const result = await this.caseRepository.search(criteria, page, limit);
     return {
-      ...result,
       items: result.items.map((c) => this.toResponseDto(c)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
     };
   }
 

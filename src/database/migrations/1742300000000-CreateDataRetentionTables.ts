@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateDataRetentionTables1742300000000
-  implements MigrationInterface
-{
+export class CreateDataRetentionTables1742300000000 implements MigrationInterface {
   name = 'CreateDataRetentionTables1742300000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -13,27 +13,27 @@ import { ScreeningRecordOrmEntity } from './screening-record.orm-entity';
 @Entity({ name: 'screening_matches', schema: 'compliance' })
 export class ScreeningMatchOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'screening_record_id', type: 'uuid' })
   @Index()
-  screeningRecordId!: string;
+  screeningRecordId: string;
 
   @ManyToOne(() => ScreeningRecordOrmEntity, (record) => record.matches, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'screening_record_id' })
-  screeningRecord!: ScreeningRecordOrmEntity;
+  screeningRecord: ScreeningRecordOrmEntity;
 
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   @Index()
-  userId!: string | null;
+  userId: string | null;
 
   @Column({ name: 'match_id', type: 'varchar', length: 255 })
-  matchId!: string;
+  matchId: string;
 
   @Column({ name: 'matched_name', type: 'varchar', length: 500 })
-  matchedName!: string;
+  matchedName: string;
 
   @Column({
     name: 'list_type',
@@ -41,10 +41,10 @@ export class ScreeningMatchOrmEntity {
     enum: ['sanctions', 'pep', 'adverse_media', 'enforcement'],
   })
   @Index()
-  listType!: 'sanctions' | 'pep' | 'adverse_media' | 'enforcement';
+  listType: 'sanctions' | 'pep' | 'adverse_media' | 'enforcement';
 
   @Column({ type: 'varchar', length: 255 })
-  source!: string;
+  source: string;
 
   @Column({
     name: 'match_score',
@@ -52,14 +52,14 @@ export class ScreeningMatchOrmEntity {
     precision: 5,
     scale: 2,
   })
-  matchScore!: number;
+  matchScore: number;
 
   @Column({
     name: 'match_type',
     type: 'enum',
     enum: ['exact', 'fuzzy', 'alias', 'partial'],
   })
-  matchType!: 'exact' | 'fuzzy' | 'alias' | 'partial';
+  matchType: 'exact' | 'fuzzy' | 'alias' | 'partial';
 
   @Column({
     type: 'enum',
@@ -67,23 +67,23 @@ export class ScreeningMatchOrmEntity {
     default: 'pending',
   })
   @Index()
-  status!: 'pending' | 'confirmed' | 'false_positive';
+  status: 'pending' | 'confirmed' | 'false_positive';
 
   @Column({ name: 'reviewed_by', type: 'uuid', nullable: true })
-  reviewedBy!: string | null;
+  reviewedBy: string | null;
 
   @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
-  reviewedAt!: Date | null;
+  reviewedAt: Date | null;
 
   @Column({ name: 'resolution_notes', type: 'text', nullable: true })
-  resolutionNotes!: string | null;
+  resolutionNotes: string | null;
 
   @Column({ type: 'jsonb', default: {} })
-  metadata!: Record<string, any>;
+  metadata: Record<string, any>;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  updatedAt: Date;
 }

@@ -4,12 +4,16 @@ import {
   makeCounterProvider,
   makeHistogramProvider,
   makeGaugeProvider,
+  makeSummaryProvider,
 } from '@willsoto/nestjs-prometheus';
 import { MetricsService } from './metrics.service';
 import { MetricsController } from './metrics.controller';
+import { BusinessMetricsService } from './business-metrics.service';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {
@@ -27,6 +31,7 @@ import { MetricsController } from './metrics.controller';
   controllers: [MetricsController],
   providers: [
     MetricsService,
+    BusinessMetricsService,
     // HTTP Metrics
     makeHistogramProvider({
       name: 'http_request_duration_seconds',
@@ -163,7 +168,150 @@ import { MetricsController } from './metrics.controller';
       name: 'nodejs_heap_size_used_bytes',
       help: 'Used size of the heap in bytes',
     }),
+
+    // ==================== BUSINESS KPI METRICS ====================
+
+    // Transactions Per Minute (TPM)
+    makeGaugeProvider({
+      name: 'business_transactions_per_minute',
+      help: 'Number of transactions in the last minute (real-time TPM)',
+      labelNames: [],
+    }),
+    makeCounterProvider({
+      name: 'business_transactions_rate',
+      help: 'Transaction rate counter for TPM calculation',
+      labelNames: ['type', 'status', 'currency'],
+    }),
+
+    // Average Transaction Value
+    makeSummaryProvider({
+      name: 'business_transaction_value_summary',
+      help: 'Summary of transaction values (percentiles)',
+      labelNames: ['type', 'currency'],
+      percentiles: [0.5, 0.75, 0.9, 0.95, 0.99],
+    }),
+    makeCounterProvider({
+      name: 'business_transaction_value_total',
+      help: 'Total transaction value for average calculation',
+      labelNames: ['type', 'currency'],
+    }),
+    makeCounterProvider({
+      name: 'business_transaction_count_total',
+      help: 'Total transaction count for average calculation',
+      labelNames: ['type', 'currency'],
+    }),
+    makeGaugeProvider({
+      name: 'business_avg_transaction_value',
+      help: 'Average transaction value in USD',
+      labelNames: ['type', 'currency'],
+    }),
+
+    // KYC Completion Rate
+    makeCounterProvider({
+      name: 'business_kyc_submissions_total',
+      help: 'Total KYC submissions started',
+      labelNames: ['level', 'country'],
+    }),
+    makeCounterProvider({
+      name: 'business_kyc_completions_total',
+      help: 'Total successful KYC completions',
+      labelNames: ['level', 'country'],
+    }),
+    makeCounterProvider({
+      name: 'business_kyc_rejections_total',
+      help: 'Total KYC rejections',
+      labelNames: ['level', 'country', 'reason'],
+    }),
+    makeGaugeProvider({
+      name: 'business_kyc_completion_rate',
+      help: 'KYC completion rate percentage',
+      labelNames: ['level'],
+    }),
+    makeHistogramProvider({
+      name: 'business_kyc_processing_duration_seconds',
+      help: 'KYC processing duration in seconds',
+      labelNames: ['level', 'country', 'status'],
+      buckets: [10, 30, 60, 300, 600, 1800, 3600, 7200], // 10s to 2 hours
+    }),
+
+    // User Registration Rate
+    makeCounterProvider({
+      name: 'business_user_registrations_rate',
+      help: 'User registration rate counter',
+      labelNames: ['channel', 'country', 'status'],
+    }),
+    makeGaugeProvider({
+      name: 'business_registrations_per_hour',
+      help: 'Number of registrations per hour',
+      labelNames: ['channel'],
+    }),
+    makeCounterProvider({
+      name: 'business_user_activations_total',
+      help: 'Total user activations',
+      labelNames: ['channel', 'country', 'activation_type'],
+    }),
+    makeGaugeProvider({
+      name: 'business_user_activation_rate',
+      help: 'User activation rate percentage',
+      labelNames: ['channel'],
+    }),
+
+    // API Latency by Endpoint
+    makeHistogramProvider({
+      name: 'business_api_latency_by_endpoint',
+      help: 'API latency by endpoint in seconds',
+      labelNames: ['endpoint', 'method', 'status'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+    }),
+    makeGaugeProvider({
+      name: 'business_api_success_rate',
+      help: 'API success rate percentage by endpoint',
+      labelNames: ['endpoint'],
+    }),
+    makeCounterProvider({
+      name: 'business_api_requests_by_endpoint',
+      help: 'Total API requests by endpoint',
+      labelNames: ['endpoint', 'method', 'status'],
+    }),
+    makeCounterProvider({
+      name: 'business_api_errors_by_endpoint',
+      help: 'Total API errors by endpoint',
+      labelNames: ['endpoint', 'method', 'status'],
+    }),
+
+    // Additional Business KPIs
+    makeCounterProvider({
+      name: 'business_revenue_total_usd',
+      help: 'Total revenue in USD',
+      labelNames: ['source', 'currency'],
+    }),
+    makeGaugeProvider({
+      name: 'business_active_wallets_gauge',
+      help: 'Number of active wallets by timeframe',
+      labelNames: ['timeframe'],
+    }),
+    makeCounterProvider({
+      name: 'business_failed_transactions_rate',
+      help: 'Failed transactions rate counter',
+      labelNames: ['type', 'reason'],
+    }),
+    makeGaugeProvider({
+      name: 'business_transaction_success_rate',
+      help: 'Transaction success rate (0-1)',
+      labelNames: ['type'],
+    }),
+    makeCounterProvider({
+      name: 'business_mobile_money_provider_usage',
+      help: 'Mobile money provider usage counter',
+      labelNames: ['provider', 'operation', 'country'],
+    }),
+    makeHistogramProvider({
+      name: 'business_customer_lifetime_value',
+      help: 'Customer lifetime value in USD',
+      labelNames: ['cohort', 'country'],
+      buckets: [10, 50, 100, 500, 1000, 5000, 10000, 50000],
+    }),
   ],
-  exports: [MetricsService],
+  exports: [MetricsService, BusinessMetricsService],
 })
 export class MetricsModule {}

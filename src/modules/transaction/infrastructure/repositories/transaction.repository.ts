@@ -333,15 +333,15 @@ export class TransactionRepository {
     ]);
 
     // Aggregate counts by status
-    const statusCounts = countStats.reduce(
+    const statusCounts = countStats.reduce<Record<string, number>>(
       (acc, row) => {
         acc[row.status] = parseInt(row.count, 10);
         return acc;
       },
-      {} as Record<string, number>,
+      {},
     );
 
-    const total: number = Object.values(statusCounts).reduce(
+    const total: number = Object.values(statusCounts).reduce<number>(
       (sum, count) => sum + count,
       0,
     );
@@ -391,12 +391,12 @@ export class TransactionRepository {
       .groupBy('transaction.status')
       .getRawMany();
 
-    return result.reduce(
+    return result.reduce<Record<string, number>>(
       (acc, row) => {
         acc[row.status] = parseInt(row.count, 10);
         return acc;
       },
-      {} as Record<string, number>,
+      {},
     );
   }
 
@@ -443,12 +443,47 @@ export class TransactionRepository {
       .groupBy('transaction.type')
       .getRawMany();
 
-    return result.reduce(
+    return result.reduce<Record<string, number>>(
       (acc, row) => {
         acc[row.type] = parseInt(row.count, 10);
         return acc;
       },
-      {} as Record<string, number>,
+      {},
     );
+  }
+
+  /**
+   * RECONCILIATION: Find transactions by date range
+   * Used for daily reconciliation and settlement reports
+   */
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<TransactionEntity[]> {
+    const ormEntities = await this.repository
+      .createQueryBuilder('transaction')
+      .where('transaction.createdAt >= :startDate', { startDate })
+      .andWhere('transaction.createdAt <= :endDate', { endDate })
+      .orderBy('transaction.createdAt', 'ASC')
+      .getMany();
+
+    return ormEntities.map((orm) => this.mapper.toDomainEntity(orm));
+  }
+
+  /**
+   * RECONCILIATION: Find transactions by IDs
+   * Used for fee verification of specific transactions
+   */
+  async findByIds(ids: string[]): Promise<TransactionEntity[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const ormEntities = await this.repository
+      .createQueryBuilder('transaction')
+      .where('transaction.id IN (:...ids)', { ids })
+      .getMany();
+
+    return ormEntities.map((orm) => this.mapper.toDomainEntity(orm));
   }
 }

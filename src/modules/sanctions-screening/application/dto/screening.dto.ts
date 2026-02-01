@@ -13,11 +13,11 @@ import { Type } from 'class-transformer';
 export class ScreenIndividualDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
+  userId: string;
 
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  name: string;
 
   @IsOptional()
   @IsDateString()
@@ -39,11 +39,11 @@ export class ScreenIndividualDto {
 export class ScreenEntityDto {
   @IsString()
   @IsNotEmpty()
-  entityId!: string;
+  entityId: string;
 
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  name: string;
 
   @IsOptional()
   @IsString()
@@ -56,15 +56,15 @@ export class ScreenEntityDto {
 
 export class BatchScreenEntityDto {
   @IsEnum(['individual', 'entity'])
-  type!: 'individual' | 'entity';
+  type: 'individual' | 'entity';
 
   @IsString()
   @IsNotEmpty()
-  id!: string;
+  id: string;
 
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  name: string;
 
   @IsOptional()
   metadata?: any;
@@ -74,17 +74,17 @@ export class BatchScreenDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BatchScreenEntityDto)
-  entities!: BatchScreenEntityDto[];
+  entities: BatchScreenEntityDto[];
 }
 
 export class ScreenTransferDto {
   @IsString()
   @IsNotEmpty()
-  senderId!: string;
+  senderId: string;
 
   @IsString()
   @IsNotEmpty()
-  senderName!: string;
+  senderName: string;
 
   @IsOptional()
   @IsString()
@@ -102,10 +102,10 @@ export class ScreenTransferDto {
 export class ReviewMatchDto {
   @IsString()
   @IsNotEmpty()
-  matchId!: string;
+  matchId: string;
 
   @IsEnum(['confirm', 'dismiss'])
-  decision!: 'confirm' | 'dismiss';
+  decision: 'confirm' | 'dismiss';
 
   @IsOptional()
   @IsString()
@@ -114,8 +114,8 @@ export class ReviewMatchDto {
 
 export class GetStatisticsDto {
   @IsDateString()
-  startDate!: string;
+  startDate: string;
 
   @IsDateString()
-  endDate!: string;
+  endDate: string;
 }

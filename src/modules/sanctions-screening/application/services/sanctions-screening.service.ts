@@ -224,12 +224,14 @@ export class SanctionsScreeningService {
   /**
    * Batch screen multiple individuals/entities
    */
-  async batchScreen(entities: Array<{
-    type: 'individual' | 'entity';
-    id: string;
-    name: string;
-    metadata?: any;
-  }>): Promise<{
+  async batchScreen(
+    entities: Array<{
+      type: 'individual' | 'entity';
+      id: string;
+      name: string;
+      metadata?: any;
+    }>,
+  ): Promise<{
     totalScreened: number;
     totalBlocked: number;
     totalReview: number;
@@ -307,7 +309,7 @@ export class SanctionsScreeningService {
    */
   async screenTransfer(
     senderId: string,
-    senderName: string,
+    _senderName: string,
     recipientId?: string,
     recipientName?: string,
     amount?: number,
@@ -387,9 +389,7 @@ export class SanctionsScreeningService {
 
     const saved = await this.repository.saveMatch(updatedMatch);
 
-    this.logger.log(
-      `Match ${matchId} ${decision}ed by reviewer ${reviewerId}`,
-    );
+    this.logger.log(`Match ${matchId} ${decision}ed by reviewer ${reviewerId}`);
 
     return saved;
   }

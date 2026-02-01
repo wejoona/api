@@ -129,7 +129,7 @@ export class UserAlertPreferencesUseCase {
     alertType: AlertType,
     enabled: boolean,
   ): Promise<UserAlertPreferences> {
-    const _validTypes = Object.keys(DEFAULT_ALERT_PREFERENCES.alertTypes);
+    const __validTypes = Object.keys(DEFAULT_ALERT_PREFERENCES.alertTypes);
 
     return this.preferencesRepository.toggleAlertType(
       userId,

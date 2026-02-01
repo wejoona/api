@@ -9,7 +9,10 @@ import {
   WALLET_PROVIDER,
   IWalletProvider,
 } from '@modules/providers/interfaces';
-import { IWalletRepository } from '@modules/wallet/domain/repositories/wallet.repository';
+import {
+  IWalletRepository,
+  WALLET_REPOSITORY,
+} from '@modules/wallet/domain/repositories/wallet.repository';
 
 /**
  * Balance discrepancy between different systems
@@ -103,7 +106,7 @@ export class ReconciliationService implements OnModuleInit {
     private readonly ledgerProvider: ILedgerProvider,
     @Inject(WALLET_PROVIDER)
     private readonly walletProvider: IWalletProvider,
-    @Inject('WALLET_REPOSITORY')
+    @Inject(WALLET_REPOSITORY)
     private readonly walletRepository: IWalletRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}

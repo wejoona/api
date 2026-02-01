@@ -43,13 +43,21 @@ export class RetentionPolicy {
   ): RetentionPolicy {
     return new RetentionPolicy({
       id: '',
-      ...props,
+      dataType: props.dataType,
+      retentionDays: props.retentionDays,
+      action: props.action,
+      gracePeriodDays: props.gracePeriodDays,
+      isEnabled: props.isEnabled,
+      description: props.description ?? null,
+      complianceRequirement: props.complianceRequirement ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
   }
 
-  static fromPersistence(props: Required<RetentionPolicyProps>): RetentionPolicy {
+  static fromPersistence(
+    props: Required<RetentionPolicyProps>,
+  ): RetentionPolicy {
     return new RetentionPolicy(props);
   }
 
@@ -61,7 +69,9 @@ export class RetentionPolicy {
 
   getGracePeriodCutoff(): Date {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - (this.retentionDays + this.gracePeriodDays));
+    cutoff.setDate(
+      cutoff.getDate() - (this.retentionDays + this.gracePeriodDays),
+    );
     return cutoff;
   }
 }

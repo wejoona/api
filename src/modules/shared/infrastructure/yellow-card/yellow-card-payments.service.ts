@@ -25,7 +25,7 @@ export class YellowCardPaymentsService {
    * Create a new subwallet
    */
   async createSubwallet(
-    request!: CreateSubwalletRequest,
+    request: CreateSubwalletRequest,
   ): Promise<SubwalletResponse> {
     if (this.authService.isMockMode()) {
       return this.mockCreateSubwallet(request);
@@ -47,7 +47,7 @@ export class YellowCardPaymentsService {
    * Initiate deposit (on-ramp)
    */
   async initiateDeposit(
-    request!: InitiateDepositRequest,
+    request: InitiateDepositRequest,
   ): Promise<DepositResponse> {
     if (this.authService.isMockMode()) {
       return this.mockInitiateDeposit(request);
@@ -59,7 +59,7 @@ export class YellowCardPaymentsService {
    * Internal transfer between subwallets
    */
   async internalTransfer(
-    request!: InternalTransferRequest,
+    request: InternalTransferRequest,
   ): Promise<TransferResponse> {
     if (this.authService.isMockMode()) {
       return this.mockInternalTransfer(request);
@@ -71,7 +71,7 @@ export class YellowCardPaymentsService {
    * External transfer to blockchain address
    */
   async externalTransfer(
-    request!: ExternalTransferRequest,
+    request: ExternalTransferRequest,
   ): Promise<TransferResponse> {
     if (this.authService.isMockMode()) {
       return this.mockExternalTransfer(request);
@@ -89,7 +89,7 @@ export class YellowCardPaymentsService {
     const id = `mock_wallet_${Date.now()}`;
     return {
       id,
-      name!: request.name,
+      name: request.name,
       email: request.email || null,
       country: request.country,
       phone: request.phone || null,
@@ -103,7 +103,7 @@ export class YellowCardPaymentsService {
   private mockGetBalance(subwalletId: string): BalanceResponse {
     return {
       subwalletId,
-      balances!: [
+      balances: [
         {
           currency: 'USD',
           available: 100.0,
@@ -128,7 +128,7 @@ export class YellowCardPaymentsService {
 
     return {
       id,
-      subwalletId!: request.subwalletId,
+      subwalletId: request.subwalletId,
       amount: request.amount,
       sourceCurrency: request.sourceCurrency,
       targetCurrency: 'USD',
@@ -155,7 +155,7 @@ export class YellowCardPaymentsService {
     const id = `mock_transfer_${Date.now()}`;
     return {
       id,
-      type!: 'internal',
+      type: 'internal',
       fromSubwalletId: request.fromSubwalletId,
       toSubwalletId: request.toSubwalletId,
       amount: request.amount,
@@ -172,7 +172,7 @@ export class YellowCardPaymentsService {
     const id = `mock_transfer_${Date.now()}`;
     return {
       id,
-      type!: 'external',
+      type: 'external',
       fromSubwalletId: request.subwalletId,
       toAddress: request.toAddress,
       amount: request.amount,
@@ -188,7 +188,7 @@ export class YellowCardPaymentsService {
   // ============================================
 
   private async apiCreateSubwallet(
-    request!: CreateSubwalletRequest,
+    request: CreateSubwalletRequest,
   ): Promise<SubwalletResponse> {
     this.logger.log(
       `Creating subwallet for ${request.name} in ${request.country}`,
@@ -207,16 +207,16 @@ export class YellowCardPaymentsService {
     }
 
     const response = await this.authService.makeRequest<{
-      data!: YCSubwalletResponse;
+      data: YCSubwalletResponse;
     }>('POST', '/business/subwallets', {
-      name!: request.name,
+      name: request.name,
       email: request.email,
       country: request.country,
       phone: request.phone,
     });
 
     return {
-      id!: response.data.id,
+      id: response.data.id,
       name: response.data.name,
       email: response.data.email || null,
       country: response.data.country,
@@ -245,7 +245,7 @@ export class YellowCardPaymentsService {
     return {
       subwalletId,
       balances: response.data.balances.map((b) => ({
-        currency!: b.currency,
+        currency: b.currency,
         available: b.available,
         pending: b.pending,
         total: b.total,
@@ -254,7 +254,7 @@ export class YellowCardPaymentsService {
   }
 
   private async apiInitiateDeposit(
-    request!: InitiateDepositRequest,
+    request: InitiateDepositRequest,
   ): Promise<DepositResponse> {
     this.logger.log(
       `Initiating deposit: ${request.amount} ${request.sourceCurrency} to ${request.subwalletId}`,
@@ -270,14 +270,14 @@ export class YellowCardPaymentsService {
       fee: number;
       destinationAmount: number;
       status: string;
-      paymentDetails!: {
+      paymentDetails: {
         type: string;
-        network!: string;
-        accountNumber!: string;
-        accountName!: string;
-        reference!: string;
-        instructions!: string;
-        expiresAt!: string;
+        network: string;
+        accountNumber: string;
+        accountName: string;
+        reference: string;
+        instructions: string;
+        expiresAt: string;
       };
       createdAt: string;
     }
@@ -286,7 +286,7 @@ export class YellowCardPaymentsService {
       'POST',
       '/business/payments',
       {
-        subwalletId!: request.subwalletId,
+        subwalletId: request.subwalletId,
         amount: request.amount,
         currency: request.sourceCurrency,
         channelId: request.channelId,
@@ -296,7 +296,7 @@ export class YellowCardPaymentsService {
 
     const payment = response.data;
     return {
-      id!: payment.id,
+      id: payment.id,
       subwalletId: payment.subwalletId,
       amount: payment.amount,
       sourceCurrency: payment.currency,
@@ -319,7 +319,7 @@ export class YellowCardPaymentsService {
   }
 
   private async apiInternalTransfer(
-    request!: InternalTransferRequest,
+    request: InternalTransferRequest,
   ): Promise<TransferResponse> {
     this.logger.log(
       `Internal transfer: ${request.amount} ${request.currency} from ${request.fromSubwalletId} to ${request.toSubwalletId}`,
@@ -341,7 +341,7 @@ export class YellowCardPaymentsService {
       'POST',
       '/business/transfers',
       {
-        fromSubwalletId!: request.fromSubwalletId,
+        fromSubwalletId: request.fromSubwalletId,
         toSubwalletId: request.toSubwalletId,
         amount: request.amount,
         currency: request.currency,
@@ -351,7 +351,7 @@ export class YellowCardPaymentsService {
 
     const transfer = response.data;
     return {
-      id!: transfer.id,
+      id: transfer.id,
       type: 'internal',
       fromSubwalletId: transfer.fromSubwalletId,
       toSubwalletId: transfer.toSubwalletId,
@@ -364,7 +364,7 @@ export class YellowCardPaymentsService {
   }
 
   private async apiExternalTransfer(
-    request!: ExternalTransferRequest,
+    request: ExternalTransferRequest,
   ): Promise<TransferResponse> {
     this.logger.log(
       `External transfer: ${request.amount} ${request.currency} from ${request.subwalletId} to ${request.toAddress}`,
@@ -376,7 +376,7 @@ export class YellowCardPaymentsService {
       toAddress: string;
       amount: number;
       currency: string;
-      network!: string;
+      network: string;
       fee: number;
       status: string;
       txHash?: string;
@@ -387,7 +387,7 @@ export class YellowCardPaymentsService {
       'POST',
       '/business/withdrawals',
       {
-        subwalletId!: request.subwalletId,
+        subwalletId: request.subwalletId,
         toAddress: request.toAddress,
         amount: request.amount,
         currency: request.currency,
@@ -398,7 +398,7 @@ export class YellowCardPaymentsService {
 
     const withdrawal = response.data;
     return {
-      id!: withdrawal.id,
+      id: withdrawal.id,
       type: 'external',
       fromSubwalletId: withdrawal.subwalletId,
       toAddress: withdrawal.toAddress,

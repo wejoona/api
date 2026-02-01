@@ -265,9 +265,7 @@ export async function seedAdminUsers(dataSource: DataSource): Promise<void> {
           ],
         );
 
-        console.log(
-          `  Created admin user: ${admin.username} (${admin.role})`,
-        );
+        console.log(`  Created admin user: ${admin.username} (${admin.role})`);
         console.log(
           `    WARNING: Default PIN is '${admin.pinCode}' - CHANGE IMMEDIATELY IN PRODUCTION`,
         );

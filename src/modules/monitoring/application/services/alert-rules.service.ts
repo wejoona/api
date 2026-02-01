@@ -237,7 +237,7 @@ export class AlertRulesService implements OnModuleInit {
    * Check for location mismatch
    */
   private evaluateLocationMismatch(
-    condition: RuleCondition,
+    _condition: RuleCondition,
     context: TransactionContext,
   ): boolean {
     if (!context.location) return false;
@@ -260,7 +260,7 @@ export class AlertRulesService implements OnModuleInit {
    * Check if transaction time is outside normal range
    */
   private evaluateTimeOutsideRange(
-    condition: RuleCondition,
+    _condition: RuleCondition,
     context: TransactionContext,
   ): boolean {
     const hour = context.createdAt.getHours();
@@ -274,7 +274,7 @@ export class AlertRulesService implements OnModuleInit {
    * Check if recipient is new
    */
   private async evaluateRecipientNew(
-    condition: RuleCondition,
+    _condition: RuleCondition,
     context: TransactionContext,
   ): Promise<boolean> {
     const address =
@@ -309,7 +309,7 @@ export class AlertRulesService implements OnModuleInit {
    * Check if device is new
    */
   private evaluateDeviceNew(
-    condition: RuleCondition,
+    _condition: RuleCondition,
     context: TransactionContext,
   ): boolean {
     if (!context.device?.deviceId) return false;

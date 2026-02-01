@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SlaConfigurationService } from './sla-configuration.service';
-import { SlaCategory, SlaPriority } from '../../domain/entities/sla-configuration.entity';
+import {
+  SlaCategory,
+  SlaPriority,
+} from '../../domain/entities/sla-configuration.entity';
 
 export interface SlaBreachEvent {
   entityId: string;
@@ -183,9 +186,9 @@ export class SlaTrackingService {
    * Calculate SLA metrics for reporting
    */
   async calculateSlaMetrics(
-    category: SlaCategory,
-    startDate: Date,
-    endDate: Date,
+    _category: SlaCategory,
+    _startDate: Date,
+    _endDate: Date,
   ): Promise<{
     totalCount: number;
     withinSla: number;

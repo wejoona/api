@@ -1,0 +1,347 @@
+# ===================================
+# User Queries
+# ===================================
+
+# Get current authenticated user with wallet and recent transactions
+query GetCurrentUser {
+  me {
+    id
+    phone
+    username
+    displayName
+    fullName
+    email
+    kycStatus
+    isKycApproved
+    canTransact
+    canWithdraw
+    wallet {
+      id
+      balance
+      currency
+      depositAddress
+      isActive
+      transactions {
+        id
+        type
+        amount
+        status
+        createdAt
+      }
+    }
+  }
+}
+
+# Search for user by phone
+query SearchByPhone($phone: String!) {
+  userByPhone(phone: $phone) {
+    id
+    displayName
+    username
+    isPhoneVerified
+  }
+}
+
+# Search for user by username
+query SearchByUsername($username: String!) {
+  userByUsername(username: $username) {
+    id
+    displayName
+    phone
+    wallet {
+      id
+    }
+  }
+}
+
+# ===================================
+# Wallet Queries
+# ===================================
+
+# Get current user's wallet with details
+query GetMyWallet {
+  myWallet {
+    id
+    balance
+    currency
+    circleWalletId
+    circleWalletAddress
+    depositAddress
+    isActive
+    isKycVerified
+    user {
+      id
+      displayName
+      canWithdraw
+    }
+    beneficiaries {
+      id
+      name
+      accountType
+      isFavorite
+      transferCount
+    }
+  }
+}
+
+# Get wallet by ID (admin query)
+query GetWalletById($id: ID!) {
+  wallet(id: $id) {
+    id
+    balance
+    currency
+    status
+    user {
+      id
+      displayName
+      phone
+    }
+    transactions {
+      id
+      type
+      amount
+      status
+    }
+  }
+}
+
+# ===================================
+# Transaction Queries
+# ===================================
+
+# Get current user's transactions with pagination
+query GetMyTransactions($limit: Int, $offset: Int) {
+  myTransactions(limit: $limit, offset: $offset) {
+    id
+    type
+    amount
+    currency
+    status
+    createdAt
+    completedAt
+    recipientPhone
+    recipientAddress
+    isPending
+    isCompleted
+    isFailed
+    wallet {
+      user {
+        displayName
+      }
+    }
+    recipientWallet {
+      user {
+        displayName
+        phone
+      }
+    }
+  }
+}
+
+# Get transaction by ID
+query GetTransactionById($id: ID!) {
+  transaction(id: $id) {
+    id
+    type
+    amount
+    currency
+    status
+    yellowCardRef
+    recipientAddress
+    recipientPhone
+    metadata
+    failureReason
+    createdAt
+    completedAt
+    wallet {
+      id
+      user {
+        displayName
+      }
+    }
+    recipientWallet {
+      id
+      user {
+        displayName
+      }
+    }
+  }
+}
+
+# Get transactions for specific wallet
+query GetWalletTransactions($walletId: ID!, $limit: Int, $offset: Int) {
+  walletTransactions(walletId: $walletId, limit: $limit, offset: $offset) {
+    id
+    type
+    amount
+    status
+    createdAt
+    user {
+      displayName
+    }
+  }
+}
+
+# ===================================
+# Beneficiary Queries
+# ===================================
+
+# Get all beneficiaries for current user
+query GetMyBeneficiaries {
+  myBeneficiaries {
+    id
+    name
+    phoneE164
+    accountType
+    isFavorite
+    isVerified
+    transferCount
+    totalTransferred
+    lastTransferAt
+    isJoonaPayUser
+    isMobileMoney
+    isBankAccount
+    beneficiaryUser {
+      id
+      displayName
+      username
+    }
+  }
+}
+
+# Get only favorite beneficiaries
+query GetMyFavoriteBeneficiaries {
+  myFavoriteBeneficiaries {
+    id
+    name
+    phoneE164
+    accountType
+    transferCount
+    totalTransferred
+    lastTransferAt
+  }
+}
+
+# Get beneficiary by ID
+query GetBeneficiaryById($id: ID!) {
+  beneficiary(id: $id) {
+    id
+    name
+    phoneE164
+    accountType
+    beneficiaryUserId
+    beneficiaryWalletAddress
+    bankCode
+    bankAccountNumber
+    mobileMoneyProvider
+    isFavorite
+    isVerified
+    transferCount
+    totalTransferred
+    lastTransferAt
+    metadata
+    wallet {
+      user {
+        displayName
+      }
+    }
+    beneficiaryUser {
+      displayName
+      phone
+    }
+  }
+}
+
+# ===================================
+# Complex Nested Queries
+# ===================================
+
+# Get user with complete financial overview
+query GetFinancialOverview {
+  me {
+    id
+    displayName
+    wallet {
+      balance
+      currency
+      transactions {
+        id
+        type
+        amount
+        status
+        createdAt
+        recipientWallet {
+          user {
+            displayName
+          }
+        }
+      }
+      beneficiaries {
+        id
+        name
+        isFavorite
+        transferCount
+        totalTransferred
+      }
+    }
+  }
+}
+
+# ===================================
+# Mutations
+# ===================================
+
+# Update user profile
+mutation UpdateUserProfile($firstName: String, $lastName: String, $email: String) {
+  updateProfile(firstName: $firstName, lastName: $lastName, email: $email) {
+    id
+    fullName
+    email
+    displayName
+  }
+}
+
+# Set username
+mutation SetUsername($username: String!) {
+  setUsername(username: $username) {
+    id
+    username
+    displayName
+  }
+}
+
+# Toggle beneficiary favorite status
+mutation ToggleBeneficiaryFavorite($beneficiaryId: ID!) {
+  toggleBeneficiaryFavorite(beneficiaryId: $beneficiaryId) {
+    id
+    isFavorite
+    name
+  }
+}
+
+# ===================================
+# Example Variables
+# ===================================
+
+# For GetMyTransactions
+# {
+#   "limit": 20,
+#   "offset": 0
+# }
+
+# For SearchByPhone
+# {
+#   "phone": "+2250123456789"
+# }
+
+# For UpdateUserProfile
+# {
+#   "firstName": "John",
+#   "lastName": "Doe",
+#   "email": "john@example.com"
+# }
+
+# For ToggleBeneficiaryFavorite
+# {
+#   "beneficiaryId": "uuid-here"
+# }

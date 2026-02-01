@@ -51,7 +51,7 @@ export class InternalTransferUseCase {
   private readonly MAX_RETRIES = 3;
 
   constructor(
-    private readonly walletRepository: WalletRepository,
+    private readonly _walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
     private readonly userRepository: UserRepository,
     private readonly dataSource: DataSource,

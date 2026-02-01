@@ -9,6 +9,7 @@ import { Request } from 'express';
 export interface JwtUser {
   id: string;
   phone: string;
+  walletId?: string;
   [key: string]: unknown;
 }
 

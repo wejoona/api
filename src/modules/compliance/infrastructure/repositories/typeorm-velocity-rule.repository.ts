@@ -29,7 +29,7 @@ export class TypeOrmVelocityRuleRepository extends VelocityRuleRepository {
 
   async findAllActive(): Promise<VelocityRule[]> {
     const entities = await this.repo.find({
-      where!: { isActive: true },
+      where: { isActive: true },
       order: { createdAt: 'ASC' },
     });
     return entities.map((e) => this.toDomain(e));
@@ -47,7 +47,7 @@ export class TypeOrmVelocityRuleRepository extends VelocityRuleRepository {
 
   async findActiveByType(ruleType: VelocityRuleType): Promise<VelocityRule[]> {
     const entities = await this.repo.find({
-      where!: { isActive: true, ruleType },
+      where: { isActive: true, ruleType },
       order: { createdAt: 'ASC' },
     });
     return entities.map((e) => this.toDomain(e));
@@ -69,7 +69,7 @@ export class TypeOrmVelocityRuleRepository extends VelocityRuleRepository {
 
   async findAll(): Promise<VelocityRule[]> {
     const entities = await this.repo.find({
-      order!: { createdAt: 'ASC' },
+      order: { createdAt: 'ASC' },
     });
     return entities.map((e) => this.toDomain(e));
   }
@@ -97,7 +97,7 @@ export class TypeOrmVelocityRuleRepository extends VelocityRuleRepository {
         ? parseFloat(entity.thresholdAmount)
         : undefined,
       thresholdCount: entity.thresholdCount ?? undefined,
-      timeWindowHours!: entity.timeWindowHours,
+      timeWindowHours: entity.timeWindowHours,
       action: entity.action,
       appliesToTier: entity.appliesToTier,
       isActive: entity.isActive,

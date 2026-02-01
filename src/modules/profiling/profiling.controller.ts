@@ -7,13 +7,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProfilingService } from './profiling.service';
-import { JwtAuthGuard } from '@/modules/shared/guards/jwt-auth.guard';
-import { RolesGuard } from '@/modules/shared/guards/roles.guard';
-import { Roles } from '@/modules/shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 @Controller('profiling')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'developer')
+@Roles('admin', 'super_admin')
 export class ProfilingController {
   constructor(private readonly profilingService: ProfilingService) {}
 

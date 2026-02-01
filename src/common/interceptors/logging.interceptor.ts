@@ -9,6 +9,7 @@ import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
+import { JsonValue } from '@/types/strict-types';
 
 // Extended request interface with correlation ID and user
 interface RequestWithUser extends Request {
@@ -17,7 +18,8 @@ interface RequestWithUser extends Request {
     id?: string;
     sub?: string;
     email?: string;
-    [key: string]: any;
+    role?: string;
+    permissions?: readonly string[];
   };
 }
 
@@ -65,7 +67,7 @@ export class LoggingInterceptor implements NestInterceptor {
     'taxId',
   ];
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const response = context.switchToHttp().getResponse<Response>();
 
@@ -178,8 +180,8 @@ export class LoggingInterceptor implements NestInterceptor {
     response: Response,
     correlationId: string,
     duration: number,
-    data: any,
-  ): object {
+    data: unknown,
+  ): { statusCode: number } & Record<string, unknown> {
     const { method, url, user } = request;
     const { statusCode } = response;
 
@@ -216,7 +218,12 @@ export class LoggingInterceptor implements NestInterceptor {
     request: RequestWithUser,
     correlationId: string,
     duration: number,
-    error: any,
+    error: Error & {
+      status?: number;
+      statusCode?: number;
+      code?: string;
+      response?: unknown;
+    },
   ): object {
     const { method, url, user } = request;
 
@@ -255,7 +262,10 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Log response with appropriate level based on duration and status
    */
-  private logResponse(responseLog: any, duration: number): void {
+  private logResponse(
+    responseLog: { statusCode: number } & Record<string, unknown>,
+    duration: number,
+  ): void {
     const { statusCode } = responseLog;
 
     // Slow request warning (>1000ms)
@@ -313,15 +323,15 @@ export class LoggingInterceptor implements NestInterceptor {
   /**
    * Recursively sanitize object by redacting sensitive fields
    */
-  private sanitizeObject(obj: any): any {
-    if (!obj) return obj;
-    if (typeof obj !== 'object') return obj;
+  private sanitizeObject(obj: unknown): JsonValue {
+    if (!obj) return obj as JsonValue;
+    if (typeof obj !== 'object') return obj as JsonValue;
 
     if (Array.isArray(obj)) {
       return obj.map((item) => this.sanitizeObject(item));
     }
 
-    const sanitized: Record<string, any> = {};
+    const sanitized: Record<string, JsonValue> = {};
     for (const [key, value] of Object.entries(obj)) {
       const lowerKey = key.toLowerCase();
 
@@ -331,7 +341,7 @@ export class LoggingInterceptor implements NestInterceptor {
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitizeObject(value);
       } else {
-        sanitized[key] = value;
+        sanitized[key] = value as JsonValue;
       }
     }
 

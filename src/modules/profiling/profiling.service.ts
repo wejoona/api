@@ -5,7 +5,7 @@ import { DatabaseProfiler } from '@/common/profilers/database.profiler';
 import { CacheProfiler } from '@/common/profilers/cache.profiler';
 import { PerformanceInterceptor } from '@/common/interceptors/performance.interceptor';
 
-interface IndexRecommendation {
+export interface IndexRecommendation {
   table: string;
   columns: string[];
   reason: string;
@@ -13,7 +13,7 @@ interface IndexRecommendation {
   estimatedImpact: string;
 }
 
-interface OptimizationOpportunity {
+export interface OptimizationOpportunity {
   category: 'database' | 'cache' | 'endpoint' | 'query';
   issue: string;
   recommendation: string;
@@ -323,7 +323,8 @@ export class ProfilingService {
         recommendations.push({
           category: 'database',
           issue: `Slow query (avg: ${query.avgDuration}ms, count: ${query.count})`,
-          recommendation: 'Add indexes, optimize query structure, or add caching',
+          recommendation:
+            'Add indexes, optimize query structure, or add caching',
           priority: query.avgDuration > 500 ? 'high' : 'medium',
           estimatedImpact: `Executed ${query.count} times - high impact`,
         });
@@ -372,9 +373,7 @@ export class ProfilingService {
     });
   }
 
-  private calculateIndexPriority(
-    row: any,
-  ): 'high' | 'medium' | 'low' {
+  private calculateIndexPriority(row: any): 'high' | 'medium' | 'low' {
     const seqScan = parseInt(row.seq_scan || '0');
     const nLiveTup = parseInt(row.n_live_tup || '0');
 

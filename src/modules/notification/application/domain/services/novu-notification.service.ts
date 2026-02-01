@@ -120,7 +120,7 @@ export class NovuNotificationService {
    * Register device token for push notifications
    */
   async registerDeviceToken(
-    userId!: string,
+    userId: string,
     platform: 'fcm' | 'apns',
     token: string,
   ): Promise<void> {
@@ -131,7 +131,7 @@ export class NovuNotificationService {
    * Remove device token
    */
   async removeDeviceToken(
-    userId!: string,
+    userId: string,
     platform: 'fcm' | 'apns',
   ): Promise<void> {
     await this.novuAdapter.removeDeviceToken(userId, platform);
@@ -158,7 +158,7 @@ export class NovuNotificationService {
     } = params;
 
     const templateMap: Record<string, NovuTemplate> = {
-      received!: NovuTemplate.TRANSACTION_RECEIVED,
+      received: NovuTemplate.TRANSACTION_RECEIVED,
       sent: NovuTemplate.TRANSACTION_SENT,
       completed: NovuTemplate.TRANSACTION_COMPLETED,
       failed: NovuTemplate.TRANSACTION_FAILED,
@@ -171,7 +171,7 @@ export class NovuNotificationService {
     }
 
     await this.novuAdapter.trigger(template, userId, {
-      amount!: amount.toString(),
+      amount: amount.toString(),
       currency,
       transactionId,
       recipientName: recipientName || '',
@@ -193,7 +193,7 @@ export class NovuNotificationService {
     const { userId, type, title, body, data } = params;
 
     const templateMap: Record<string, NovuTemplate> = {
-      new_device_login!: NovuTemplate.NEW_DEVICE_LOGIN,
+      new_device_login: NovuTemplate.NEW_DEVICE_LOGIN,
       large_transaction: NovuTemplate.LARGE_TRANSACTION_ALERT,
       address_whitelisted: NovuTemplate.ADDRESS_WHITELISTED,
       security_alert: NovuTemplate.SECURITY_ALERT,
@@ -206,7 +206,7 @@ export class NovuNotificationService {
         title,
         body,
         ...data,
-        timestamp!: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       });
       return;
     }
@@ -215,7 +215,7 @@ export class NovuNotificationService {
       title,
       body,
       ...data,
-      timestamp!: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -230,7 +230,7 @@ export class NovuNotificationService {
   ): Promise<void> {
     await this.novuAdapter.trigger(NovuTemplate.NEW_DEVICE_LOGIN, userId, {
       deviceName,
-      location!: location || 'Unknown',
+      location: location || 'Unknown',
       ipAddress: ipAddress || 'Unknown',
       timestamp: new Date().toISOString(),
     });
@@ -240,7 +240,7 @@ export class NovuNotificationService {
    * Send large transaction alert
    */
   async sendLargeTransactionAlert(
-    userId!: string,
+    userId: string,
     amount: number,
     currency: string,
     transactionId: string,
@@ -261,7 +261,7 @@ export class NovuNotificationService {
    * Send failed login attempts alert
    */
   async sendFailedLoginAttemptsAlert(
-    userId!: string,
+    userId: string,
     attemptCount: number,
     lastAttemptTime: Date,
   ): Promise<void> {
@@ -285,14 +285,14 @@ export class NovuNotificationService {
     reason?: string,
   ): Promise<void> {
     const templateMap: Record<string, NovuTemplate> = {
-      approved!: NovuTemplate.KYC_APPROVED,
+      approved: NovuTemplate.KYC_APPROVED,
       rejected: NovuTemplate.KYC_REJECTED,
       pending: NovuTemplate.KYC_PENDING,
     };
 
     await this.novuAdapter.trigger(templateMap[status], userId, {
       status,
-      reason!: reason || '',
+      reason: reason || '',
       timestamp: new Date().toISOString(),
     });
   }
@@ -301,7 +301,7 @@ export class NovuNotificationService {
    * Send KYC document required notification
    */
   async sendKycDocumentRequiredNotification(
-    userId!: string,
+    userId: string,
     documentType: string,
     reason: string,
   ): Promise<void> {
@@ -320,7 +320,7 @@ export class NovuNotificationService {
    * Send low balance alert
    */
   async sendLowBalanceAlert(
-    userId!: string,
+    userId: string,
     currentBalance: number,
     threshold: number,
     currency: string,
@@ -343,7 +343,7 @@ export class NovuNotificationService {
   async sendWelcomeMessage(userId: string, firstName: string): Promise<void> {
     await this.novuAdapter.trigger(NovuTemplate.WELCOME_MESSAGE, userId, {
       firstName,
-      timestamp!: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -351,7 +351,7 @@ export class NovuNotificationService {
    * Send new feature announcement
    */
   async sendNewFeatureAnnouncement(
-    userId!: string,
+    userId: string,
     featureName: string,
     featureDescription: string,
   ): Promise<void> {
@@ -379,7 +379,7 @@ export class NovuNotificationService {
       offerTitle,
       offerDescription,
       expiryDate: expiryDate?.toISOString() || '',
-      timestamp!: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -387,7 +387,7 @@ export class NovuNotificationService {
    * Send referral bonus notification
    */
   async sendReferralBonus(
-    userId!: string,
+    userId: string,
     bonusAmount: number,
     currency: string,
     referredUserName: string,
@@ -419,7 +419,7 @@ export class NovuNotificationService {
         scheduledTime: scheduledTime.toISOString(),
         estimatedDuration,
         affectedServices: affectedServices?.join(', ') || 'All services',
-        timestamp!: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       },
     );
   }
@@ -428,7 +428,7 @@ export class NovuNotificationService {
    * Send service update notification
    */
   async sendServiceUpdate(
-    updateTitle!: string,
+    updateTitle: string,
     updateDescription: string,
   ): Promise<void> {
     await this.novuAdapter.triggerBroadcast(NovuTemplate.SERVICE_UPDATE, {
@@ -446,7 +446,7 @@ export class NovuNotificationService {
    * Send notification to multiple users
    */
   async sendBulkNotification(
-    template!: NovuTemplate,
+    template: NovuTemplate,
     userIds: string[],
     payload: Record<string, any>,
   ): Promise<void> {

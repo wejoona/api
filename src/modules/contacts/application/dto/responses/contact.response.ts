@@ -58,3 +58,39 @@ export class ContactListResponse {
     return response;
   }
 }
+
+export class SyncedContactResponse {
+  @ApiProperty({
+    description: 'SHA-256 hash of the phone number',
+    example: 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3',
+  })
+  phoneHash: string;
+
+  @ApiProperty({ example: 'user_amadou_123' })
+  userId: string;
+
+  @ApiPropertyOptional({
+    example: 'https://i.pravatar.cc/150?img=12',
+    nullable: true,
+  })
+  avatarUrl: string | null;
+}
+
+export class SyncContactsResponse {
+  @ApiProperty({ type: [SyncedContactResponse] })
+  matches: SyncedContactResponse[];
+
+  @ApiProperty({ example: 10 })
+  totalChecked: number;
+
+  @ApiProperty({ example: 3 })
+  matchesFound: number;
+}
+
+export class InviteContactResponse {
+  @ApiProperty({ example: true })
+  success: boolean;
+
+  @ApiProperty({ example: 'Invitation sent successfully' })
+  message: string;
+}

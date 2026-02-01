@@ -75,7 +75,7 @@ export class NovuAdapter {
 
     try {
       await this.novu.subscribers.identify(userId, {
-        email!: data.email,
+        email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
@@ -211,7 +211,7 @@ export class NovuAdapter {
         userId,
         'global', // template ID or 'global'
         {
-          enabled!: preferences.enabled,
+          enabled: preferences.enabled,
         },
       );
 
@@ -265,7 +265,7 @@ export class NovuAdapter {
 
     try {
       const response = await this.novu.trigger(templateId, {
-        to!: {
+        to: {
           subscriberId: userId,
           // Can also specify email, phone for fallback
         },
@@ -277,7 +277,7 @@ export class NovuAdapter {
       );
 
       return {
-        success!: true,
+        success: true,
         transactionId: response.data.transactionId,
       };
     } catch (error) {
@@ -286,7 +286,7 @@ export class NovuAdapter {
         error.stack,
       );
       return {
-        success!: false,
+        success: false,
         error: error.message,
       };
     }
@@ -306,12 +306,12 @@ export class NovuAdapter {
 
     try {
       const recipients = userIds.map((userId) => ({
-        subscriberId!: userId,
+        subscriberId: userId,
       }));
 
       const response = await this.novu.bulkTrigger([
         {
-          name!: templateId,
+          name: templateId,
           to: recipients,
           payload,
         },
@@ -331,7 +331,7 @@ export class NovuAdapter {
         error.stack,
       );
       return {
-        success!: false,
+        success: false,
         error: error.message,
       };
     }
@@ -359,7 +359,7 @@ export class NovuAdapter {
       );
 
       return {
-        success!: true,
+        success: true,
         transactionId: response.transactionId,
       };
     } catch (error) {
@@ -368,7 +368,7 @@ export class NovuAdapter {
         error.stack,
       );
       return {
-        success!: false,
+        success: false,
         error: error.message,
       };
     }
@@ -383,12 +383,12 @@ export class NovuAdapter {
     payload: Record<string, any>,
   ): Promise<{ transactionId: string }> {
     const response = await this.novu.trigger(templateId, {
-      to!: [{ type: TriggerRecipientsTypeEnum.TOPIC, topicKey }],
+      to: [{ type: TriggerRecipientsTypeEnum.TOPIC, topicKey }],
       payload,
     });
 
     return {
-      transactionId!: response.data.transactionId,
+      transactionId: response.data.transactionId,
     };
   }
 
@@ -405,7 +405,7 @@ export class NovuAdapter {
 
     try {
       await this.novu.topics.addSubscribers(topicKey, {
-        subscribers!: [userId],
+        subscribers: [userId],
       });
 
       this.logger.log(`User ${userId} subscribed to topic: ${topicKey}`);
@@ -425,7 +425,7 @@ export class NovuAdapter {
 
     try {
       await this.novu.topics.removeSubscribers(topicKey, {
-        subscribers!: [userId],
+        subscribers: [userId],
       });
 
       this.logger.log(`User ${userId} unsubscribed from topic: ${topicKey}`);
@@ -451,7 +451,7 @@ export class NovuAdapter {
       const response = await this.novu.subscribers.getNotificationsFeed(
         userId,
         {
-          page!: 0,
+          page: 0,
           limit: 20,
         },
       );
@@ -474,7 +474,7 @@ export class NovuAdapter {
 
     try {
       await this.novu.subscribers.markMessageAs(userId, messageId, {
-        seen!: true,
+        seen: true,
         read: true,
       });
     } catch (error) {
@@ -493,7 +493,7 @@ export class NovuAdapter {
 
     try {
       await this.novu.subscribers.markAllMessagesAs(userId, {
-        read!: true,
+        read: true,
         seen: true,
       } as any);
       this.logger.log(`All notifications marked as read for ${userId}`);
@@ -513,7 +513,7 @@ export class NovuAdapter {
 
     try {
       const response = await this.novu.subscribers.getUnseenCount(userId, {
-        seen!: false,
+        seen: false,
       } as any);
       return response.data?.count || 0;
     } catch (error) {

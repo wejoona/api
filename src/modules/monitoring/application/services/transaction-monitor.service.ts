@@ -187,7 +187,7 @@ export class TransactionMonitorService {
     threshold: number,
     currency: string,
   ): Promise<TransactionAlert> {
-    const _config = ALERT_TYPE_CONFIG.balance_threshold;
+    const __config = ALERT_TYPE_CONFIG.balance_threshold;
 
     const alert: TransactionAlert = {
       alertId: uuidv4(),

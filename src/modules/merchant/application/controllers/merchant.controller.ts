@@ -64,7 +64,7 @@ export class MerchantController {
     private readonly getMerchantByQrUseCase: GetMerchantByQrUseCase,
     private readonly getMerchantAnalyticsUseCase: GetMerchantAnalyticsUseCase,
     private readonly getMerchantTransactionsUseCase: GetMerchantTransactionsUseCase,
-    private readonly qrCodeService: QrCodeService,
+    private readonly _qrCodeService: QrCodeService,
   ) {}
 
   // ============================================

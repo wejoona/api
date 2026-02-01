@@ -32,6 +32,13 @@ export class UserResponse {
   })
   kycStatus: KycStatus;
 
+  @ApiProperty({
+    example: null,
+    nullable: true,
+    description: 'Reason for KYC rejection if status is rejected',
+  })
+  kycRejectionReason: string | null;
+
   @ApiProperty({ example: true })
   canTransact: boolean;
 
@@ -41,7 +48,7 @@ export class UserResponse {
   @ApiProperty({ example: '2026-01-18T12:00:00.000Z' })
   createdAt: Date;
 
-  static fromDomain(user: User): UserResponse {
+  static fromDomain(user: User, kycRejectionReason?: string | null): UserResponse {
     const response = new UserResponse();
     response.id = user.id;
     response.phone = user.phone;
@@ -52,6 +59,7 @@ export class UserResponse {
     response.email = user.email;
     response.countryCode = user.countryCode;
     response.kycStatus = user.kycStatus;
+    response.kycRejectionReason = kycRejectionReason !== undefined ? kycRejectionReason : null;
     response.canTransact = user.canTransact;
     response.canWithdraw = user.canWithdraw;
     response.createdAt = user.createdAt;

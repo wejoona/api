@@ -46,17 +46,22 @@ export class PaymentLinkService {
       throw new BadRequestException('Wallet is not active');
     }
 
-    // Parse expiry date if provided
-    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
-
-    if (expiresAt && expiresAt <= new Date()) {
-      throw new BadRequestException('Expiry date must be in the future');
+    // Parse expiry date - either from expiresAt or expiryHours
+    let expiresAt: Date | null = null;
+    if (dto.expiresAt) {
+      expiresAt = new Date(dto.expiresAt);
+      if (expiresAt <= new Date()) {
+        throw new BadRequestException('Expiry date must be in the future');
+      }
+    } else if (dto.expiryHours) {
+      expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + dto.expiryHours);
     }
 
     // Create payment link
     const paymentLink = PaymentLink.create({
       userId,
-      walletId!: wallet.id,
+      walletId: wallet.id,
       amount: dto.amount,
       currency: dto.currency || 'USDC',
       description: dto.description,
@@ -67,9 +72,36 @@ export class PaymentLinkService {
     return this.toResponseDto(saved);
   }
 
-  async getPaymentLinks(userId: string): Promise<PaymentLinkResponseDto[]> {
-    const paymentLinks = await this.paymentLinkRepository.findByUserId(userId);
-    return paymentLinks.map((link) => this.toResponseDto(link));
+  async getPaymentLinks(
+    userId: string,
+    options?: {
+      status?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<{ links: PaymentLinkResponseDto[]; total: number }> {
+    let paymentLinks = await this.paymentLinkRepository.findByUserId(userId);
+
+    // Apply status filter
+    if (options?.status) {
+      paymentLinks = paymentLinks.filter(
+        (link) => link.status === options.status,
+      );
+    }
+
+    const total = paymentLinks.length;
+
+    // Apply pagination
+    const offset = options?.offset || 0;
+    if (options?.limit) {
+      const end = Math.min(offset + options.limit, paymentLinks.length);
+      paymentLinks = paymentLinks.slice(offset, end);
+    }
+
+    return {
+      links: paymentLinks.map((link) => this.toResponseDto(link)),
+      total,
+    };
   }
 
   async getPaymentLinkById(
@@ -103,11 +135,54 @@ export class PaymentLinkService {
     return this.toResponseDto(paymentLink);
   }
 
+  async refreshPaymentLink(
+    id: string,
+    userId: string,
+  ): Promise<PaymentLinkResponseDto> {
+    const paymentLink = await this.paymentLinkRepository.findById(id);
+
+    if (!paymentLink) {
+      throw new NotFoundException('Payment link not found');
+    }
+
+    if (paymentLink.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Check if expired and update status
+    if (paymentLink.isExpired && paymentLink.isActive) {
+      paymentLink.expire();
+      await this.paymentLinkRepository.save(paymentLink);
+    }
+
+    return this.toResponseDto(paymentLink);
+  }
+
+  async cancelPaymentLink(
+    id: string,
+    userId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const paymentLink = await this.paymentLinkRepository.findById(id);
+
+    if (!paymentLink) {
+      throw new NotFoundException('Payment link not found');
+    }
+
+    if (paymentLink.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    paymentLink.cancel();
+    await this.paymentLinkRepository.save(paymentLink);
+
+    return { success: true, message: 'Payment link cancelled' };
+  }
+
   async payPaymentLink(
     code: string,
     payerUserId: string,
     dto: PayPaymentLinkDto,
-  ): Promise<{ success: boolean; message: string; transferId: string }> {
+  ): Promise<{ transactionId: string; amount: number; status: string }> {
     const paymentLink = await this.paymentLinkRepository.findByCode(code);
 
     if (!paymentLink) {
@@ -170,7 +245,7 @@ export class PaymentLinkService {
 
     // Create transfer
     const transfer = TransferEntity.createInternal({
-      senderId!: payerUserId,
+      senderId: payerUserId,
       senderWalletId: payerWallet.id,
       recipientId: paymentLink.userId,
       recipientWalletId: recipientWallet.id,
@@ -202,13 +277,13 @@ export class PaymentLinkService {
     ]);
 
     return {
-      success!: true,
-      message: 'Payment successful',
-      transferId: transfer.id,
+      transactionId: transfer.id,
+      amount: amount,
+      status: 'completed',
     };
   }
 
-  async deactivatePaymentLink(
+  async deletePaymentLink(
     id: string,
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
@@ -225,19 +300,28 @@ export class PaymentLinkService {
     paymentLink.cancel();
     await this.paymentLinkRepository.save(paymentLink);
 
-    return { success: true, message: 'Payment link deactivated' };
+    return { success: true, message: 'Payment link deleted' };
   }
 
   private toResponseDto(paymentLink: PaymentLink): PaymentLinkResponseDto {
+    // Map backend status to mobile-expected status names
+    let mobileStatus = paymentLink.status;
+    if (paymentLink.status === 'active' && paymentLink.viewCount === 0) {
+      mobileStatus = 'pending' as any;
+    } else if (paymentLink.status === 'active' && paymentLink.viewCount > 0) {
+      mobileStatus = 'viewed' as any;
+    }
+
     return {
-      id!: paymentLink.id,
+      id: paymentLink.id,
       userId: paymentLink.userId,
       walletId: paymentLink.walletId,
       code: paymentLink.code,
+      shortCode: paymentLink.code, // Mobile expects shortCode
       amount: paymentLink.amount,
       currency: paymentLink.currency,
       description: paymentLink.description,
-      status: paymentLink.status,
+      status: mobileStatus,
       expiresAt: paymentLink.expiresAt,
       paidAt: paymentLink.paidAt,
       paidByUserId: paymentLink.paidByUserId,
@@ -245,9 +329,10 @@ export class PaymentLinkService {
       isExpired: paymentLink.isExpired,
       isActive: paymentLink.isActive,
       isFlexibleAmount: paymentLink.isFlexibleAmount,
-      shareUrl: `${process.env.APP_URL || 'https://joonapay.com'}/pay/${paymentLink.code}`,
+      url: `${process.env.APP_URL || 'https://pay.joonapay.com'}/p/${paymentLink.code}`, // Mobile expects 'url'
+      shareUrl: `${process.env.APP_URL || 'https://pay.joonapay.com'}/p/${paymentLink.code}`,
       createdAt: paymentLink.createdAt,
       updatedAt: paymentLink.updatedAt,
-    };
+    } as any;
   }
 }

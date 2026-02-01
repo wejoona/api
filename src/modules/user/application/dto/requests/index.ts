@@ -6,3 +6,4 @@ export * from './refresh-token.dto';
 export * from './logout.dto';
 export * from './logout-all.dto';
 export * from './username.dto';
+export * from './pin.dto';

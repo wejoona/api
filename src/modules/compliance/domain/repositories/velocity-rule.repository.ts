@@ -30,7 +30,7 @@ export abstract class VelocityRuleRepository {
    * Find active rules by tier and type
    */
   abstract findActiveByTierAndType(
-    tier!: UserTier,
+    tier: UserTier,
     ruleType: VelocityRuleType,
   ): Promise<VelocityRule[]>;
 

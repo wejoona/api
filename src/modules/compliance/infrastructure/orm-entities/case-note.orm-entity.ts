@@ -18,24 +18,24 @@ import { ComplianceCaseOrmEntity } from './compliance-case.orm-entity';
 @Entity({ name: 'case_notes', schema: 'compliance' })
 export class CaseNoteOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'case_id', type: 'uuid' })
   @Index()
-  caseId!: string;
+  caseId: string;
 
   @Column({ name: 'author_id', type: 'uuid' })
   @Index()
-  authorId!: string;
+  authorId: string;
 
   @Column({ name: 'note', type: 'text' })
-  note!: string;
+  note: string;
 
   @Column({ name: 'is_internal', type: 'boolean', default: true })
-  isInternal!: boolean;
+  isInternal: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @ManyToOne(
     () => ComplianceCaseOrmEntity,
@@ -45,5 +45,5 @@ export class CaseNoteOrmEntity {
     },
   )
   @JoinColumn({ name: 'case_id' })
-  complianceCase!: ComplianceCaseOrmEntity;
+  complianceCase: ComplianceCaseOrmEntity;
 }

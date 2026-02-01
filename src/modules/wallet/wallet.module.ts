@@ -7,6 +7,7 @@ import { WalletOrmEntity } from './infrastructure/orm-entities/wallet.orm-entity
 
 // Repositories
 import { WalletRepository } from './infrastructure/repositories/wallet.repository';
+import { WALLET_REPOSITORY } from './domain/repositories/wallet.repository';
 
 // Mappers
 import { WalletMapper } from './infrastructure/mappers/wallet.mapper';
@@ -27,6 +28,7 @@ import {
   VerifyPinUseCase,
   SetPinUseCase,
   ExportTransactionsUseCase,
+  GetWalletLimitsUseCase,
 } from './application/usecases';
 
 // Controllers
@@ -62,9 +64,9 @@ import {
   providers: [
     // Repositories
     WalletRepository,
-    // Alias for dependency injection by token
+    // Alias for dependency injection by token (Symbol)
     {
-      provide: 'WALLET_REPOSITORY',
+      provide: WALLET_REPOSITORY,
       useExisting: WalletRepository,
     },
     // Mappers
@@ -87,11 +89,12 @@ import {
     VerifyPinUseCase,
     SetPinUseCase,
     ExportTransactionsUseCase,
+    GetWalletLimitsUseCase,
   ],
   controllers: [WalletController, KycUploadController, ExportController],
   exports: [
     WalletRepository,
-    'WALLET_REPOSITORY', // Token alias for ReconciliationService
+    WALLET_REPOSITORY, // Symbol token for IWalletRepository
     CreateWalletUseCase,
     InternalTransferUseCase,
     ExternalTransferUseCase,

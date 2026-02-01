@@ -15,11 +15,11 @@ export class CreateSavingsPotDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name!: string;
+  name: string;
 
   @IsNumber()
   @Min(0.01)
-  targetAmount!: number;
+  targetAmount: number;
 
   @IsOptional()
   @IsString()

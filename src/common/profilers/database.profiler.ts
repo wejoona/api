@@ -24,8 +24,8 @@ export class DatabaseProfiler implements TypeOrmLogger {
   /**
    * Logs query and parameters used in it
    */
-  logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner) {
-    const startTime = Date.now();
+  logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner) {
+    const __startTime = Date.now();
 
     // Store in async context for tracking
     const requestId = this.getRequestId();
@@ -52,7 +52,7 @@ export class DatabaseProfiler implements TypeOrmLogger {
     error: string | Error,
     query: string,
     parameters?: any[],
-    queryRunner?: QueryRunner,
+    _queryRunner?: QueryRunner,
   ) {
     const table = this.extractTableName(query);
 
@@ -79,7 +79,7 @@ export class DatabaseProfiler implements TypeOrmLogger {
     time: number,
     query: string,
     parameters?: any[],
-    queryRunner?: QueryRunner,
+    _queryRunner?: QueryRunner,
   ) {
     const table = this.extractTableName(query);
     const operation = this.extractOperation(query);
@@ -149,11 +149,7 @@ export class DatabaseProfiler implements TypeOrmLogger {
   /**
    * Perform logging using given logger
    */
-  log(
-    level: 'log' | 'info' | 'warn',
-    message: any,
-    queryRunner?: QueryRunner,
-  ) {
+  log(level: 'log' | 'info' | 'warn', message: any, queryRunner?: QueryRunner) {
     switch (level) {
       case 'log':
       case 'info':
@@ -386,7 +382,9 @@ export class DatabaseProfiler implements TypeOrmLogger {
     // Clean up old requests (keep last 100)
     if (this.requestQueries.size > 100) {
       const firstKey = this.requestQueries.keys().next().value;
-      this.requestQueries.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.requestQueries.delete(firstKey);
+      }
     }
   }
 

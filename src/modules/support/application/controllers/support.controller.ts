@@ -46,7 +46,7 @@ export class SupportController {
     @CurrentUser() user: UserPayload,
   ): Promise<TicketResponseDto> {
     return this.supportService.createTicket({
-      userId!: user.id,
+      userId: user.id,
       subject: dto.subject,
       category: dto.category,
       priority: dto.priority,
@@ -138,7 +138,7 @@ export class SupportController {
   ): Promise<MessageResponseDto> {
     return this.supportService.addMessage({
       ticketId,
-      userId!: user.id,
+      userId: user.id,
       message: dto.message,
       attachments: dto.attachments,
     });

@@ -148,7 +148,7 @@ describe('SQL Utilities', () => {
     // Security test cases
     it('should prevent SQL injection attempts in sort columns', () => {
       const injectionAttempts = [
-        "createdAt; DROP TABLE users;--",
+        'createdAt; DROP TABLE users;--',
         "createdAt' OR '1'='1",
         'createdAt UNION SELECT * FROM users',
         '1; UPDATE users SET role=admin',
@@ -194,7 +194,7 @@ describe('SQL Utilities', () => {
     // Security test cases
     it('should prevent SQL injection in sort order', () => {
       const injectionAttempts = [
-        "DESC; DROP TABLE users;--",
+        'DESC; DROP TABLE users;--',
         "ASC' OR '1'='1",
         'DESC UNION SELECT',
       ];

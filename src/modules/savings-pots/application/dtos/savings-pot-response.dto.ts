@@ -5,24 +5,24 @@ import {
 } from '../../domain/entities/savings-pot.entity';
 
 export class SavingsPotResponseDto {
-  id!: string;
-  walletId!: string;
-  name!: string;
-  targetAmount!: number;
-  currentAmount!: number;
-  currency!: string;
-  targetDate!: string | null;
-  isLocked!: boolean;
-  lockUntil!: string | null;
-  autoDepositAmount!: number | null;
-  autoDepositFrequency!: AutoDepositFrequency | null;
-  status!: SavingsPotStatus;
-  progress!: number;
-  remainingAmount!: number;
-  canWithdraw!: boolean;
-  createdAt!: string;
-  updatedAt!: string;
-  completedAt!: string | null;
+  id: string;
+  walletId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  currency: string;
+  targetDate: string | null;
+  isLocked: boolean;
+  lockUntil: string | null;
+  autoDepositAmount: number | null;
+  autoDepositFrequency: AutoDepositFrequency | null;
+  status: SavingsPotStatus;
+  progress: number;
+  remainingAmount: number;
+  canWithdraw: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
 
   static fromEntity(entity: SavingsPotEntity): SavingsPotResponseDto {
     const dto = new SavingsPotResponseDto();

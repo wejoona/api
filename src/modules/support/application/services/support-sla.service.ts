@@ -80,10 +80,11 @@ export class SupportSlaService {
     const slaPriority = this.mapTicketPriorityToSlaPriority(ticket.priority);
 
     // Get first agent response time
-    const firstAgentMessage = await this.messageRepository.findFirstBySenderType(
-      ticketId,
-      MessageSenderType.AGENT,
-    );
+    const firstAgentMessage =
+      await this.messageRepository.findFirstBySenderType(
+        ticketId,
+        MessageSenderType.AGENT,
+      );
     const respondedAt = firstAgentMessage?.createdAt ?? null;
 
     // Track SLA breach
@@ -163,8 +164,8 @@ export class SupportSlaService {
           ticket.priority === TicketPriority.HIGH
             ? TicketPriority.URGENT
             : ticket.priority === TicketPriority.MEDIUM
-            ? TicketPriority.HIGH
-            : TicketPriority.MEDIUM;
+              ? TicketPriority.HIGH
+              : TicketPriority.MEDIUM;
 
         ticket.updatePriority(newPriority);
         await this.ticketRepository.save(ticket);
@@ -209,10 +210,11 @@ export class SupportSlaService {
       slaPriority,
     );
 
-    const firstAgentMessage = await this.messageRepository.findFirstBySenderType(
-      ticketId,
-      MessageSenderType.AGENT,
-    );
+    const firstAgentMessage =
+      await this.messageRepository.findFirstBySenderType(
+        ticketId,
+        MessageSenderType.AGENT,
+      );
     const respondedAt = firstAgentMessage?.createdAt ?? null;
 
     const responseTimeMs = respondedAt
@@ -223,13 +225,15 @@ export class SupportSlaService {
       ? ticket.resolvedAt.getTime() - ticket.createdAt.getTime()
       : null;
 
-    const slaResponseTimeMet = slaConfig && responseTimeMs !== null
-      ? responseTimeMs <= slaConfig.responseTimeMs
-      : null;
+    const slaResponseTimeMet =
+      slaConfig && responseTimeMs !== null
+        ? responseTimeMs <= slaConfig.responseTimeMs
+        : null;
 
-    const slaResolutionTimeMet = slaConfig && resolutionTimeMs !== null
-      ? resolutionTimeMs <= slaConfig.resolutionTimeMs
-      : null;
+    const slaResolutionTimeMet =
+      slaConfig && resolutionTimeMs !== null
+        ? resolutionTimeMs <= slaConfig.resolutionTimeMs
+        : null;
 
     return {
       responseTimeMs,

@@ -15,22 +15,22 @@ import { TicketMessageOrmEntity } from './ticket-message.orm-entity';
 @Entity({ name: 'support_tickets', schema: 'system' })
 export class SupportTicketOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
   @Index()
-  userId!: string;
+  userId: string;
 
   @ManyToOne(() => UserOrmEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user?: UserOrmEntity;
 
   @Column({ type: 'varchar', length: 255 })
-  subject!: string;
+  subject: string;
 
   @Column({
     type: 'enum',
-    enum!: [
+    enum: [
       'account',
       'transaction',
       'deposit',
@@ -41,23 +41,23 @@ export class SupportTicketOrmEntity {
       'billing',
       'other',
     ],
-    enumName!: 'ticket_category',
+    enumName: 'ticket_category',
     default: 'other',
   })
   category: string;
 
   @Column({
     type: 'enum',
-    enum!: ['low', 'medium', 'high', 'urgent'],
-    enumName!: 'ticket_priority',
+    enum: ['low', 'medium', 'high', 'urgent'],
+    enumName: 'ticket_priority',
     default: 'medium',
   })
   priority: string;
 
   @Column({
     type: 'enum',
-    enum!: ['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'],
-    enumName!: 'ticket_status',
+    enum: ['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'],
+    enumName: 'ticket_status',
     default: 'open',
   })
   @Index()
@@ -65,16 +65,16 @@ export class SupportTicketOrmEntity {
 
   @Column({ name: 'assigned_to', type: 'uuid', nullable: true })
   @Index()
-  assignedTo!: string | null;
+  assignedTo: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  updatedAt: Date;
 
   @Column({ name: 'resolved_at', type: 'timestamp', nullable: true })
-  resolvedAt!: Date | null;
+  resolvedAt: Date | null;
 
   @OneToMany(() => TicketMessageOrmEntity, (message) => message.ticket)
   messages?: TicketMessageOrmEntity[];

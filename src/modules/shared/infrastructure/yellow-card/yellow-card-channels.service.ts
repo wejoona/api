@@ -30,7 +30,7 @@ export class YellowCardChannelsService {
     if (country === 'CI') {
       return [
         {
-          id!: 'orange_money_ci',
+          id: 'orange_money_ci',
           name: 'Orange Money',
           type: 'mobile_money',
           provider: 'orange',
@@ -72,7 +72,7 @@ export class YellowCardChannelsService {
   // ============================================
 
   private async apiGetOnRampChannels(
-    country!: string,
+    country: string,
   ): Promise<OnRampChannel[]> {
     this.logger.debug(`Getting on-ramp channels for ${country}`);
 

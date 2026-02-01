@@ -39,14 +39,14 @@ export class RateLimitService {
     windowSeconds: number,
   ): Promise<RateLimitResult> {
     const now = Math.floor(Date.now() / 1000);
-    const _windowStart = now - windowSeconds;
+    const __windowStart = now - windowSeconds;
     const rateLimitKey = `rate_limit:${key}`;
 
     try {
       // Get current count from cache
       const currentData = await this.cache.get<{
-        count!: number;
-        resetAt!: number;
+        count: number;
+        resetAt: number;
       }>(rateLimitKey);
 
       let count = 0;
@@ -83,7 +83,7 @@ export class RateLimitService {
       // On cache error, allow the request but log the issue
       this.logger.error(`Rate limit check failed for ${key}: ${error}`);
       return {
-        allowed!: true,
+        allowed: true,
         limit,
         remaining: limit - 1,
         resetAt: now + windowSeconds,
@@ -109,13 +109,13 @@ export class RateLimitService {
 
     try {
       const currentData = await this.cache.get<{
-        count!: number;
-        resetAt!: number;
+        count: number;
+        resetAt: number;
       }>(rateLimitKey);
 
       if (!currentData || currentData.resetAt <= now) {
         return {
-          allowed!: true,
+          allowed: true,
           limit,
           remaining: limit,
           resetAt: now + windowSeconds,
@@ -124,7 +124,7 @@ export class RateLimitService {
 
       const remaining = Math.max(0, limit - currentData.count);
       return {
-        allowed!: remaining > 0,
+        allowed: remaining > 0,
         limit,
         remaining,
         resetAt: currentData.resetAt,
@@ -132,7 +132,7 @@ export class RateLimitService {
     } catch (error) {
       this.logger.error(`Rate limit status check failed for ${key}: ${error}`);
       return {
-        allowed!: true,
+        allowed: true,
         limit,
         remaining: limit,
         resetAt: now + windowSeconds,

@@ -1,4 +1,8 @@
-import { SlaConfiguration, SlaCategory, SlaPriority } from '../entities/sla-configuration.entity';
+import {
+  SlaConfiguration,
+  SlaCategory,
+  SlaPriority,
+} from '../entities/sla-configuration.entity';
 
 export abstract class SlaConfigurationRepository {
   abstract findById(id: string): Promise<SlaConfiguration | null>;

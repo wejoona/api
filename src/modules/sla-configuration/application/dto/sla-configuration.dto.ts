@@ -7,7 +7,10 @@ import {
   IsOptional,
   IsBoolean,
 } from 'class-validator';
-import { SlaCategory, SlaPriority } from '../../domain/entities/sla-configuration.entity';
+import {
+  SlaCategory,
+  SlaPriority,
+} from '../../domain/entities/sla-configuration.entity';
 
 export class CreateSlaConfigurationDto {
   @IsString()

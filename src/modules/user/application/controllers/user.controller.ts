@@ -29,6 +29,10 @@ import {
   LogoutDto,
   LogoutAllDto,
   SearchUsernameDto,
+  SetPinDto,
+  ChangePinDto,
+  VerifyPinDto,
+  ResetPinDto,
 } from '../dto/requests';
 import {
   UserResponse,
@@ -40,17 +44,26 @@ import {
   CheckUsernameResponse,
   SearchUsernameResponse,
   UserLimitsResponse,
+  SetPinResponse,
+  ChangePinResponse,
+  VerifyPinResponse,
+  ResetPinResponse,
 } from '../dto/responses';
 import {
   RegisterUserUsecase,
   VerifyOtpUsecase,
   LoginUserUsecase,
   UpdateProfileUsecase,
+  GetProfileUsecase,
   RefreshTokenUsecase,
   LogoutUsecase,
   LogoutAllUsecase,
   UsernameUsecase,
   GetUserLimitsUseCase,
+  SetPinUsecase,
+  ChangePinUsecase,
+  VerifyPinUsecase,
+  ResetPinUsecase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -197,23 +210,25 @@ export class AuthController {
 @ApiBearerAuth()
 export class UserController {
   constructor(
+    private readonly getProfileUsecase: GetProfileUsecase,
     private readonly updateProfileUsecase: UpdateProfileUsecase,
     private readonly usernameUsecase: UsernameUsecase,
     private readonly getUserLimitsUseCase: GetUserLimitsUseCase,
+    private readonly setPinUsecase: SetPinUsecase,
+    private readonly changePinUsecase: ChangePinUsecase,
+    private readonly verifyPinUsecase: VerifyPinUsecase,
+    private readonly resetPinUsecase: ResetPinUsecase,
   ) {}
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, type: UserResponse })
-  getProfile(@Request() req: AuthenticatedRequest): Promise<UserResponse> {
-    // Note: req.user comes from JWT strategy which has JwtUser type
-    // UserResponse.fromDomain expects a User domain entity, but for profile
-    // we can create a partial response since we have id, phone from JWT
-    return Promise.resolve(
-      UserResponse.fromDomain(
-        req.user as unknown as import('../domain/entities/user.entity').User,
-      ),
-    );
+  async getProfile(@Request() req: AuthenticatedRequest): Promise<UserResponse> {
+    const result = await this.getProfileUsecase.execute({
+      userId: req.user.id,
+    });
+
+    return UserResponse.fromDomain(result.user, result.kycRejectionReason);
   }
 
   @Put('profile')
@@ -287,5 +302,136 @@ export class UserController {
     return this.getUserLimitsUseCase.execute({
       userId: req.user.id,
     });
+  }
+
+  // ============================================
+  // PIN ENDPOINTS
+  // ============================================
+
+  @Post('pin/set')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Set initial PIN',
+    description:
+      'Set the user PIN for the first time. PIN must be SHA256 hashed on client side before sending.',
+  })
+  @ApiResponse({ status: 200, type: SetPinResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'PIN already set or invalid format',
+  })
+  async setPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: SetPinDto,
+  ): Promise<SetPinResponse> {
+    const result = await this.setPinUsecase.execute({
+      userId: req.user.id,
+      pinHash: dto.pinHash,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
+    };
+  }
+
+  @Post('pin/change')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @ApiOperation({
+    summary: 'Change PIN',
+    description:
+      'Change the user PIN. Requires old PIN verification. Both PINs must be SHA256 hashed on client side.',
+  })
+  @ApiResponse({ status: 200, type: ChangePinResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid old PIN or PIN not set',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'PIN locked due to too many failed attempts',
+  })
+  async changePin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ChangePinDto,
+  ): Promise<ChangePinResponse> {
+    const result = await this.changePinUsecase.execute({
+      userId: req.user.id,
+      oldPinHash: dto.oldPinHash,
+      newPinHash: dto.newPinHash,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
+    };
+  }
+
+  @Post('pin/verify')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @ApiOperation({
+    summary: 'Verify PIN for sensitive operations',
+    description:
+      'Verify the user PIN and receive a time-limited token (5 minutes) for use in X-Pin-Token header for sensitive operations like transfers.',
+  })
+  @ApiResponse({ status: 200, type: VerifyPinResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid PIN or PIN not set',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'PIN locked due to too many failed attempts',
+  })
+  async verifyPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: VerifyPinDto,
+  ): Promise<VerifyPinResponse> {
+    const result = await this.verifyPinUsecase.execute({
+      userId: req.user.id,
+      pinHash: dto.pinHash,
+    });
+
+    return {
+      verified: result.verified,
+      pinToken: result.pinToken,
+      expiresIn: result.expiresIn,
+    };
+  }
+
+  @Post('pin/reset')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @ApiOperation({
+    summary: 'Reset PIN with OTP verification',
+    description:
+      'Reset the user PIN using OTP verification. User must request OTP first via login endpoint.',
+  })
+  @ApiResponse({ status: 200, type: ResetPinResponse })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OTP or PIN format',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired OTP',
+  })
+  async resetPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ResetPinDto,
+  ): Promise<ResetPinResponse> {
+    const result = await this.resetPinUsecase.execute({
+      userId: req.user.id,
+      otp: dto.otp,
+      newPinHash: dto.newPinHash,
+    });
+
+    return {
+      success: result.success,
+      message: result.message,
+    };
   }
 }

@@ -89,9 +89,7 @@ async function runSeeds(mode: SeedMode): Promise<void> {
     console.log('Database connected.\n');
 
     // Filter seeds based on mode
-    const seedsToRun = seeds.filter((seed) =>
-      seed.environments.includes(mode),
-    );
+    const seedsToRun = seeds.filter((seed) => seed.environments.includes(mode));
 
     console.log(`Seeds to run: ${seedsToRun.length}`);
     console.log('-'.repeat(60));

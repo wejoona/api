@@ -64,4 +64,16 @@ export class CreatePaymentLinkDto {
   @IsOptional()
   @IsDateString({}, { message: 'expiresAt must be a valid ISO 8601 date' })
   expiresAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Expiration time in hours from now (alternative to expiresAt)',
+    minimum: 1,
+    maximum: 8760, // 1 year
+    example: 24,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'Expiry hours must be at least 1' })
+  @Max(8760, { message: 'Expiry hours cannot exceed 1 year' })
+  expiryHours?: number;
 }

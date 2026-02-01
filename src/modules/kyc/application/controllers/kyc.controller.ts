@@ -101,6 +101,33 @@ export class KycController {
     return this.kycService.getStatus(user.id);
   }
 
+  // ==========================================
+  // MOBILE ALIAS ROUTES
+  // ==========================================
+  // These routes support the mobile app's expected paths
+  // They delegate to the main implementation above
+
+  @Get('user/kyc/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get KYC verification status (mobile alias)' })
+  @ApiResponse({
+    status: 200,
+    description: 'KYC status retrieved',
+    schema: {
+      example: {
+        status: 'approved',
+        score: 92,
+        submittedAt: '2026-01-25T10:00:00Z',
+        approvedAt: '2026-01-25T10:01:00Z',
+        canResubmit: false,
+      },
+    },
+  })
+  async getStatusAlt(@CurrentUser() user: JwtUser) {
+    return this.getStatus(user);
+  }
+
   @Post('submit')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -140,6 +167,36 @@ export class KycController {
       status: kyc.status,
       message: this.getStatusMessage(kyc.status),
     };
+  }
+
+  @Post('user/kyc')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Submit KYC for verification (mobile alias)',
+    description:
+      'Submit personal information and document keys for KYC verification. ' +
+      'Documents must be uploaded first via POST /kyc/documents. ' +
+      'After submission, auto-verification runs. Check status via GET /kyc/status.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'KYC submitted for verification',
+    schema: {
+      example: {
+        id: 'uuid',
+        status: 'pending_verification',
+        message: 'KYC submitted successfully. Verification in progress.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid submission or status does not allow submission',
+  })
+  async submitKycAlt(@CurrentUser() user: JwtUser, @Body() dto: KycSubmissionDto) {
+    return this.submitKyc(user, dto);
   }
 
   // ==========================================

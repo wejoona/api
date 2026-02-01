@@ -20,7 +20,11 @@
  */
 
 import { Transform } from 'class-transformer';
-import { sanitizeText, stripHtmlTags, escapeHtml } from '../utils/xss-sanitizer';
+import {
+  sanitizeText,
+  stripHtmlTags,
+  escapeHtml,
+} from '../utils/xss-sanitizer';
 
 export interface SanitizeOptions {
   /**

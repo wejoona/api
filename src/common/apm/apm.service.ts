@@ -1,5 +1,63 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JsonValue } from '@/types/strict-types';
+
+/**
+ * APM provider types
+ */
+type ApmProviderType = 'newrelic' | 'datadog' | 'none';
+
+/**
+ * Generic APM transaction interface
+ */
+interface ApmTransaction {
+  end?: () => void;
+  finish?: () => void;
+}
+
+/**
+ * Generic APM span interface
+ */
+interface ApmSpan {
+  setTag?: (key: string, value: JsonValue) => void;
+  finish?: () => void;
+}
+
+/**
+ * New Relic provider interface
+ */
+interface NewRelicProvider {
+  startWebTransaction(name: string): ApmTransaction;
+  recordMetric(name: string, value: number): void;
+  recordCustomEvent(
+    eventType: string,
+    attributes: Record<string, JsonValue>,
+  ): void;
+  addCustomAttribute(key: string, value: JsonValue): void;
+  noticeError(error: Error, customAttributes?: Record<string, JsonValue>): void;
+  setUserID(userId: string): void;
+}
+
+/**
+ * Datadog provider interface
+ */
+interface DatadogProvider {
+  startSpan(type: string, options: { resource: string }): ApmSpan;
+  scope(): {
+    active(): ApmSpan | null;
+  };
+  init(config: {
+    service: string;
+    env: string;
+    version: string;
+    logInjection: boolean;
+  }): void;
+}
+
+/**
+ * Union type for APM providers
+ */
+type ApmProvider = NewRelicProvider | DatadogProvider | null;
 
 /**
  * APM (Application Performance Monitoring) Service
@@ -18,13 +76,17 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ApmService implements OnModuleInit {
   private readonly logger = new Logger('ApmService');
-  private apmProvider: any;
+  private apmProvider: ApmProvider;
   private enabled: boolean;
-  private provider: string;
+  private provider: ApmProviderType;
 
   constructor(private readonly configService: ConfigService) {
     this.enabled = this.configService.get<boolean>('apm.enabled', false);
-    this.provider = this.configService.get<string>('apm.provider', 'none');
+    this.provider = this.configService.get<ApmProviderType>(
+      'apm.provider',
+      'none',
+    );
+    this.apmProvider = null;
   }
 
   onModuleInit() {
@@ -43,7 +105,10 @@ export class ApmService implements OnModuleInit {
   /**
    * Start a custom transaction
    */
-  startTransaction(name: string, type: string = 'custom'): any {
+  startTransaction(
+    name: string,
+    type: string = 'custom',
+  ): ApmTransaction | ApmSpan | null {
     if (!this.enabled || !this.apmProvider) {
       return null;
     }
@@ -51,9 +116,13 @@ export class ApmService implements OnModuleInit {
     try {
       switch (this.provider) {
         case 'newrelic':
-          return this.apmProvider.startWebTransaction(name);
+          return (this.apmProvider as NewRelicProvider).startWebTransaction(
+            name,
+          );
         case 'datadog':
-          return this.apmProvider.startSpan(type, { resource: name });
+          return (this.apmProvider as DatadogProvider).startSpan(type, {
+            resource: name,
+          });
         default:
           return null;
       }
@@ -66,19 +135,16 @@ export class ApmService implements OnModuleInit {
   /**
    * End a custom transaction
    */
-  endTransaction(transaction: any): void {
+  endTransaction(transaction: ApmTransaction | ApmSpan | null): void {
     if (!this.enabled || !transaction) {
       return;
     }
 
     try {
-      switch (this.provider) {
-        case 'newrelic':
-          transaction.end();
-          break;
-        case 'datadog':
-          transaction.finish();
-          break;
+      if ('end' in transaction && transaction.end) {
+        transaction.end();
+      } else if ('finish' in transaction && transaction.finish) {
+        transaction.finish();
       }
     } catch (error) {
       this.logger.error('Failed to end transaction', error);
@@ -96,7 +162,7 @@ export class ApmService implements OnModuleInit {
     try {
       switch (this.provider) {
         case 'newrelic':
-          this.apmProvider.recordMetric(name, value);
+          (this.apmProvider as NewRelicProvider).recordMetric(name, value);
           break;
         case 'datadog':
           // Datadog uses DogStatsD for metrics
@@ -111,7 +177,7 @@ export class ApmService implements OnModuleInit {
   /**
    * Record a custom event
    */
-  recordEvent(eventType: string, attributes: Record<string, any>): void {
+  recordEvent(eventType: string, attributes: Record<string, JsonValue>): void {
     if (!this.enabled || !this.apmProvider) {
       return;
     }
@@ -119,7 +185,10 @@ export class ApmService implements OnModuleInit {
     try {
       switch (this.provider) {
         case 'newrelic':
-          this.apmProvider.recordCustomEvent(eventType, attributes);
+          (this.apmProvider as NewRelicProvider).recordCustomEvent(
+            eventType,
+            attributes,
+          );
           break;
         case 'datadog':
           this.logger.debug(`Event: ${eventType}`, attributes);
@@ -133,7 +202,7 @@ export class ApmService implements OnModuleInit {
   /**
    * Add custom attributes to current transaction
    */
-  addCustomAttributes(attributes: Record<string, any>): void {
+  addCustomAttributes(attributes: Record<string, JsonValue>): void {
     if (!this.enabled || !this.apmProvider) {
       return;
     }
@@ -142,12 +211,15 @@ export class ApmService implements OnModuleInit {
       switch (this.provider) {
         case 'newrelic':
           for (const [key, value] of Object.entries(attributes)) {
-            this.apmProvider.addCustomAttribute(key, value);
+            (this.apmProvider as NewRelicProvider).addCustomAttribute(
+              key,
+              value,
+            );
           }
           break;
         case 'datadog':
-          const span = this.apmProvider.scope().active();
-          if (span) {
+          const span = (this.apmProvider as DatadogProvider).scope().active();
+          if (span && span.setTag) {
             for (const [key, value] of Object.entries(attributes)) {
               span.setTag(key, value);
             }
@@ -162,7 +234,10 @@ export class ApmService implements OnModuleInit {
   /**
    * Notice an error
    */
-  noticeError(error: Error, customAttributes?: Record<string, any>): void {
+  noticeError(
+    error: Error,
+    customAttributes?: Record<string, JsonValue>,
+  ): void {
     if (!this.enabled || !this.apmProvider) {
       return;
     }
@@ -170,14 +245,17 @@ export class ApmService implements OnModuleInit {
     try {
       switch (this.provider) {
         case 'newrelic':
-          this.apmProvider.noticeError(error, customAttributes);
+          (this.apmProvider as NewRelicProvider).noticeError(
+            error,
+            customAttributes,
+          );
           break;
         case 'datadog':
-          const span = this.apmProvider.scope().active();
-          if (span) {
+          const span = (this.apmProvider as DatadogProvider).scope().active();
+          if (span && span.setTag) {
             span.setTag('error', true);
             span.setTag('error.message', error.message);
-            span.setTag('error.stack', error.stack);
+            span.setTag('error.stack', error.stack || '');
             if (customAttributes) {
               for (const [key, value] of Object.entries(customAttributes)) {
                 span.setTag(key, value);
@@ -202,17 +280,18 @@ export class ApmService implements OnModuleInit {
     try {
       switch (this.provider) {
         case 'newrelic':
-          this.apmProvider.setUserID(userId);
+          const newRelicProvider = this.apmProvider as NewRelicProvider;
+          newRelicProvider.setUserID(userId);
           if (email) {
-            this.apmProvider.addCustomAttribute('user.email', email);
+            newRelicProvider.addCustomAttribute('user.email', email);
           }
           if (name) {
-            this.apmProvider.addCustomAttribute('user.name', name);
+            newRelicProvider.addCustomAttribute('user.name', name);
           }
           break;
         case 'datadog':
-          const span = this.apmProvider.scope().active();
-          if (span) {
+          const span = (this.apmProvider as DatadogProvider).scope().active();
+          if (span && span.setTag) {
             span.setTag('usr.id', userId);
             if (email) span.setTag('usr.email', email);
             if (name) span.setTag('usr.name', name);
@@ -265,7 +344,8 @@ export class ApmService implements OnModuleInit {
     try {
       // New Relic should be required at the very top of the application
       // This is a fallback initialization
-      this.apmProvider = require('newrelic');
+
+      this.apmProvider = require('newrelic') as NewRelicProvider;
       this.logger.log('New Relic APM initialized');
     } catch (error) {
       this.logger.error(
@@ -279,13 +359,18 @@ export class ApmService implements OnModuleInit {
   private initializeDatadog(): void {
     try {
       // Datadog tracer initialization
-      this.apmProvider = require('dd-trace');
-      this.apmProvider.init({
-        service: this.configService.get<string>('apm.serviceName', 'usdc-wallet'),
+
+      const ddTrace = require('dd-trace') as DatadogProvider;
+      ddTrace.init({
+        service: this.configService.get<string>(
+          'apm.serviceName',
+          'usdc-wallet',
+        ),
         env: this.configService.get<string>('env', 'production'),
         version: this.configService.get<string>('version', '1.0.0'),
         logInjection: true,
       });
+      this.apmProvider = ddTrace;
       this.logger.log('Datadog APM initialized');
     } catch (error) {
       this.logger.error(

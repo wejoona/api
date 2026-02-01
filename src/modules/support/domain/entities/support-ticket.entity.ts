@@ -29,11 +29,11 @@ export enum TicketStatus {
 
 export interface SupportTicketProps {
   id?: string;
-  userId!: string;
-  subject!: string;
-  category!: TicketCategory;
-  priority!: TicketPriority;
-  status!: TicketStatus;
+  userId: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
   assignedTo?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -41,9 +41,9 @@ export interface SupportTicketProps {
 }
 
 export interface CreateSupportTicketProps {
-  userId!: string;
-  subject!: string;
-  category!: TicketCategory;
+  userId: string;
+  subject: string;
+  category: TicketCategory;
   priority?: TicketPriority;
 }
 
@@ -169,7 +169,7 @@ export class SupportTicket {
     return new SupportTicket({
       ...props,
       priority: props.priority ?? TicketPriority.MEDIUM,
-      status!: TicketStatus.OPEN,
+      status: TicketStatus.OPEN,
     });
   }
 

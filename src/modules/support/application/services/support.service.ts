@@ -78,7 +78,7 @@ export class SupportService {
 
     // Create initial message
     const initialMessage = TicketMessage.create({
-      ticketId!: savedTicket.id,
+      ticketId: savedTicket.id,
       senderType: MessageSenderType.USER,
       senderId: userId,
       message,
@@ -124,7 +124,7 @@ export class SupportService {
     const tickets = await this.ticketRepository.find({
       userId,
       status,
-      limit!: limit + 1, // Fetch one extra to check if there are more
+      limit: limit + 1, // Fetch one extra to check if there are more
       offset,
     });
 
@@ -152,7 +152,7 @@ export class SupportService {
     );
 
     return {
-      tickets!: ticketResponses,
+      tickets: ticketResponses,
       total,
       hasMore,
     };
@@ -202,7 +202,7 @@ export class SupportService {
     const ticketMessage = TicketMessage.create({
       ticketId,
       senderType,
-      senderId!: userId,
+      senderId: userId,
       message,
       attachments,
     });
@@ -337,7 +337,7 @@ export class SupportService {
   }
 
   private toTicketResponse(
-    ticket!: SupportTicket,
+    ticket: SupportTicket,
     messageCount: number,
   ): TicketResponseDto {
     return {
@@ -357,7 +357,7 @@ export class SupportService {
 
   private toMessageResponse(message: TicketMessage): MessageResponseDto {
     return {
-      id!: message.id,
+      id: message.id,
       ticketId: message.ticketId,
       senderType: message.senderType,
       senderId: message.senderId,

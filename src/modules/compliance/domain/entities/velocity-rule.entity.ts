@@ -27,15 +27,15 @@ export type UserTier = 'unverified' | 'basic' | 'verified' | 'premium';
 
 export interface VelocityRuleProps {
   id?: string;
-  name!: string;
+  name: string;
   description?: string;
-  ruleType!: VelocityRuleType;
+  ruleType: VelocityRuleType;
   thresholdAmount?: number;
   thresholdCount?: number;
-  timeWindowHours!: number;
-  action!: VelocityRuleAction;
-  appliesToTier!: UserTier[];
-  isActive!: boolean;
+  timeWindowHours: number;
+  action: VelocityRuleAction;
+  appliesToTier: UserTier[];
+  isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -79,11 +79,11 @@ export class VelocityRule {
    * Create a new velocity rule
    */
   static create(
-    props!: Omit<VelocityRuleProps, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>,
+    props: Omit<VelocityRuleProps, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>,
   ): VelocityRule {
     return new VelocityRule({
       ...props,
-      isActive!: true,
+      isActive: true,
     });
   }
 

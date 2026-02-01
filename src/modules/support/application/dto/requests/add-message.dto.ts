@@ -8,28 +8,31 @@ import {
   MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SanitizeNote, SanitizeSingleLine } from '../../../../../common/decorators';
+import {
+  SanitizeNote,
+  SanitizeSingleLine,
+} from '../../../../../common/decorators';
 
 export class AttachmentDto {
   @IsString()
   @IsNotEmpty()
-  id!: string;
+  id: string;
 
   // SECURITY: Sanitize filename to prevent path traversal and XSS
   @SanitizeSingleLine(255)
   @IsString()
   @IsNotEmpty()
-  filename!: string;
+  filename: string;
 
   @IsString()
   @IsNotEmpty()
-  mimeType!: string;
+  mimeType: string;
 
-  size!: number;
+  size: number;
 
   @IsString()
   @IsNotEmpty()
-  url!: string;
+  url: string;
 }
 
 export class AddMessageDto {
@@ -39,7 +42,7 @@ export class AddMessageDto {
   @IsNotEmpty()
   @MinLength(1)
   @MaxLength(5000)
-  message!: string;
+  message: string;
 
   @IsOptional()
   @IsArray()

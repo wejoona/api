@@ -44,7 +44,10 @@ export function escapeHtml(input: string | null | undefined): string {
     return '';
   }
 
-  return String(input).replace(/[&<>"'`=/]/g, (char) => HTML_ENTITIES[char] || char);
+  return String(input).replace(
+    /[&<>"'`=/]/g,
+    (char) => HTML_ENTITIES[char] || char,
+  );
 }
 
 /**
@@ -247,18 +250,20 @@ export function sanitizeFilename(
  * @param options - CSP configuration options
  * @returns CSP header value string
  */
-export function createCSPHeader(options: {
-  defaultSrc?: string[];
-  scriptSrc?: string[];
-  styleSrc?: string[];
-  imgSrc?: string[];
-  connectSrc?: string[];
-  fontSrc?: string[];
-  objectSrc?: string[];
-  mediaSrc?: string[];
-  frameSrc?: string[];
-  reportUri?: string;
-} = {}): string {
+export function createCSPHeader(
+  options: {
+    defaultSrc?: string[];
+    scriptSrc?: string[];
+    styleSrc?: string[];
+    imgSrc?: string[];
+    connectSrc?: string[];
+    fontSrc?: string[];
+    objectSrc?: string[];
+    mediaSrc?: string[];
+    frameSrc?: string[];
+    reportUri?: string;
+  } = {},
+): string {
   const directives: string[] = [];
 
   const defaultSrc = options.defaultSrc || ["'self'"];

@@ -13,7 +13,7 @@ export abstract class TicketMessageRepository {
   abstract findByTicketId(ticketId: string): Promise<TicketMessage[]>;
 
   abstract findByTicketIdPaginated(
-    ticketId!: string,
+    ticketId: string,
     limit: number,
     offset: number,
   ): Promise<TicketMessage[]>;

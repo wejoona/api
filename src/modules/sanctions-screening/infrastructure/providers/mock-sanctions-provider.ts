@@ -73,9 +73,7 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
   async screenIndividual(
     request: IndividualScreeningRequest,
   ): Promise<ScreeningResult> {
-    this.logger.log(
-      `[MOCK] Screening individual: ${request.name}`,
-    );
+    this.logger.log(`[MOCK] Screening individual: ${request.name}`);
 
     const requestId = uuidv4();
     const matches: ScreeningMatchDetail[] = [];
@@ -95,7 +93,7 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
         aliases: ['J. Sanction', 'Johnny Sanction'],
         nationality: 'RU',
         identifiers: {
-          passport: ['RU123456'],
+          passport: 'RU123456',
         },
         additionalInfo: {
           program: 'UKRAINE-EO13662',
@@ -105,7 +103,11 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
     }
 
     // PEP match trigger
-    if (name.includes('pep') || name.includes('ouattara') || name.includes('sall')) {
+    if (
+      name.includes('pep') ||
+      name.includes('ouattara') ||
+      name.includes('sall')
+    ) {
       matches.push({
         matchId: 'PEP-001',
         matchedName: 'Political Figure',
@@ -154,7 +156,8 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
       });
     }
 
-    const highestScore = matches.length > 0 ? Math.max(...matches.map(m => m.score)) : 0;
+    const highestScore =
+      matches.length > 0 ? Math.max(...matches.map((m) => m.score)) : 0;
     const riskLevel = this.calculateRiskLevel(highestScore);
     const autoBlocked = highestScore >= 95;
     const requiresReview = !autoBlocked && highestScore >= 70;
@@ -202,7 +205,8 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
       });
     }
 
-    const highestScore = matches.length > 0 ? Math.max(...matches.map(m => m.score)) : 0;
+    const highestScore =
+      matches.length > 0 ? Math.max(...matches.map((m) => m.score)) : 0;
     const riskLevel = this.calculateRiskLevel(highestScore);
 
     return {
@@ -263,7 +267,7 @@ export class MockSanctionsProvider extends SanctionsScreeningProvider {
   async getMatchDetails(matchId: string): Promise<ScreeningMatchDetail> {
     this.logger.log(`[MOCK] Getting match details for: ${matchId}`);
 
-    const entry = this.mockWatchlist.find(e => e.matchId === matchId);
+    const entry = this.mockWatchlist.find((e) => e.matchId === matchId);
 
     if (!entry) {
       throw new Error(`Match ${matchId} not found`);

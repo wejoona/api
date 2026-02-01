@@ -39,7 +39,7 @@ export interface GetMerchantOutput {
  */
 @Injectable()
 export class GetMerchantUseCase {
-  private readonly logger = new Logger(GetMerchantUseCase.name);
+  private readonly _logger = new Logger(GetMerchantUseCase.name);
 
   constructor(private readonly merchantRepository: MerchantRepository) {}
 
@@ -93,10 +93,10 @@ export class GetMerchantUseCase {
  */
 @Injectable()
 export class GetMerchantByQrUseCase {
-  private readonly logger = new Logger(GetMerchantByQrUseCase.name);
+  private readonly _logger = new Logger(GetMerchantByQrUseCase.name);
 
   constructor(
-    private readonly merchantRepository: MerchantRepository,
+    private readonly _merchantRepository: MerchantRepository,
     private readonly getMerchantUseCase: GetMerchantUseCase,
   ) {}
 

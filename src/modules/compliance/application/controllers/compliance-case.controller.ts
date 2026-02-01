@@ -12,8 +12,8 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@/shared/guards/jwt-auth.guard';
-import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { User } from '@/modules/user/domain/entities/user.entity';
 import { ComplianceCaseService } from '../services/compliance-case.service';
 import {

@@ -107,11 +107,7 @@ function getDevelopmentCSP(): ContentSecurityPolicyOptions {
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
 
       // Styles: allow inline for Swagger UI
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'",
-        'https://fonts.googleapis.com',
-      ],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
 
       // Images: allow data URIs for Swagger icons
       imgSrc: ["'self'", 'data:', 'https:'],
@@ -148,7 +144,7 @@ function getDevelopmentCSP(): ContentSecurityPolicyOptions {
  *
  * Reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
  */
-function getPermissionsPolicy(isProduction: boolean): string {
+function getPermissionsPolicy(_isProduction: boolean): string {
   // Features to completely disable (empty parentheses = disabled for all)
   const disabledFeatures = [
     'accelerometer=()',

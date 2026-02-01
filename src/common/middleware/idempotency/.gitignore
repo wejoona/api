@@ -1,0 +1,6 @@
+# Ignore example files from production builds
+examples/
+
+# Test coverage
+coverage/
+*.lcov

@@ -20,6 +20,10 @@ import { SlaConfigurationController } from './application/controllers/sla-config
       useClass: TypeOrmSlaConfigurationRepository,
     },
   ],
-  exports: [SlaConfigurationService, SlaTrackingService, SlaConfigurationRepository],
+  exports: [
+    SlaConfigurationService,
+    SlaTrackingService,
+    SlaConfigurationRepository,
+  ],
 })
 export class SlaConfigurationModule {}

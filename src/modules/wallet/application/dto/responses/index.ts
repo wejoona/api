@@ -1,1 +1,1 @@
-export const Responses = [];
+export * from './wallet-limits.response';

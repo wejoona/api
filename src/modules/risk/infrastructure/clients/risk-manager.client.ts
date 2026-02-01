@@ -505,7 +505,7 @@ export class RiskManagerClient implements IRiskClient {
     userId: string,
     updates: Partial<UserRiskProfile>,
   ): Promise<UserRiskProfile> {
-    const _response = await this.request<any>(
+    const __response = await this.request<any>(
       'PUT',
       `/entities/risk-profiles/${userId}`,
       {

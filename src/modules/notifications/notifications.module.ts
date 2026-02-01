@@ -82,7 +82,7 @@ import { NotificationController } from './application/controllers/notification.c
     },
     {
       provide: SMS_NOTIFICATION_PROVIDER,
-      useFactory: (configService: ConfigService, mock: MockSmsProvider) => {
+      useFactory: (_configService: ConfigService, mock: MockSmsProvider) => {
         // TODO: Add Twilio provider for live mode
         return mock;
       },
@@ -90,7 +90,7 @@ import { NotificationController } from './application/controllers/notification.c
     },
     {
       provide: EMAIL_NOTIFICATION_PROVIDER,
-      useFactory: (configService: ConfigService, mock: MockEmailProvider) => {
+      useFactory: (_configService: ConfigService, mock: MockEmailProvider) => {
         // TODO: Add SendGrid provider for live mode
         return mock;
       },

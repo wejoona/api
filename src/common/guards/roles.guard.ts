@@ -5,9 +5,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
+import { ROLES_KEY, Roles } from '../decorators/roles.decorator';
 
-export type UserRole = 'user' | 'admin' | 'super_admin';
+export type UserRole = 'user' | 'admin' | 'super_admin' | 'compliance_officer' | 'compliance_manager';
+export { Roles };
 
 export interface UserWithRole {
   id: string;

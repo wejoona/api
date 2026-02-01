@@ -49,13 +49,13 @@ export interface UpdateFeatureFlagParams {
 @Injectable()
 export class FeatureFlagService implements OnModuleInit {
   private readonly logger = new Logger(FeatureFlagService.name);
-  private readonly cacheTtl = 300; // 5 minutes
-  private readonly cacheKey = 'feature_flags';
+  private readonly _cacheTtl = 300; // 5 minutes
+  private readonly _cacheKey = 'feature_flags';
   private flagsCache: Map<string, FeatureFlag> = new Map();
 
   constructor(
     private readonly featureFlagRepository: FeatureFlagRepository,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private _cacheManager: Cache,
   ) {}
 
   async onModuleInit() {

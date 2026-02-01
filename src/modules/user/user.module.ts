@@ -19,6 +19,7 @@ import {
   VerifyOtpUsecase,
   LoginUserUsecase,
   UpdateProfileUsecase,
+  GetProfileUsecase,
   CreateUserLedgerIdentityUseCase,
   SetupUserBalanceMonitorsUseCase,
   RefreshTokenUsecase,
@@ -26,6 +27,10 @@ import {
   LogoutAllUsecase,
   UsernameUsecase,
   GetUserLimitsUseCase,
+  SetPinUsecase,
+  ChangePinUsecase,
+  VerifyPinUsecase,
+  ResetPinUsecase,
 } from './application/domain/usecases';
 
 // Controllers
@@ -77,6 +82,7 @@ import { TransactionModule } from '../transaction/transaction.module';
     VerifyOtpUsecase,
     LoginUserUsecase,
     UpdateProfileUsecase,
+    GetProfileUsecase,
     CreateUserLedgerIdentityUseCase,
     SetupUserBalanceMonitorsUseCase,
     RefreshTokenUsecase,
@@ -84,6 +90,10 @@ import { TransactionModule } from '../transaction/transaction.module';
     LogoutAllUsecase,
     UsernameUsecase,
     GetUserLimitsUseCase,
+    SetPinUsecase,
+    ChangePinUsecase,
+    VerifyPinUsecase,
+    ResetPinUsecase,
     // Strategy
     JwtStrategy,
   ],

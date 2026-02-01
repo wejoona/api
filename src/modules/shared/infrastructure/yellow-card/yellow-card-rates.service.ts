@@ -38,7 +38,7 @@ export class YellowCardRatesService {
     }
 
     return {
-      sourceCurrency!: request.sourceCurrency,
+      sourceCurrency: request.sourceCurrency,
       targetCurrency: request.targetCurrency,
       rate,
       sourceAmount: request.amount,
@@ -77,7 +77,7 @@ export class YellowCardRatesService {
     const targetAmount = (request.amount - fee) * conversionRate;
 
     return {
-      sourceCurrency!: request.sourceCurrency,
+      sourceCurrency: request.sourceCurrency,
       targetCurrency: request.targetCurrency,
       rate: conversionRate,
       sourceAmount: request.amount,

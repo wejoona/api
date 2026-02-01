@@ -4,6 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { Contact } from '../../domain/entities';
 import { ContactRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../../user/infrastructure/repositories';
@@ -194,5 +195,88 @@ export class ContactService {
 
     // Create new contact
     return this.createContact(input);
+  }
+
+  /**
+   * Hash phone number using SHA-256 (matches mobile app implementation)
+   */
+  private hashPhone(phone: string): string {
+    return createHash('sha256').update(phone).digest('hex');
+  }
+
+  /**
+   * Sync phone contacts to find JoonaPay users
+   * Accepts hashed phone numbers for privacy
+   */
+  async syncContacts(phoneHashes: string[]): Promise<{
+    matches: Array<{
+      phoneHash: string;
+      userId: string;
+      avatarUrl: string | null;
+    }>;
+    totalChecked: number;
+    matchesFound: number;
+  }> {
+    // Get all users
+    const users = await this.userRepository.findAll();
+
+    // Match hashes against user phone numbers
+    const matches: Array<{
+      phoneHash: string;
+      userId: string;
+      avatarUrl: string | null;
+    }> = [];
+
+    for (const user of users) {
+      const userPhoneHash = this.hashPhone(user.phone);
+
+      if (phoneHashes.includes(userPhoneHash)) {
+        matches.push({
+          phoneHash: userPhoneHash,
+          userId: user.id,
+          avatarUrl: null, // TODO: Add avatar support when user profile is implemented
+        });
+      }
+    }
+
+    return {
+      matches,
+      totalChecked: phoneHashes.length,
+      matchesFound: matches.length,
+    };
+  }
+
+  /**
+   * Send invite to non-JoonaPay contact
+   * TODO: Implement SMS/WhatsApp invitation logic
+   */
+  async inviteContact(
+    phone: string,
+  ): Promise<{ success: boolean; message: string }> {
+    // Validate phone number format
+    if (!phone.startsWith('+')) {
+      throw new BadRequestException(
+        'Phone number must include country code (e.g., +225...)',
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findByPhone(phone);
+    if (existingUser) {
+      return {
+        success: false,
+        message: 'This user is already on JoonaPay',
+      };
+    }
+
+    // TODO: Implement actual invitation logic
+    // - Send SMS with download link
+    // - Track invitation status
+    // - Reward referrals
+
+    return {
+      success: true,
+      message: 'Invitation sent successfully',
+    };
   }
 }

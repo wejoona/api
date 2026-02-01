@@ -16,7 +16,7 @@ import { ShutdownService } from './shutdown.service';
 export class ShutdownMiddleware implements NestMiddleware {
   constructor(private readonly shutdownService: ShutdownService) {}
 
-  use(req: Request, res: Response, next: NextFunction): void {
+  use(_req: Request, res: Response, next: NextFunction): void {
     // Reject new requests if shutting down
     if (this.shutdownService.isShutdown()) {
       throw new ServiceUnavailableException(

@@ -188,9 +188,7 @@ export class TypeOrmScreeningRecordRepository extends ScreeningRecordRepository 
     });
   }
 
-  private toRecordOrmEntity(
-    record: ScreeningRecord,
-  ): ScreeningRecordOrmEntity {
+  private toRecordOrmEntity(record: ScreeningRecord): ScreeningRecordOrmEntity {
     const entity = new ScreeningRecordOrmEntity();
     entity.id = record.id;
     entity.userId = record.userId || null;

@@ -74,9 +74,10 @@ export class CacheProfiler {
           duration: `${duration}ms`,
           size: size ? `${(size / 1024).toFixed(2)}KB` : 'unknown',
           threshold: `${this.slowCacheThreshold}ms`,
-          recommendation: size && size > 100 * 1024
-            ? 'Large cache value (>100KB) - consider storing reference instead'
-            : 'Cache write is slow - check Redis connection',
+          recommendation:
+            size && size > 100 * 1024
+              ? 'Large cache value (>100KB) - consider storing reference instead'
+              : 'Cache write is slow - check Redis connection',
         }),
       );
     }
@@ -131,7 +132,8 @@ export class CacheProfiler {
       totalHits += metrics.hits;
       totalMisses += metrics.misses;
       totalDuration += metrics.totalDuration;
-      totalOperations += metrics.hits + metrics.misses + metrics.sets + metrics.deletes;
+      totalOperations +=
+        metrics.hits + metrics.misses + metrics.sets + metrics.deletes;
 
       const hitRate =
         metrics.hits + metrics.misses > 0
@@ -193,8 +195,7 @@ export class CacheProfiler {
         recommendations.push({
           key,
           issue: `Low cache hit rate: ${hitRate.toFixed(1)}%`,
-          recommendation:
-            'Review cache invalidation strategy or increase TTL',
+          recommendation: 'Review cache invalidation strategy or increase TTL',
           priority: 'high',
         });
       }
@@ -215,8 +216,7 @@ export class CacheProfiler {
         recommendations.push({
           key,
           issue: `Slow cache operations: ${metrics.avgDuration.toFixed(1)}ms avg`,
-          recommendation:
-            'Check Redis performance or reduce cached data size',
+          recommendation: 'Check Redis performance or reduce cached data size',
           priority: 'high',
         });
       }
@@ -261,8 +261,7 @@ export class CacheProfiler {
 
     for (const [key, metrics] of this.cacheMetrics.entries()) {
       const totalAccess = metrics.hits + metrics.misses;
-      const hitRate =
-        totalAccess > 0 ? (metrics.hits / totalAccess) * 100 : 0;
+      const hitRate = totalAccess > 0 ? (metrics.hits / totalAccess) * 100 : 0;
 
       keyStats.push({
         key,
@@ -313,14 +312,16 @@ export class CacheProfiler {
     }
 
     metrics.totalDuration += duration;
-    const totalOps = metrics.hits + metrics.misses + metrics.sets + metrics.deletes;
+    const totalOps =
+      metrics.hits + metrics.misses + metrics.sets + metrics.deletes;
     metrics.avgDuration = metrics.totalDuration / totalOps;
     metrics.lastAccessed = Date.now();
 
     // Keep only last 500 keys
     if (this.cacheMetrics.size > 500) {
-      const oldestKey = Array.from(this.cacheMetrics.entries())
-        .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)[0][0];
+      const oldestKey = Array.from(this.cacheMetrics.entries()).sort(
+        (a, b) => a[1].lastAccessed - b[1].lastAccessed,
+      )[0][0];
       this.cacheMetrics.delete(oldestKey);
     }
   }

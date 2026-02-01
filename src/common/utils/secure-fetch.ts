@@ -15,11 +15,7 @@
  */
 
 import { Logger } from '@nestjs/common';
-import {
-  CircuitBreaker,
-  CircuitBreakerOptions,
-  CircuitOpenError,
-} from './circuit-breaker';
+import { CircuitBreaker, CircuitBreakerOptions } from './circuit-breaker';
 
 export interface SecureFetchOptions extends RequestInit {
   /** Timeout in milliseconds (default: 5000) */

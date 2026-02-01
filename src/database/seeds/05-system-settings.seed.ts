@@ -79,7 +79,8 @@ const systemSettings: SystemSettingSeedData[] = [
   },
   {
     key: 'app.maintenance_message',
-    value: 'We are currently performing scheduled maintenance. Please try again later.',
+    value:
+      'We are currently performing scheduled maintenance. Please try again later.',
     category: 'app',
     description: 'Message shown during maintenance mode',
     isEncrypted: false,

@@ -19,10 +19,10 @@ export class CreateTicketDto {
   @IsNotEmpty()
   @MinLength(5)
   @MaxLength(255)
-  subject!: string;
+  subject: string;
 
   @IsEnum(TicketCategory)
-  category!: TicketCategory;
+  category: TicketCategory;
 
   @IsOptional()
   @IsEnum(TicketPriority)
@@ -34,5 +34,5 @@ export class CreateTicketDto {
   @IsNotEmpty()
   @MinLength(10)
   @MaxLength(5000)
-  message!: string;
+  message: string;
 }

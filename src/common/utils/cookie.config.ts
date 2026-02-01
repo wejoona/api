@@ -228,9 +228,7 @@ export function getCookieOptions(cookieName: string): CookieOptions {
 /**
  * Get all cookies by category
  */
-export function getCookiesByCategory(
-  category: CookieCategory,
-): CookieConfig[] {
+export function getCookiesByCategory(category: CookieCategory): CookieConfig[] {
   return JOONAPAY_COOKIES.filter((c) => c.category === category);
 }
 

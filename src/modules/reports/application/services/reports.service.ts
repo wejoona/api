@@ -50,7 +50,7 @@ export interface ReconciliationReport {
 
 @Injectable()
 export class ReportsService {
-  private readonly logger = new Logger(ReportsService.name);
+  private readonly _logger = new Logger(ReportsService.name);
 
   constructor(
     @InjectRepository(TransactionOrmEntity)

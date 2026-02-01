@@ -36,21 +36,21 @@ export type WatchlistMatchType =
 @Index(['userId', 'watchlistEntryId', 'matchType'], { unique: true })
 export class WatchlistMatchOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
   @Index()
-  userId!: string;
+  userId: string;
 
   @Column({ name: 'watchlist_entry_id', type: 'uuid' })
   @Index()
-  watchlistEntryId!: string;
+  watchlistEntryId: string;
 
   @ManyToOne(() => WatchlistEntryOrmEntity, (entry) => entry.matches, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'watchlist_entry_id' })
-  watchlistEntry!: WatchlistEntryOrmEntity;
+  watchlistEntry: WatchlistEntryOrmEntity;
 
   @Column({
     name: 'match_score',
@@ -58,7 +58,7 @@ export class WatchlistMatchOrmEntity {
     precision: 5,
     scale: 2,
   })
-  matchScore!: number;
+  matchScore: number;
 
   @Column({
     name: 'match_type',
@@ -73,7 +73,7 @@ export class WatchlistMatchOrmEntity {
     ],
     enumName: 'watchlist_match_type_enum',
   })
-  matchType!: WatchlistMatchType;
+  matchType: WatchlistMatchType;
 
   @Column({
     type: 'enum',
@@ -82,17 +82,17 @@ export class WatchlistMatchOrmEntity {
     default: 'pending',
   })
   @Index()
-  status!: WatchlistMatchStatus;
+  status: WatchlistMatchStatus;
 
   @Column({ name: 'reviewed_by', type: 'uuid', nullable: true })
-  reviewedBy!: string | null;
+  reviewedBy: string | null;
 
   @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
-  reviewedAt!: Date | null;
+  reviewedAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
-  notes!: string | null;
+  notes: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 }

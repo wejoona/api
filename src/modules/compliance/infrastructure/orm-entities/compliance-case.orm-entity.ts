@@ -24,11 +24,11 @@ import { CaseEvidenceOrmEntity } from './case-evidence.orm-entity';
 @Entity({ name: 'cases', schema: 'compliance' })
 export class ComplianceCaseOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'case_number', type: 'varchar', length: 50, unique: true })
   @Index()
-  caseNumber!: string;
+  caseNumber: string;
 
   @Column({
     name: 'case_type',
@@ -37,11 +37,11 @@ export class ComplianceCaseOrmEntity {
     enumName: 'case_type',
   })
   @Index()
-  caseType!: CaseType;
+  caseType: CaseType;
 
   @Column({ name: 'subject_user_id', type: 'uuid' })
   @Index()
-  subjectUserId!: string;
+  subjectUserId: string;
 
   @Column({
     name: 'status',
@@ -51,7 +51,7 @@ export class ComplianceCaseOrmEntity {
     default: CaseStatus.OPEN,
   })
   @Index()
-  status!: CaseStatus;
+  status: CaseStatus;
 
   @Column({
     name: 'priority',
@@ -61,39 +61,39 @@ export class ComplianceCaseOrmEntity {
     default: CasePriority.MEDIUM,
   })
   @Index()
-  priority!: CasePriority;
+  priority: CasePriority;
 
   @Column({ name: 'assigned_to', type: 'uuid', nullable: true })
   @Index()
-  assignedTo!: string | null;
+  assignedTo: string | null;
 
   @Column({ name: 'escalated_to', type: 'uuid', nullable: true })
-  escalatedTo!: string | null;
+  escalatedTo: string | null;
 
   @Column({ name: 'created_by', type: 'uuid' })
-  createdBy!: string;
+  createdBy: string;
 
   @Column({ name: 'summary', type: 'text' })
-  summary!: string;
+  summary: string;
 
   @Column({ name: 'findings', type: 'text', nullable: true })
-  findings!: string | null;
+  findings: string | null;
 
   @Column({ name: 'resolution', type: 'text', nullable: true })
-  resolution!: string | null;
+  resolution: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  updatedAt: Date;
 
   @Column({ name: 'closed_at', type: 'timestamp', nullable: true })
-  closedAt!: Date | null;
+  closedAt: Date | null;
 
   @OneToMany(() => CaseNoteOrmEntity, (note) => note.complianceCase)
-  notes!: CaseNoteOrmEntity[];
+  notes: CaseNoteOrmEntity[];
 
   @OneToMany(() => CaseEvidenceOrmEntity, (evidence) => evidence.complianceCase)
-  evidence!: CaseEvidenceOrmEntity[];
+  evidence: CaseEvidenceOrmEntity[];
 }

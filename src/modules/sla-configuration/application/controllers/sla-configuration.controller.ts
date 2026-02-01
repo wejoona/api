@@ -10,10 +10,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@/modules/shared/guards/jwt-auth.guard';
-import { RolesGuard } from '@/modules/shared/guards/roles.guard';
-import { Roles } from '@/modules/shared/decorators/roles.decorator';
-import { UserRole } from '@/modules/user/domain/entities/user.entity';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 import { SlaConfigurationService } from '../services/sla-configuration.service';
 import {
   CreateSlaConfigurationDto,
@@ -23,11 +22,9 @@ import {
 
 @Controller('admin/sla-configurations')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@Roles('admin', 'super_admin')
 export class SlaConfigurationController {
-  constructor(
-    private readonly slaConfigService: SlaConfigurationService,
-  ) {}
+  constructor(private readonly slaConfigService: SlaConfigurationService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -48,7 +45,9 @@ export class SlaConfigurationController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<SlaConfigurationResponseDto> {
+  async findById(
+    @Param('id') id: string,
+  ): Promise<SlaConfigurationResponseDto> {
     return this.slaConfigService.findById(id);
   }
 
@@ -61,12 +60,16 @@ export class SlaConfigurationController {
   }
 
   @Put(':id/activate')
-  async activate(@Param('id') id: string): Promise<SlaConfigurationResponseDto> {
+  async activate(
+    @Param('id') id: string,
+  ): Promise<SlaConfigurationResponseDto> {
     return this.slaConfigService.activate(id);
   }
 
   @Put(':id/deactivate')
-  async deactivate(@Param('id') id: string): Promise<SlaConfigurationResponseDto> {
+  async deactivate(
+    @Param('id') id: string,
+  ): Promise<SlaConfigurationResponseDto> {
     return this.slaConfigService.deactivate(id);
   }
 

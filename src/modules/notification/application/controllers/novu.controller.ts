@@ -43,7 +43,7 @@ export class NovuController {
   @Post('subscriber')
   async registerSubscriber(@CurrentUser() user: User) {
     await this.novuNotificationService.registerUser(user.id, {
-      email!: user.email || undefined,
+      email: user.email || undefined,
       firstName: user.firstName || undefined,
       lastName: user.lastName || undefined,
       phone: user.phone,
@@ -51,7 +51,7 @@ export class NovuController {
     });
 
     return {
-      success!: true,
+      success: true,
       message: 'Subscriber registered in Novu',
     };
   }
@@ -65,7 +65,7 @@ export class NovuController {
     await this.novuNotificationService.deleteUser(user.id);
 
     return {
-      success!: true,
+      success: true,
       message: 'Subscriber deleted from Novu',
     };
   }
@@ -91,7 +91,7 @@ export class NovuController {
     );
 
     return {
-      success!: true,
+      success: true,
       message: 'Device token registered',
     };
   }
@@ -109,7 +109,7 @@ export class NovuController {
     await this.novuNotificationService.removeDeviceToken(user.id, novuPlatform);
 
     return {
-      success!: true,
+      success: true,
       message: 'Device token removed',
     };
   }
@@ -129,7 +129,7 @@ export class NovuController {
     await this.novuNotificationService.subscribeToTopic(user.id, topicKey);
 
     return {
-      success!: true,
+      success: true,
       message: `Subscribed to topic: ${topicKey}`,
     };
   }
@@ -145,7 +145,7 @@ export class NovuController {
     await this.novuNotificationService.unsubscribeFromTopic(user.id, topicKey);
 
     return {
-      success!: true,
+      success: true,
       message: `Unsubscribed from topic: ${topicKey}`,
     };
   }
@@ -164,7 +164,7 @@ export class NovuController {
     );
 
     return {
-      success!: true,
+      success: true,
       data: notifications,
     };
   }
@@ -177,7 +177,7 @@ export class NovuController {
     const count = await this.novuNotificationService.getUnreadCount(user.id);
 
     return {
-      success!: true,
+      success: true,
       count,
     };
   }
@@ -193,7 +193,7 @@ export class NovuController {
     await this.novuNotificationService.markAsRead(user.id, messageId);
 
     return {
-      success!: true,
+      success: true,
       message: 'Notification marked as read',
     };
   }
@@ -206,7 +206,7 @@ export class NovuController {
     await this.novuNotificationService.markAllAsRead(user.id);
 
     return {
-      success!: true,
+      success: true,
       message: 'All notifications marked as read',
     };
   }
@@ -222,7 +222,7 @@ export class NovuController {
   @Post('test/transaction')
   async sendTestTransaction(@CurrentUser() user: User) {
     await this.novuNotificationService.sendTransactionNotification({
-      userId!: user.id,
+      userId: user.id,
       type: 'received',
       amount: 100,
       currency: 'USDC',
@@ -231,7 +231,7 @@ export class NovuController {
     });
 
     return {
-      success!: true,
+      success: true,
       message: 'Test transaction notification sent',
     };
   }
@@ -248,7 +248,7 @@ export class NovuController {
     );
 
     return {
-      success!: true,
+      success: true,
       message: 'Test security alert sent',
     };
   }
@@ -264,7 +264,7 @@ export class NovuController {
     );
 
     return {
-      success!: true,
+      success: true,
       message: 'Test KYC notification sent',
     };
   }
@@ -280,7 +280,7 @@ export class NovuController {
     );
 
     return {
-      success!: true,
+      success: true,
       message: 'Test welcome message sent',
     };
   }

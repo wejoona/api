@@ -43,10 +43,7 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
     private readonly configService: ConfigService,
   ) {
     super();
-    this.apiKey = this.configService.get<string>(
-      'COMPLYADVANTAGE_API_KEY',
-      '',
-    );
+    this.apiKey = this.configService.get<string>('COMPLYADVANTAGE_API_KEY', '');
     this.baseUrl = this.configService.get<string>(
       'COMPLYADVANTAGE_BASE_URL',
       'https://api.complyadvantage.com',
@@ -89,9 +86,7 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
 
       return this.parseSearchResponse(response.data);
     } catch (error) {
-      this.logger.error(
-        `ComplyAdvantage screening failed: ${error.message}`,
-      );
+      this.logger.error(`ComplyAdvantage screening failed: ${error.message}`);
       throw new Error(`Sanctions screening failed: ${error.message}`);
     }
   }
@@ -192,9 +187,7 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
 
       return this.parseHit(hit);
     } catch (error) {
-      this.logger.error(
-        `Failed to get match details: ${error.message}`,
-      );
+      this.logger.error(`Failed to get match details: ${error.message}`);
       throw new Error(`Failed to get match details: ${error.message}`);
     }
   }
@@ -210,7 +203,9 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
       );
       return true;
     } catch (error) {
-      this.logger.error(`ComplyAdvantage health check failed: ${error.message}`);
+      this.logger.error(
+        `ComplyAdvantage health check failed: ${error.message}`,
+      );
       return false;
     }
   }
@@ -255,9 +250,7 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
       score: Math.round((hit.match_score || 0) * 100),
       matchType: this.mapMatchType(hit.match_score),
       aliases: hit.doc?.aka || [],
-      dateOfBirth: hit.doc?.dob?.[0]
-        ? new Date(hit.doc.dob[0])
-        : undefined,
+      dateOfBirth: hit.doc?.dob?.[0] ? new Date(hit.doc.dob[0]) : undefined,
       nationality: hit.doc?.country_codes?.[0],
       identifiers: this.parseIdentifiers(hit.doc?.fields || []),
       additionalInfo: {
@@ -280,8 +273,8 @@ export class ComplyAdvantageProvider extends SanctionsScreeningProvider {
 
   private mapMatchType(score: number): ScreeningMatchDetail['matchType'] {
     if (score >= 0.95) return 'exact';
-    if (score >= 0.80) return 'fuzzy';
-    if (score >= 0.60) return 'alias';
+    if (score >= 0.8) return 'fuzzy';
+    if (score >= 0.6) return 'alias';
     return 'partial';
   }
 

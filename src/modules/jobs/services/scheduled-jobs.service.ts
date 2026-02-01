@@ -37,7 +37,7 @@ export class ScheduledJobsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async expireStaleTransactions(): Promise<void> {
-    const _jobName = 'expire_stale_transactions';
+    const jobName = 'expire_stale_transactions';
     const job = await this.startJob(jobName);
 
     try {
@@ -79,7 +79,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 3 * * *')
   async cleanupTransactionMetadata(): Promise<void> {
-    const _jobName = 'cleanup_transaction_metadata';
+    const jobName = 'cleanup_transaction_metadata';
     const job = await this.startJob(jobName);
 
     try {
@@ -118,7 +118,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 2 * * 0')
   async cleanupAuditLogs(): Promise<void> {
-    const _jobName = 'cleanup_audit_logs';
+    const jobName = 'cleanup_audit_logs';
     const job = await this.startJob(jobName);
 
     try {
@@ -151,7 +151,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 1 * * *')
   async dailyReconciliation(): Promise<void> {
-    const _jobName = 'daily_reconciliation';
+    const jobName = 'daily_reconciliation';
     const job = await this.startJob(jobName);
 
     try {
@@ -178,7 +178,7 @@ export class ScheduledJobsService {
       const withdrawals = completedTransactions.filter(
         (t) => t.type === 'withdrawal',
       );
-      const _transfers = completedTransactions.filter(
+      const __transfers = completedTransactions.filter(
         (t) => t.type === 'transfer_internal' || t.type === 'transfer_external',
       );
 
@@ -214,7 +214,7 @@ export class ScheduledJobsService {
    */
   @Cron('*/15 * * * *')
   async checkStuckTransactions(): Promise<void> {
-    const _jobName = 'check_stuck_transactions';
+    const jobName = 'check_stuck_transactions';
 
     try {
       // Transactions in processing state for more than 30 minutes
@@ -253,7 +253,7 @@ export class ScheduledJobsService {
    */
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredSessions(): Promise<void> {
-    const _jobName = 'cleanup_expired_sessions';
+    const jobName = 'cleanup_expired_sessions';
     const job = await this.startJob(jobName);
 
     try {
@@ -287,7 +287,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 4 * * *')
   async cleanupInactiveFcmTokens(): Promise<void> {
-    const _jobName = 'cleanup_fcm_tokens';
+    const jobName = 'cleanup_fcm_tokens';
     const job = await this.startJob(jobName);
 
     try {
@@ -321,7 +321,7 @@ export class ScheduledJobsService {
    */
   @Cron('0 3 * * 6')
   async cleanupOldNotifications(): Promise<void> {
-    const _jobName = 'cleanup_notifications';
+    const jobName = 'cleanup_notifications';
     const job = await this.startJob(jobName);
 
     try {

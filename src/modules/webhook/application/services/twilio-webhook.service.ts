@@ -59,7 +59,9 @@ export class TwilioWebhookService {
     if (update.status === 'failed' || update.status === 'undelivered') {
       this.logger.warn(
         `SMS delivery failed: ${update.messageSid} to ${update.to}` +
-          (update.errorCode ? ` - Error ${update.errorCode}: ${update.errorMessage}` : ''),
+          (update.errorCode
+            ? ` - Error ${update.errorCode}: ${update.errorMessage}`
+            : ''),
       );
     }
 

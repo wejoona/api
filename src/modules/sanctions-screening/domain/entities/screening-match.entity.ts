@@ -1,7 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export type MatchStatus = 'pending' | 'confirmed' | 'false_positive';
-export type MatchListType = 'sanctions' | 'pep' | 'adverse_media' | 'enforcement';
+export type MatchListType =
+  | 'sanctions'
+  | 'pep'
+  | 'adverse_media'
+  | 'enforcement';
 
 export interface ScreeningMatchProps {
   id?: string;

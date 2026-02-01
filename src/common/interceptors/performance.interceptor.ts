@@ -93,7 +93,12 @@ export class PerformanceInterceptor implements NestInterceptor {
     const statusCode = response.statusCode;
 
     // Record Prometheus metrics
-    this.metricsService.recordHttpRequest(method, endpoint, statusCode, duration);
+    this.metricsService.recordHttpRequest(
+      method,
+      endpoint,
+      statusCode,
+      duration,
+    );
 
     // Track latency percentiles
     this.recordLatencyPercentile(endpoint, duration);
@@ -237,7 +242,9 @@ export class PerformanceInterceptor implements NestInterceptor {
     const recommendations: string[] = [];
 
     if (duration > 5000) {
-      recommendations.push('CRITICAL: Request took >5s - investigate immediately');
+      recommendations.push(
+        'CRITICAL: Request took >5s - investigate immediately',
+      );
     } else if (duration > 2000) {
       recommendations.push('WARNING: Request took >2s - optimization needed');
     }

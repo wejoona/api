@@ -11,7 +11,7 @@ import { SupportTicketOrmEntity } from '../orm-entities/support-ticket.orm-entit
 export class SupportTicketMapper {
   toDomain(entity: SupportTicketOrmEntity): SupportTicket {
     return SupportTicket.reconstitute({
-      id!: entity.id,
+      id: entity.id,
       userId: entity.userId,
       subject: entity.subject,
       category: entity.category as TicketCategory,

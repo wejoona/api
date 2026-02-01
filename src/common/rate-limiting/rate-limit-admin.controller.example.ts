@@ -35,7 +35,7 @@ import { RateLimitPresets } from './rate-limit.decorator';
 @Controller('admin/rate-limits')
 @UseGuards(JwtAuthGuard, RolesGuard, RateLimitGuard)
 @ApiBearerAuth()
-@Roles('admin', 'superadmin')
+@Roles('admin', 'super_admin')
 export class RateLimitAdminController {
   constructor(private readonly rateLimitService: RateLimitService) {}
 
@@ -205,7 +205,8 @@ export class RateLimitAdminController {
       body.windowSeconds,
     );
 
-    const usagePercent = ((status.limit - status.remaining) / status.limit) * 100;
+    const usagePercent =
+      ((status.limit - status.remaining) / status.limit) * 100;
 
     return {
       allowed: status.allowed,

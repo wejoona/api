@@ -5,21 +5,45 @@ import {
   Min,
   Matches,
   IsOptional,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ExternalTransferDto {
   @ApiProperty({
-    description: 'Recipient wallet address (Ethereum/EVM compatible)',
+    description:
+      'Recipient wallet address (Ethereum/EVM compatible). Can use "address" or "toAddress".',
     example: '0x1234567890abcdef1234567890abcdef12345678',
+    required: false,
   })
+  @ValidateIf((o) => !o.address)
+  @IsNotEmpty({ message: 'Either toAddress or address must be provided' })
   @IsString()
-  @IsNotEmpty()
   @Matches(/^0x[a-fA-F0-9]{40}$/, {
     message:
       'Must be a valid Ethereum address (0x followed by 40 hex characters)',
   })
-  toAddress: string;
+  toAddress?: string;
+
+  @ApiProperty({
+    description:
+      'Recipient wallet address (alternative field name for mobile compatibility)',
+    example: '0x1234567890abcdef1234567890abcdef12345678',
+    required: false,
+  })
+  @ValidateIf((o) => !o.toAddress)
+  @IsNotEmpty({ message: 'Either address or toAddress must be provided' })
+  @IsString()
+  @Matches(/^0x[a-fA-F0-9]{40}$/, {
+    message:
+      'Must be a valid Ethereum address (0x followed by 40 hex characters)',
+  })
+  address?: string;
+
+  // Helper method to get the actual address value
+  getAddress(): string {
+    return this.address || this.toAddress || '';
+  }
 
   @ApiProperty({
     description: 'Amount in USD to transfer',

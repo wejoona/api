@@ -19,11 +19,11 @@ import { ComplianceCaseOrmEntity } from './compliance-case.orm-entity';
 @Entity({ name: 'case_evidence', schema: 'compliance' })
 export class CaseEvidenceOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'case_id', type: 'uuid' })
   @Index()
-  caseId!: string;
+  caseId: string;
 
   @Column({
     name: 'evidence_type',
@@ -32,19 +32,19 @@ export class CaseEvidenceOrmEntity {
     enumName: 'evidence_type',
   })
   @Index()
-  evidenceType!: EvidenceType;
+  evidenceType: EvidenceType;
 
   @Column({ name: 'file_url', type: 'varchar', length: 500 })
-  fileUrl!: string;
+  fileUrl: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
-  description!: string | null;
+  description: string | null;
 
   @Column({ name: 'uploaded_by', type: 'uuid' })
-  uploadedBy!: string;
+  uploadedBy: string;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @ManyToOne(
     () => ComplianceCaseOrmEntity,
@@ -54,5 +54,5 @@ export class CaseEvidenceOrmEntity {
     },
   )
   @JoinColumn({ name: 'case_id' })
-  complianceCase!: ComplianceCaseOrmEntity;
+  complianceCase: ComplianceCaseOrmEntity;
 }

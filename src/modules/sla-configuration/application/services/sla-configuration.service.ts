@@ -71,11 +71,14 @@ export class SlaConfigurationService {
       name: dto.name ?? config.name,
       category: config.category,
       priority: config.priority,
-      responseTimeMinutes: dto.responseTimeMinutes ?? config.responseTimeMinutes,
+      responseTimeMinutes:
+        dto.responseTimeMinutes ?? config.responseTimeMinutes,
       resolutionTimeMinutes:
         dto.resolutionTimeMinutes ?? config.resolutionTimeMinutes,
       escalationAfterMinutes:
-        dto.escalationAfterMinutes ?? config.escalationAfterMinutes ?? undefined,
+        dto.escalationAfterMinutes ??
+        config.escalationAfterMinutes ??
+        undefined,
       isActive: dto.isActive ?? config.isActive,
       businessHoursOnly: dto.businessHoursOnly ?? config.businessHoursOnly,
       createdAt: config.createdAt,

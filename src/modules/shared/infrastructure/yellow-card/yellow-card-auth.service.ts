@@ -14,7 +14,7 @@ export class YellowCardAuthService {
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
-      apiUrl!: this.configService.get<string>('yellowCard.apiUrl'),
+      apiUrl: this.configService.get<string>('yellowCard.apiUrl'),
       apiKey: this.configService.get<string>('yellowCard.apiKey'),
       secretKey: this.configService.get<string>('yellowCard.secretKey'),
       webhookSecret: this.configService.get<string>('yellowCard.webhookSecret'),
@@ -73,7 +73,7 @@ export class YellowCardAuthService {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-YC-Timestamp': timestamp,
-      Authorization!: `YcHmacV1 ${this.config.apiKey}:${signature}`,
+      Authorization: `YcHmacV1 ${this.config.apiKey}:${signature}`,
     };
 
     const url = `${this.config.apiUrl}${path}`;
@@ -82,7 +82,7 @@ export class YellowCardAuthService {
       const response = await fetch(url, {
         method,
         headers,
-        body!: bodyStr,
+        body: bodyStr,
       });
 
       if (!response.ok) {

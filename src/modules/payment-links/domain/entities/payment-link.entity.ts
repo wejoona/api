@@ -12,11 +12,11 @@ export enum PaymentLinkStatus {
 
 export interface PaymentLinkProps {
   id?: string;
-  userId!: string;
-  walletId!: string;
+  userId: string;
+  walletId: string;
   code?: string;
   amount?: number | null;
-  currency!: string;
+  currency: string;
   description?: string | null;
   status?: PaymentLinkStatus;
   expiresAt?: Date | null;
@@ -28,8 +28,8 @@ export interface PaymentLinkProps {
 }
 
 export interface CreatePaymentLinkProps {
-  userId!: string;
-  walletId!: string;
+  userId: string;
+  walletId: string;
   amount?: number | null;
   currency?: string;
   description?: string | null;
@@ -142,8 +142,8 @@ export class PaymentLink {
   static create(props: CreatePaymentLinkProps): PaymentLink {
     return new PaymentLink({
       ...props,
-      currency!: props.currency || 'USDC',
-      status!: PaymentLinkStatus.ACTIVE,
+      currency: props.currency || 'USDC',
+      status: PaymentLinkStatus.ACTIVE,
     });
   }
 

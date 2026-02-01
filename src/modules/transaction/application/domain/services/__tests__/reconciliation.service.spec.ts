@@ -9,7 +9,10 @@ import {
   IWalletProvider,
   WALLET_PROVIDER,
 } from '@modules/providers/interfaces';
-import { IWalletRepository } from '@modules/wallet/domain/repositories/wallet.repository';
+import {
+  IWalletRepository,
+  WALLET_REPOSITORY,
+} from '@modules/wallet/domain/repositories/wallet.repository';
 import { WalletEntity } from '@modules/wallet/domain/entities/wallet.entity';
 
 describe('ReconciliationService', () => {
@@ -85,7 +88,7 @@ describe('ReconciliationService', () => {
           useValue: mockWalletProvider,
         },
         {
-          provide: 'WALLET_REPOSITORY',
+          provide: WALLET_REPOSITORY,
           useValue: mockWalletRepository,
         },
         {

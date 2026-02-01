@@ -42,7 +42,7 @@ export class CreateSavingsPotUseCase {
       targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
       isLocked: dto.isLocked,
       lockUntil: dto.lockUntil ? new Date(dto.lockUntil) : undefined,
-      autoDepositAmount!: dto.autoDepositAmount,
+      autoDepositAmount: dto.autoDepositAmount,
       autoDepositFrequency: dto.autoDepositFrequency,
     });
 

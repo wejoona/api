@@ -1,15 +1,11 @@
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
-export class CreateSanctionsScreeningTables1706800000000
-  implements MigrationInterface
-{
+export class CreateSanctionsScreeningTables1706800000000 implements MigrationInterface {
   name = 'CreateSanctionsScreeningTables1706800000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create compliance schema if not exists
-    await queryRunner.query(
-      `CREATE SCHEMA IF NOT EXISTS compliance`,
-    );
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS compliance`);
 
     // Create screening_records table
     await queryRunner.createTable(

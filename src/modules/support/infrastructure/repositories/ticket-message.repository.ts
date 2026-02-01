@@ -23,7 +23,7 @@ export class TypeOrmTicketMessageRepository extends TicketMessageRepository {
 
   async findByTicketId(ticketId: string): Promise<TicketMessage[]> {
     const entities = await this.repo.find({
-      where!: { ticketId },
+      where: { ticketId },
       order: { createdAt: 'ASC' },
     });
     return entities.map((e) => this.mapper.toDomain(e));
@@ -35,7 +35,7 @@ export class TypeOrmTicketMessageRepository extends TicketMessageRepository {
     offset: number,
   ): Promise<TicketMessage[]> {
     const entities = await this.repo.find({
-      where!: { ticketId },
+      where: { ticketId },
       order: { createdAt: 'ASC' },
       take: limit,
       skip: offset,
@@ -55,7 +55,7 @@ export class TypeOrmTicketMessageRepository extends TicketMessageRepository {
 
   async getLatestByTicketId(ticketId: string): Promise<TicketMessage | null> {
     const entity = await this.repo.findOne({
-      where!: { ticketId },
+      where: { ticketId },
       order: { createdAt: 'DESC' },
     });
     return entity ? this.mapper.toDomain(entity) : null;

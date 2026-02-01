@@ -24,8 +24,15 @@ import {
   CreateContactDto,
   UpdateContactDto,
   SearchContactsDto,
+  SyncContactsDto,
+  InviteContactDto,
 } from '../dto/requests';
-import { ContactResponse, ContactListResponse } from '../dto/responses';
+import {
+  ContactResponse,
+  ContactListResponse,
+  SyncContactsResponse,
+  InviteContactResponse,
+} from '../dto/responses';
 import { ContactService } from '../services';
 
 @ApiTags('Contacts')
@@ -153,5 +160,47 @@ export class ContactController {
     @Param('id') contactId: string,
   ): Promise<void> {
     await this.contactService.deleteContact(contactId, req.user.id);
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sync phone contacts to find JoonaPay users',
+    description:
+      'Accepts hashed phone numbers (SHA-256) for privacy. Returns matching JoonaPay users.',
+  })
+  @ApiResponse({ status: 200, type: SyncContactsResponse })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async syncContacts(
+    @Body() dto: SyncContactsDto,
+  ): Promise<SyncContactsResponse> {
+    const result = await this.contactService.syncContacts(dto.phoneHashes);
+
+    const response = new SyncContactsResponse();
+    response.matches = result.matches;
+    response.totalChecked = result.totalChecked;
+    response.matchesFound = result.matchesFound;
+
+    return response;
+  }
+
+  @Post('invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Send invite to non-JoonaPay contact',
+    description: 'Sends an SMS/WhatsApp invitation to join JoonaPay',
+  })
+  @ApiResponse({ status: 200, type: InviteContactResponse })
+  @ApiResponse({ status: 400, description: 'Invalid phone number' })
+  async inviteContact(
+    @Body() dto: InviteContactDto,
+  ): Promise<InviteContactResponse> {
+    const result = await this.contactService.inviteContact(dto.phone);
+
+    const response = new InviteContactResponse();
+    response.success = result.success;
+    response.message = result.message;
+
+    return response;
   }
 }

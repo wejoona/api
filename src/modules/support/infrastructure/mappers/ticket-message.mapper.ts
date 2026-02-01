@@ -10,7 +10,7 @@ import { TicketMessageOrmEntity } from '../orm-entities/ticket-message.orm-entit
 export class TicketMessageMapper {
   toDomain(entity: TicketMessageOrmEntity): TicketMessage {
     return TicketMessage.reconstitute({
-      id!: entity.id,
+      id: entity.id,
       ticketId: entity.ticketId,
       senderType: entity.senderType as MessageSenderType,
       senderId: entity.senderId,

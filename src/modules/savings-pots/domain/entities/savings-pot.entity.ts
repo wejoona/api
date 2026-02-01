@@ -4,27 +4,27 @@ export type SavingsPotStatus = 'active' | 'completed' | 'cancelled';
 export type AutoDepositFrequency = 'daily' | 'weekly' | 'monthly';
 
 export interface ISavingsPot {
-  id!: string;
-  walletId!: string;
-  name!: string;
-  targetAmount!: number;
-  currentAmount!: number;
-  currency!: string;
-  targetDate!: Date | null;
-  isLocked!: boolean;
-  lockUntil!: Date | null;
-  autoDepositAmount!: number | null;
-  autoDepositFrequency!: AutoDepositFrequency | null;
-  status!: SavingsPotStatus;
-  createdAt!: Date;
-  updatedAt!: Date;
-  completedAt!: Date | null;
+  id: string;
+  walletId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  currency: string;
+  targetDate: Date | null;
+  isLocked: boolean;
+  lockUntil: Date | null;
+  autoDepositAmount: number | null;
+  autoDepositFrequency: AutoDepositFrequency | null;
+  status: SavingsPotStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
 }
 
 export interface CreateSavingsPotProps {
-  walletId!: string;
-  name!: string;
-  targetAmount!: number;
+  walletId: string;
+  name: string;
+  targetAmount: number;
   currency?: string;
   targetDate?: Date;
   isLocked?: boolean;
@@ -36,19 +36,19 @@ export interface CreateSavingsPotProps {
 export class SavingsPotEntity implements ISavingsPot {
   readonly id: string;
   readonly walletId: string;
-  name!: string;
-  targetAmount!: number;
-  currentAmount!: number;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
   readonly currency: string;
-  targetDate!: Date | null;
-  isLocked!: boolean;
-  lockUntil!: Date | null;
-  autoDepositAmount!: number | null;
-  autoDepositFrequency!: AutoDepositFrequency | null;
-  status!: SavingsPotStatus;
+  targetDate: Date | null;
+  isLocked: boolean;
+  lockUntil: Date | null;
+  autoDepositAmount: number | null;
+  autoDepositFrequency: AutoDepositFrequency | null;
+  status: SavingsPotStatus;
   readonly createdAt: Date;
-  updatedAt!: Date;
-  completedAt!: Date | null;
+  updatedAt: Date;
+  completedAt: Date | null;
 
   private constructor(props: ISavingsPot) {
     this.id = props.id;
@@ -71,8 +71,8 @@ export class SavingsPotEntity implements ISavingsPot {
   static create(props: CreateSavingsPotProps): SavingsPotEntity {
     const now = new Date();
     return new SavingsPotEntity({
-      id!: uuidv4(),
-      walletId!: props.walletId,
+      id: uuidv4(),
+      walletId: props.walletId,
       name: props.name,
       targetAmount: props.targetAmount,
       currentAmount: 0,

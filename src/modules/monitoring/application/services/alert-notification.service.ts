@@ -32,7 +32,7 @@ export class AlertNotificationService {
     this.logger.log(`Processing notification for alert ${alert.alertId}`);
 
     try {
-      const _config = ALERT_TYPE_CONFIG[alert.alertType];
+      const __config = ALERT_TYPE_CONFIG[alert.alertType];
       const channels = this.determineChannels(shouldNotify, alert.severity);
 
       if (channels.length === 0) {
@@ -238,7 +238,7 @@ export class AlertNotificationService {
    * Format SMS message (must be concise)
    */
   private formatSmsMessage(alert: TransactionAlert): string {
-    const _config = ALERT_TYPE_CONFIG[alert.alertType];
+    const __config = ALERT_TYPE_CONFIG[alert.alertType];
     return `JoonaPay Alert: ${alert.title}. ${alert.message.substring(0, 100)}`;
   }
 

@@ -44,6 +44,7 @@ export interface ExternalTransferOutput {
   currency: string;
   fee: number;
   status: string;
+  txHash?: string;
   estimatedArrival?: string;
 }
 
@@ -59,7 +60,7 @@ export class ExternalTransferUseCase {
   private readonly MAX_RETRIES = 3;
 
   constructor(
-    private readonly walletRepository: WalletRepository,
+    private readonly _walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
     private readonly userRepository: UserRepository,
     private readonly dataSource: DataSource,
@@ -161,6 +162,7 @@ export class ExternalTransferUseCase {
         currency,
         fee,
         status: transferResponse.status,
+        txHash: transferResponse.txHash,
         estimatedArrival: '5-30 minutes',
       };
     } catch (error) {

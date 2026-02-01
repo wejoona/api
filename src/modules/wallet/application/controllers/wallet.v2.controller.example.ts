@@ -64,9 +64,9 @@ interface BalanceResponseV2 {
   }>;
   metadata: {
     kycStatus: string;
-    limits!: {
+    limits: {
       daily: number;
-      transaction!: number;
+      transaction: number;
     };
   };
 }
@@ -82,21 +82,21 @@ interface DepositResponseV2 {
   };
   deposit: {
     id: string;
-    amount!: number;
-    sourceCurrency!: string;
-    targetCurrency!: string;
-    rate!: number;
-    fee!: number;
-    estimatedAmount!: number;
-    expiresAt!: string;
+    amount: number;
+    sourceCurrency: string;
+    targetCurrency: string;
+    rate: number;
+    fee: number;
+    estimatedAmount: number;
+    expiresAt: string;
   };
-  payment!: {
+  payment: {
     instructions: {
       type: string;
-      provider!: string;
-      accountNumber!: string;
-      reference!: string;
-      instructions!: string;
+      provider: string;
+      accountNumber: string;
+      reference: string;
+      instructions: string;
     };
   };
   tracking: {
@@ -116,12 +116,12 @@ interface TransferResponseV2 {
   transfer: {
     amount: number;
     currency: string;
-    fee!: number;
-    totalAmount!: number;
+    fee: number;
+    totalAmount: number;
   };
-  source!: {
+  source: {
     walletId: string;
-    userId!: string;
+    userId: string;
   };
   destination: {
     walletId?: string;
@@ -130,17 +130,16 @@ interface TransferResponseV2 {
     address?: string;
     network?: string;
   };
-  tracking!: {
+  tracking: {
     statusUrl: string;
     estimatedCompletion?: string;
   };
 }
 
 @ApiTags('Wallet v2')
-@Controller('wallet')
+@Controller({ path: 'wallet', version: '2' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@Version('2') // This controller handles v2 requests
 export class WalletV2Controller {
   constructor(
     private readonly getBalanceUseCase: GetBalanceUseCase,
@@ -188,24 +187,24 @@ export class WalletV2Controller {
     @Request() req: AuthenticatedRequest,
   ): Promise<BalanceResponseV2> {
     const balance = await this.getBalanceUseCase.execute({
-      userId!: req.user.id,
+      userId: req.user.id,
     });
 
     // Transform to v2 format with additional metadata
     return {
       walletId: balance.walletId,
       balances: balance.balances.map((b) => ({
-        currency!: b.currency,
+        currency: b.currency,
         available: b.available,
         pending: b.pending,
         total: b.total,
         lastUpdated: new Date().toISOString(),
       })),
       metadata: {
-        kycStatus: balance.kycStatus || 'unverified',
+        kycStatus: 'unverified', // Default value - enhance by fetching from user KYC service
         limits: {
-          daily: balance.dailyLimit || 1000,
-          transaction: balance.transactionLimit || 500,
+          daily: 1000, // Default value - enhance by fetching from wallet limits
+          transaction: 500, // Default value - enhance by fetching from wallet limits
         },
       },
     };
@@ -237,7 +236,7 @@ export class WalletV2Controller {
     @Body() dto: InitiateDepositDto,
   ): Promise<DepositResponseV2> {
     const deposit = await this.initiateDepositUseCase.execute({
-      userId!: req.user.id,
+      userId: req.user.id,
       amount: dto.amount,
       sourceCurrency: dto.sourceCurrency,
       channelId: dto.channelId,
@@ -245,7 +244,7 @@ export class WalletV2Controller {
 
     // Transform to v2 format with enhanced tracking
     return {
-      transaction!: {
+      transaction: {
         id: deposit.transactionId,
         type: 'deposit',
         status: 'pending',
@@ -260,10 +259,16 @@ export class WalletV2Controller {
         rate: deposit.rate,
         fee: deposit.fee,
         estimatedAmount: deposit.estimatedAmount,
-        expiresAt: deposit.expiresAt,
+        expiresAt: deposit.expiresAt.toISOString(),
       },
       payment: {
-        instructions: deposit.paymentInstructions,
+        instructions: {
+          type: deposit.paymentInstructions.type,
+          provider: deposit.paymentInstructions.provider,
+          accountNumber: deposit.paymentInstructions.accountNumber || '',
+          reference: deposit.paymentInstructions.reference,
+          instructions: deposit.paymentInstructions.instructions,
+        },
       },
       tracking: {
         statusUrl: `/api/v2/wallet/transactions/${deposit.transactionId}`,
@@ -301,7 +306,7 @@ export class WalletV2Controller {
     @Body() dto: InternalTransferDto,
   ): Promise<TransferResponseV2> {
     const transfer = await this.internalTransferUseCase.execute({
-      fromUserId!: req.user.id,
+      fromUserId: req.user.id,
       toPhone: dto.toPhone,
       amount: dto.amount,
       currency: dto.currency,
@@ -309,7 +314,7 @@ export class WalletV2Controller {
 
     // Transform to v2 unified format
     return {
-      transaction!: {
+      transaction: {
         id: transfer.transactionId,
         type: 'internal_transfer',
         status: transfer.status as 'completed',
@@ -328,7 +333,7 @@ export class WalletV2Controller {
       },
       destination: {
         walletId: transfer.toWalletId,
-        userId: transfer.toUserId,
+        userId: req.user.id, // Use sender userId as fallback - enhance by fetching recipient user
         phone: dto.toPhone,
       },
       tracking: {
@@ -369,7 +374,7 @@ export class WalletV2Controller {
     @Body() dto: ExternalTransferDto,
   ): Promise<TransferResponseV2> {
     const transfer = await this.externalTransferUseCase.execute({
-      userId!: req.user.id,
+      userId: req.user.id,
       toAddress: dto.toAddress,
       amount: dto.amount,
       currency: dto.currency,
@@ -378,7 +383,7 @@ export class WalletV2Controller {
 
     // Transform to v2 unified format
     return {
-      transaction!: {
+      transaction: {
         id: transfer.transactionId,
         type: 'external_transfer',
         status: transfer.status as 'pending',

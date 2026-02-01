@@ -54,7 +54,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   // ===================
   {
     name: 'Unverified - Daily Limit',
-    description: 'Daily transaction limit for unverified users (50 USDC ~ 30,000 XOF)',
+    description:
+      'Daily transaction limit for unverified users (50 USDC ~ 30,000 XOF)',
     ruleType: VelocityRuleType.DAILY_LIMIT,
     thresholdAmount: 50,
     thresholdCount: null,
@@ -64,7 +65,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Unverified - Weekly Limit',
-    description: 'Weekly transaction limit for unverified users (100 USDC ~ 60,000 XOF)',
+    description:
+      'Weekly transaction limit for unverified users (100 USDC ~ 60,000 XOF)',
     ruleType: VelocityRuleType.WEEKLY_LIMIT,
     thresholdAmount: 100,
     thresholdCount: null,
@@ -74,7 +76,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Unverified - Monthly Limit',
-    description: 'Monthly transaction limit for unverified users (200 USDC ~ 120,000 XOF)',
+    description:
+      'Monthly transaction limit for unverified users (200 USDC ~ 120,000 XOF)',
     ruleType: VelocityRuleType.MONTHLY_LIMIT,
     thresholdAmount: 200,
     thresholdCount: null,
@@ -99,7 +102,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   // ===================
   {
     name: 'Basic - Daily Limit',
-    description: 'Daily transaction limit for basic users (500 USDC ~ 300,000 XOF)',
+    description:
+      'Daily transaction limit for basic users (500 USDC ~ 300,000 XOF)',
     ruleType: VelocityRuleType.DAILY_LIMIT,
     thresholdAmount: 500,
     thresholdCount: null,
@@ -109,7 +113,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Basic - Weekly Limit',
-    description: 'Weekly transaction limit for basic users (1500 USDC ~ 900,000 XOF)',
+    description:
+      'Weekly transaction limit for basic users (1500 USDC ~ 900,000 XOF)',
     ruleType: VelocityRuleType.WEEKLY_LIMIT,
     thresholdAmount: 1500,
     thresholdCount: null,
@@ -119,7 +124,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Basic - Monthly Limit',
-    description: 'Monthly transaction limit for basic users (3000 USDC ~ 1,800,000 XOF)',
+    description:
+      'Monthly transaction limit for basic users (3000 USDC ~ 1,800,000 XOF)',
     ruleType: VelocityRuleType.MONTHLY_LIMIT,
     thresholdAmount: 3000,
     thresholdCount: null,
@@ -144,7 +150,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   // ===================
   {
     name: 'Verified - Daily Limit',
-    description: 'Daily transaction limit for verified users (2000 USDC ~ 1,200,000 XOF)',
+    description:
+      'Daily transaction limit for verified users (2000 USDC ~ 1,200,000 XOF)',
     ruleType: VelocityRuleType.DAILY_LIMIT,
     thresholdAmount: 2000,
     thresholdCount: null,
@@ -154,7 +161,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Verified - Weekly Limit',
-    description: 'Weekly transaction limit for verified users (7000 USDC ~ 4,200,000 XOF)',
+    description:
+      'Weekly transaction limit for verified users (7000 USDC ~ 4,200,000 XOF)',
     ruleType: VelocityRuleType.WEEKLY_LIMIT,
     thresholdAmount: 7000,
     thresholdCount: null,
@@ -164,7 +172,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Verified - Monthly Limit',
-    description: 'Monthly transaction limit for verified users (20000 USDC ~ 12,000,000 XOF)',
+    description:
+      'Monthly transaction limit for verified users (20000 USDC ~ 12,000,000 XOF)',
     ruleType: VelocityRuleType.MONTHLY_LIMIT,
     thresholdAmount: 20000,
     thresholdCount: null,
@@ -189,7 +198,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   // ===================
   {
     name: 'Premium - Daily Limit',
-    description: 'Daily transaction limit for premium users (10000 USDC ~ 6,000,000 XOF)',
+    description:
+      'Daily transaction limit for premium users (10000 USDC ~ 6,000,000 XOF)',
     ruleType: VelocityRuleType.DAILY_LIMIT,
     thresholdAmount: 10000,
     thresholdCount: null,
@@ -199,7 +209,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Premium - Weekly Limit',
-    description: 'Weekly transaction limit for premium users (50000 USDC ~ 30,000,000 XOF)',
+    description:
+      'Weekly transaction limit for premium users (50000 USDC ~ 30,000,000 XOF)',
     ruleType: VelocityRuleType.WEEKLY_LIMIT,
     thresholdAmount: 50000,
     thresholdCount: null,
@@ -209,7 +220,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Premium - Monthly Limit',
-    description: 'Monthly transaction limit for premium users (150000 USDC ~ 90,000,000 XOF)',
+    description:
+      'Monthly transaction limit for premium users (150000 USDC ~ 90,000,000 XOF)',
     ruleType: VelocityRuleType.MONTHLY_LIMIT,
     thresholdAmount: 150000,
     thresholdCount: null,
@@ -244,7 +256,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Large Single Transaction - Basic',
-    description: 'Require review for single transactions over 200 USDC (basic tier)',
+    description:
+      'Require review for single transactions over 200 USDC (basic tier)',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: 200,
     thresholdCount: null,
@@ -254,7 +267,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Large Single Transaction - Verified',
-    description: 'Require review for single transactions over 1000 USDC (verified tier)',
+    description:
+      'Require review for single transactions over 1000 USDC (verified tier)',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: 1000,
     thresholdCount: null,
@@ -264,7 +278,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Large Single Transaction - Premium',
-    description: 'Require review for single transactions over 5000 USDC (premium tier)',
+    description:
+      'Require review for single transactions over 5000 USDC (premium tier)',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: 5000,
     thresholdCount: null,
@@ -284,7 +299,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Suspicious Pattern - Roundtripping',
-    description: 'Flag multiple deposits immediately followed by withdrawals within 2 hours',
+    description:
+      'Flag multiple deposits immediately followed by withdrawals within 2 hours',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: null,
     thresholdCount: 4,
@@ -294,7 +310,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Night Hours High Volume',
-    description: 'Flag high volume transactions (>1000 USDC) during night hours (23:00-06:00)',
+    description:
+      'Flag high volume transactions (>1000 USDC) during night hours (23:00-06:00)',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: 1000,
     thresholdCount: null,
@@ -318,7 +335,8 @@ const velocityRules: VelocityRuleSeedData[] = [
   },
   {
     name: 'Full Balance Withdrawal',
-    description: 'Require review for withdrawals that would reduce balance below 10 USDC',
+    description:
+      'Require review for withdrawals that would reduce balance below 10 USDC',
     ruleType: VelocityRuleType.VELOCITY,
     thresholdAmount: 10,
     thresholdCount: null,

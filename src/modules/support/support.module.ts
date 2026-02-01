@@ -33,6 +33,11 @@ import { SlaConfigurationModule } from '../sla-configuration';
       useClass: TypeOrmTicketMessageRepository,
     },
   ],
-  exports: [SupportService, SupportSlaService, SupportTicketRepository, TicketMessageRepository],
+  exports: [
+    SupportService,
+    SupportSlaService,
+    SupportTicketRepository,
+    TicketMessageRepository,
+  ],
 })
 export class SupportModule {}

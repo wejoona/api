@@ -62,10 +62,7 @@ export class TwilioSmsAdapter implements ISmsGateway {
     this.config = this.loadConfig();
 
     // Initialize Twilio client
-    this.twilioClient = twilio(
-      this.config.accountSid,
-      this.config.authToken,
-    );
+    this.twilioClient = twilio(this.config.accountSid, this.config.authToken);
 
     // Initialize Redis for rate limiting
     this.redis = new Redis({

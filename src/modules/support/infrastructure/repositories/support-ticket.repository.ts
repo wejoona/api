@@ -29,7 +29,7 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
   async findByUserId(userId: string): Promise<SupportTicket[]> {
     const entities = await this.repo.find({
-      where!: { userId },
+      where: { userId },
       order: { createdAt: 'DESC' },
     });
     return entities.map((e) => this.mapper.toDomain(e));
@@ -37,7 +37,7 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
   async findActiveByUserId(userId: string): Promise<SupportTicket[]> {
     const entities = await this.repo.find({
-      where!: {
+      where: {
         userId,
         status: Not(In([TicketStatus.RESOLVED, TicketStatus.CLOSED])),
       },
@@ -51,37 +51,37 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
     if (options.userId) {
       queryBuilder.andWhere('ticket.user_id = :userId', {
-        userId!: options.userId,
+        userId: options.userId,
       });
     }
 
     if (options.status) {
       if (Array.isArray(options.status)) {
         queryBuilder.andWhere('ticket.status IN (:...statuses)', {
-          statuses!: options.status,
+          statuses: options.status,
         });
       } else {
         queryBuilder.andWhere('ticket.status = :status', {
-          status!: options.status,
+          status: options.status,
         });
       }
     }
 
     if (options.priority) {
       queryBuilder.andWhere('ticket.priority = :priority', {
-        priority!: options.priority,
+        priority: options.priority,
       });
     }
 
     if (options.category) {
       queryBuilder.andWhere('ticket.category = :category', {
-        category!: options.category,
+        category: options.category,
       });
     }
 
     if (options.assignedTo) {
       queryBuilder.andWhere('ticket.assigned_to = :assignedTo', {
-        assignedTo!: options.assignedTo,
+        assignedTo: options.assignedTo,
       });
     }
 
@@ -104,37 +104,37 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
     if (options.userId) {
       queryBuilder.andWhere('ticket.user_id = :userId', {
-        userId!: options.userId,
+        userId: options.userId,
       });
     }
 
     if (options.status) {
       if (Array.isArray(options.status)) {
         queryBuilder.andWhere('ticket.status IN (:...statuses)', {
-          statuses!: options.status,
+          statuses: options.status,
         });
       } else {
         queryBuilder.andWhere('ticket.status = :status', {
-          status!: options.status,
+          status: options.status,
         });
       }
     }
 
     if (options.priority) {
       queryBuilder.andWhere('ticket.priority = :priority', {
-        priority!: options.priority,
+        priority: options.priority,
       });
     }
 
     if (options.category) {
       queryBuilder.andWhere('ticket.category = :category', {
-        category!: options.category,
+        category: options.category,
       });
     }
 
     if (options.assignedTo) {
       queryBuilder.andWhere('ticket.assigned_to = :assignedTo', {
-        assignedTo!: options.assignedTo,
+        assignedTo: options.assignedTo,
       });
     }
 
@@ -149,7 +149,7 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
   async findOpenTickets(limit = 50): Promise<SupportTicket[]> {
     const entities = await this.repo.find({
-      where!: { status: TicketStatus.OPEN },
+      where: { status: TicketStatus.OPEN },
       order: { priority: 'DESC', createdAt: 'ASC' },
       take: limit,
     });
@@ -158,7 +158,7 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
   async findAssignedTo(agentId: string): Promise<SupportTicket[]> {
     const entities = await this.repo.find({
-      where!: {
+      where: {
         assignedTo: agentId,
         status: Not(In([TicketStatus.RESOLVED, TicketStatus.CLOSED])),
       },
@@ -173,7 +173,7 @@ export class TypeOrmSupportTicketRepository extends SupportTicketRepository {
 
   async countActiveByUserId(userId: string): Promise<number> {
     return this.repo.count({
-      where!: {
+      where: {
         userId,
         status: Not(In([TicketStatus.RESOLVED, TicketStatus.CLOSED])),
       },

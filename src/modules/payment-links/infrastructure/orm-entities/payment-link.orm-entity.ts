@@ -14,11 +14,11 @@ import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wal
 @Entity({ name: 'payment_links', schema: 'public' })
 export class PaymentLinkOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
   @Index()
-  userId!: string;
+  userId: string;
 
   @ManyToOne(() => UserOrmEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
@@ -26,7 +26,7 @@ export class PaymentLinkOrmEntity {
 
   @Column({ name: 'wallet_id', type: 'uuid' })
   @Index()
-  walletId!: string;
+  walletId: string;
 
   @ManyToOne(() => WalletOrmEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'wallet_id' })
@@ -34,41 +34,41 @@ export class PaymentLinkOrmEntity {
 
   @Column({ type: 'varchar', length: 20, unique: true })
   @Index()
-  code!: string;
+  code: string;
 
   @Column({ type: 'decimal', precision: 20, scale: 6, nullable: true })
-  amount!: string | null;
+  amount: string | null;
 
   @Column({ type: 'varchar', length: 10, default: 'USDC' })
-  currency!: string;
+  currency: string;
 
   @Column({ type: 'text', nullable: true })
-  description!: string | null;
+  description: string | null;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
   @Index()
-  status!: string;
+  status: string;
 
   @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
   @Index()
-  expiresAt!: Date | null;
+  expiresAt: Date | null;
 
   @Column({ name: 'paid_at', type: 'timestamp', nullable: true })
-  paidAt!: Date | null;
+  paidAt: Date | null;
 
   @Column({ name: 'paid_by_user_id', type: 'uuid', nullable: true })
-  paidByUserId!: string | null;
+  paidByUserId: string | null;
 
   @ManyToOne(() => UserOrmEntity, { nullable: true })
   @JoinColumn({ name: 'paid_by_user_id' })
   paidByUser?: UserOrmEntity;
 
   @Column({ name: 'view_count', type: 'integer', default: 0 })
-  viewCount!: number;
+  viewCount: number;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  updatedAt: Date;
 }

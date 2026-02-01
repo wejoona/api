@@ -21,22 +21,22 @@ import {
 @Entity({ name: 'velocity_rules', schema: 'compliance' })
 export class VelocityRuleOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'name', type: 'varchar', length: 200 })
-  name!: string;
+  name: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
-  description!: string | null;
+  description: string | null;
 
   @Column({
     name: 'rule_type',
     type: 'enum',
     enum: VelocityRuleType,
-    enumName!: 'velocity_rule_type_enum',
+    enumName: 'velocity_rule_type_enum',
   })
   @Index()
-  ruleType!: VelocityRuleType;
+  ruleType: VelocityRuleType;
 
   @Column({
     name: 'threshold_amount',
@@ -48,10 +48,10 @@ export class VelocityRuleOrmEntity {
   thresholdAmount: string | null; // Stored as string due to decimal precision
 
   @Column({ name: 'threshold_count', type: 'integer', nullable: true })
-  thresholdCount!: number | null;
+  thresholdCount: number | null;
 
   @Column({ name: 'time_window_hours', type: 'integer', default: 24 })
-  timeWindowHours!: number;
+  timeWindowHours: number;
 
   @Column({
     name: 'action',
@@ -60,7 +60,7 @@ export class VelocityRuleOrmEntity {
     enumName: 'velocity_rule_action_enum',
     default: VelocityRuleAction.FLAG,
   })
-  action!: VelocityRuleAction;
+  action: VelocityRuleAction;
 
   @Column({
     name: 'applies_to_tier',
@@ -68,15 +68,15 @@ export class VelocityRuleOrmEntity {
     array: true,
     default: '{}',
   })
-  appliesToTier!: UserTier[];
+  appliesToTier: UserTier[];
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   @Index()
-  isActive!: boolean;
+  isActive: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  updatedAt: Date;
 }

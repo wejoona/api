@@ -14,7 +14,7 @@ export class PaymentLinkMapper {
       walletId: entity.walletId,
       code: entity.code,
       amount: entity.amount ? parseFloat(entity.amount) : null,
-      currency!: entity.currency,
+      currency: entity.currency,
       description: entity.description,
       status: entity.status as PaymentLinkStatus,
       expiresAt: entity.expiresAt,

@@ -1,4 +1,11 @@
-import { IsOptional, IsInt, Min, IsBoolean, IsEnum, IsString } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  IsBoolean,
+  IsEnum,
+  IsString,
+} from 'class-validator';
 import { RetentionAction } from '../../infrastructure/orm-entities/retention-policy.orm-entity';
 
 export class UpdateRetentionPolicyDto {

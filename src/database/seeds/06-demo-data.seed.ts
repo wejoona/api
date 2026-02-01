@@ -18,21 +18,71 @@ import * as bcrypt from 'bcrypt';
 const westAfricanNames = {
   firstNames: {
     male: [
-      'Amadou', 'Ibrahim', 'Moussa', 'Kofi', 'Mamadou', 'Ousmane',
-      'Sekou', 'Boubacar', 'Youssouf', 'Abdoulaye', 'Cheick', 'Modibo',
-      'Bakary', 'Souleymane', 'Drissa', 'Lamine', 'Ismaila', 'Tidiane',
+      'Amadou',
+      'Ibrahim',
+      'Moussa',
+      'Kofi',
+      'Mamadou',
+      'Ousmane',
+      'Sekou',
+      'Boubacar',
+      'Youssouf',
+      'Abdoulaye',
+      'Cheick',
+      'Modibo',
+      'Bakary',
+      'Souleymane',
+      'Drissa',
+      'Lamine',
+      'Ismaila',
+      'Tidiane',
     ],
     female: [
-      'Fatou', 'Aminata', 'Mariam', 'Aissatou', 'Kadiatou', 'Fatoumata',
-      'Rama', 'Adja', 'Bintou', 'Oumou', 'Sira', 'Nana', 'Djénéba',
-      'Salimata', 'Rokia', 'Maïmouna', 'Awa', 'Korotoumou',
+      'Fatou',
+      'Aminata',
+      'Mariam',
+      'Aissatou',
+      'Kadiatou',
+      'Fatoumata',
+      'Rama',
+      'Adja',
+      'Bintou',
+      'Oumou',
+      'Sira',
+      'Nana',
+      'Djénéba',
+      'Salimata',
+      'Rokia',
+      'Maïmouna',
+      'Awa',
+      'Korotoumou',
     ],
   },
   lastNames: [
-    'Diallo', 'Touré', 'Konaté', 'Traoré', 'Coulibaly', 'Bamba',
-    'Koné', 'Camara', 'Sylla', 'Keita', 'Sanogo', 'Sidibé',
-    'Cissé', 'Ouattara', 'Diabaté', 'Dembélé', 'Doumbia', 'Fofana',
-    'Sissoko', 'Diarra', 'Kanté', 'Samaké', 'Bagayoko', 'Diakité',
+    'Diallo',
+    'Touré',
+    'Konaté',
+    'Traoré',
+    'Coulibaly',
+    'Bamba',
+    'Koné',
+    'Camara',
+    'Sylla',
+    'Keita',
+    'Sanogo',
+    'Sidibé',
+    'Cissé',
+    'Ouattara',
+    'Diabaté',
+    'Dembélé',
+    'Doumbia',
+    'Fofana',
+    'Sissoko',
+    'Diarra',
+    'Kanté',
+    'Samaké',
+    'Bagayoko',
+    'Diakité',
   ],
 };
 
@@ -93,14 +143,23 @@ function generateUsername(firstName: string, lastName: string): string {
 // Generate test users with various KYC tiers
 function generateTestUsers(): TestUser[] {
   const users: TestUser[] = [];
-  const kycStatuses = ['pending', 'pending', 'approved', 'approved', 'approved', 'rejected'];
+  const kycStatuses = [
+    'pending',
+    'pending',
+    'approved',
+    'approved',
+    'approved',
+    'rejected',
+  ];
   const countries = ['CI', 'SN', 'ML', 'BF'];
 
   // Generate 20 test users
   for (let i = 0; i < 20; i++) {
     const isMale = Math.random() > 0.5;
     const firstName = getRandomElement(
-      isMale ? westAfricanNames.firstNames.male : westAfricanNames.firstNames.female,
+      isMale
+        ? westAfricanNames.firstNames.male
+        : westAfricanNames.firstNames.female,
     );
     const lastName = getRandomElement(westAfricanNames.lastNames);
     const countryCode = getRandomElement(countries);
@@ -181,7 +240,7 @@ function generateTestUsers(): TestUser[] {
 }
 
 // Generate sample transactions for a user
-function generateTransactions(walletId: string): TestTransaction[] {
+function generateTransactions(_walletId: string): TestTransaction[] {
   const transactions: TestTransaction[] = [];
   const types = ['deposit', 'withdrawal', 'transfer_in', 'transfer_out'];
   const statuses = ['completed', 'completed', 'completed', 'pending', 'failed'];
@@ -196,8 +255,7 @@ function generateTransactions(walletId: string): TestTransaction[] {
       amount: Math.floor(Math.random() * 200) + 5, // 5-205 USDC
       currency: 'USDC',
       status: getRandomElement(statuses),
-      recipientPhone:
-        type === 'transfer_out' ? generatePhone('CI') : undefined,
+      recipientPhone: type === 'transfer_out' ? generatePhone('CI') : undefined,
     });
   }
 
@@ -212,7 +270,9 @@ function generateBeneficiaries(): TestBeneficiary[] {
   for (let i = 0; i < count; i++) {
     const isMale = Math.random() > 0.5;
     const firstName = getRandomElement(
-      isMale ? westAfricanNames.firstNames.male : westAfricanNames.firstNames.female,
+      isMale
+        ? westAfricanNames.firstNames.male
+        : westAfricanNames.firstNames.female,
     );
     const lastName = getRandomElement(westAfricanNames.lastNames);
 
@@ -299,10 +359,20 @@ export async function seedDemoData(dataSource: DataSource): Promise<void> {
           id, user_id, currency, balance, kyc_status, status, version,
           created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
-        [walletId, userId, 'USDC', user.balance, user.kycStatus === 'approved' ? 'approved' : 'none', 'active', 1],
+        [
+          walletId,
+          userId,
+          'USDC',
+          user.balance,
+          user.kycStatus === 'approved' ? 'approved' : 'none',
+          'active',
+          1,
+        ],
       );
 
-      console.log(`  Created user: ${user.username} (${user.kycStatus}, ${user.balance} USDC)`);
+      console.log(
+        `  Created user: ${user.username} (${user.kycStatus}, ${user.balance} USDC)`,
+      );
 
       // Generate and insert transactions
       const transactions = generateTransactions(walletId);
@@ -353,7 +423,9 @@ export async function seedDemoData(dataSource: DataSource): Promise<void> {
     }
 
     await queryRunner.commitTransaction();
-    console.log(`Demo data seeded: ${testUsers.length} users with transactions and beneficiaries`);
+    console.log(
+      `Demo data seeded: ${testUsers.length} users with transactions and beneficiaries`,
+    );
     console.log('\nTest accounts (all use PIN: 000000):');
     console.log('  +22507000001 - Unverified user');
     console.log('  +22507000002 - Basic KYC user');

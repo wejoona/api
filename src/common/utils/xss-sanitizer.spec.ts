@@ -94,9 +94,9 @@ describe('XSS Sanitizer', () => {
     });
 
     it('should remove newlines when specified', () => {
-      expect(
-        sanitizeText('Line 1\nLine 2', { preserveNewlines: false }),
-      ).toBe('Line 1 Line 2');
+      expect(sanitizeText('Line 1\nLine 2', { preserveNewlines: false })).toBe(
+        'Line 1 Line 2',
+      );
     });
 
     it('should remove null bytes and control characters', () => {
@@ -162,7 +162,9 @@ describe('XSS Sanitizer', () => {
     });
 
     it('should trim whitespace', () => {
-      expect(sanitizeUrl('  https://example.com  ')).toBe('https://example.com');
+      expect(sanitizeUrl('  https://example.com  ')).toBe(
+        'https://example.com',
+      );
     });
 
     it('should allow mailto: protocol', () => {
@@ -185,9 +187,7 @@ describe('XSS Sanitizer', () => {
       };
 
       const result = sanitizeObject(input);
-      expect(result.name).toBe(
-        '&lt;script&gt;alert(1)&lt;&#x2F;script&gt;',
-      );
+      expect(result.name).toBe('&lt;script&gt;alert(1)&lt;&#x2F;script&gt;');
       expect(result.age).toBe(25);
       expect(result.isActive).toBe(true);
     });

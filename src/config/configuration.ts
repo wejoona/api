@@ -78,8 +78,7 @@ export default () => ({
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
     fromNumber: process.env.TWILIO_FROM_NUMBER || '',
     useMock:
-      process.env.TWILIO_USE_MOCK === 'true' ||
-      !process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_USE_MOCK === 'true' || !process.env.TWILIO_ACCOUNT_SID,
   },
 
   // OTP Settings
@@ -207,5 +206,31 @@ export default () => ({
     provider: process.env.APM_PROVIDER || 'none', // 'newrelic', 'datadog', 'none'
     serviceName: process.env.APM_SERVICE_NAME || 'usdc-wallet',
     version: process.env.APP_VERSION || '1.0.0',
+  },
+
+  // Distributed Tracing (OpenTelemetry + Jaeger)
+  tracing: {
+    // Enable/disable distributed tracing
+    enabled: process.env.TRACING_ENABLED !== 'false', // Default true in non-production
+
+    // Service identification
+    serviceName: process.env.TRACING_SERVICE_NAME || 'usdc-wallet-api',
+    version:
+      process.env.TRACING_SERVICE_VERSION || process.env.APP_VERSION || '1.0.0',
+
+    // Jaeger collector endpoint (OTLP HTTP)
+    // Default assumes Jaeger all-in-one running locally
+    jaegerEndpoint:
+      process.env.JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces',
+
+    // Sampling rate: 0.0 (none) to 1.0 (all)
+    // In production, consider lower rate (e.g., 0.1 = 10%) to reduce overhead
+    sampleRate: parseFloat(process.env.TRACING_SAMPLE_RATE) || 1.0,
+
+    // Export traces to console for debugging (in addition to Jaeger)
+    exportConsole: process.env.TRACING_EXPORT_CONSOLE === 'true',
+
+    // Jaeger UI endpoint (for documentation/links)
+    jaegerUiUrl: process.env.JAEGER_UI_URL || 'http://localhost:16686',
   },
 });

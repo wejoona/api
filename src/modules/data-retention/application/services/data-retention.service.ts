@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, IsNull } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RetentionPolicyRepository } from '../../domain/repositories/retention-policy.repository';
 import {
@@ -10,6 +10,7 @@ import {
 import {
   DataDeletionRequestOrmEntity,
   DeletionStatus,
+  DeletionType,
 } from '../../infrastructure/orm-entities/data-deletion-request.orm-entity';
 import { SessionOrmEntity } from '@modules/session/infrastructure/orm-entities/session.orm-entity';
 import { VerificationOrmEntity } from '@modules/verification/infrastructure/orm-entities/verification.orm-entity';
@@ -59,7 +60,8 @@ export class DataRetentionService {
       try {
         await this.processRetentionPolicy(policy.dataType);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(
           `Failed to process retention policy for ${policy.dataType}: ${message}`,
         );
@@ -248,7 +250,8 @@ export class DataRetentionService {
       try {
         await this.processUserDeletion(request);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(
           `Failed to process deletion request ${request.id}: ${message}`,
         );
@@ -265,7 +268,7 @@ export class DataRetentionService {
   async createDeletionRequest(
     userId: string,
     requestedByUserId: string | null,
-    deletionType: 'gdpr' | 'account_closure' | 'admin',
+    deletionType: DeletionType,
     reason?: string,
     daysDelay = 0,
   ): Promise<DataDeletionRequestOrmEntity> {
@@ -276,7 +279,7 @@ export class DataRetentionService {
       userId,
       requestedByUserId,
       deletionType,
-      reason,
+      reason: reason ?? null,
       scheduledFor,
       status: DeletionStatus.PENDING,
       auditTrail: [
@@ -288,7 +291,8 @@ export class DataRetentionService {
       ],
     });
 
-    return this.deletionRequestRepository.save(request);
+    const savedRequest = await this.deletionRequestRepository.save(request);
+    return savedRequest as DataDeletionRequestOrmEntity;
   }
 
   private async processUserDeletion(
@@ -456,7 +460,9 @@ export class DataRetentionService {
   // Manual Triggers (for admin/testing)
   // ==========================================
 
-  async triggerRetentionCleanup(dataType: string): Promise<{ message: string }> {
+  async triggerRetentionCleanup(
+    dataType: string,
+  ): Promise<{ message: string }> {
     await this.processRetentionPolicy(dataType);
     return { message: `Retention cleanup for ${dataType} completed` };
   }

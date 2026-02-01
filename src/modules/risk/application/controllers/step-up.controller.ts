@@ -149,7 +149,7 @@ export class StepUpController {
   @ApiOperation({ summary: 'Validate completed step-up' })
   @ApiResponse({ status: 200, description: 'Step-up validated' })
   async validateStepUp(
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
     @Body() dto: ValidateStepUpDto,
   ) {
     const validation: StepUpValidation = {

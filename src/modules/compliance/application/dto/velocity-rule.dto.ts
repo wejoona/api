@@ -23,14 +23,14 @@ import {
 export class CreateVelocityRuleDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  name: string;
 
   @IsOptional()
   @IsString()
   description?: string;
 
   @IsEnum(VelocityRuleType)
-  ruleType!: VelocityRuleType;
+  ruleType: VelocityRuleType;
 
   @ValidateIf((o) =>
     [
@@ -56,15 +56,15 @@ export class CreateVelocityRuleDto {
   @IsNumber()
   @Min(0.1)
   @Max(8760) // Max 1 year in hours
-  timeWindowHours!: number;
+  timeWindowHours: number;
 
   @IsEnum(VelocityRuleAction)
-  action!: VelocityRuleAction;
+  action: VelocityRuleAction;
 
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
-  appliesToTier!: UserTier[];
+  appliesToTier: UserTier[];
 }
 
 /**
@@ -119,18 +119,18 @@ export class UpdateVelocityRuleDto {
  * Response DTO for velocity rule
  */
 export class VelocityRuleResponseDto {
-  id!: string;
-  name!: string;
-  description!: string | null;
-  ruleType!: VelocityRuleType;
-  thresholdAmount!: number | null;
-  thresholdCount!: number | null;
-  timeWindowHours!: number;
-  action!: VelocityRuleAction;
-  appliesToTier!: UserTier[];
-  isActive!: boolean;
-  createdAt!: Date;
-  updatedAt!: Date;
+  id: string;
+  name: string;
+  description: string | null;
+  ruleType: VelocityRuleType;
+  thresholdAmount: number | null;
+  thresholdCount: number | null;
+  timeWindowHours: number;
+  action: VelocityRuleAction;
+  appliesToTier: UserTier[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**

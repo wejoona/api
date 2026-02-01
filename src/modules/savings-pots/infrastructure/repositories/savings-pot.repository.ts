@@ -22,7 +22,7 @@ export class SavingsPotRepository implements ISavingsPotRepository {
 
   async findById(id: string): Promise<SavingsPotEntity | null> {
     const ormEntity = await this.repository.findOne({
-      where!: { id },
+      where: { id },
     });
     if (!ormEntity) {
       return null;
@@ -32,7 +32,7 @@ export class SavingsPotRepository implements ISavingsPotRepository {
 
   async findByWalletId(walletId: string): Promise<SavingsPotEntity[]> {
     const ormEntities = await this.repository.find({
-      where!: { walletId },
+      where: { walletId },
       order: { createdAt: 'DESC' },
     });
     return ormEntities.map((e) => this.mapper.toDomainEntity(e));
@@ -40,7 +40,7 @@ export class SavingsPotRepository implements ISavingsPotRepository {
 
   async findActiveByWalletId(walletId: string): Promise<SavingsPotEntity[]> {
     const ormEntities = await this.repository.find({
-      where!: { walletId, status: 'active' },
+      where: { walletId, status: 'active' },
       order: { createdAt: 'DESC' },
     });
     return ormEntities.map((e) => this.mapper.toDomainEntity(e));

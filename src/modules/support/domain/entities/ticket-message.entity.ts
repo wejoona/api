@@ -7,28 +7,28 @@ export enum MessageSenderType {
 }
 
 export interface Attachment {
-  id!: string;
-  filename!: string;
-  mimeType!: string;
-  size!: number;
-  url!: string;
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  url: string;
 }
 
 export interface TicketMessageProps {
   id?: string;
-  ticketId!: string;
-  senderType!: MessageSenderType;
+  ticketId: string;
+  senderType: MessageSenderType;
   senderId?: string | null;
-  message!: string;
+  message: string;
   attachments?: Attachment[];
   createdAt?: Date;
 }
 
 export interface CreateTicketMessageProps {
-  ticketId!: string;
-  senderType!: MessageSenderType;
+  ticketId: string;
+  senderType: MessageSenderType;
   senderId?: string | null;
-  message!: string;
+  message: string;
   attachments?: Attachment[];
 }
 
@@ -72,8 +72,8 @@ export class TicketMessage {
   }
 
   static createSystemMessage(
-    ticketId!: string,
-    message!: string,
+    ticketId: string,
+    message: string,
   ): TicketMessage {
     return new TicketMessage({
       ticketId,

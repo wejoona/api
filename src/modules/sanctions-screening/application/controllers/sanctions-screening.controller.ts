@@ -7,8 +7,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@/shared/guards/jwt-auth.guard';
-import { CurrentUser } from '@/shared/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { SanctionsScreeningService } from '../services/sanctions-screening.service';
 import {
   ScreenIndividualDto,

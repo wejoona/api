@@ -11,36 +11,36 @@ import { ScreeningMatchOrmEntity } from './screening-match.orm-entity';
 @Entity({ name: 'screening_records', schema: 'compliance' })
 export class ScreeningRecordOrmEntity {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   @Index()
-  userId!: string | null;
+  userId: string | null;
 
   @Column({ name: 'entity_id', type: 'uuid', nullable: true })
   @Index()
-  entityId!: string | null;
+  entityId: string | null;
 
   @Column({
     name: 'screening_type',
     type: 'enum',
     enum: ['individual', 'entity'],
   })
-  screeningType!: 'individual' | 'entity';
+  screeningType: 'individual' | 'entity';
 
   @Column({ type: 'varchar', length: 100 })
   @Index()
-  provider!: string;
+  provider: string;
 
   @Column({ name: 'request_id', type: 'varchar', length: 255 })
   @Index()
-  requestId!: string;
+  requestId: string;
 
   @Column({ name: 'screened_name', type: 'varchar', length: 500 })
-  screenedName!: string;
+  screenedName: string;
 
   @Column({ name: 'match_count', type: 'int', default: 0 })
-  matchCount!: number;
+  matchCount: number;
 
   @Column({
     name: 'highest_score',
@@ -49,7 +49,7 @@ export class ScreeningRecordOrmEntity {
     scale: 2,
     default: 0,
   })
-  highestScore!: number;
+  highestScore: number;
 
   @Column({
     name: 'risk_level',
@@ -58,22 +58,22 @@ export class ScreeningRecordOrmEntity {
     default: 'none',
   })
   @Index()
-  riskLevel!: 'high' | 'medium' | 'low' | 'none';
+  riskLevel: 'high' | 'medium' | 'low' | 'none';
 
   @Column({ name: 'requires_review', type: 'boolean', default: false })
   @Index()
-  requiresReview!: boolean;
+  requiresReview: boolean;
 
   @Column({ name: 'auto_blocked', type: 'boolean', default: false })
   @Index()
-  autoBlocked!: boolean;
+  autoBlocked: boolean;
 
   @Column({ type: 'jsonb', default: {} })
-  metadata!: Record<string, any>;
+  metadata: Record<string, any>;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  createdAt: Date;
 
   @OneToMany(() => ScreeningMatchOrmEntity, (match) => match.screeningRecord)
-  matches!: ScreeningMatchOrmEntity[];
+  matches: ScreeningMatchOrmEntity[];
 }

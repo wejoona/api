@@ -3,8 +3,10 @@ import {
   Get,
   Post,
   Delete,
+  Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
@@ -16,6 +18,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -41,7 +44,7 @@ export class PaymentLinkController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary!: 'Create a payment link',
+    summary: 'Create a payment link',
     description:
       'Generate a shareable payment link for collecting money. Perfect for invoices, donations, or receiving payments.',
   })
@@ -65,25 +68,55 @@ export class PaymentLinkController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary!: 'Get my payment links',
-    description: 'Returns all payment links created by the current user.',
+    summary: 'Get my payment links',
+    description: 'Returns all payment links created by the current user. Supports filtering and pagination.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'paid', 'expired', 'cancelled'],
+    description: 'Filter by payment link status',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of results to return',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Number of results to skip',
   })
   @ApiResponse({
     status: 200,
     description: 'List of payment links',
-    type: [PaymentLinkResponseDto],
+    schema: {
+      properties: {
+        links: { type: 'array', items: { type: 'object' } },
+        total: { type: 'number' },
+      },
+    },
   })
   async getPaymentLinks(
     @CurrentUser() user: UserPayload,
-  ): Promise<PaymentLinkResponseDto[]> {
-    return this.paymentLinkService.getPaymentLinks(user.id);
+    @Query('status') status?: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ): Promise<{ links: PaymentLinkResponseDto[]; total: number }> {
+    return this.paymentLinkService.getPaymentLinks(user.id, {
+      status,
+      limit,
+      offset,
+    });
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary!: 'Get payment link by ID',
+    summary: 'Get payment link by ID',
     description: 'Returns payment link details including payment history.',
   })
   @ApiParam({ name: 'id', description: 'Payment link UUID' })
@@ -102,7 +135,7 @@ export class PaymentLinkController {
 
   @Get('code/:code')
   @ApiOperation({
-    summary!: 'Get payment link by code (public)',
+    summary: 'Get payment link by code (public)',
     description:
       'Public endpoint to view payment link details before paying. No authentication required.',
   })
@@ -126,7 +159,50 @@ export class PaymentLinkController {
     return this.paymentLinkService.getPaymentLinkByCode(code);
   }
 
-  @Post(':code/pay')
+  @Get(':id/refresh')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Refresh payment link status',
+    description: 'Refresh payment link status and return updated details.',
+  })
+  @ApiParam({ name: 'id', description: 'Payment link UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Refreshed payment link details',
+    type: PaymentLinkResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Payment link not found' })
+  async refreshPaymentLink(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserPayload,
+  ): Promise<PaymentLinkResponseDto> {
+    return this.paymentLinkService.refreshPaymentLink(id, user.id);
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel payment link',
+    description:
+      'Cancel a payment link. It will no longer accept payments but history is preserved.',
+  })
+  @ApiParam({ name: 'id', description: 'Payment link UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment link cancelled successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Payment link not found' })
+  async cancelPaymentLink(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserPayload,
+  ): Promise<{ success: boolean; message: string }> {
+    return this.paymentLinkService.cancelPaymentLink(id, user.id);
+  }
+
+  @Post('code/:code/pay')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -145,9 +221,9 @@ export class PaymentLinkController {
     description: 'Payment processed successfully',
     schema: {
       example: {
-        success: true,
-        message: 'Payment completed successfully',
-        transferId: '123e4567-e89b-12d3-a456-426614174000',
+        transactionId: 'txn_123e4567',
+        amount: 25000,
+        status: 'completed',
       },
     },
   })
@@ -163,7 +239,7 @@ export class PaymentLinkController {
     @Param('code') code: string,
     @CurrentUser() user: UserPayload,
     @Body() dto: PayPaymentLinkDto,
-  ): Promise<{ success: boolean; message: string; transferId: string }> {
+  ): Promise<{ transactionId: string; amount: number; status: string }> {
     return this.paymentLinkService.payPaymentLink(code, user.id, dto);
   }
 
@@ -172,20 +248,20 @@ export class PaymentLinkController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Deactivate payment link',
+    summary: 'Delete payment link',
     description:
-      'Deactivate a payment link. It will no longer accept payments but history is preserved.',
+      'Delete a payment link. It will no longer accept payments but history is preserved.',
   })
   @ApiParam({ name: 'id', description: 'Payment link UUID' })
   @ApiResponse({
     status: 200,
-    description: 'Payment link deactivated successfully',
+    description: 'Payment link deleted successfully',
   })
   @ApiResponse({ status: 404, description: 'Payment link not found' })
-  async deactivatePaymentLink(
+  async deletePaymentLink(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
   ): Promise<{ success: boolean; message: string }> {
-    return this.paymentLinkService.deactivatePaymentLink(id, user.id);
+    return this.paymentLinkService.deletePaymentLink(id, user.id);
   }
 }

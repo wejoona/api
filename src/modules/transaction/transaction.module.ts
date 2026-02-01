@@ -62,6 +62,7 @@ import { WalletModule } from '../wallet/wallet.module';
     TransactionRepository,
     TransactionSearchService,
     ReconciliationService,
+    GetDepositStatusUseCase,
   ],
 })
 export class TransactionModule {}
