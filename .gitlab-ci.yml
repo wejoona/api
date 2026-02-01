@@ -3,6 +3,12 @@ stages:
   - build
   - deploy
 
+workflow:
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /^deploy:/
+      when: never
+    - when: always
+
 variables:
   DOCKER_IMAGE: registry.wejoona.com/usdc-wallet-api
 
@@ -44,16 +50,19 @@ build:
     - main
     - tags
 
-# Deploy to K8s
+# Deploy via GitOps (ArgoCD watches k8s/ manifests)
 deploy:
   stage: deploy
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git sed
+    - git config user.email "ci@wejoona.com"
+    - git config user.name "GitLab CI"
   script:
-    - kubectl set image deployment/wallet-api wallet-api=$DOCKER_IMAGE:$CI_COMMIT_SHA -n usdc-wallet
-    - kubectl rollout restart deployment/wallet-api -n usdc-wallet
-    - kubectl rollout status deployment/wallet-api -n usdc-wallet --timeout=300s
+    - sed -i "s|image: registry.wejoona.com/usdc-wallet-api:.*|image: registry.wejoona.com/usdc-wallet-api:${CI_COMMIT_SHA}|" k8s/deployment.yaml
+    - git add k8s/deployment.yaml
+    - git commit -m "deploy: update image to ${CI_COMMIT_SHA}" || echo "No changes to commit"
+    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wejoona.com/usdc-wallet/api.git HEAD:main
   environment:
     name: production
     url: https://wallet-api.wejoona.com

@@ -48,7 +48,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: api
-          image: ghcr.io/joonapay/usdc-wallet:latest
+          image: registry.wejoona.com/usdc-wallet-api:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -140,7 +140,7 @@ spec:
               app: usdc-wallet-api
       terminationGracePeriodSeconds: 30
       imagePullSecrets:
-        - name: ghcr-credentials
+        - name: wejoona-registry-credentials
 
 ---
 # =============================================================================
