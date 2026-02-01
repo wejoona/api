@@ -4,7 +4,7 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE: registry.gitlab.wejoona.com/usdc-wallet/api
+  DOCKER_IMAGE: docker.io/joonapay/usdc-wallet-api
 
 # Test stage
 test:
@@ -33,7 +33,7 @@ build:
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u $DOCKERHUB_USER -p $DOCKERHUB_TOKEN
   script:
     - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHA -t $DOCKER_IMAGE:latest .
     - docker push $DOCKER_IMAGE:$CI_COMMIT_SHA
@@ -48,6 +48,7 @@ deploy:
   image: bitnami/kubectl:latest
   script:
     - kubectl set image deployment/wallet-api wallet-api=$DOCKER_IMAGE:$CI_COMMIT_SHA -n usdc-wallet
+    - kubectl rollout restart deployment/wallet-api -n usdc-wallet
     - kubectl rollout status deployment/wallet-api -n usdc-wallet --timeout=300s
   environment:
     name: production
