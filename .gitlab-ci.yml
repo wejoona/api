@@ -47,7 +47,9 @@ build:
 # Deploy to K8s
 deploy:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
   script:
     - kubectl set image deployment/wallet-api wallet-api=$DOCKER_IMAGE:$CI_COMMIT_SHA -n usdc-wallet
     - kubectl rollout restart deployment/wallet-api -n usdc-wallet
