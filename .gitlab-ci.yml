@@ -57,4 +57,3 @@ deploy:
     url: https://wallet-api.wejoona.com
   only:
     - main
-  when: manual
