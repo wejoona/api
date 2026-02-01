@@ -4,8 +4,7 @@ stages:
   - deploy
 
 variables:
-  # Uses GitLab's built-in registry at gitlab.wejoona.com
-  DOCKER_IMAGE: $CI_REGISTRY_IMAGE
+  DOCKER_IMAGE: registry.wejoona.com/usdc-wallet-api
 
 # Test stage
 test:
@@ -33,8 +32,6 @@ build:
     - docker:24-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHA -t $DOCKER_IMAGE:latest .
     - docker push $DOCKER_IMAGE:$CI_COMMIT_SHA
