@@ -59,10 +59,10 @@ deploy:
     - git config user.email "ci@wejoona.com"
     - git config user.name "GitLab CI"
   script:
-    - sed -i "s|image: registry.wejoona.com/usdc-wallet-api:.*|image: registry.wejoona.com/usdc-wallet-api:${CI_COMMIT_SHA}|" k8s/deployment.yaml
+    - 'sed -i "s|image: registry.wejoona.com/usdc-wallet-api:.*|image: registry.wejoona.com/usdc-wallet-api:${CI_COMMIT_SHA}|" k8s/deployment.yaml'
     - git add k8s/deployment.yaml
-    - git commit -m "deploy: update image to ${CI_COMMIT_SHA}" || echo "No changes to commit"
-    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wejoona.com/usdc-wallet/api.git HEAD:main
+    - 'git commit -m "deploy: update image to ${CI_COMMIT_SHA}" || echo "No changes"'
+    - 'git push https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wejoona.com/usdc-wallet/api.git HEAD:main'
   environment:
     name: production
     url: https://wallet-api.wejoona.com
