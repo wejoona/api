@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ShutdownService } from './shutdown.service';
-import { Connection } from 'typeorm';
+import { getConnectionToken } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
 describe('ShutdownService', () => {
   let service: ShutdownService;
-  let mockConnection: Partial<Connection>;
+  let mockConnection: any;
   let mockCacheManager: Partial<Cache>;
 
   beforeEach(async () => {
@@ -20,14 +20,14 @@ describe('ShutdownService', () => {
         client: {
           disconnect: jest.fn().mockResolvedValue(undefined),
         },
-      },
+      } as any,
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShutdownService,
         {
-          provide: Connection,
+          provide: getConnectionToken(),
           useValue: mockConnection,
         },
         {
@@ -84,18 +84,25 @@ describe('ShutdownService', () => {
 
   describe('shutdown', () => {
     it('should prevent multiple shutdowns', async () => {
-      const _shutdownPromise1 = service.shutdown('TEST');
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
+        throw new Error('process.exit called');
+      }) as any);
+
+      const shutdownPromise1 = service.shutdown('TEST').catch(() => {});
       const shutdownPromise2 = service.shutdown('TEST');
 
       // Second shutdown should be ignored
       await expect(shutdownPromise2).resolves.toBeUndefined();
+
+      await shutdownPromise1;
+      mockExit.mockRestore();
     });
 
     it('should close database connections', async () => {
       // Mock process.exit to prevent test from exiting
-      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
         throw new Error('process.exit called');
-      });
+      }) as any);
 
       try {
         await service.shutdown('TEST');
@@ -109,9 +116,9 @@ describe('ShutdownService', () => {
     });
 
     it('should close cache connections', async () => {
-      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
         throw new Error('process.exit called');
-      });
+      }) as any);
 
       try {
         await service.shutdown('TEST');
@@ -119,14 +126,14 @@ describe('ShutdownService', () => {
         expect(error.message).toBe('process.exit called');
       }
 
-      expect(mockCacheManager.store?.client.disconnect).toHaveBeenCalled();
+      expect((mockCacheManager as any).store?.client.disconnect).toHaveBeenCalled();
       mockExit.mockRestore();
     });
 
     it('should wait for active requests to complete', async () => {
-      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
         throw new Error('process.exit called');
-      });
+      }) as any);
 
       service.setShutdownTimeout(1000); // 1 second timeout
 
@@ -153,9 +160,9 @@ describe('ShutdownService', () => {
     });
 
     it('should force shutdown if timeout is reached', async () => {
-      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
         throw new Error('process.exit called');
-      });
+      }) as any);
 
       service.setShutdownTimeout(500); // 500ms timeout
 
@@ -173,11 +180,11 @@ describe('ShutdownService', () => {
     });
 
     it('should handle database close errors', async () => {
-      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {
         throw new Error('process.exit called');
-      });
+      }) as any);
 
-      mockConnection.close = jest.fn().mockRejectedValue(new Error('DB error'));
+      (mockConnection as any).close = jest.fn().mockRejectedValue(new Error('DB error'));
 
       try {
         await service.shutdown('TEST');

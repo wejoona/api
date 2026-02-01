@@ -11,7 +11,7 @@ describe('WebhookDeadletterService', () => {
   let service: WebhookDeadletterService;
   let repository: jest.Mocked<Repository<WebhookDeadletterOrmEntity>>;
 
-  const mockDeadletterEntity: WebhookDeadletterOrmEntity = {
+  const mockDeadletterEntity = {
     id: 'deadletter-123',
     provider: 'yellowcard',
     eventType: 'deposit.completed',
@@ -27,7 +27,8 @@ describe('WebhookDeadletterService', () => {
     resolutionNotes: null,
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+    deletedAt: null,
+  } as unknown as WebhookDeadletterOrmEntity;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

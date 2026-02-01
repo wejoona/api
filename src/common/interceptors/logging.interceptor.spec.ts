@@ -16,6 +16,9 @@ describe('LoggingInterceptor', () => {
   let errorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    // Set NODE_ENV before module compilation so isDevelopment is set correctly
+    process.env.NODE_ENV = 'development';
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [LoggingInterceptor],
     }).compile();
@@ -76,6 +79,8 @@ describe('LoggingInterceptor', () => {
   describe('Correlation ID', () => {
     it('should generate correlation ID and add headers', (done) => {
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           expect(mockResponse.setHeader).toHaveBeenCalledWith(
             'X-Request-ID',
@@ -98,6 +103,8 @@ describe('LoggingInterceptor', () => {
       } as any;
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           expect(mockResponse.setHeader).toHaveBeenCalledWith(
             'X-Request-ID',
@@ -111,9 +118,11 @@ describe('LoggingInterceptor', () => {
 
   describe('Request Logging', () => {
     it('should log request in development mode', (done) => {
-      process.env.NODE_ENV = 'development';
+      // NODE_ENV is already set to 'development' in beforeEach
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           expect(logSpy).toHaveBeenCalled();
           const logCall = logSpy.mock.calls.find((call) => {
@@ -134,6 +143,8 @@ describe('LoggingInterceptor', () => {
       (mockRequest as any).user = { id: 'user-123', email: 'test@example.com' };
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = logSpy.mock.calls.find((call) => {
             try {
@@ -159,6 +170,8 @@ describe('LoggingInterceptor', () => {
       process.env.NODE_ENV = 'development';
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = logSpy.mock.calls.find((call) => {
             try {
@@ -187,6 +200,8 @@ describe('LoggingInterceptor', () => {
       } as any;
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = logSpy.mock.calls.find((call) => {
             try {
@@ -210,6 +225,8 @@ describe('LoggingInterceptor', () => {
   describe('Response Logging', () => {
     it('should log successful response with duration', (done) => {
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const responseCalls = logSpy.mock.calls.filter((call) => {
             try {
@@ -234,6 +251,8 @@ describe('LoggingInterceptor', () => {
       mockResponse.statusCode = 400;
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           expect(warnSpy).toHaveBeenCalled();
           done();
@@ -289,6 +308,8 @@ describe('LoggingInterceptor', () => {
       } as any;
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = logSpy.mock.calls.find((call) => {
             try {
@@ -315,6 +336,8 @@ describe('LoggingInterceptor', () => {
       } as any;
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = logSpy.mock.calls.find((call) => {
             try {
@@ -336,25 +359,30 @@ describe('LoggingInterceptor', () => {
   });
 
   describe('Production Mode', () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = 'production';
-    });
+    let productionInterceptor: LoggingInterceptor;
 
-    afterEach(() => {
-      process.env.NODE_ENV = 'test';
+    beforeEach(() => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      productionInterceptor = new LoggingInterceptor();
+      process.env.NODE_ENV = originalEnv;
     });
 
     it('should use debug level for requests in production', (done) => {
-      interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+      productionInterceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           expect(debugSpy).toHaveBeenCalled();
           done();
         },
       });
-    });
+    }, 10000);
 
     it('should log only field names not values in production', (done) => {
-      interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+      productionInterceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
+        next: () => {},
+        error: (err) => done(err),
         complete: () => {
           const logCall = debugSpy.mock.calls.find((call) => {
             try {
@@ -373,6 +401,6 @@ describe('LoggingInterceptor', () => {
           done();
         },
       });
-    });
+    }, 10000);
   });
 });

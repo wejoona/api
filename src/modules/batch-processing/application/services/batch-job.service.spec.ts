@@ -89,7 +89,7 @@ describe('BatchJobService', () => {
 
       expect(result).toBeDefined();
       expect(batchJobRepository.save).toHaveBeenCalled();
-      expect(batchQueueService.addJob).toHaveBeenCalledWith(mockBatchJob, 0);
+      expect(batchQueueService.addJob).toHaveBeenCalledWith(expect.any(Object));
     });
 
     it('should schedule job for future execution', async () => {

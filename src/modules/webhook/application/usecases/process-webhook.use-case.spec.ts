@@ -396,11 +396,14 @@ describe('ProcessWebhookUseCase', () => {
         provider: 'generic',
       };
 
-      const event: WebhookEvent = {
+      const event = {
+        id: 'event-123',
+        externalId: 'ext-123',
         type: 'deposit.completed',
         referenceId: 'ref-123',
         data: { amount: 100 },
-      };
+        createdAt: new Date(),
+      } as any;
 
       paymentGateway.verifyWebhookSignature.mockReturnValue(true);
       paymentGateway.parseWebhookEvent.mockReturnValue(event);
@@ -428,11 +431,14 @@ describe('ProcessWebhookUseCase', () => {
         provider: 'generic',
       };
 
-      const event: WebhookEvent = {
+      const event = {
+        id: 'event-456',
+        externalId: 'ext-456',
         type: 'kyc.approved',
         referenceId: 'wallet-123',
         data: {},
-      };
+        createdAt: new Date(),
+      } as any;
 
       paymentGateway.verifyWebhookSignature.mockReturnValue(true);
       paymentGateway.parseWebhookEvent.mockReturnValue(event);
@@ -484,11 +490,14 @@ describe('ProcessWebhookUseCase', () => {
         provider: 'generic',
       };
 
-      const event: WebhookEvent = {
+      const event = {
+        id: 'event-789',
+        externalId: 'ext-789',
         type: 'unknown.event' as any,
         referenceId: 'ref-123',
         data: {},
-      };
+        createdAt: new Date(),
+      } as any;
 
       paymentGateway.verifyWebhookSignature.mockReturnValue(true);
       paymentGateway.parseWebhookEvent.mockReturnValue(event);

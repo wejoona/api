@@ -2,13 +2,43 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { NovuAdapter } from './novu-adapter';
 
+// Mock Novu SDK
+const mockNovuInstance = {
+  subscribers: {
+    identify: jest.fn().mockResolvedValue({ data: { subscriberId: 'test-user' } }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    update: jest.fn().mockResolvedValue({ data: {} }),
+    setCredentials: jest.fn().mockResolvedValue({ data: {} }),
+    getPreference: jest.fn().mockResolvedValue({ data: { preference: {} } }),
+    updatePreference: jest.fn().mockResolvedValue({ data: {} }),
+    getNotificationsFeed: jest.fn().mockResolvedValue({ data: [] }),
+    markMessageAs: jest.fn().mockResolvedValue({ data: {} }),
+    markAllMessagesAs: jest.fn().mockResolvedValue({ data: {} }),
+    getUnseenCount: jest.fn().mockResolvedValue({ data: { count: 0 } }),
+  },
+  trigger: jest.fn().mockResolvedValue({ data: { transactionId: 'tx-123' } }),
+  bulkTrigger: jest.fn().mockResolvedValue({ data: [{ transactionId: 'tx-123' }] }),
+  topics: {
+    addSubscribers: jest.fn().mockResolvedValue({ data: {} }),
+    removeSubscribers: jest.fn().mockResolvedValue({ data: {} }),
+  },
+};
+
+jest.mock('@novu/node', () => ({
+  Novu: jest.fn().mockImplementation(() => mockNovuInstance),
+  TriggerRecipientsTypeEnum: {
+    SUBSCRIBER: 'Subscriber',
+    TOPIC: 'Topic',
+  },
+}));
+
 describe('NovuAdapter', () => {
   let adapter: NovuAdapter;
   let configService: ConfigService;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      const config = {
+      const config: Record<string, any> = {
         'novu.apiKey': 'test-api-key',
         'novu.appId': 'test-app-id',
       };
@@ -22,7 +52,7 @@ describe('NovuAdapter', () => {
         NovuAdapter,
         {
           provide: ConfigService,
-          useValue: mockConfigService,
+          useValue: mockConfigService as any,
         },
       ],
     }).compile();
@@ -60,8 +90,14 @@ describe('NovuAdapter', () => {
     });
 
     it('should handle upsert errors gracefully', async () => {
-      // Test with invalid data
-      await expect(adapter.upsertSubscriber('', {})).rejects.toThrow();
+      // Mock the SDK to throw an error
+      mockNovuInstance.subscribers.identify.mockRejectedValueOnce(
+        new Error('Invalid subscriber data'),
+      );
+
+      await expect(
+        adapter.upsertSubscriber('', {}),
+      ).rejects.toThrow('Invalid subscriber data');
     });
   });
 
@@ -104,6 +140,11 @@ describe('NovuAdapter', () => {
     });
 
     it('should handle trigger errors', async () => {
+      // Mock the SDK to throw an error
+      mockNovuInstance.trigger.mockRejectedValueOnce(
+        new Error('Template not found'),
+      );
+
       const result = await adapter.trigger(
         'non-existent-template',
         'invalid-user',

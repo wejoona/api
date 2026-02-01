@@ -22,7 +22,7 @@ describe('CorrelationService', () => {
       ],
     }).compile();
 
-    service = module.get<CorrelationService>(CorrelationService);
+    service = await module.resolve<CorrelationService>(CorrelationService);
   });
 
   describe('getCorrelationId', () => {

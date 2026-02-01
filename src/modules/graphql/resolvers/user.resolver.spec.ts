@@ -1,14 +1,47 @@
+// Mock GraphQL models to avoid circular dependency - MUST be before any imports
+jest.mock('../models/user.model', () => ({
+  UserModel: class UserModel {
+    static fromEntity(entity: any) {
+      return {
+        id: entity.id,
+        phone: entity.phone,
+        countryCode: entity.countryCode,
+        firstName: entity.firstName,
+        lastName: entity.lastName,
+        email: entity.email,
+        displayName: entity.displayName,
+        username: entity.username,
+        fullName: entity.fullName,
+        canTransact: entity.canTransact,
+        isPhoneVerified: entity.isPhoneVerified,
+      };
+    }
+  },
+}));
+
+jest.mock('../models/wallet.model', () => ({
+  WalletModel: class WalletModel {},
+}));
+
+jest.mock('../models/transaction.model', () => ({
+  TransactionModel: class TransactionModel {},
+}));
+
+jest.mock('../models/beneficiary.model', () => ({
+  BeneficiaryModel: class BeneficiaryModel {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserResolver } from './user.resolver';
-import { LoaderContext } from '../loaders';
 import { UserRepository } from '@/modules/user/infrastructure/repositories/user.repository';
 import { User } from '@/modules/user/application/domain/entities/user.entity';
 import { WalletEntity } from '@/modules/wallet/domain/entities/wallet.entity';
+import { UserResolver } from './user.resolver';
+import { LoaderContext } from '../loaders';
 
 describe('UserResolver', () => {
   let resolver: UserResolver;
   let userRepository: jest.Mocked<UserRepository>;
-  let loaders: jest.Mocked<LoaderContext>;
+  let loaders: any;
 
   beforeEach(async () => {
     // Create mock loaders

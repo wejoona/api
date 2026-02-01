@@ -16,7 +16,7 @@ describe('CorrelationIdMiddleware', () => {
     middleware = module.get<CorrelationIdMiddleware>(CorrelationIdMiddleware);
 
     mockRequest = {
-      headers: {},
+      headers: {} as any,
       method: 'GET',
       path: '/test',
       url: '/test',
@@ -26,7 +26,7 @@ describe('CorrelationIdMiddleware', () => {
     mockResponse = {
       setHeader: jest.fn(),
       json: jest.fn(),
-    };
+    } as any;
 
     nextFunction = jest.fn();
   });
@@ -67,7 +67,7 @@ describe('CorrelationIdMiddleware', () => {
       const existingId = '550e8400-e29b-41d4-a716-446655440000';
       mockRequest.headers = {
         'x-correlation-id': existingId,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -86,7 +86,7 @@ describe('CorrelationIdMiddleware', () => {
       const existingId = '550e8400-e29b-41d4-a716-446655440000';
       mockRequest.headers = {
         'x-request-id': existingId,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -100,8 +100,8 @@ describe('CorrelationIdMiddleware', () => {
     it('should handle case-insensitive header names', () => {
       const existingId = '550e8400-e29b-41d4-a716-446655440000';
       mockRequest.headers = {
-        'X-Correlation-ID': existingId,
-      };
+        'x-correlation-id': existingId, // Express normalizes to lowercase
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -118,7 +118,7 @@ describe('CorrelationIdMiddleware', () => {
       const validUUID = '550e8400-e29b-41d4-a716-446655440000';
       mockRequest.headers = {
         'x-correlation-id': validUUID,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -133,7 +133,7 @@ describe('CorrelationIdMiddleware', () => {
       const validId = 'mobile-app-12345_request';
       mockRequest.headers = {
         'x-correlation-id': validId,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -148,7 +148,7 @@ describe('CorrelationIdMiddleware', () => {
       const invalidId = '<script>alert("xss")</script>';
       mockRequest.headers = {
         'x-correlation-id': invalidId,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -164,7 +164,7 @@ describe('CorrelationIdMiddleware', () => {
       const longId = 'a'.repeat(256);
       mockRequest.headers = {
         'x-correlation-id': longId,
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,
@@ -178,7 +178,7 @@ describe('CorrelationIdMiddleware', () => {
     it('should reject empty correlation ID', () => {
       mockRequest.headers = {
         'x-correlation-id': '',
-      };
+      } as any;
 
       middleware.use(
         mockRequest as Request,

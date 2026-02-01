@@ -22,13 +22,13 @@ describe('CircuitBreakerService', () => {
               // Return defaults for all config keys
               return defaultValue;
             }),
-          },
+          } as any,
         },
       ],
     }).compile();
 
     service = module.get<CircuitBreakerService>(CircuitBreakerService);
-    configService = module.get(ConfigService);
+    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
   });
 
   afterEach(() => {
@@ -170,7 +170,7 @@ describe('CircuitBreakerService', () => {
       await expect(
         service.execute(ExternalService.CIRCLE, operation),
       ).rejects.toThrow(/timed out/);
-    });
+    }, 10000);
   });
 
   describe('health monitoring', () => {

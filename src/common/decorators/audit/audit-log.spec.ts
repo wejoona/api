@@ -18,7 +18,7 @@ describe('AuditLogInterceptor', () => {
     headers: { 'user-agent': 'Jest/Test' },
   };
 
-  const mockExecutionContext: Partial<ExecutionContext> = {
+  const mockExecutionContext = {
     switchToHttp: () => ({
       getRequest: () => mockRequest,
       getResponse: jest.fn(),
@@ -26,7 +26,7 @@ describe('AuditLogInterceptor', () => {
     }),
     getHandler: jest.fn(),
     getArgs: () => [mockRequest, { amount: 1000 }],
-  };
+  } as unknown as ExecutionContext;
 
   const mockCallHandler: CallHandler = {
     handle: () => of({ id: 'transfer-123', amount: 1000 }),

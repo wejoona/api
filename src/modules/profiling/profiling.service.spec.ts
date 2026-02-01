@@ -82,7 +82,7 @@ describe('ProfilingService', () => {
     it('should return comprehensive performance report', async () => {
       // Arrange
       const mockEndpointStats = [
-        { endpoint: '/api/v1/users', p50: 100, p95: 200, p99: 300 },
+        { endpoint: '/api/v1/users', sampleCount: 50, p50: 100, p95: 200, p99: 300 },
       ];
 
       const mockDatabaseStats = {
@@ -92,6 +92,7 @@ describe('ProfilingService', () => {
             count: 10,
             avgDuration: 150,
             maxDuration: 300,
+            lastSeen: Date.now(),
           },
         ],
         n1Patterns: [],

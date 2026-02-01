@@ -12,14 +12,14 @@ describe('RateLimitGuard', () => {
 
   const mockRequest = {
     ip: '192.168.1.1',
-    headers: {},
-    socket: { remoteAddress: '192.168.1.1' },
-    user: null,
+    headers: {} as any,
+    socket: { remoteAddress: '192.168.1.1' } as any,
+    user: null as any,
   };
 
   const mockResponse = {
     setHeader: jest.fn(),
-  };
+  } as any;
 
   const createMockContext = (_config?: RateLimitConfig): ExecutionContext => {
     return {
@@ -62,6 +62,10 @@ describe('RateLimitGuard', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    // Reset mockRequest headers
+    mockRequest.headers = {} as any;
+    mockRequest.ip = '192.168.1.1';
+    (mockRequest.socket as any).remoteAddress = '192.168.1.1';
   });
 
   describe('canActivate', () => {
@@ -191,7 +195,7 @@ describe('RateLimitGuard', () => {
 
     it('should use user-based rate limiting when user is authenticated', async () => {
       const context = createMockContext();
-      mockRequest.user = { id: 'user-123', phone: '+225123456789' };
+      mockRequest.user = { id: 'user-123', phone: '+225123456789' } as any;
 
       reflector.getAllAndOverride.mockReturnValue({
         limit: 10,
@@ -241,7 +245,7 @@ describe('RateLimitGuard', () => {
 
     it('should extract IP from X-Forwarded-For header', async () => {
       const context = createMockContext();
-      mockRequest.headers['x-forwarded-for'] = '203.0.113.1, 198.51.100.1';
+      (mockRequest.headers as any)['x-forwarded-for'] = '203.0.113.1, 198.51.100.1';
 
       reflector.getAllAndOverride.mockReturnValue({
         limit: 10,
@@ -266,7 +270,7 @@ describe('RateLimitGuard', () => {
 
     it('should extract IP from X-Real-IP header', async () => {
       const context = createMockContext();
-      mockRequest.headers['x-real-ip'] = '203.0.113.5';
+      (mockRequest.headers as any)['x-real-ip'] = '203.0.113.5';
 
       reflector.getAllAndOverride.mockReturnValue({
         limit: 10,
@@ -347,8 +351,8 @@ describe('RateLimitGuard', () => {
 
     it('should handle unknown IP gracefully', async () => {
       const context = createMockContext();
-      mockRequest.ip = undefined;
-      mockRequest.socket.remoteAddress = undefined;
+      (mockRequest as any).ip = undefined;
+      (mockRequest.socket as any).remoteAddress = undefined;
 
       reflector.getAllAndOverride.mockReturnValue({
         limit: 10,

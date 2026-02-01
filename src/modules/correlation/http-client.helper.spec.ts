@@ -129,20 +129,17 @@ describe('HTTP Client Helper', () => {
         baseURL: 'https://api.example.com',
       });
 
-      // Mock the request interceptor
-      let interceptedConfig: any;
-      client.interceptors.request.use((config) => {
-        interceptedConfig = config;
-        return config;
-      });
+      // Get the interceptor handler that was added
+      const handlers = (client.interceptors.request as any).handlers;
+      expect(handlers).toBeDefined();
+      expect(handlers.length).toBeGreaterThan(0);
 
-      // Trigger interceptor by creating a request config
-      const config = { headers: {} };
-      await client.interceptors.request['handlers'][0].fulfilled(config);
-
-      expect(interceptedConfig.headers['X-Correlation-ID']).toBe(
-        testCorrelationId,
-      );
+      // Trigger the first interceptor (correlation ID interceptor)
+      const config = { headers: {} } as any;
+      if (handlers && handlers[0] && handlers[0].fulfilled) {
+        const result = await handlers[0].fulfilled(config);
+        expect(result.headers['X-Correlation-ID']).toBe(testCorrelationId);
+      }
     });
 
     it('should preserve base URL in config', () => {

@@ -113,8 +113,9 @@ describe('GetBalanceUseCase', () => {
       cacheManager.get.mockResolvedValue(null);
       walletRepository.findByUserId.mockResolvedValue(mockWallet as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       const result = await useCase.execute(input);
 
@@ -205,8 +206,9 @@ describe('GetBalanceUseCase', () => {
       cacheManager.get.mockResolvedValue(null);
       walletRepository.findByUserId.mockResolvedValue(mockWallet as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       await useCase.execute(input);
 
@@ -231,8 +233,9 @@ describe('GetBalanceUseCase', () => {
         walletWithYellowCard as any,
       );
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       await useCase.execute(input);
 
@@ -247,8 +250,9 @@ describe('GetBalanceUseCase', () => {
       cacheManager.get.mockResolvedValue(null);
       walletRepository.findByUserId.mockResolvedValue(mockWallet as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       await useCase.execute(input);
 
@@ -286,8 +290,9 @@ describe('GetBalanceUseCase', () => {
         userId: 'user-1',
       } as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       const result1 = await useCase.execute({ userId: 'user-1' });
 
@@ -349,8 +354,9 @@ describe('GetBalanceUseCase', () => {
       cacheManager.get.mockResolvedValue(null);
       walletRepository.findByUserId.mockResolvedValue(mockWallet as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       await useCase.execute(input);
 
@@ -377,8 +383,9 @@ describe('GetBalanceUseCase', () => {
       cacheManager.get.mockResolvedValueOnce(null);
       walletRepository.findByUserId.mockResolvedValue(mockWallet as any);
       paymentGateway.getBalance.mockResolvedValue({
+        subwalletId: 'subwallet-123',
         balances: mockBalances,
-      });
+      } as any);
 
       await useCase.execute(input);
 

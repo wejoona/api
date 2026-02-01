@@ -21,54 +21,58 @@ describe('BusinessMetricsService', () => {
     observe: jest.fn(),
   };
 
+  // Helper function to create PROM_METRIC token name
+  const getMetricToken = (name: string): string =>
+    `PROM_METRIC_${name.toUpperCase()}`;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BusinessMetricsService,
         // Transactions Per Minute
-        { provide: 'business_transactions_per_minute', useValue: mockGauge },
-        { provide: 'business_transactions_rate', useValue: mockCounter },
+        { provide: getMetricToken('business_transactions_per_minute'), useValue: mockGauge },
+        { provide: getMetricToken('business_transactions_rate'), useValue: mockCounter },
         // Average Transaction Value
         {
-          provide: 'business_transaction_value_summary',
+          provide: getMetricToken('business_transaction_value_summary'),
           useValue: mockSummary,
         },
-        { provide: 'business_transaction_value_total', useValue: mockCounter },
-        { provide: 'business_transaction_count_total', useValue: mockCounter },
-        { provide: 'business_avg_transaction_value', useValue: mockGauge },
+        { provide: getMetricToken('business_transaction_value_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_transaction_count_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_avg_transaction_value'), useValue: mockGauge },
         // KYC
-        { provide: 'business_kyc_submissions_total', useValue: mockCounter },
-        { provide: 'business_kyc_completions_total', useValue: mockCounter },
-        { provide: 'business_kyc_rejections_total', useValue: mockCounter },
-        { provide: 'business_kyc_completion_rate', useValue: mockGauge },
+        { provide: getMetricToken('business_kyc_submissions_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_kyc_completions_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_kyc_rejections_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_kyc_completion_rate'), useValue: mockGauge },
         {
-          provide: 'business_kyc_processing_duration_seconds',
+          provide: getMetricToken('business_kyc_processing_duration_seconds'),
           useValue: mockHistogram,
         },
         // User Registration
-        { provide: 'business_user_registrations_rate', useValue: mockCounter },
-        { provide: 'business_registrations_per_hour', useValue: mockGauge },
-        { provide: 'business_user_activations_total', useValue: mockCounter },
-        { provide: 'business_user_activation_rate', useValue: mockGauge },
+        { provide: getMetricToken('business_user_registrations_rate'), useValue: mockCounter },
+        { provide: getMetricToken('business_registrations_per_hour'), useValue: mockGauge },
+        { provide: getMetricToken('business_user_activations_total'), useValue: mockCounter },
+        { provide: getMetricToken('business_user_activation_rate'), useValue: mockGauge },
         // API Latency
         {
-          provide: 'business_api_latency_by_endpoint',
+          provide: getMetricToken('business_api_latency_by_endpoint'),
           useValue: mockHistogram,
         },
-        { provide: 'business_api_success_rate', useValue: mockGauge },
-        { provide: 'business_api_requests_by_endpoint', useValue: mockCounter },
-        { provide: 'business_api_errors_by_endpoint', useValue: mockCounter },
+        { provide: getMetricToken('business_api_success_rate'), useValue: mockGauge },
+        { provide: getMetricToken('business_api_requests_by_endpoint'), useValue: mockCounter },
+        { provide: getMetricToken('business_api_errors_by_endpoint'), useValue: mockCounter },
         // Additional
-        { provide: 'business_revenue_total_usd', useValue: mockCounter },
-        { provide: 'business_active_wallets_gauge', useValue: mockGauge },
-        { provide: 'business_failed_transactions_rate', useValue: mockCounter },
-        { provide: 'business_transaction_success_rate', useValue: mockGauge },
+        { provide: getMetricToken('business_revenue_total_usd'), useValue: mockCounter },
+        { provide: getMetricToken('business_active_wallets_gauge'), useValue: mockGauge },
+        { provide: getMetricToken('business_failed_transactions_rate'), useValue: mockCounter },
+        { provide: getMetricToken('business_transaction_success_rate'), useValue: mockGauge },
         {
-          provide: 'business_mobile_money_provider_usage',
+          provide: getMetricToken('business_mobile_money_provider_usage'),
           useValue: mockCounter,
         },
         {
-          provide: 'business_customer_lifetime_value',
+          provide: getMetricToken('business_customer_lifetime_value'),
           useValue: mockHistogram,
         },
       ],

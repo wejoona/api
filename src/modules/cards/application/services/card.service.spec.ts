@@ -103,6 +103,8 @@ describe('CardService', () => {
         spendingLimit: 5,
       };
 
+      const wallet = WalletEntity.create({ userId });
+      walletRepository.findByUserId.mockResolvedValue(wallet);
       cardRepository.findByUserId.mockResolvedValue([]);
 
       await expect(service.createCard(userId, dto)).rejects.toThrow(
@@ -117,6 +119,8 @@ describe('CardService', () => {
         spendingLimit: 15000,
       };
 
+      const wallet = WalletEntity.create({ userId });
+      walletRepository.findByUserId.mockResolvedValue(wallet);
       cardRepository.findByUserId.mockResolvedValue([]);
 
       await expect(service.createCard(userId, dto)).rejects.toThrow(

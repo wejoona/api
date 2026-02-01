@@ -1,62 +1,55 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { TwilioWebhookService } from './twilio-webhook.service';
 
 // Mock Redis
+const mockRedisInstance = {
+  setex: jest.fn().mockResolvedValue('OK'),
+  get: jest.fn().mockResolvedValue(null),
+  mget: jest.fn().mockResolvedValue([]),
+  incr: jest.fn().mockResolvedValue(1),
+  expire: jest.fn().mockResolvedValue(1),
+  pipeline: jest.fn().mockReturnValue({
+    incr: jest.fn().mockReturnThis(),
+    expire: jest.fn().mockReturnThis(),
+    exec: jest.fn().mockResolvedValue([]),
+  }),
+  on: jest.fn(),
+  quit: jest.fn().mockResolvedValue('OK'),
+};
+
 jest.mock('ioredis', () => {
-  const mockRedis = jest.fn().mockImplementation(() => ({
-    setex: jest.fn(),
-    get: jest.fn(),
-    mget: jest.fn(),
-    incr: jest.fn(),
-    expire: jest.fn(),
-    pipeline: jest.fn().mockReturnValue({
-      incr: jest.fn().mockReturnThis(),
-      expire: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue([]),
-    }),
-    on: jest.fn(),
-    quit: jest.fn(),
-  }));
-  return { default: mockRedis, __esModule: true };
+  return { default: jest.fn(() => mockRedisInstance), __esModule: true };
 });
 
 describe('TwilioWebhookService', () => {
   let service: TwilioWebhookService;
-  let eventEmitter: EventEmitter2;
-  let mockRedis: any;
+  let eventEmitter: { emit: jest.Mock };
+  let mockConfigService: ConfigService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TwilioWebhookService,
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key: string) => {
-              const config: Record<string, any> = {
-                'redis.host': 'localhost',
-                'redis.port': 6379,
-              };
-              return config[key];
-            }),
-          },
-        },
-      ],
-    }).compile();
+  beforeEach(() => {
+    jest.clearAllMocks();
 
-    service = module.get<TwilioWebhookService>(TwilioWebhookService);
-    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
+    eventEmitter = {
+      emit: jest.fn(),
+    };
 
-    // Get mock Redis instance
-    mockRedis = (service as any).redis;
+    mockConfigService = {
+      get: jest.fn((key: string) => {
+        const config: Record<string, any> = {
+          'redis.host': 'localhost',
+          'redis.port': 6379,
+          'redis.password': undefined,
+        };
+        return config[key];
+      }),
+    } as unknown as ConfigService;
+
+    // Directly instantiate the service with mocked dependencies
+    service = new TwilioWebhookService(
+      eventEmitter as unknown as EventEmitter2,
+      mockConfigService,
+    );
   });
 
   afterEach(() => {
@@ -74,7 +67,7 @@ describe('TwilioWebhookService', () => {
 
       await service.handleStatusCallback(update);
 
-      expect(mockRedis.setex).toHaveBeenCalledWith(
+      expect(mockRedisInstance.setex).toHaveBeenCalledWith(
         'sms_delivery:SM123456789',
         604800, // 7 days
         expect.stringContaining('delivered'),
@@ -115,7 +108,7 @@ describe('TwilioWebhookService', () => {
         exec: jest.fn().mockResolvedValue([]),
       };
 
-      mockRedis.pipeline.mockReturnValue(mockPipeline);
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline);
 
       await service.handleStatusCallback(update);
 
@@ -159,7 +152,7 @@ describe('TwilioWebhookService', () => {
 
       await service.handleStatusCallback(update);
 
-      const storedData = JSON.parse(mockRedis.setex.mock.calls[0][2]);
+      const storedData = JSON.parse(mockRedisInstance.setex.mock.calls[0][2]);
       expect(storedData.errorCode).toBe('30008');
       expect(storedData.errorMessage).toBe('Unknown error');
     });
@@ -174,16 +167,16 @@ describe('TwilioWebhookService', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      mockRedis.get.mockResolvedValue(JSON.stringify(storedData));
+      mockRedisInstance.get.mockResolvedValue(JSON.stringify(storedData));
 
       const result = await service.getDeliveryStatus('SM123456789');
 
       expect(result).toEqual(storedData);
-      expect(mockRedis.get).toHaveBeenCalledWith('sms_delivery:SM123456789');
+      expect(mockRedisInstance.get).toHaveBeenCalledWith('sms_delivery:SM123456789');
     });
 
     it('should return null for non-existent message', async () => {
-      mockRedis.get.mockResolvedValue(null);
+      mockRedisInstance.get.mockResolvedValue(null);
 
       const result = await service.getDeliveryStatus('INVALID');
 
@@ -193,7 +186,7 @@ describe('TwilioWebhookService', () => {
 
   describe('getMetrics', () => {
     it('should retrieve metrics for a date', async () => {
-      mockRedis.mget.mockResolvedValue(['100', '10', '20', '60', '5', '5']);
+      mockRedisInstance.mget.mockResolvedValue(['100', '10', '20', '60', '5', '5']);
 
       const result = await service.getMetrics('2024-01-29');
 
@@ -208,7 +201,7 @@ describe('TwilioWebhookService', () => {
     });
 
     it('should handle missing metrics', async () => {
-      mockRedis.mget.mockResolvedValue([null, null, null, null, null, null]);
+      mockRedisInstance.mget.mockResolvedValue([null, null, null, null, null, null]);
 
       const result = await service.getMetrics('2024-01-29');
 
@@ -238,7 +231,7 @@ describe('TwilioWebhookService', () => {
         exec: jest.fn().mockResolvedValue([]),
       };
 
-      mockRedis.pipeline.mockReturnValue(mockPipeline);
+      mockRedisInstance.pipeline.mockReturnValue(mockPipeline);
 
       await service.handleStatusCallback(update);
 
