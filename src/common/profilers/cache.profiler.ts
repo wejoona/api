@@ -294,7 +294,7 @@ export class CacheProfiler {
       });
     }
 
-    const metrics = this.cacheMetrics.get(normalizedKey)!;
+    const metrics = this.cacheMetrics.get(normalizedKey);
 
     switch (operation) {
       case 'hit':

@@ -292,7 +292,7 @@ export class DataRetentionService {
     });
 
     const savedRequest = await this.deletionRequestRepository.save(request);
-    return savedRequest as DataDeletionRequestOrmEntity;
+    return savedRequest;
   }
 
   private async processUserDeletion(

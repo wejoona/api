@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   ComplianceCaseRepository,
   CaseSearchCriteria,
-  PaginatedCases,
 } from '../../domain/repositories/compliance-case.repository';
 import {
   ComplianceCase,

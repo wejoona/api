@@ -71,10 +71,7 @@ export class TicketMessage {
     return new TicketMessage(props);
   }
 
-  static createSystemMessage(
-    ticketId: string,
-    message: string,
-  ): TicketMessage {
+  static createSystemMessage(ticketId: string, message: string): TicketMessage {
     return new TicketMessage({
       ticketId,
       senderType: MessageSenderType.SYSTEM,

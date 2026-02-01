@@ -34,6 +34,23 @@ describe('CreateWalletUseCase', () => {
     updatedAt: new Date(),
   } as any;
 
+  const mockIdentityUser = {
+    providerId: 'circle-user-123',
+    status: 'active',
+    kycStatus: 'none',
+    kycTier: 'none',
+    createdAt: new Date(),
+  } as any;
+
+  const mockProviderWallet = {
+    providerId: 'circle-wallet-123',
+    address: '0xabc123',
+    blockchain: 'MATIC',
+    balances: [],
+    status: 'active',
+    createdAt: new Date(),
+  } as any;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -96,15 +113,8 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
-      walletProvider.createWallet.mockResolvedValue({
-        providerId: 'circle-wallet-123',
-        address: '0xabc123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
+      walletProvider.createWallet.mockResolvedValue(mockProviderWallet);
       ledgerProvider.createUserBalance.mockResolvedValue('blnk-balance-123');
       walletRepository.save.mockResolvedValue(mockWallet);
 
@@ -178,10 +188,7 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
       walletProvider.createWallet.mockRejectedValue(
         new Error('Wallet creation failed'),
       );
@@ -202,15 +209,8 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
-      walletProvider.createWallet.mockResolvedValue({
-        providerId: 'circle-wallet-123',
-        address: '0xabc123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
+      walletProvider.createWallet.mockResolvedValue(mockProviderWallet);
       ledgerProvider.createUserBalance.mockRejectedValue(
         new Error('Blnk API error'),
       );
@@ -230,15 +230,8 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
-      walletProvider.createWallet.mockResolvedValue({
-        providerId: 'circle-wallet-123',
-        address: '0xabc123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
+      walletProvider.createWallet.mockResolvedValue(mockProviderWallet);
       ledgerProvider.createUserBalance.mockResolvedValue('blnk-balance-123');
       walletRepository.save.mockResolvedValue(mockWallet);
 
@@ -257,15 +250,8 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
-      walletProvider.createWallet.mockResolvedValue({
-        providerId: 'circle-wallet-123',
-        address: '0xabc123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
+      walletProvider.createWallet.mockResolvedValue(mockProviderWallet);
       ledgerProvider.createUserBalance.mockResolvedValue('blnk-balance-123');
       walletRepository.save.mockResolvedValue(mockWallet);
 
@@ -301,14 +287,11 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
       walletProvider.createWallet.mockResolvedValue({
+        ...mockProviderWallet,
         providerId: 'circle-wallet-456',
         address: '0xdef456',
-        userId: 'user-123',
       });
       ledgerProvider.createUserBalance.mockResolvedValue('blnk-789');
       walletRepository.save.mockResolvedValue(mockWallet);
@@ -329,10 +312,7 @@ describe('CreateWalletUseCase', () => {
       };
 
       walletRepository.findByUserId.mockResolvedValue(null);
-      identityProvider.createUser.mockResolvedValue({
-        providerId: 'circle-user-123',
-        userId: 'user-123',
-      });
+      identityProvider.createUser.mockResolvedValue(mockIdentityUser);
       walletProvider.createWallet.mockRejectedValue(
         new Error('Network timeout'),
       );

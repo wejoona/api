@@ -65,10 +65,10 @@ export class RequestContextMiddleware implements NestMiddleware {
       url: req.url,
       metadata: {
         ip: this.getClientIp(req),
-        userAgent: (req.headers['user-agent'] as string) || 'unknown',
-        origin: req.headers['origin'] as string,
-        referer: req.headers['referer'] as string,
-        acceptLanguage: req.headers['accept-language'] as string,
+        userAgent: req.headers['user-agent'] || 'unknown',
+        origin: req.headers['origin'],
+        referer: req.headers['referer'],
+        acceptLanguage: req.headers['accept-language'],
         // GeoIP data would be populated here if available
         // country: req.geoip?.country,
         // region: req.geoip?.region,

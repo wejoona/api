@@ -5,7 +5,6 @@ import { VelocityRuleRepository } from '../../domain/repositories/velocity-rule.
 import {
   VelocityRule,
   VelocityRuleType,
-  VelocityRuleAction,
   UserTier,
 } from '../../domain/entities/velocity-rule.entity';
 import { VelocityRuleOrmEntity } from '../orm-entities/velocity-rule.orm-entity';

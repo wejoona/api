@@ -189,7 +189,7 @@ export class SupportSlaService {
     resolutionTimeMs: number | null;
     slaResponseTimeMet: boolean | null;
     slaResolutionTimeMet: boolean | null;
-    slaConfig: any | null;
+    slaConfig: any;
   }> {
     const ticket = await this.ticketRepository.findById(ticketId);
     if (!ticket) {

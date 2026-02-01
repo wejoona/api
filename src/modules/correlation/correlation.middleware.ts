@@ -149,6 +149,7 @@ export class CorrelationIdMiddleware implements NestMiddleware {
 
 // Extend Express Request interface to include correlationId
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       correlationId?: string;

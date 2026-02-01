@@ -79,7 +79,10 @@ export class VelocityRule {
    * Create a new velocity rule
    */
   static create(
-    props: Omit<VelocityRuleProps, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>,
+    props: Omit<
+      VelocityRuleProps,
+      'id' | 'isActive' | 'createdAt' | 'updatedAt'
+    >,
   ): VelocityRule {
     return new VelocityRule({
       ...props,

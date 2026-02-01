@@ -42,7 +42,8 @@ export class RateLimitGuard implements CanActivate {
     if (prometheusCounters) {
       try {
         this.rateLimitChecksCounter = prometheusCounters.rateLimitChecks;
-        this.rateLimitViolationsCounter = prometheusCounters.rateLimitViolations;
+        this.rateLimitViolationsCounter =
+          prometheusCounters.rateLimitViolations;
       } catch (error) {
         this.logger.debug('Prometheus metrics not available for rate limiting');
       }
@@ -148,7 +149,8 @@ export class RateLimitGuard implements CanActivate {
     }
 
     // Log high usage warnings (>80% of limit consumed)
-    const usagePercent = ((result.limit - result.remaining) / result.limit) * 100;
+    const usagePercent =
+      ((result.limit - result.remaining) / result.limit) * 100;
     if (usagePercent > 80) {
       this.logger.debug(
         `High rate limit usage for ${key}: ${usagePercent.toFixed(1)}% (${result.remaining}/${result.limit} remaining)`,

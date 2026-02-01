@@ -81,7 +81,7 @@ export class TypeOrmBulkPaymentRepository extends BulkPaymentRepository {
     await this.bulkPaymentItemRepo.save(ormItems);
 
     // Fetch updated entity with items
-    return this.findById(bulkPayment.id) as Promise<BulkPaymentEntity>;
+    return this.findById(bulkPayment.id);
   }
 
   async delete(id: string): Promise<void> {

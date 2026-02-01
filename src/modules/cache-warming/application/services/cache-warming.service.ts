@@ -139,7 +139,8 @@ export class CacheWarmingService {
               `Cached exchange rate: ${source}/${target} = ${rate.rate}`,
             );
           } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg =
+              error instanceof Error ? error.message : String(error);
             this.logger.warn(
               `Failed to cache rate ${source}/${target}: ${errorMsg}`,
             );
@@ -233,16 +234,19 @@ export class CacheWarmingService {
         this.configService.get<string[]>('app.supportedCurrencies') || [];
 
       // Country metadata for West African markets
-      const countryConfigs: Record<string, {
-        code: string;
-        name: string;
-        currency: string;
-        phonePrefix: string;
-        mobileMoneyProviders: string[];
-        kycRequired: boolean;
-        maxDailyTransfer: number;
-        language: string;
-      }> = {
+      const countryConfigs: Record<
+        string,
+        {
+          code: string;
+          name: string;
+          currency: string;
+          phonePrefix: string;
+          mobileMoneyProviders: string[];
+          kycRequired: boolean;
+          maxDailyTransfer: number;
+          language: string;
+        }
+      > = {
         CI: {
           code: 'CI',
           name: "Côte d'Ivoire",

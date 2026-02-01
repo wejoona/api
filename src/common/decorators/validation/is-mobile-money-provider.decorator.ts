@@ -114,11 +114,11 @@ export class IsMobileMoneyProviderConstraint implements ValidatorConstraintInter
       const validProviders = allowedProviders.filter((p) =>
         countryProviders.includes(p),
       );
-      return validProviders.some((p) => p === normalizedProvider);
+      return validProviders.some((p) => (p as string) === normalizedProvider);
     }
 
     // Check against allowed providers
-    return allowedProviders.some((p) => p === normalizedProvider);
+    return allowedProviders.some((p) => (p as string) === normalizedProvider);
   }
 
   private parseOptions(

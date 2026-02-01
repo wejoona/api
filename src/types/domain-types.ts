@@ -17,7 +17,6 @@ import {
   XOFAmount,
   PositiveInt,
   BaseEntity,
-  VersionedEntity,
   AuditableEntity,
 } from './strict-types';
 
@@ -374,7 +373,7 @@ export interface Deposit extends AuditableEntity {
   readonly userId: UserId;
   readonly walletId: WalletId;
   readonly method: DepositMethod;
-  readonly provider?: MobileMoneyProvider | string;
+  readonly provider?: string;
   readonly amountXOF?: XOFAmount;
   readonly amountUSDC: USDCAmount;
   readonly exchangeRate?: number;
@@ -406,7 +405,7 @@ export interface Withdrawal extends AuditableEntity {
   readonly userId: UserId;
   readonly walletId: WalletId;
   readonly method: WithdrawalMethod;
-  readonly provider?: MobileMoneyProvider | string;
+  readonly provider?: string;
   readonly amountUSDC: USDCAmount;
   readonly amountXOF?: XOFAmount;
   readonly exchangeRate?: number;
@@ -446,7 +445,7 @@ export interface Beneficiary extends AuditableEntity {
   readonly email?: Email;
   readonly walletAddress?: string;
   readonly accountNumber?: string;
-  readonly provider?: MobileMoneyProvider | string;
+  readonly provider?: string;
   readonly isVerified: boolean;
   readonly isFavorite: boolean;
   readonly lastUsedAt?: ISODateString;

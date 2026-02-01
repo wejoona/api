@@ -147,7 +147,7 @@ export class SlaConfiguration {
 
     const now = new Date();
     const elapsedMs = now.getTime() - createdAt.getTime();
-    return elapsedMs > this.escalationAfterMs!;
+    return elapsedMs > this.escalationAfterMs;
   }
 
   static create(props: CreateSlaConfigurationProps): SlaConfiguration {

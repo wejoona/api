@@ -65,7 +65,7 @@ describe('IdempotencyMiddleware', () => {
       },
       user: { id: 'user-456' },
       ...overrides,
-    } as IdempotentRequest;
+    } as unknown as IdempotentRequest;
   };
 
   const createMockResponse = (): Partial<Response> => {

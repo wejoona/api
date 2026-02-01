@@ -282,7 +282,7 @@ export class DatabaseProfiler implements TypeOrmLogger {
       this.queryHistory.set(normalizedQuery, []);
     }
 
-    const history = this.queryHistory.get(normalizedQuery)!;
+    const history = this.queryHistory.get(normalizedQuery);
     history.push(metadata);
 
     // Keep only last N entries
@@ -377,7 +377,7 @@ export class DatabaseProfiler implements TypeOrmLogger {
       this.requestQueries.set(requestId, new Set());
     }
 
-    this.requestQueries.get(requestId)!.add(this.normalizeQuery(query));
+    this.requestQueries.get(requestId).add(this.normalizeQuery(query));
 
     // Clean up old requests (keep last 100)
     if (this.requestQueries.size > 100) {

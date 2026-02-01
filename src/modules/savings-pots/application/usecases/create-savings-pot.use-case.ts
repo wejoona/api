@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
@@ -11,7 +15,10 @@ export class CreateSavingsPotUseCase {
     private readonly walletRepository: WalletRepository,
   ) {}
 
-  async execute(dto: CreateSavingsPotDto, userId: string): Promise<SavingsPotEntity> {
+  async execute(
+    dto: CreateSavingsPotDto,
+    userId: string,
+  ): Promise<SavingsPotEntity> {
     // Get user's wallet
     const wallet = await this.walletRepository.findByUserId(userId);
     if (!wallet) {
@@ -19,14 +26,20 @@ export class CreateSavingsPotUseCase {
     }
 
     // Validate auto deposit settings
-    if ((dto.autoDepositAmount && !dto.autoDepositFrequency) ||
-        (!dto.autoDepositAmount && dto.autoDepositFrequency)) {
-      throw new BadRequestException('Both auto deposit amount and frequency must be provided together');
+    if (
+      (dto.autoDepositAmount && !dto.autoDepositFrequency) ||
+      (!dto.autoDepositAmount && dto.autoDepositFrequency)
+    ) {
+      throw new BadRequestException(
+        'Both auto deposit amount and frequency must be provided together',
+      );
     }
 
     // Validate lock settings
     if (dto.isLocked && !dto.lockUntil) {
-      throw new BadRequestException('Lock until date is required when locking a savings pot');
+      throw new BadRequestException(
+        'Lock until date is required when locking a savings pot',
+      );
     }
 
     if (dto.lockUntil && new Date(dto.lockUntil) <= new Date()) {

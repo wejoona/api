@@ -104,8 +104,10 @@ export function sanitizeText(
   // Remove null bytes and other control characters (except newlines/tabs if preserving)
   if (preserveNewlines) {
     // Keep \n (0x0A), \r (0x0D), \t (0x09) but remove other control chars
+    // eslint-disable-next-line no-control-regex
     result = result.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
   } else {
+    // eslint-disable-next-line no-control-regex
     result = result.replace(/[\x00-\x1F\x7F]/g, ' ');
   }
 
@@ -226,6 +228,7 @@ export function sanitizeFilename(
   let safe = String(filename)
     .replace(/\.\./g, '') // Remove path traversal
     .replace(/[/\\]/g, '') // Remove path separators
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
     .replace(/[<>:"|?*]/g, '') // Remove Windows reserved characters
     .trim();

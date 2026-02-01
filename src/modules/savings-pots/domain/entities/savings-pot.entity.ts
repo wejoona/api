@@ -117,7 +117,9 @@ export class SavingsPotEntity implements ISavingsPot {
       throw new Error('Cannot withdraw from a non-active savings pot');
     }
     if (this.isLocked && this.lockUntil && new Date() < this.lockUntil) {
-      throw new Error('Savings pot is locked until ' + this.lockUntil.toISOString());
+      throw new Error(
+        'Savings pot is locked until ' + this.lockUntil.toISOString(),
+      );
     }
     if (this.currentAmount < amount) {
       throw new Error('Insufficient balance in savings pot');
@@ -129,7 +131,9 @@ export class SavingsPotEntity implements ISavingsPot {
   withdrawAll(): number {
     const amount = this.currentAmount;
     if (this.isLocked && this.lockUntil && new Date() < this.lockUntil) {
-      throw new Error('Savings pot is locked until ' + this.lockUntil.toISOString());
+      throw new Error(
+        'Savings pot is locked until ' + this.lockUntil.toISOString(),
+      );
     }
     this.currentAmount = 0;
     this.updatedAt = new Date();
@@ -160,12 +164,17 @@ export class SavingsPotEntity implements ISavingsPot {
     this.updatedAt = new Date();
   }
 
-  setAutoDeposit(amount: number | null, frequency: AutoDepositFrequency | null): void {
+  setAutoDeposit(
+    amount: number | null,
+    frequency: AutoDepositFrequency | null,
+  ): void {
     if (amount !== null && amount <= 0) {
       throw new Error('Auto deposit amount must be positive');
     }
     if ((amount === null) !== (frequency === null)) {
-      throw new Error('Both amount and frequency must be set together or both null');
+      throw new Error(
+        'Both amount and frequency must be set together or both null',
+      );
     }
     this.autoDepositAmount = amount;
     this.autoDepositFrequency = frequency;
@@ -222,11 +231,14 @@ export class SavingsPotEntity implements ISavingsPot {
   get canWithdraw(): boolean {
     if (this.status !== 'active') return false;
     if (this.currentAmount <= 0) return false;
-    if (this.isLocked && this.lockUntil && new Date() < this.lockUntil) return false;
+    if (this.isLocked && this.lockUntil && new Date() < this.lockUntil)
+      return false;
     return true;
   }
 
   get hasAutoDeposit(): boolean {
-    return this.autoDepositAmount !== null && this.autoDepositFrequency !== null;
+    return (
+      this.autoDepositAmount !== null && this.autoDepositFrequency !== null
+    );
   }
 }

@@ -44,8 +44,11 @@ export class SavingsPotMapper {
       targetDate: ormEntity.targetDate,
       isLocked: ormEntity.isLocked,
       lockUntil: ormEntity.lockUntil,
-      autoDepositAmount: ormEntity.autoDepositAmount ? Number(ormEntity.autoDepositAmount) : null,
-      autoDepositFrequency: ormEntity.autoDepositFrequency as AutoDepositFrequency | null,
+      autoDepositAmount: ormEntity.autoDepositAmount
+        ? Number(ormEntity.autoDepositAmount)
+        : null,
+      autoDepositFrequency:
+        ormEntity.autoDepositFrequency as AutoDepositFrequency | null,
       status: ormEntity.status as SavingsPotStatus,
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,

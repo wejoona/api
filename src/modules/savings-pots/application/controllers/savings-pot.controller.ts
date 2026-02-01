@@ -9,7 +9,13 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { User } from '../../../user/domain/entities/user.entity';
@@ -57,9 +63,7 @@ export class SavingsPotController {
   @Get()
   @ApiOperation({ summary: 'Get all savings pots for current user' })
   @ApiResponse({ status: 200, description: 'Returns all savings pots' })
-  async getAll(
-    @CurrentUser() user: User,
-  ): Promise<SavingsPotResponseDto[]> {
+  async getAll(@CurrentUser() user: User): Promise<SavingsPotResponseDto[]> {
     const savingsPots = await this.getSavingsPotsUseCase.execute(user.id);
     return savingsPots.map(SavingsPotResponseDto.fromEntity);
   }
@@ -67,9 +71,7 @@ export class SavingsPotController {
   @Get('active')
   @ApiOperation({ summary: 'Get active savings pots for current user' })
   @ApiResponse({ status: 200, description: 'Returns active savings pots' })
-  async getActive(
-    @CurrentUser() user: User,
-  ): Promise<SavingsPotResponseDto[]> {
+  async getActive(@CurrentUser() user: User): Promise<SavingsPotResponseDto[]> {
     const savingsPots = await this.getSavingsPotsUseCase.executeActive(user.id);
     return savingsPots.map(SavingsPotResponseDto.fromEntity);
   }
@@ -160,7 +162,10 @@ export class SavingsPotController {
   @Delete(':id')
   @ApiOperation({ summary: 'Cancel/delete a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
-  @ApiResponse({ status: 200, description: 'Savings pot cancelled successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Savings pot cancelled successfully',
+  })
   @ApiResponse({ status: 404, description: 'Savings pot not found' })
   async cancel(
     @Param('id', ParseUUIDPipe) id: string,

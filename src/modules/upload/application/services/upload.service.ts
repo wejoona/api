@@ -62,7 +62,10 @@ export class UploadService {
 
     // S3-compatible endpoint (MinIO, SeaweedFS, etc.)
     const endpoint = this.configService.get<string>('S3_ENDPOINT');
-    const forcePathStyle = this.configService.get<boolean>('S3_FORCE_PATH_STYLE', true);
+    const forcePathStyle = this.configService.get<boolean>(
+      'S3_FORCE_PATH_STYLE',
+      true,
+    );
 
     if (!accessKeyId || !secretAccessKey) {
       this.logger.warn(

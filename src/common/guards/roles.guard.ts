@@ -7,7 +7,12 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, Roles } from '../decorators/roles.decorator';
 
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'compliance_officer' | 'compliance_manager';
+export type UserRole =
+  | 'user'
+  | 'admin'
+  | 'super_admin'
+  | 'compliance_officer'
+  | 'compliance_manager';
 export { Roles };
 
 export interface UserWithRole {

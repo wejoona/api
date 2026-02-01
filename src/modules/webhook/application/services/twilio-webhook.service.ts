@@ -125,7 +125,7 @@ export class TwilioWebhookService {
   /**
    * Get delivery status for a message
    */
-  async getDeliveryStatus(messageSid: string): Promise<any | null> {
+  async getDeliveryStatus(messageSid: string): Promise<any> {
     const key = `sms_delivery:${messageSid}`;
     const data = await this.redis.get(key);
 

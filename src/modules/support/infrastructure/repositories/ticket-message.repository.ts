@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TicketMessageRepository } from '../../domain/repositories/ticket-message.repository';
-import { TicketMessage, MessageSenderType } from '../../domain/entities/ticket-message.entity';
+import {
+  TicketMessage,
+  MessageSenderType,
+} from '../../domain/entities/ticket-message.entity';
 import { TicketMessageOrmEntity } from '../orm-entities/ticket-message.orm-entity';
 import { TicketMessageMapper } from '../mappers/ticket-message.mapper';
 

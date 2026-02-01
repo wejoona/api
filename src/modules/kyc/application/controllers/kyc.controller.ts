@@ -195,7 +195,10 @@ export class KycController {
     status: 400,
     description: 'Invalid submission or status does not allow submission',
   })
-  async submitKycAlt(@CurrentUser() user: JwtUser, @Body() dto: KycSubmissionDto) {
+  async submitKycAlt(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: KycSubmissionDto,
+  ) {
     return this.submitKyc(user, dto);
   }
 

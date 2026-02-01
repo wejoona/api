@@ -118,7 +118,9 @@ export class SupportService {
   /**
    * Get user's tickets with optional filtering.
    */
-  async getUserTickets(params: GetTicketsParams): Promise<TicketsListResponseDto> {
+  async getUserTickets(
+    params: GetTicketsParams,
+  ): Promise<TicketsListResponseDto> {
     const { userId, status, limit = 20, offset = 0 } = params;
 
     const tickets = await this.ticketRepository.find({
@@ -197,7 +199,9 @@ export class SupportService {
       );
     }
 
-    const senderType = isAgent ? MessageSenderType.AGENT : MessageSenderType.USER;
+    const senderType = isAgent
+      ? MessageSenderType.AGENT
+      : MessageSenderType.USER;
 
     const ticketMessage = TicketMessage.create({
       ticketId,
@@ -228,7 +232,10 @@ export class SupportService {
   /**
    * Close a ticket (user action).
    */
-  async closeTicket(ticketId: string, userId: string): Promise<TicketResponseDto> {
+  async closeTicket(
+    ticketId: string,
+    userId: string,
+  ): Promise<TicketResponseDto> {
     const ticket = await this.ticketRepository.findById(ticketId);
 
     if (!ticket) {

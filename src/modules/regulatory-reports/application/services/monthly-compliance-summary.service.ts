@@ -286,7 +286,9 @@ export class MonthlyComplianceSummaryService {
 
     const sarsGenerated = sarReports.length;
     const sarsSubmitted = sarReports.filter(
-      (r) => r.status === 'submitted' || r.status === 'acknowledged',
+      (r) =>
+        (r.status as string) === 'submitted' ||
+        (r.status as string) === 'acknowledged',
     ).length;
 
     // Calculate blocked transactions

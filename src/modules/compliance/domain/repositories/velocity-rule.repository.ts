@@ -1,4 +1,8 @@
-import { VelocityRule, VelocityRuleType, UserTier } from '../entities/velocity-rule.entity';
+import {
+  VelocityRule,
+  VelocityRuleType,
+  UserTier,
+} from '../entities/velocity-rule.entity';
 
 /**
  * Velocity Rule Repository Interface
@@ -24,7 +28,9 @@ export abstract class VelocityRuleRepository {
   /**
    * Find active rules by rule type
    */
-  abstract findActiveByType(ruleType: VelocityRuleType): Promise<VelocityRule[]>;
+  abstract findActiveByType(
+    ruleType: VelocityRuleType,
+  ): Promise<VelocityRule[]>;
 
   /**
    * Find active rules by tier and type

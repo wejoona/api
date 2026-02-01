@@ -45,7 +45,7 @@ export class TracingInterceptor implements NestInterceptor {
     const method = request.method;
     const url = request.url;
     const requestId = request.headers['x-request-id'] as string;
-    const userAgent = request.headers['user-agent'] as string;
+    const userAgent = request.headers['user-agent'];
     const controller = context.getClass().name;
     const handler = context.getHandler().name;
 

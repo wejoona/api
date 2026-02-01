@@ -97,7 +97,7 @@ export class SlaTrackingService {
           createdAt,
           breachedAt: new Date(),
           timeElapsedMs: result.resolutionTimeElapsedMs,
-          slaTimeMs: result.slaConfig.escalationAfterMs!,
+          slaTimeMs: result.slaConfig.escalationAfterMs,
         });
       }
     } catch (error) {

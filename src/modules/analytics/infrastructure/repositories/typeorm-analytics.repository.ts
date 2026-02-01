@@ -57,7 +57,7 @@ export class TypeOrmAnalyticsRepository extends AnalyticsRepository {
         categoryMap.set(category, { amount: 0, count: 0 });
       }
 
-      const current = categoryMap.get(category)!;
+      const current = categoryMap.get(category);
       current.amount += amount;
       current.count += 1;
       totalSpent += amount;
@@ -208,7 +208,7 @@ export class TypeOrmAnalyticsRepository extends AnalyticsRepository {
         });
       }
 
-      const current = recipientMap.get(key)!;
+      const current = recipientMap.get(key);
       current.amount += amount;
       current.count += 1;
       // Keep the most recent transaction date

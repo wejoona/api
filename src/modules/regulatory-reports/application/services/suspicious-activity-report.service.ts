@@ -202,9 +202,9 @@ export class SuspiciousActivityReportService {
 
     return reports.filter(
       (r) =>
-        r.status === 'draft' ||
-        r.status === 'pending_review' ||
-        r.status === 'approved',
+        (r.status as string) === 'draft' ||
+        (r.status as string) === 'pending_review' ||
+        (r.status as string) === 'approved',
     );
   }
 
@@ -264,7 +264,8 @@ export class SuspiciousActivityReportService {
       throw new Error('Can only add attachments to SAR reports');
     }
 
-    const sarData = report.reportData as unknown as SuspiciousActivityReportData;
+    const sarData =
+      report.reportData as unknown as SuspiciousActivityReportData;
     sarData.attachments = sarData.attachments || [];
     sarData.attachments.push(attachmentUrl);
 
@@ -290,7 +291,8 @@ export class SuspiciousActivityReportService {
       throw new Error(`Cannot update SAR in status: ${report.status}`);
     }
 
-    const sarData = report.reportData as unknown as SuspiciousActivityReportData;
+    const sarData =
+      report.reportData as unknown as SuspiciousActivityReportData;
     sarData.actionTaken = {
       ...sarData.actionTaken,
       ...actionTaken,

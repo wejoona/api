@@ -391,13 +391,10 @@ export class TransactionRepository {
       .groupBy('transaction.status')
       .getRawMany();
 
-    return result.reduce<Record<string, number>>(
-      (acc, row) => {
-        acc[row.status] = parseInt(row.count, 10);
-        return acc;
-      },
-      {},
-    );
+    return result.reduce<Record<string, number>>((acc, row) => {
+      acc[row.status] = parseInt(row.count, 10);
+      return acc;
+    }, {});
   }
 
   /**
@@ -443,13 +440,10 @@ export class TransactionRepository {
       .groupBy('transaction.type')
       .getRawMany();
 
-    return result.reduce<Record<string, number>>(
-      (acc, row) => {
-        acc[row.type] = parseInt(row.count, 10);
-        return acc;
-      },
-      {},
-    );
+    return result.reduce<Record<string, number>>((acc, row) => {
+      acc[row.type] = parseInt(row.count, 10);
+      return acc;
+    }, {});
   }
 
   /**

@@ -223,7 +223,9 @@ export class UserController {
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, type: UserResponse })
-  async getProfile(@Request() req: AuthenticatedRequest): Promise<UserResponse> {
+  async getProfile(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UserResponse> {
     const result = await this.getProfileUsecase.execute({
       userId: req.user.id,
     });

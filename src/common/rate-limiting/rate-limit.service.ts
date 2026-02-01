@@ -195,9 +195,8 @@ export class RateLimitService {
     try {
       // Check cache for custom API key limits
       const customConfigKey = `api_key_limits:${apiKeyId}:${endpoint}`;
-      const customConfig = await this.cache.get<CustomRateLimitConfig>(
-        customConfigKey,
-      );
+      const customConfig =
+        await this.cache.get<CustomRateLimitConfig>(customConfigKey);
 
       if (customConfig) {
         this.logger.debug(
@@ -208,9 +207,8 @@ export class RateLimitService {
 
       // Check for wildcard limits (applies to all endpoints for this API key)
       const wildcardConfigKey = `api_key_limits:${apiKeyId}:*`;
-      const wildcardConfig = await this.cache.get<CustomRateLimitConfig>(
-        wildcardConfigKey,
-      );
+      const wildcardConfig =
+        await this.cache.get<CustomRateLimitConfig>(wildcardConfigKey);
 
       if (wildcardConfig) {
         this.logger.debug(

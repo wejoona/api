@@ -69,7 +69,8 @@ export class PaymentLinkController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get my payment links',
-    description: 'Returns all payment links created by the current user. Supports filtering and pagination.',
+    description:
+      'Returns all payment links created by the current user. Supports filtering and pagination.',
   })
   @ApiQuery({
     name: 'status',

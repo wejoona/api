@@ -193,7 +193,7 @@ export class TypeOrmRegulatoryReportRepository extends RegulatoryReportRepositor
 
     const submittedReports = reports.filter((r) => r.submittedAt);
     const totalProcessingTime = submittedReports.reduce((sum, r) => {
-      const processingTime = r.submittedAt!.getTime() - r.createdAt.getTime();
+      const processingTime = r.submittedAt.getTime() - r.createdAt.getTime();
       return sum + processingTime;
     }, 0);
 

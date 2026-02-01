@@ -36,14 +36,22 @@ export interface VelocityCheckResult {
 export class VelocityRuleService {
   private readonly logger = new Logger(VelocityRuleService.name);
 
-  constructor(private readonly velocityRuleRepository: VelocityRuleRepository) {}
+  constructor(
+    private readonly velocityRuleRepository: VelocityRuleRepository,
+  ) {}
 
   /**
    * Create a new velocity rule
    */
-  async createRule(dto: CreateVelocityRuleDto): Promise<VelocityRuleResponseDto> {
+  async createRule(
+    dto: CreateVelocityRuleDto,
+  ): Promise<VelocityRuleResponseDto> {
     // Validate threshold requirements based on rule type
-    this.validateThresholds(dto.ruleType, dto.thresholdAmount, dto.thresholdCount);
+    this.validateThresholds(
+      dto.ruleType,
+      dto.thresholdAmount,
+      dto.thresholdCount,
+    );
 
     const rule = VelocityRule.create({
       name: dto.name,
@@ -75,8 +83,10 @@ export class VelocityRuleService {
     }
 
     const ruleType = dto.ruleType ?? existing.ruleType;
-    const thresholdAmount = dto.thresholdAmount ?? existing.thresholdAmount ?? undefined;
-    const thresholdCount = dto.thresholdCount ?? existing.thresholdCount ?? undefined;
+    const thresholdAmount =
+      dto.thresholdAmount ?? existing.thresholdAmount ?? undefined;
+    const thresholdCount =
+      dto.thresholdCount ?? existing.thresholdCount ?? undefined;
 
     // Validate thresholds if rule type is being changed
     if (dto.ruleType) {
@@ -228,7 +238,9 @@ export class VelocityRuleService {
     }
 
     // Determine the most restrictive action
-    const hasBlock = triggeredRules.some((r) => r.action === VelocityRuleAction.BLOCK);
+    const hasBlock = triggeredRules.some(
+      (r) => r.action === VelocityRuleAction.BLOCK,
+    );
     const hasReview = triggeredRules.some(
       (r) => r.action === VelocityRuleAction.REQUIRE_REVIEW,
     );
@@ -275,13 +287,19 @@ export class VelocityRuleService {
 
     const countRequired = ruleType === VelocityRuleType.TRANSACTION_COUNT;
 
-    if (amountRequired && (thresholdAmount === undefined || thresholdAmount === null)) {
+    if (
+      amountRequired &&
+      (thresholdAmount === undefined || thresholdAmount === null)
+    ) {
       throw new BadRequestException(
         `thresholdAmount is required for ${ruleType} rule type`,
       );
     }
 
-    if (countRequired && (thresholdCount === undefined || thresholdCount === null)) {
+    if (
+      countRequired &&
+      (thresholdCount === undefined || thresholdCount === null)
+    ) {
       throw new BadRequestException(
         `thresholdCount is required for ${ruleType} rule type`,
       );

@@ -175,7 +175,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       this.latencyData.set(endpoint, []);
     }
 
-    const samples = this.latencyData.get(endpoint)!;
+    const samples = this.latencyData.get(endpoint);
     samples.push(duration);
 
     // Keep only last N samples

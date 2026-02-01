@@ -232,7 +232,9 @@ export class CreateLinkedBankAccountsTable1738960000000 implements MigrationInte
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE IF EXISTS "wallet"."linked_bank_accounts" CASCADE`);
+    await queryRunner.query(
+      `DROP TABLE IF EXISTS "wallet"."linked_bank_accounts" CASCADE`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS "wallet"."banks" CASCADE`);
   }
 }

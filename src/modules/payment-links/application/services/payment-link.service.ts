@@ -85,7 +85,7 @@ export class PaymentLinkService {
     // Apply status filter
     if (options?.status) {
       paymentLinks = paymentLinks.filter(
-        (link) => link.status === options.status,
+        (link) => (link.status as string) === options.status,
       );
     }
 
@@ -306,9 +306,15 @@ export class PaymentLinkService {
   private toResponseDto(paymentLink: PaymentLink): PaymentLinkResponseDto {
     // Map backend status to mobile-expected status names
     let mobileStatus = paymentLink.status;
-    if (paymentLink.status === 'active' && paymentLink.viewCount === 0) {
+    if (
+      (paymentLink.status as string) === 'active' &&
+      paymentLink.viewCount === 0
+    ) {
       mobileStatus = 'pending' as any;
-    } else if (paymentLink.status === 'active' && paymentLink.viewCount > 0) {
+    } else if (
+      (paymentLink.status as string) === 'active' &&
+      paymentLink.viewCount > 0
+    ) {
       mobileStatus = 'viewed' as any;
     }
 

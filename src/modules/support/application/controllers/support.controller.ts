@@ -14,10 +14,7 @@ import {
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { SupportService } from '../services/support.service';
-import {
-  CreateTicketDto,
-  AddMessageDto,
-} from '../dto/requests';
+import { CreateTicketDto, AddMessageDto } from '../dto/requests';
 import {
   TicketResponseDto,
   TicketWithMessagesResponseDto,

@@ -144,7 +144,7 @@ export class IsWAEMUCountryConstraint implements ValidatorConstraintInterface {
     const allowedCountries = options.allowedCountries ?? this.ALL_COUNTRIES;
 
     // Check ISO code match
-    if (allowedCountries.some((c) => c === normalizedInput)) {
+    if (allowedCountries.some((c) => (c as string) === normalizedInput)) {
       return true;
     }
 

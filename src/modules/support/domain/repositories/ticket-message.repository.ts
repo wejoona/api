@@ -1,4 +1,7 @@
-import { TicketMessage, MessageSenderType } from '../entities/ticket-message.entity';
+import {
+  TicketMessage,
+  MessageSenderType,
+} from '../entities/ticket-message.entity';
 
 export interface FindMessagesOptions {
   ticketId: string;

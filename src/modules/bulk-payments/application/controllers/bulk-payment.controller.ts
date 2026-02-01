@@ -25,7 +25,7 @@ export class BulkPaymentController {
   async getBatches(
     @Request() req: AuthenticatedRequest,
   ): Promise<BulkPaymentListResponseDto> {
-    return this.bulkPaymentService.getBatches(req.user.walletId as string);
+    return this.bulkPaymentService.getBatches(req.user.walletId);
   }
 
   @Post('batches')
@@ -33,7 +33,7 @@ export class BulkPaymentController {
     @Body() dto: CreateBulkPaymentDto,
     @Request() req: AuthenticatedRequest,
   ): Promise<BulkPaymentResponseDto> {
-    return this.bulkPaymentService.createBatch(req.user.walletId as string, dto);
+    return this.bulkPaymentService.createBatch(req.user.walletId, dto);
   }
 
   @Get('batches/:id')
@@ -41,7 +41,7 @@ export class BulkPaymentController {
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
   ): Promise<BulkPaymentResponseDto> {
-    return this.bulkPaymentService.getBatch(id, req.user.walletId as string);
+    return this.bulkPaymentService.getBatch(id, req.user.walletId);
   }
 
   @Get('batches/:id/failed-report')
@@ -49,6 +49,6 @@ export class BulkPaymentController {
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
   ): Promise<FailedReportResponseDto> {
-    return this.bulkPaymentService.getFailedReport(id, req.user.walletId as string);
+    return this.bulkPaymentService.getFailedReport(id, req.user.walletId);
   }
 }

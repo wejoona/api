@@ -1,6 +1,5 @@
 import { Injectable, Scope } from '@nestjs/common';
 import DataLoader from 'dataloader';
-import { IWalletRepository } from '@/modules/wallet/domain/repositories/wallet.repository';
 import { WalletEntity } from '@/modules/wallet/domain/entities/wallet.entity';
 import { WalletRepository } from '@/modules/wallet/infrastructure/repositories/wallet.repository';
 
