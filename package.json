@@ -202,6 +202,7 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^uuid$": "uuid",
+      "^@/(.*)$": "<rootDir>/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1",
       "^@common/(.*)$": "<rootDir>/common/$1",
       "^@config/(.*)$": "<rootDir>/config/$1"
