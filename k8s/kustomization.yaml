@@ -5,7 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
-  - secrets.yaml
+  # secrets.yaml managed separately (not in git)
 
 images:
   - name: registry.wejoona.com/usdc-wallet-api
