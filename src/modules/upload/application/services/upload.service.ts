@@ -60,14 +60,24 @@ export class UploadService {
       'AWS_SECRET_ACCESS_KEY',
     );
 
+    // S3-compatible endpoint (MinIO, SeaweedFS, etc.)
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const forcePathStyle = this.configService.get<boolean>('S3_FORCE_PATH_STYLE', true);
+
     if (!accessKeyId || !secretAccessKey) {
       this.logger.warn(
-        'AWS credentials not configured. Document uploads will fail.',
+        'S3 credentials not configured. Document uploads will fail.',
       );
+    }
+
+    if (endpoint) {
+      this.logger.log(`Using S3-compatible endpoint: ${endpoint}`);
     }
 
     this.s3Client = new S3Client({
       region: this.region,
+      endpoint: endpoint || undefined,
+      forcePathStyle: forcePathStyle, // Required for MinIO/SeaweedFS
       credentials:
         accessKeyId && secretAccessKey
           ? {
