@@ -55,10 +55,8 @@ spec:
               containerPort: 3000
               protocol: TCP
           envFrom:
-            - configMapRef:
-                name: usdc-wallet-config
             - secretRef:
-                name: usdc-wallet-secrets
+                name: wallet-api-secrets
           env:
             - name: NODE_ENV
               value: "production"
@@ -140,7 +138,7 @@ spec:
               app: usdc-wallet-api
       terminationGracePeriodSeconds: 30
       imagePullSecrets:
-        - name: wejoona-registry-credentials
+        - name: gitlab-registry
 
 ---
 # =============================================================================
