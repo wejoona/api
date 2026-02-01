@@ -1,0 +1,10 @@
+# Benchmark output files
+*.log
+benchmark-*.json
+benchmark-results-*.txt
+
+# Temporary test data
+test-data/
+
+# Coverage reports
+coverage/

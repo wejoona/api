@@ -1,0 +1,10 @@
+# Coverage
+coverage/
+*.lcov
+
+# Test results
+test-results/
+junit.xml
+
+# Temp files
+*.tmp

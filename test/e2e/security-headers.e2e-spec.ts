@@ -351,7 +351,10 @@ describe('Security Headers (e2e)', () => {
           response.headers['x-permitted-cross-domain-policies'],
       };
 
-      console.log('Security Headers:', JSON.stringify(securityHeaders, null, 2));
+      console.log(
+        'Security Headers:',
+        JSON.stringify(securityHeaders, null, 2),
+      );
 
       // All headers should be defined
       Object.entries(securityHeaders).forEach(([header, value]) => {
@@ -400,7 +403,9 @@ describe('Cookie Security (e2e)', () => {
     });
 
     it('should use __Host- prefix in production', () => {
-      const { getCookieName } = require('../../src/config/security-headers.config');
+      const {
+        getCookieName,
+      } = require('../../src/config/security-headers.config');
 
       const sessionCookieName = getCookieName('SESSION', 'production');
       expect(sessionCookieName).toBe('__Host-session');
@@ -410,7 +415,9 @@ describe('Cookie Security (e2e)', () => {
     });
 
     it('should use standard names in development', () => {
-      const { getCookieName } = require('../../src/config/security-headers.config');
+      const {
+        getCookieName,
+      } = require('../../src/config/security-headers.config');
 
       const sessionCookieName = getCookieName('SESSION', 'development');
       expect(sessionCookieName).toBe('session');

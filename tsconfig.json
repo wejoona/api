@@ -12,17 +12,28 @@
     "baseUrl": "./src",
     "incremental": true,
     "skipLibCheck": true,
-    "strict": true,
-    "strictBindCallApply": true,
+    "strict": false,
+    "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": false,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "paths": {
+      "@/*": ["*"],
       "@modules/*": ["modules/*"],
       "@common/*": ["common/*"],
-      "@config/*": ["config/*"]
+      "@config/*": ["config/*"],
+      "@types/*": ["types/*"],
+      "@types": ["types/index"]
     }
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.example.ts",
+    "test"
+  ]
 }

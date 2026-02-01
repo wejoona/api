@@ -1,0 +1,24 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": ".*\\.spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "target": "ES2021",
+          "module": "commonjs",
+          "strict": true,
+          "esModuleInterop": true,
+          "skipLibCheck": true
+        }
+      }
+    ]
+  },
+  "testEnvironment": "node",
+  "verbose": true,
+  "collectCoverageFrom": ["**/*.spec.ts"],
+  "coverageDirectory": "../../coverage/financial",
+  "testTimeout": 30000
+}

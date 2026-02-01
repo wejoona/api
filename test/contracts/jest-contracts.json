@@ -1,0 +1,30 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".contract.spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/../../src/$1",
+    "^uuid$": "uuid"
+  },
+  "testTimeout": 10000,
+  "maxWorkers": 4,
+  "collectCoverageFrom": [
+    "../../src/modules/**/dto/**/*.ts",
+    "!../../src/**/*.spec.ts"
+  ],
+  "coverageDirectory": "../../coverage-contracts",
+  "coverageReporters": ["text", "lcov", "html"],
+  "setupFilesAfterEnv": ["./setup.ts"],
+  "globals": {
+    "ts-jest": {
+      "tsconfig": {
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".fuzz-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^uuid$": "uuid",
+    "^@modules/(.*)$": "<rootDir>/../../src/modules/$1",
+    "^@common/(.*)$": "<rootDir>/../../src/common/$1",
+    "^@config/(.*)$": "<rootDir>/../../src/config/$1"
+  },
+  "testTimeout": 60000,
+  "maxWorkers": 1,
+  "collectCoverageFrom": [
+    "../../src/**/*.ts",
+    "!../../src/**/*.spec.ts",
+    "!../../src/**/*.interface.ts",
+    "!../../src/**/*.dto.ts",
+    "!../../src/main.ts"
+  ],
+  "coverageDirectory": "../../coverage-fuzzing",
+  "coverageReporters": ["text", "lcov", "html"],
+  "globals": {
+    "ts-jest": {
+      "tsconfig": {
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
+      }
+    }
+  }
+}
