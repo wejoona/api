@@ -143,7 +143,7 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Allow from ingress controller
+    # Allow from nginx ingress controller
     - from:
         - namespaceSelector:
             matchLabels:
@@ -151,6 +151,14 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Allow from Traefik ingress controller (kube-system)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: TCP
           port: 3000
