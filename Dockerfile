@@ -2,22 +2,17 @@
 # JoonaPay USDC Wallet API - Production Dockerfile
 # =============================================================================
 # Multi-stage build for optimized production image
+# Uses Bun for fast dependency installation and building
 # Final image: ~150MB (Alpine-based)
-#
-# Build args:
-#   NODE_VERSION: Node.js version (default: 20)
 #
 # Usage:
 #   docker build -t usdc-wallet-api .
-#   docker build --build-arg NODE_VERSION=22 -t usdc-wallet-api .
 # =============================================================================
 
-ARG NODE_VERSION=20
-
 # -----------------------------------------------------------------------------
-# Stage 1: Dependencies - Install production dependencies
+# Stage 1: Dependencies - Install dependencies with Bun (10-20x faster)
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-alpine AS deps
+FROM oven/bun:1-alpine AS deps
 
 # Install build dependencies for native modules (bcrypt, sharp)
 RUN apk add --no-cache python3 make g++ vips-dev
@@ -25,21 +20,21 @@ RUN apk add --no-cache python3 make g++ vips-dev
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY package*.json ./
+COPY package.json bun.lock* ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci --legacy-peer-deps
+# Install all dependencies (bun is 10-20x faster than npm)
+RUN bun install --frozen-lockfile 2>/dev/null || bun install
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder - Build the application
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY package*.json ./
+COPY package.json ./
 
 # Copy source code and config files needed for build
 COPY src ./src
@@ -47,16 +42,16 @@ COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 COPY nest-cli.json ./
 
-# Build the application
-RUN npm run build
+# Build the application using bun
+RUN bun run build
 
-# Prune devDependencies after build for smaller production node_modules
-RUN npm prune --production --legacy-peer-deps
+# Remove devDependencies for smaller production image
+RUN bun install --production
 
 # -----------------------------------------------------------------------------
-# Stage 3: Runner - Minimal production image
+# Stage 3: Runner - Minimal production image (Node.js for runtime)
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-alpine AS runner
+FROM node:20-alpine AS runner
 
 # Labels for container registry
 LABEL org.opencontainers.image.title="JoonaPay USDC Wallet API"

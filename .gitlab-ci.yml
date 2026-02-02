@@ -5,19 +5,19 @@ stages:
 variables:
   DOCKER_IMAGE: registry.wejoona.com/usdc-wallet-api
 
-# Test stage
+# Test stage - using Bun for 10-20x faster installs
 test:
   stage: test
-  image: node:20-alpine
+  image: oven/bun:1-alpine
   cache:
-    key: ${CI_COMMIT_REF_SLUG}
+    key: ${CI_COMMIT_REF_SLUG}-bun
     paths:
       - node_modules/
   before_script:
-    - npm ci --legacy-peer-deps
+    - bun install
   script:
-    - npm run lint
-    - npm run test
+    - bun run lint
+    - bun run test
   only:
     - merge_requests
     - main
