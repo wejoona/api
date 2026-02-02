@@ -105,6 +105,10 @@ export const OtpSentResponseSchema: ContractSchema = {
 
 /**
  * Auth response (after OTP verification)
+ *
+ * CRITICAL: expiresIn must be present and accurate.
+ * Mobile uses this to schedule token refresh. If this is wrong,
+ * users get logged out during long operations (e.g., KYC upload).
  */
 export const AuthResponseSchema: ContractSchema = {
   name: 'AuthResponse',
@@ -117,6 +121,12 @@ export const AuthResponseSchema: ContractSchema = {
     refreshToken: required(FieldType.STRING, {
       description: 'JWT refresh token',
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    }),
+    expiresIn: required(FieldType.NUMBER, {
+      description: 'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule refresh.',
+      example: 900,
+      min: 300, // At least 5 minutes
+      max: 3600, // At most 1 hour
     }),
     user: required(FieldType.OBJECT, {
       description: 'User profile',
@@ -138,6 +148,9 @@ export const AuthResponseSchema: ContractSchema = {
 
 /**
  * Refresh token response
+ *
+ * CRITICAL: expiresIn must be present and accurate.
+ * Mobile uses this to reschedule the next token refresh.
  */
 export const RefreshResponseSchema: ContractSchema = {
   name: 'RefreshResponse',
@@ -150,6 +163,12 @@ export const RefreshResponseSchema: ContractSchema = {
     refreshToken: required(FieldType.STRING, {
       description: 'New JWT refresh token',
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    }),
+    expiresIn: required(FieldType.NUMBER, {
+      description: 'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule next refresh.',
+      example: 900,
+      min: 300, // At least 5 minutes
+      max: 3600, // At most 1 hour
     }),
   },
 };
@@ -335,6 +354,7 @@ export const VerifyOtpEndpoint: EndpointContract = {
     200: {
       accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      expiresIn: 900, // CRITICAL: Mobile uses this to schedule token refresh
       user: {
         id: '123e4567-e89b-12d3-a456-426614174000',
         phone: '+2250701234567',
@@ -394,6 +414,7 @@ export const RefreshEndpoint: EndpointContract = {
     200: {
       accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      expiresIn: 900,
     },
   },
 };

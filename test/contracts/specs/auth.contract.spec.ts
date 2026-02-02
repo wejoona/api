@@ -82,6 +82,7 @@ describe('Authentication Contracts', () => {
       const response = {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        expiresIn: 900, // CRITICAL: Mobile uses this for token refresh scheduling
         user: validUser,
         kycStatus: 'pending',
       };
@@ -95,11 +96,32 @@ describe('Authentication Contracts', () => {
       const response = {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        expiresIn: 900,
         user: validUser,
       };
 
       const result = validateSchema(response, AuthResponseSchema);
       expect(result.valid).toBe(true);
+    });
+
+    it('CRITICAL: should fail if expiresIn is missing', () => {
+      // This is the bug that caused KYC upload failures
+      const response = {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        // Missing expiresIn!
+        user: validUser,
+        kycStatus: 'pending',
+      };
+
+      const result = validateSchema(response, AuthResponseSchema);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          path: 'expiresIn',
+          message: 'Missing required field',
+        }),
+      );
     });
 
     it('should fail if accessToken is missing', () => {
@@ -137,6 +159,7 @@ describe('Authentication Contracts', () => {
       const response = {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        expiresIn: 900,
       };
 
       const result = validateSchema(response, RefreshResponseSchema);
@@ -147,10 +170,46 @@ describe('Authentication Contracts', () => {
     it('should fail if refreshToken is missing', () => {
       const response = {
         accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        expiresIn: 900,
       };
 
       const result = validateSchema(response, RefreshResponseSchema);
       expect(result.valid).toBe(false);
+    });
+
+    it('CRITICAL: should fail if expiresIn is missing', () => {
+      // This is what caused the token refresh scheduling bug
+      const response = {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        // Missing expiresIn!
+      };
+
+      const result = validateSchema(response, RefreshResponseSchema);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          path: 'expiresIn',
+          message: 'Missing required field',
+        }),
+      );
+    });
+
+    it('CRITICAL: should fail if expiresIn is too low', () => {
+      // Token must be valid for at least 5 minutes
+      const response = {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        expiresIn: 60, // Too short!
+      };
+
+      const result = validateSchema(response, RefreshResponseSchema);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          path: 'expiresIn',
+        }),
+      );
     });
   });
 
