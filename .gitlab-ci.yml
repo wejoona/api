@@ -39,6 +39,10 @@ build:
       --destination "${DOCKER_IMAGE}:${CI_COMMIT_SHA}"
       --destination "${DOCKER_IMAGE}:latest"
       --cache=true
+      --cache-repo "${DOCKER_IMAGE}/cache"
+      --cache-ttl 168h
+      --snapshot-mode=redo
+      --use-new-run
   only:
     - main
     - tags
