@@ -20,6 +20,7 @@ export interface VerifyOtpOutput {
   user: User;
   accessToken: string;
   refreshToken: string;
+  expiresIn: number;
   kycStatus: string;
 }
 
@@ -28,6 +29,7 @@ export class VerifyOtpUsecase {
   private readonly logger = new Logger(VerifyOtpUsecase.name);
   private readonly refreshSecret: string;
   private readonly refreshExpiresIn: string;
+  private readonly accessExpiresIn: string;
 
   constructor(
     private readonly userRepository: UserRepository,
@@ -45,6 +47,34 @@ export class VerifyOtpUsecase {
       'jwt.refreshExpiresIn',
       '7d',
     );
+    this.accessExpiresIn = this.configService.get<string>(
+      'jwt.accessExpiration',
+      '15m',
+    );
+  }
+
+  /**
+   * Parse duration string (e.g., '15m', '1h', '7d') to seconds
+   */
+  private parseExpirationToSeconds(expiration: string): number {
+    const match = expiration.match(/^(\d+)([smhd])$/);
+    if (!match) return 900; // Default 15 minutes
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 60 * 60 * 24;
+      default:
+        return 900;
+    }
   }
 
   async execute(input: VerifyOtpInput): Promise<VerifyOtpOutput> {
@@ -116,6 +146,7 @@ export class VerifyOtpUsecase {
       user: updatedUser,
       accessToken,
       refreshToken,
+      expiresIn: this.parseExpirationToSeconds(this.accessExpiresIn),
       kycStatus,
     };
   }

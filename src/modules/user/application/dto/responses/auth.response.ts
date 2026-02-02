@@ -11,6 +11,12 @@ export class AuthResponse {
   @ApiProperty({ type: UserResponse })
   user: UserResponse;
 
+  @ApiProperty({
+    example: 900,
+    description: 'Access token expiry in seconds (e.g., 900 = 15 minutes)',
+  })
+  expiresIn: number;
+
   @ApiPropertyOptional({
     example: 'documents_pending',
     description:
@@ -25,6 +31,12 @@ export class RefreshResponse {
 
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
   refreshToken: string;
+
+  @ApiProperty({
+    example: 900,
+    description: 'Access token expiry in seconds (e.g., 900 = 15 minutes)',
+  })
+  expiresIn: number;
 }
 
 export class OtpSentResponse {

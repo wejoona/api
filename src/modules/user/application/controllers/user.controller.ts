@@ -113,6 +113,7 @@ export class AuthController {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       user: UserResponse.fromDomain(result.user),
+      expiresIn: result.expiresIn,
       kycStatus: result.kycStatus,
     };
   }
@@ -132,6 +133,7 @@ export class AuthController {
     return {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
+      expiresIn: result.expiresIn,
     };
   }
 

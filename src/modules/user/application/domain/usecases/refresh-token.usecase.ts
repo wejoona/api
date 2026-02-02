@@ -19,6 +19,7 @@ export interface RefreshTokenOutput {
   user: User;
   accessToken: string;
   refreshToken: string;
+  expiresIn: number;
 }
 
 @Injectable()
@@ -26,6 +27,7 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
   private readonly logger = new Logger(RefreshTokenUsecase.name);
   private readonly refreshSecret: string;
   private readonly refreshExpiresIn: string;
+  private readonly accessExpiresIn: string;
   private readonly redis: Redis;
   private isRedisConnected = false;
 
@@ -42,6 +44,10 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
     this.refreshExpiresIn = this.configService.get<string>(
       'jwt.refreshExpiresIn',
       '7d',
+    );
+    this.accessExpiresIn = this.configService.get<string>(
+      'jwt.accessExpiration',
+      '15m',
     );
 
     // Initialize Redis client for token blacklist checking
@@ -86,6 +92,30 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
   private ensureConnection(): void {
     if (!this.isRedisConnected) {
       throw new Error('Redis connection unavailable. Please try again later.');
+    }
+  }
+
+  /**
+   * Parse duration string (e.g., '15m', '1h', '7d') to seconds
+   */
+  private parseExpirationToSeconds(expiration: string): number {
+    const match = expiration.match(/^(\d+)([smhd])$/);
+    if (!match) return 900; // Default 15 minutes
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 60 * 60 * 24;
+      default:
+        return 900;
     }
   }
 
@@ -169,6 +199,7 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
         user,
         accessToken,
         refreshToken,
+        expiresIn: this.parseExpirationToSeconds(this.accessExpiresIn),
       };
     } catch (error) {
       if (
