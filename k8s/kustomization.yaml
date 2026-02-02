@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
+  - minio.yaml
   # secrets.yaml managed separately (not in git)
 
 images:
