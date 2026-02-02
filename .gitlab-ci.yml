@@ -5,19 +5,21 @@ stages:
 variables:
   DOCKER_IMAGE: registry.wejoona.com/usdc-wallet-api
 
-# Test stage - using Bun for 10-20x faster installs
+# Test stage - Bun for fast install, Node for Jest compatibility
 test:
   stage: test
-  image: oven/bun:1-alpine
+  image: node:20-alpine
   cache:
     key: ${CI_COMMIT_REF_SLUG}-bun
     paths:
       - node_modules/
   before_script:
+    # Install bun for fast dependency installation
+    - npm install -g bun
     - bun install
   script:
-    - bun run lint
-    - bun run test
+    - npm run lint
+    - npm run test
   only:
     - merge_requests
     - main
