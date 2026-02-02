@@ -8,6 +8,8 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as sharp from 'sharp';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type DocumentType = 'id_front' | 'id_back' | 'selfie';
 
@@ -29,13 +31,19 @@ export interface UploadResult {
  *
  * Handles secure document uploads to S3 with image processing.
  * Documents are stored with user-specific keys for easy retrieval.
+ * Supports mock mode for development/testing without S3.
  */
 @Injectable()
 export class UploadService {
   private readonly logger = new Logger(UploadService.name);
-  private readonly s3Client: S3Client;
+  private readonly s3Client: S3Client | null;
   private readonly bucket: string;
   private readonly region: string;
+  private readonly useMock: boolean;
+  private readonly mockStoragePath: string;
+
+  // In-memory storage for mock mode (maps key -> buffer)
+  private mockStorage = new Map<string, Buffer>();
 
   // Maximum file size: 5MB (for KYC documents)
   private readonly maxFileSize = 5 * 1024 * 1024;
@@ -55,6 +63,23 @@ export class UploadService {
       'joonapay-kyc-documents',
     );
 
+    // Check if mock mode is enabled
+    this.useMock = this.configService.get<boolean>('AWS_USE_MOCK', false);
+    this.mockStoragePath = this.configService.get<string>(
+      'MOCK_STORAGE_PATH',
+      '/tmp/joonapay-kyc-mock',
+    );
+
+    if (this.useMock) {
+      this.logger.log('Running in MOCK mode - documents stored locally');
+      this.s3Client = null;
+      // Ensure mock storage directory exists
+      if (!fs.existsSync(this.mockStoragePath)) {
+        fs.mkdirSync(this.mockStoragePath, { recursive: true });
+      }
+      return;
+    }
+
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>(
       'AWS_SECRET_ACCESS_KEY',
@@ -69,8 +94,14 @@ export class UploadService {
 
     if (!accessKeyId || !secretAccessKey) {
       this.logger.warn(
-        'S3 credentials not configured. Document uploads will fail.',
+        'S3 credentials not configured. Enabling mock mode automatically.',
       );
+      this.useMock = true;
+      this.s3Client = null;
+      if (!fs.existsSync(this.mockStoragePath)) {
+        fs.mkdirSync(this.mockStoragePath, { recursive: true });
+      }
+      return;
     }
 
     if (endpoint) {
@@ -81,20 +112,17 @@ export class UploadService {
       region: this.region,
       endpoint: endpoint || undefined,
       forcePathStyle: forcePathStyle, // Required for MinIO/SeaweedFS
-      credentials:
-        accessKeyId && secretAccessKey
-          ? {
-              accessKeyId,
-              secretAccessKey,
-            }
-          : undefined,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
     });
   }
 
   /**
    * Upload a KYC document
    *
-   * Validates, processes (resize/compress), and uploads to S3.
+   * Validates, processes (resize/compress), and uploads to S3 or mock storage.
    */
   async uploadDocument(params: UploadDocumentParams): Promise<UploadResult> {
     const { userId, type, file } = params;
@@ -108,8 +136,27 @@ export class UploadService {
     // Process image (resize and compress)
     const processedBuffer = await this.processImage(file.buffer);
 
+    if (this.useMock) {
+      // Store in mock storage (in-memory + disk for persistence)
+      this.mockStorage.set(key, processedBuffer);
+      const filePath = path.join(this.mockStoragePath, key.replace(/\//g, '_'));
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, processedBuffer);
+      this.logger.log(`[MOCK] Uploaded KYC document: ${key}`);
+
+      return {
+        key,
+        url: `mock://localhost/${this.bucket}/${key}`,
+        contentType: 'image/jpeg',
+        size: processedBuffer.length,
+      };
+    }
+
     // Upload to S3
-    await this.s3Client.send(
+    await this.s3Client!.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -141,19 +188,36 @@ export class UploadService {
    * Get a signed URL for viewing a document
    */
   async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
+    if (this.useMock) {
+      // Return a mock URL that can be used for verification testing
+      // In a real mock scenario, you might serve this from a local HTTP server
+      const filePath = path.join(this.mockStoragePath, key.replace(/\//g, '_'));
+      return `file://${filePath}?expires=${Date.now() + expiresIn * 1000}`;
+    }
+
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
     });
 
-    return getSignedUrl(this.s3Client, command, { expiresIn });
+    return getSignedUrl(this.s3Client!, command, { expiresIn });
   }
 
   /**
-   * Delete a document from S3
+   * Delete a document from S3 or mock storage
    */
   async deleteDocument(key: string): Promise<void> {
-    await this.s3Client.send(
+    if (this.useMock) {
+      this.mockStorage.delete(key);
+      const filePath = path.join(this.mockStoragePath, key.replace(/\//g, '_'));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      this.logger.log(`[MOCK] Deleted document: ${key}`);
+      return;
+    }
+
+    await this.s3Client!.send(
       new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: key,

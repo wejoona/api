@@ -85,6 +85,12 @@ services:
       # Rate Limiting
       RATE_LIMIT_TTL: ${RATE_LIMIT_TTL:-60}
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      # AWS/S3 (Document Storage)
+      AWS_REGION: ${AWS_REGION:-eu-west-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-joonapay-kyc-documents}
+      AWS_USE_MOCK: ${AWS_USE_MOCK:-true}
       # App Settings
       DEFAULT_COUNTRY: ${DEFAULT_COUNTRY:-CI}
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-USDC}
