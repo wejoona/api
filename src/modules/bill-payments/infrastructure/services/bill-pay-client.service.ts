@@ -25,7 +25,7 @@ export class BillPayClientService {
       'Content-Type': 'application/json',
     };
     if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`;
+      headers['X-API-Key'] = this.apiKey;
     }
     if (userId) {
       headers['X-User-Id'] = userId;
