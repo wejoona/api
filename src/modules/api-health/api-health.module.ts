@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import {
   makeCounterProvider,
@@ -14,7 +15,7 @@ import {
 } from './infrastructure/collectors';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [ScheduleModule.forRoot(), ConfigModule],
   controllers: [ApiHealthController],
   providers: [
     // Health Collectors

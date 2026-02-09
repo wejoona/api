@@ -35,6 +35,7 @@ import {
 // External entities (from other modules)
 import { TransactionOrmEntity } from '../transaction/infrastructure/orm-entities/transaction.orm-entity';
 import { UserOrmEntity } from '../user/infrastructure/orm-entities/user.orm-entity';
+import { WalletOrmEntity } from '../wallet/infrastructure/orm-entities/wallet.orm-entity';
 
 /**
  * Regulatory Reports Module
@@ -90,6 +91,7 @@ import { UserOrmEntity } from '../user/infrastructure/orm-entities/user.orm-enti
       // External entities
       TransactionOrmEntity,
       UserOrmEntity,
+      WalletOrmEntity,
     ]),
     ConfigModule,
     ScheduleModule.forRoot(),

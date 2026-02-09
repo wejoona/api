@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HttpModule } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -86,7 +86,7 @@ import { ComplyAdvantageProvider } from './infrastructure/providers/complyadvant
             return new MockSanctionsProvider();
         }
       },
-      inject: [ConfigService, HttpModule],
+      inject: [ConfigService, HttpService],
     },
     MockSanctionsProvider,
     ComplyAdvantageProvider,

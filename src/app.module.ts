@@ -223,17 +223,16 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     SubBusinessModule, // Sub-business entity management for organizations
 
     // Newly wired modules
-    // === Orphan modules — disabled until cross-module deps are resolved ===
-    // SavingsPotsModule, // Savings pots with 6 use cases
-    // ScheduledPaymentsModule, // Scheduled/recurring payments
-    // SanctionsScreeningModule, // Sanctions screening (compliance)
-    // RegulatoryReportsModule, // BCEAO regulatory compliance reports — needs WalletOrmEntity
-    // EventStoreModule, // Event sourcing
-    // ApiHealthModule, // External API health monitoring — needs Prometheus
-    // ReconciliationModule, // Ledger reconciliation
-    // BatchProcessingModule, // Batch payment processing
-    // ResilienceModule, // Circuit breaker patterns
-    // PaymentLinksModule, // Payment links
+    SavingsPotsModule,
+    ScheduledPaymentsModule,
+    SanctionsScreeningModule,
+    RegulatoryReportsModule,
+    EventStoreModule,
+    ReconciliationModule,
+    BatchProcessingModule,
+    ResilienceModule,
+    PaymentLinksModule,
+    ApiHealthModule,
   ],
   controllers: [AppController],
   providers: [
