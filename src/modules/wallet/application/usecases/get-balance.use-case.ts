@@ -1,12 +1,12 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import {
-  PAYMENT_GATEWAY,
-  IPaymentGateway,
-  Balance,
-} from '../../../shared/domain/gateways';
+  LEDGER_PROVIDER,
+  ILedgerProvider,
+} from '../../../providers/interfaces';
+import { Balance } from '../../../shared/domain/gateways';
 
 export interface GetBalanceInput {
   userId: string;
@@ -18,14 +18,22 @@ export interface GetBalanceOutput {
   balances: Balance[];
 }
 
+/**
+ * Get Balance Use Case
+ *
+ * Reads balance from Blnk ledger (source of truth).
+ * Falls back to local wallet.balance if Blnk is unavailable.
+ * No longer calls Circle/payment gateway for balance.
+ */
 @Injectable()
 export class GetBalanceUseCase {
+  private readonly logger = new Logger(GetBalanceUseCase.name);
   private readonly CACHE_TTL = 30; // 30 seconds
 
   constructor(
     private readonly walletRepository: WalletRepository,
-    @Inject(PAYMENT_GATEWAY)
-    private readonly paymentGateway: IPaymentGateway,
+    @Inject(LEDGER_PROVIDER)
+    private readonly ledgerProvider: ILedgerProvider,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
   ) {}
@@ -46,48 +54,71 @@ export class GetBalanceUseCase {
       throw new NotFoundException('Wallet not found');
     }
 
-    // Check for provider wallet ID (Circle or Yellow Card)
-    const providerWalletId = wallet.circleWalletId || wallet.yellowCardWalletId;
+    // Primary: Read balance from Blnk ledger (source of truth)
+    try {
+      const blnkBalance = await this.ledgerProvider.getUserBalance(
+        input.userId,
+        'USDC',
+      );
 
-    // If no provider linked, return local balance from database
-    if (!providerWalletId) {
-      const result: GetBalanceOutput = {
-        walletId: wallet.id,
-        currency: wallet.currency,
-        balances: [
-          {
-            currency: 'USD',
-            available: wallet.balance,
-            pending: 0,
-            total: wallet.balance,
-          },
-          {
-            currency: 'USDC',
-            available: 0,
-            pending: 0,
-            total: 0,
-          },
-        ],
-      };
+      if (blnkBalance) {
+        // Convert from micro-USDC (bigint) to human-readable
+        const available =
+          Number(blnkBalance.availableBalance) / 1_000_000;
+        const total = Number(blnkBalance.balance) / 1_000_000;
+        const pending =
+          Number(blnkBalance.inflightBalance) / 1_000_000;
 
-      // Cache for shorter time since it's local balance
-      await this.cacheManager.set(cacheKey, result, 10);
-      return result;
+        const result: GetBalanceOutput = {
+          walletId: wallet.id,
+          currency: wallet.currency,
+          balances: [
+            {
+              currency: 'USDC',
+              available,
+              pending,
+              total,
+            },
+            {
+              currency: 'USD',
+              available,
+              pending,
+              total,
+            },
+          ],
+        };
+
+        await this.cacheManager.set(cacheKey, result, this.CACHE_TTL);
+        return result;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to read balance from Blnk for user ${input.userId}: ${error instanceof Error ? error.message : 'Unknown'}. Falling back to local balance.`,
+      );
     }
 
-    // Fetch from payment gateway
-    const balanceResponse =
-      await this.paymentGateway.getBalance(providerWalletId);
-
+    // Fallback: Use local wallet.balance from database
     const result: GetBalanceOutput = {
       walletId: wallet.id,
       currency: wallet.currency,
-      balances: balanceResponse.balances,
+      balances: [
+        {
+          currency: 'USD',
+          available: wallet.balance,
+          pending: 0,
+          total: wallet.balance,
+        },
+        {
+          currency: 'USDC',
+          available: wallet.balance,
+          pending: 0,
+          total: wallet.balance,
+        },
+      ],
     };
 
-    // Cache the result for 30 seconds
-    await this.cacheManager.set(cacheKey, result, this.CACHE_TTL);
-
+    // Cache for shorter time since it's fallback balance
+    await this.cacheManager.set(cacheKey, result, 10);
     return result;
   }
 }

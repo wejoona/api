@@ -36,6 +36,9 @@ import { WalletController } from './application/controllers/wallet.controller';
 import { KycUploadController } from './application/controllers/kyc-upload.controller';
 import { ExportController } from './application/controllers/export.controller';
 
+// Services
+import { OmnibusService } from './application/services/omnibus.service';
+
 // Other modules needed
 import { TransactionModule } from '../transaction/transaction.module';
 import { UserModule } from '../user/user.module';
@@ -74,6 +77,8 @@ import {
     // Guards & Services
     PinVerificationGuard,
     PinTokenService,
+    // Services
+    OmnibusService,
     // Use Cases
     CreateWalletUseCase,
     UpdateWalletUseCase,
@@ -98,6 +103,7 @@ import {
     CreateWalletUseCase,
     InternalTransferUseCase,
     ExternalTransferUseCase,
+    OmnibusService,
   ],
 })
 export class WalletModule {}

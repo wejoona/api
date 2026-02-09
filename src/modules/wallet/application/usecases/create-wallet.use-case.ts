@@ -1,11 +1,8 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WalletEntity } from '../../domain/entities/wallet.entity';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import {
-  IDENTITY_PROVIDER,
-  IIdentityProvider,
-  WALLET_PROVIDER,
-  IWalletProvider,
   LEDGER_PROVIDER,
   ILedgerProvider,
 } from '../../../providers/interfaces';
@@ -21,12 +18,14 @@ export interface CreateWalletInput {
 /**
  * Create Wallet Use Case
  *
- * Orchestrates wallet creation across all three systems:
- * 1. Circle - Create user and blockchain wallet
- * 2. Blnk - Create ledger balance for tracking
- * 3. PostgreSQL - Store wallet record with all provider IDs
+ * Omnibus pattern: Blnk ledger balance is the ONLY required step.
+ * Circle/Stellar per-user wallets are NOT created here — they are lazy,
+ * created on demand when needed (sweep, non-custodial export, etc.).
  *
- * This ensures all systems stay in sync from the start.
+ * Flow:
+ * 1. Create Blnk ledger balance (source of truth)
+ * 2. Create local wallet entity with blnkBalanceId
+ * 3. Emit wallet.created event
  */
 @Injectable()
 export class CreateWalletUseCase {
@@ -34,16 +33,13 @@ export class CreateWalletUseCase {
 
   constructor(
     private readonly repository: WalletRepository,
-    @Inject(IDENTITY_PROVIDER)
-    private readonly identityProvider: IIdentityProvider,
-    @Inject(WALLET_PROVIDER)
-    private readonly walletProvider: IWalletProvider,
     @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: CreateWalletInput): Promise<WalletEntity> {
-    const { userId, userName, userEmail, userPhone, countryCode } = input;
+    const { userId } = input;
 
     this.logger.log(`Creating wallet for user ${userId}`);
 
@@ -51,56 +47,31 @@ export class CreateWalletUseCase {
     const existingWallet = await this.repository.findByUserId(userId);
     if (existingWallet) {
       this.logger.log(`User ${userId} already has a wallet`);
+
+      // If existing wallet doesn't have a Blnk balance, create one (migration path)
+      if (!existingWallet.blnkBalanceId) {
+        try {
+          const blnkBalanceId = await this.ledgerProvider.createUserBalance(
+            userId,
+            'USDC',
+          );
+          existingWallet.linkToBlnk(blnkBalanceId);
+          await this.repository.save(existingWallet);
+          this.logger.log(
+            `Linked existing wallet to Blnk balance: ${blnkBalanceId}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to create Blnk balance for existing wallet: ${error instanceof Error ? error.message : 'Unknown'}`,
+          );
+        }
+      }
+
       return existingWallet;
     }
 
-    let circleUserId: string | undefined;
-    let circleWalletId: string | undefined;
-    let circleWalletAddress: string | undefined;
+    // Step 1: Create Blnk ledger balance (required — source of truth)
     let blnkBalanceId: string | undefined;
-
-    // Step 1: Create Circle user
-    try {
-      this.logger.log(`Creating Circle user for ${userId}`);
-      const circleUser = await this.identityProvider.createUser({
-        userId,
-        email: userEmail,
-        phone: userPhone,
-        countryCode: countryCode || 'CI',
-      });
-      circleUserId = circleUser.providerId;
-      this.logger.log(`Circle user created: ${circleUserId}`);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to create Circle user: ${error instanceof Error ? error.message : 'Unknown'}`,
-      );
-      // Continue - Circle user creation is non-blocking
-    }
-
-    // Step 2: Create Circle wallet (requires Circle user)
-    if (circleUserId) {
-      try {
-        this.logger.log(`Creating Circle wallet for user ${userId}`);
-        const circleWallet = await this.walletProvider.createWallet({
-          userId,
-          userProviderId: circleUserId,
-          name: userName || `User ${userId}`,
-          metadata: {
-            joonapayUserId: userId,
-          },
-        });
-        circleWalletId = circleWallet.providerId;
-        circleWalletAddress = circleWallet.address;
-        this.logger.log(`Circle wallet created: ${circleWalletAddress}`);
-      } catch (error) {
-        this.logger.warn(
-          `Failed to create Circle wallet: ${error instanceof Error ? error.message : 'Unknown'}`,
-        );
-        // Continue - wallet creation can be retried
-      }
-    }
-
-    // Step 3: Create Blnk ledger balance
     try {
       this.logger.log(`Creating Blnk balance for user ${userId}`);
       blnkBalanceId = await this.ledgerProvider.createUserBalance(
@@ -109,22 +80,32 @@ export class CreateWalletUseCase {
       );
       this.logger.log(`Blnk balance created: ${blnkBalanceId}`);
     } catch (error) {
-      this.logger.warn(
-        `Failed to create Blnk balance: ${error instanceof Error ? error.message : 'Unknown'}`,
+      this.logger.error(
+        `Failed to create Blnk balance for user ${userId}: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      // Continue - Blnk balance creation can be retried
+      // Blnk is the source of truth — if it fails, we still create the wallet
+      // but log a critical warning. The balance can be created on next access.
     }
 
-    // Step 4: Create local wallet entity with all provider IDs
+    // Step 2: Create local wallet entity with blnkBalanceId
+    // Circle/Stellar per-user wallets are NOT created here (lazy / omnibus pattern)
     const wallet = WalletEntity.create({
       userId,
-      circleWalletId,
-      circleWalletAddress,
+      blnkBalanceId,
       currency: 'USDC',
     });
 
     const savedWallet = await this.repository.save(wallet);
     this.logger.log(`Wallet created successfully for user ${userId}`);
+
+    // Step 3: Emit event
+    this.eventEmitter.emit('wallet.created', {
+      userId,
+      walletId: savedWallet.id,
+      blnkBalanceId,
+      currency: 'USDC',
+      timestamp: new Date(),
+    });
 
     return savedWallet;
   }

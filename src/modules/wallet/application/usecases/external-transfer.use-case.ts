@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
@@ -17,15 +18,21 @@ import {
   PAYMENT_GATEWAY,
   IPaymentGateway,
 } from '../../../shared/domain/gateways';
+import {
+  LEDGER_PROVIDER,
+  ILedgerProvider,
+} from '../../../providers/interfaces';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { v4 as uuidv4 } from 'uuid';
 import { TransactionRiskService } from '../../../risk/application/services/transaction-risk.service';
+import { OmnibusService } from '../services/omnibus.service';
 
-// SECURITY: KYC-based daily transfer limits (shared with internal transfers)
+// SECURITY: KYC-based daily transfer limits
 const DAILY_TRANSFER_LIMITS = {
-  none: 100, // $100/day for unverified users
-  pending: 100, // $100/day while KYC is pending
-  verified: 10000, // $10,000/day for verified users
-  rejected: 0, // No transfers for rejected KYC
+  none: 100,
+  pending: 100,
+  verified: 10000,
+  rejected: 0,
 };
 
 export interface ExternalTransferInput {
@@ -48,15 +55,24 @@ export interface ExternalTransferOutput {
   estimatedArrival?: string;
 }
 
+/**
+ * External Transfer Use Case (Omnibus Pattern)
+ *
+ * Withdrawals flow:
+ * 1. Blnk debit user balance (source of truth)
+ * 2. Omnibus wallet sends on-chain
+ * 3. Update local DB as mirror
+ *
+ * Deposits flow (handled by webhook/deposit use case):
+ * 1. Receive on omnibus wallet
+ * 2. Blnk credit user balance
+ */
 @Injectable()
 export class ExternalTransferUseCase {
   private readonly logger = new Logger(ExternalTransferUseCase.name);
 
-  // Fee percentage for external transfers (0.5%)
   private readonly FEE_PERCENTAGE = 0.005;
-  // Maximum single transfer amount
   private readonly MAX_TRANSFER_AMOUNT = 10000;
-  // Max retries for optimistic locking conflicts
   private readonly MAX_RETRIES = 3;
 
   constructor(
@@ -66,97 +82,186 @@ export class ExternalTransferUseCase {
     private readonly dataSource: DataSource,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    @Inject(LEDGER_PROVIDER)
+    private readonly ledgerProvider: ILedgerProvider,
+    private readonly omnibusService: OmnibusService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly riskService: TransactionRiskService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: ExternalTransferInput): Promise<ExternalTransferOutput> {
     const currency = input.currency || 'USD';
 
-    // Validate address format (basic validation)
+    // Validate address format
     if (!this.isValidAddress(input.toAddress)) {
       throw new BadRequestException('Invalid wallet address format');
     }
 
     // CRITICAL SECURITY: Circle Compliance Engine - Address Screening
-    // This screens the destination address against:
-    // - OFAC sanctions list
-    // - Terrorist financing databases
-    // - Known hacking/fraud addresses
-    // - Human trafficking networks
-    // - Other illicit activity
     await this.screenDestinationAddress(input.toAddress, input.network);
 
     // Validate amount
-    if (input.amount <= 0) {
+    if (input.amount <= 0)
       throw new BadRequestException('Amount must be greater than 0');
-    }
-
-    // Minimum amount for external transfers
-    if (input.amount < 1) {
+    if (input.amount < 1)
       throw new BadRequestException('Minimum transfer amount is $1');
-    }
-
-    // Maximum amount for external transfers
-    if (input.amount > this.MAX_TRANSFER_AMOUNT) {
+    if (input.amount > this.MAX_TRANSFER_AMOUNT)
       throw new BadRequestException(
         `Maximum transfer amount is $${this.MAX_TRANSFER_AMOUNT}`,
       );
-    }
-
-    // Validate amount precision (max 2 decimal places for USD)
     if (
       !Number.isFinite(input.amount) ||
       Math.round(input.amount * 100) / 100 !== input.amount
-    ) {
+    )
       throw new BadRequestException('Invalid amount precision');
-    }
 
-    // Calculate fee
     const fee = Math.ceil(input.amount * this.FEE_PERCENTAGE * 100) / 100;
     const totalAmount = input.amount + fee;
 
-    // SECURITY: Check KYC-based transfer limits
+    // Check KYC-based transfer limits
     await this.checkTransferLimits(input.userId, input.amount);
 
-    // PHASE 1: Reserve funds with short-lived lock
-    const { walletId, transactionId, yellowCardWalletId } =
-      await this.reserveFunds(
-        input.userId,
-        totalAmount,
-        input.toAddress,
-        currency,
-        fee,
-        input.network,
-      );
+    // Get wallet
+    const wallet = await this._walletRepository.findByUserId(input.userId);
+    if (!wallet) throw new NotFoundException('Wallet not found');
+    if (wallet.status !== 'active')
+      throw new BadRequestException('Wallet is not active');
 
-    // PHASE 2: Execute external transfer (no lock held)
+    // Step 1: Check balance via Blnk (source of truth)
+    const amountInMicro = BigInt(Math.round(totalAmount * 1_000_000));
     try {
+      const availableBalance = await this.ledgerProvider.getAvailableBalance(
+        input.userId,
+        'USDC',
+      );
+      if (availableBalance < amountInMicro) {
+        throw new BadRequestException(
+          `Insufficient balance. Required: $${totalAmount.toFixed(2)} (including $${fee.toFixed(2)} fee)`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.warn(
+        `Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      if (wallet.balance < totalAmount) {
+        throw new BadRequestException(
+          `Insufficient balance. Required: $${totalAmount.toFixed(2)} (including $${fee.toFixed(2)} fee)`,
+        );
+      }
+    }
+
+    // Step 2: Record withdrawal in Blnk ledger (debit user — source of truth)
+    const transactionRef = uuidv4();
+    let blnkTxId: string | undefined;
+    try {
+      const blnkResult = await this.ledgerProvider.recordExternalTransfer({
+        userId: input.userId,
+        amount: BigInt(Math.round(input.amount * 1_000_000)),
+        currency: 'USDC',
+        reference: transactionRef,
+        destinationAddress: input.toAddress,
+        blockchain: input.network || 'polygon',
+        fee: BigInt(Math.round(fee * 1_000_000)),
+        inflight: true,
+        description: `Withdrawal to ${input.toAddress.slice(0, 10)}...`,
+        metadata: {
+          walletId: wallet.id,
+          omnibusPattern: true,
+        },
+      });
+      blnkTxId = blnkResult.transactionId;
+      this.logger.log(`Blnk withdrawal recorded (inflight): ${blnkTxId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to record withdrawal in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      throw new BadRequestException(
+        'Transfer failed. Please try again later.',
+      );
+    }
+
+    // Step 3: Route through omnibus and execute on-chain transfer
+    try {
+      const route = await this.omnibusService.routeExternalTransfer({
+        amount: input.amount,
+        destination: input.toAddress,
+        preferredNetwork: input.network === 'stellar' ? 'stellar' : 'circle',
+      });
+
+      // Execute the on-chain transfer from omnibus wallet
       const transferResponse = await this.paymentGateway.externalTransfer({
-        subwalletId: yellowCardWalletId,
+        subwalletId: route.omnibusWalletId,
         toAddress: input.toAddress,
         amount: input.amount,
         currency,
         network: input.network || 'polygon',
       });
 
-      // PHASE 3: Finalize transaction (short lock)
-      await this.finalizeTransaction(
-        transactionId,
-        transferResponse,
-        'completed',
-      );
+      // Step 4: Commit Blnk inflight transaction
+      if (blnkTxId) {
+        try {
+          await this.ledgerProvider.commitTransaction(blnkTxId);
+        } catch (commitError) {
+          this.logger.error(
+            `Failed to commit Blnk transaction ${blnkTxId}: ${commitError instanceof Error ? commitError.message : 'Unknown'}`,
+          );
+        }
+      }
 
-      this.logger.log(
-        `External transfer completed: ${transactionId}, amount: ${input.amount}, fee: ${fee}`,
-      );
+      // Step 5: Update local DB balance (mirror)
+      await this.updateLocalBalance(input.userId, -totalAmount);
 
-      // Invalidate balance cache for sender
+      // Step 6: Create transaction record
+      const transaction = TransactionEntity.createExternalTransfer({
+        walletId: wallet.id,
+        amount: -totalAmount,
+        recipientAddress: input.toAddress,
+        currency,
+        yellowCardRef: transferResponse.externalId,
+        metadata: {
+          network: input.network || 'polygon',
+          fee,
+          grossAmount: input.amount,
+          blnkTransactionId: blnkTxId,
+          omnibusNetwork: route.network,
+          omnibusWalletId: route.omnibusWalletId,
+          status: 'completed',
+        },
+      });
+      transaction.complete();
+      await this.transactionRepository.save(transaction);
+
+      // Invalidate cache
       await this.cacheInvalidationService.invalidateBalance(input.userId);
 
+      // Emit events
+      this.eventEmitter.emit('transaction.withdrawal.initiated', {
+        userId: input.userId,
+        transactionId: transaction.id,
+        toAddress: input.toAddress,
+        amount: input.amount,
+        currency,
+        fee,
+        omnibusNetwork: route.network,
+        timestamp: new Date(),
+      });
+
+      this.eventEmitter.emit('balance.updated', {
+        userId: input.userId,
+        walletId: wallet.id,
+        reason: 'withdrawal',
+        timestamp: new Date(),
+      });
+
+      this.logger.log(
+        `External transfer completed via omnibus (${route.network}): ${transaction.id}`,
+      );
+
       return {
-        transactionId,
-        walletId,
+        transactionId: transaction.id,
+        walletId: wallet.id,
         toAddress: input.toAddress,
         amount: input.amount,
         currency,
@@ -166,13 +271,21 @@ export class ExternalTransferUseCase {
         estimatedArrival: '5-30 minutes',
       };
     } catch (error) {
-      // PHASE 3 (failure): Refund the reserved funds
+      // On-chain transfer failed — void the Blnk inflight transaction
       this.logger.error(
-        `External transfer failed, refunding: ${error.message}`,
-        error.stack,
+        `External transfer failed, voiding Blnk transaction: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
 
-      await this.refundTransaction(transactionId, input.userId, totalAmount);
+      if (blnkTxId) {
+        try {
+          await this.ledgerProvider.voidTransaction(blnkTxId);
+          this.logger.log(`Voided Blnk transaction ${blnkTxId}`);
+        } catch (voidError) {
+          this.logger.error(
+            `CRITICAL: Failed to void Blnk transaction ${blnkTxId}: ${voidError instanceof Error ? voidError.message : 'Unknown'}`,
+          );
+        }
+      }
 
       throw new BadRequestException(
         'Transfer failed. Your funds have been refunded. Please try again later.',
@@ -180,217 +293,45 @@ export class ExternalTransferUseCase {
     }
   }
 
-  /**
-   * Phase 1: Reserve funds using optimistic locking
-   * This debits the balance and creates a PENDING transaction
-   */
-  private async reserveFunds(
+  private async updateLocalBalance(
     userId: string,
-    totalAmount: number,
-    toAddress: string,
-    currency: string,
-    fee: number,
-    network?: string,
-    attempt = 1,
-  ): Promise<{
-    walletId: string;
-    transactionId: string;
-    yellowCardWalletId: string;
-  }> {
-    try {
-      return await this.dataSource.transaction(async (manager) => {
-        // Get wallet without pessimistic lock - using optimistic locking via version column
-        const walletOrm = await manager.findOne(WalletOrmEntity, {
-          where: { userId },
-        });
-
-        if (!walletOrm) {
-          throw new NotFoundException('Wallet not found');
-        }
-
-        if (walletOrm.status !== 'active') {
-          throw new BadRequestException('Wallet is not active');
-        }
-
-        // Check balance
-        if (Number(walletOrm.balance) < totalAmount) {
-          throw new BadRequestException(
-            `Insufficient balance. Required: $${totalAmount.toFixed(2)} (including $${fee.toFixed(2)} fee)`,
-          );
-        }
-
-        this.logger.log(
-          `Reserving funds: ${userId} -> ${toAddress}, amount: ${totalAmount - fee}, fee: ${fee} (attempt ${attempt})`,
-        );
-
-        // Debit balance - version column auto-increments on save
-        walletOrm.balance = Number(walletOrm.balance) - totalAmount;
-        await manager.save(walletOrm);
-
-        // Create PENDING transaction
-        const transaction = TransactionEntity.createExternalTransfer({
-          walletId: walletOrm.id,
-          amount: -totalAmount,
-          recipientAddress: toAddress,
-          currency,
-          yellowCardRef: null, // Will be updated in finalize
-          metadata: {
-            network: network || 'polygon',
-            fee,
-            grossAmount: totalAmount - fee,
-            status: 'pending',
-          },
-        });
-
-        // Mark as pending
-        transaction.status = 'pending';
-        await this.transactionRepository.save(transaction);
-
-        return {
-          walletId: walletOrm.id,
-          transactionId: transaction.id,
-          yellowCardWalletId: walletOrm.yellowCardWalletId,
-        };
-      });
-    } catch (error) {
-      // Handle optimistic lock conflict - retry with fresh data
-      if (
-        error instanceof OptimisticLockVersionMismatchError ||
-        error.message?.includes('version')
-      ) {
-        if (attempt < this.MAX_RETRIES) {
-          this.logger.warn(
-            `Optimistic lock conflict on fund reservation, retrying (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
-          );
-          // Small delay before retry to reduce contention
-          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-          return this.reserveFunds(
-            userId,
-            totalAmount,
-            toAddress,
-            currency,
-            fee,
-            network,
-            attempt + 1,
-          );
-        }
-        throw new ConflictException(
-          'Transfer failed due to concurrent modification. Please try again.',
-        );
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Phase 3a: Finalize successful transaction
-   */
-  private async finalizeTransaction(
-    transactionId: string,
-    transferResponse: { id: string; externalId: string; status: string },
-    status: string,
-  ): Promise<void> {
-    // Update transaction with external reference and status
-    await this.transactionRepository.update(transactionId, {
-      status,
-      yellowCardRef: transferResponse.externalId,
-      metadata: {
-        transferId: transferResponse.id,
-        externalStatus: transferResponse.status,
-        completedAt: new Date().toISOString(),
-      },
-    });
-  }
-
-  /**
-   * Phase 3b: Refund on failure using optimistic locking
-   */
-  private async refundTransaction(
-    transactionId: string,
-    userId: string,
-    amount: number,
-    attempt = 1,
+    delta: number,
   ): Promise<void> {
     try {
       await this.dataSource.transaction(async (manager) => {
-        // Get wallet without pessimistic lock - using optimistic locking
         const walletOrm = await manager.findOne(WalletOrmEntity, {
           where: { userId },
         });
-
         if (walletOrm) {
-          // Refund the amount - version column auto-increments on save
-          walletOrm.balance = Number(walletOrm.balance) + amount;
+          walletOrm.balance = Number(walletOrm.balance) + delta;
           await manager.save(walletOrm);
         }
-
-        // Mark transaction as failed
-        await this.transactionRepository.update(transactionId, {
-          status: 'failed',
-          metadata: {
-            failedAt: new Date().toISOString(),
-            refunded: true,
-          },
-        });
       });
-
-      this.logger.log(
-        `Refunded ${amount} for failed transaction ${transactionId}`,
-      );
     } catch (error) {
-      // Handle optimistic lock conflict - retry refund
-      if (
-        error instanceof OptimisticLockVersionMismatchError ||
-        error.message?.includes('version')
-      ) {
-        if (attempt < this.MAX_RETRIES) {
-          this.logger.warn(
-            `Optimistic lock conflict on refund, retrying (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-          return this.refundTransaction(
-            transactionId,
-            userId,
-            amount,
-            attempt + 1,
-          );
-        }
-      }
-      // Log but don't throw - refund failure needs manual intervention
       this.logger.error(
-        `CRITICAL: Failed to refund transaction ${transactionId}: ${error.message}`,
-        error.stack,
+        `Failed to update local balance for ${userId}: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      // TODO: Alert operations team for manual refund
     }
   }
 
-  /**
-   * SECURITY: Check if user has exceeded their daily transfer limit based on KYC status
-   * Note: Blnk provides ledger-level tracking, this is additional application-level security
-   */
   private async checkTransferLimits(
     userId: string,
     amount: number,
   ): Promise<void> {
     const user = await this.userRepository.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     const kycStatus = user.kycStatus || 'none';
     const dailyLimit =
       DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ??
       DAILY_TRANSFER_LIMITS.none;
 
-    // If KYC is rejected, block all transfers
     if (dailyLimit === 0) {
       throw new BadRequestException(
         'Transfers are disabled. Please contact support regarding your KYC status.',
       );
     }
 
-    // Get today's transfer volume
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -399,7 +340,6 @@ export class ExternalTransferUseCase {
       todayStart,
     );
 
-    // Check if this transfer would exceed the daily limit
     if (dailyVolume + amount > dailyLimit) {
       const remaining = Math.max(0, dailyLimit - dailyVolume);
       throw new BadRequestException(
@@ -407,45 +347,22 @@ export class ExternalTransferUseCase {
           `You have $${remaining.toFixed(2)} remaining today.`,
       );
     }
-
-    this.logger.debug(
-      `Transfer limit check passed: user=${userId}, kycStatus=${kycStatus}, ` +
-        `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`,
-    );
   }
 
   private isValidAddress(address: string): boolean {
-    // Ethereum/EVM address validation with checksum support
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return false;
-    }
-
-    // If address is all lowercase or all uppercase, it's valid (no checksum)
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) return false;
     if (
       address === address.toLowerCase() ||
       address.substring(2) === address.substring(2).toUpperCase()
-    ) {
+    )
       return true;
-    }
-
-    // SECURITY: EIP-55 checksum validation for mixed-case addresses
-    // This prevents typos and ensures address integrity
     return this.validateEip55Checksum(address);
   }
 
-  /**
-   * SECURITY: Validates EIP-55 checksum for Ethereum addresses
-   * EIP-55 uses keccak256 hash to determine which characters should be uppercase
-   * @see https://eips.ethereum.org/EIPS/eip-55
-   */
   private validateEip55Checksum(address: string): boolean {
     try {
       const addressWithoutPrefix = address.substring(2).toLowerCase();
       const crypto = require('crypto');
-
-      // Use keccak256 (SHA-3 variant used by Ethereum)
-      // Note: Node.js crypto doesn't have keccak256, so we use a workaround
-      // In production, consider using ethers.js or web3.js for proper keccak256
       const hash = crypto
         .createHash('sha3-256')
         .update(addressWithoutPrefix)
@@ -454,23 +371,14 @@ export class ExternalTransferUseCase {
       for (let i = 0; i < 40; i++) {
         const hashChar = parseInt(hash[i], 16);
         const addressChar = address[i + 2];
-
-        // If hash character >= 8, address character should be uppercase
         if (hashChar >= 8) {
-          if (addressChar !== addressChar.toUpperCase()) {
-            return false;
-          }
+          if (addressChar !== addressChar.toUpperCase()) return false;
         } else {
-          if (addressChar !== addressChar.toLowerCase()) {
-            return false;
-          }
+          if (addressChar !== addressChar.toLowerCase()) return false;
         }
       }
-
       return true;
     } catch (error) {
-      // If checksum validation fails, log and accept the address
-      // This is a fallback - proper keccak256 should be used in production
       this.logger.warn(
         `EIP-55 checksum validation failed for ${address}: ${error.message}`,
       );
@@ -478,25 +386,11 @@ export class ExternalTransferUseCase {
     }
   }
 
-  /**
-   * CRITICAL SECURITY: Screen destination address via Circle Compliance Engine
-   *
-   * This is an additional security layer that screens the destination address against:
-   * - OFAC sanctions list
-   * - Terrorist financing databases
-   * - Known hacking/fraud addresses
-   * - Human trafficking networks
-   * - CSAM-related addresses
-   * - Other illicit activity
-   *
-   * If the address is flagged, the transfer is BLOCKED - no override possible.
-   */
   private async screenDestinationAddress(
     address: string,
     network?: string,
   ): Promise<void> {
     const blockchain = this.mapNetworkToBlockchain(network);
-
     this.logger.log(
       `[COMPLIANCE] Screening address: ${address} on ${blockchain}`,
     );
@@ -508,19 +402,14 @@ export class ExternalTransferUseCase {
         reason: result.reason,
         riskSignals: result.riskSignals,
       });
-
       throw new ForbiddenException(
         `Transfer blocked: This destination address has been flagged by our compliance system. ` +
           `Reason: ${result.reason || 'Compliance check failed'}`,
       );
     }
-
     this.logger.log(`[COMPLIANCE] Address approved: ${address}`);
   }
 
-  /**
-   * Map network name to Circle blockchain identifier
-   */
   private mapNetworkToBlockchain(
     network?: string,
   ): 'ETH' | 'MATIC' | 'ARB' | 'AVAX' | 'BASE' | 'OP' | 'SOL' {
@@ -542,7 +431,6 @@ export class ExternalTransferUseCase {
       solana: 'SOL',
       sol: 'SOL',
     };
-
     return networkMap[network?.toLowerCase() || 'polygon'] || 'MATIC';
   }
 }

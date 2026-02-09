@@ -49,6 +49,23 @@ export class WalletOrmEntity {
   })
   circleWalletAddress: string | null;
 
+  @Column({
+    name: 'blnk_balance_id',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  @Index()
+  blnkBalanceId: string | null;
+
+  @Column({
+    name: 'stellar_address',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  stellarAddress: string | null;
+
   @Column({ type: 'varchar', length: 10, default: 'USDC' })
   currency: string;
 

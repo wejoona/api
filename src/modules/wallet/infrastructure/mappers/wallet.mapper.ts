@@ -19,6 +19,8 @@ export class WalletMapper {
     ormEntity.yellowCardWalletId = domainEntity.yellowCardWalletId;
     ormEntity.circleWalletId = domainEntity.circleWalletId;
     ormEntity.circleWalletAddress = domainEntity.circleWalletAddress;
+    ormEntity.blnkBalanceId = domainEntity.blnkBalanceId;
+    ormEntity.stellarAddress = domainEntity.stellarAddress;
     ormEntity.currency = domainEntity.currency;
     ormEntity.balance = domainEntity.balance;
     ormEntity.kycStatus = domainEntity.kycStatus;
@@ -36,6 +38,8 @@ export class WalletMapper {
       yellowCardWalletId: ormEntity.yellowCardWalletId,
       circleWalletId: ormEntity.circleWalletId,
       circleWalletAddress: ormEntity.circleWalletAddress,
+      blnkBalanceId: ormEntity.blnkBalanceId,
+      stellarAddress: ormEntity.stellarAddress,
       currency: ormEntity.currency,
       balance: Number(ormEntity.balance) || 0,
       kycStatus: (ormEntity.kycStatus as KycStatus) || 'none',

@@ -3,21 +3,21 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
-  ConflictException,
   Logger,
 } from '@nestjs/common';
-import { DataSource, OptimisticLockVersionMismatchError } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource } from 'typeorm';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
 import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { WalletOrmEntity } from '../../infrastructure/orm-entities/wallet.orm-entity';
 import {
-  PAYMENT_GATEWAY,
-  IPaymentGateway,
-} from '../../../shared/domain/gateways';
+  LEDGER_PROVIDER,
+  ILedgerProvider,
+} from '../../../providers/interfaces';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
-import { BlnkLedgerAdapter } from '../../../providers/blnk/adapters/blnk-ledger.adapter';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface InternalTransferInput {
   fromUserId: string;
@@ -39,26 +39,38 @@ export interface InternalTransferOutput {
 
 // SECURITY: KYC-based daily transfer limits
 const DAILY_TRANSFER_LIMITS = {
-  none: 100, // $100/day for unverified users
-  pending: 100, // $100/day while KYC is pending
-  verified: 10000, // $10,000/day for verified users
-  rejected: 0, // No transfers for rejected KYC
+  none: 100,
+  pending: 100,
+  verified: 10000,
+  rejected: 0,
 };
 
+/**
+ * Internal Transfer Use Case (Omnibus Pattern)
+ *
+ * P2P transfers are Blnk-only: debit sender balance, credit receiver balance.
+ * NO on-chain transaction is needed — instant, free, ledger-only.
+ *
+ * Flow:
+ * 1. Validate request, find recipient, check limits
+ * 2. Record P2P transfer in Blnk ledger (source of truth)
+ * 3. Update local DB balances (mirror)
+ * 4. Create transaction records
+ * 5. Emit events
+ */
 @Injectable()
 export class InternalTransferUseCase {
   private readonly logger = new Logger(InternalTransferUseCase.name);
-  private readonly MAX_RETRIES = 3;
 
   constructor(
     private readonly _walletRepository: WalletRepository,
     private readonly transactionRepository: TransactionRepository,
     private readonly userRepository: UserRepository,
     private readonly dataSource: DataSource,
-    @Inject(PAYMENT_GATEWAY)
-    private readonly paymentGateway: IPaymentGateway,
+    @Inject(LEDGER_PROVIDER)
+    private readonly ledgerProvider: ILedgerProvider,
     private readonly cacheInvalidationService: CacheInvalidationService,
-    private readonly blnkLedgerAdapter: BlnkLedgerAdapter,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: InternalTransferInput): Promise<InternalTransferOutput> {
@@ -73,27 +85,204 @@ export class InternalTransferUseCase {
     // Step 3: Check daily limits based on KYC status
     await this.checkDailyLimits(input.fromUserId, input.amount);
 
-    // Step 4: Execute transfer with retry logic
-    return this.executeWithRetry(input, recipient, currency);
+    // Step 4: Load wallets
+    const fromWallet = await this._walletRepository.findByUserId(
+      input.fromUserId,
+    );
+    if (!fromWallet) throw new NotFoundException('Sender wallet not found');
+    if (fromWallet.status !== 'active')
+      throw new BadRequestException('Sender wallet is not active');
+
+    const toWallet = await this._walletRepository.findByUserId(recipient.id);
+    if (!toWallet) throw new NotFoundException('Recipient wallet not found');
+    if (toWallet.status !== 'active')
+      throw new BadRequestException('Recipient wallet is not active');
+    if (fromWallet.id === toWallet.id)
+      throw new BadRequestException('Cannot transfer to yourself');
+
+    // Step 5: Check balance via Blnk (source of truth)
+    try {
+      const availableBalance = await this.ledgerProvider.getAvailableBalance(
+        input.fromUserId,
+        'USDC',
+      );
+      const amountInMicro = BigInt(Math.round(input.amount * 1_000_000));
+      if (availableBalance < amountInMicro) {
+        throw new BadRequestException('Insufficient balance');
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      // Fallback: check local balance if Blnk is unavailable
+      this.logger.warn(
+        `Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      if (fromWallet.balance < input.amount) {
+        throw new BadRequestException('Insufficient balance');
+      }
+    }
+
+    // Step 6: Record P2P transfer in Blnk ledger (source of truth — NO on-chain tx)
+    const amountInMicroUSDC = BigInt(Math.round(input.amount * 1_000_000));
+    const senderTxId = uuidv4();
+
+    try {
+      await this.ledgerProvider.recordP2PTransfer({
+        senderId: input.fromUserId,
+        recipientId: recipient.id,
+        amount: amountInMicroUSDC,
+        currency: 'USDC',
+        reference: senderTxId,
+        description: `P2P transfer to ${recipient.fullName}`,
+        metadata: {
+          senderWalletId: fromWallet.id,
+          recipientWalletId: toWallet.id,
+          recipientPhone: input.toPhone,
+          recipientName: recipient.fullName,
+        },
+      });
+      this.logger.log(`Blnk P2P transfer recorded: ${senderTxId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to record P2P transfer in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      throw new BadRequestException(
+        'Transfer failed. Please try again later.',
+      );
+    }
+
+    // Step 7: Update local DB balances (mirror of Blnk)
+    await this.dataSource.transaction(async (manager) => {
+      const fromWalletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { userId: input.fromUserId },
+      });
+      const toWalletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { userId: recipient.id },
+      });
+
+      if (fromWalletOrm && toWalletOrm) {
+        fromWalletOrm.balance = Number(fromWalletOrm.balance) - input.amount;
+        toWalletOrm.balance = Number(toWalletOrm.balance) + input.amount;
+        await manager.save(fromWalletOrm);
+        await manager.save(toWalletOrm);
+      }
+    });
+
+    // Step 8: Create transaction records
+    const senderTransaction = TransactionEntity.createInternalTransfer({
+      walletId: fromWallet.id,
+      amount: -input.amount,
+      recipientWalletId: toWallet.id,
+      recipientPhone: input.toPhone,
+      currency,
+      metadata: {
+        direction: 'outbound',
+        recipientName: recipient.fullName,
+        blnkReference: senderTxId,
+        omnibusPattern: true,
+      },
+    });
+    senderTransaction.complete();
+
+    const recipientTransaction = TransactionEntity.createInternalTransfer({
+      walletId: toWallet.id,
+      amount: input.amount,
+      recipientWalletId: fromWallet.id,
+      recipientPhone: input.toPhone,
+      currency,
+      metadata: {
+        direction: 'inbound',
+        senderWalletId: fromWallet.id,
+        blnkReference: senderTxId,
+        omnibusPattern: true,
+      },
+    });
+    recipientTransaction.complete();
+
+    await Promise.all([
+      this.transactionRepository.save(senderTransaction),
+      this.transactionRepository.save(recipientTransaction),
+    ]);
+
+    // Step 9: Invalidate caches
+    await this.cacheInvalidationService.invalidateMultipleBalances([
+      input.fromUserId,
+      recipient.id,
+    ]);
+
+    // Step 10: Emit events
+    this.eventEmitter.emit('transaction.transfer.sent', {
+      userId: input.fromUserId,
+      transactionId: senderTransaction.id,
+      recipientId: recipient.id,
+      amount: input.amount,
+      currency,
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('transaction.transfer.received', {
+      userId: recipient.id,
+      transactionId: recipientTransaction.id,
+      senderId: input.fromUserId,
+      amount: input.amount,
+      currency,
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('transfer.sent', {
+      userId: input.fromUserId,
+      transactionId: senderTransaction.id,
+      recipientId: recipient.id,
+      amount: input.amount,
+      currency,
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('transfer.received', {
+      userId: recipient.id,
+      transactionId: recipientTransaction.id,
+      senderId: input.fromUserId,
+      amount: input.amount,
+      currency,
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('balance.updated', {
+      userId: input.fromUserId,
+      walletId: fromWallet.id,
+      reason: 'transfer_sent',
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('balance.updated', {
+      userId: recipient.id,
+      walletId: toWallet.id,
+      reason: 'transfer_received',
+      timestamp: new Date(),
+    });
+
+    this.logger.log(
+      `Internal transfer completed (Blnk-only, no on-chain tx): ${senderTransaction.id}, amount: ${input.amount}`,
+    );
+
+    return {
+      transactionId: senderTransaction.id,
+      fromWalletId: fromWallet.id,
+      toWalletId: toWallet.id,
+      toPhone: input.toPhone,
+      amount: input.amount,
+      currency,
+      fee: 0, // Internal transfers are free
+      status: 'completed',
+    };
   }
 
-  /**
-   * Validates the transfer request input
-   * - Amount must be positive and above minimum threshold
-   * - Amount must have valid precision (max 2 decimal places)
-   */
   private validateTransferRequest(input: InternalTransferInput): void {
-    // Validate amount is positive
     if (input.amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
     }
-
-    // Validate amount is not too small (prevent dust attacks)
     if (input.amount < 0.01) {
       throw new BadRequestException('Minimum transfer amount is 0.01');
     }
-
-    // Validate amount precision (max 2 decimal places for USD)
     if (
       !Number.isFinite(input.amount) ||
       Math.round(input.amount * 100) / 100 !== input.amount
@@ -102,10 +291,6 @@ export class InternalTransferUseCase {
     }
   }
 
-  /**
-   * Validates and retrieves recipient user by phone number
-   * Fails fast if recipient doesn't exist (outside transaction)
-   */
   private async validateRecipient(
     phone: string,
   ): Promise<{ id: string; fullName: string }> {
@@ -118,10 +303,6 @@ export class InternalTransferUseCase {
     return recipient;
   }
 
-  /**
-   * SECURITY: Check if user has exceeded their daily transfer limit based on KYC status
-   * Note: Blnk provides ledger-level tracking, this is additional application-level security
-   */
   private async checkDailyLimits(
     userId: string,
     amount: number,
@@ -136,14 +317,12 @@ export class InternalTransferUseCase {
       DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ??
       DAILY_TRANSFER_LIMITS.none;
 
-    // If KYC is rejected, block all transfers
     if (dailyLimit === 0) {
       throw new BadRequestException(
         'Transfers are disabled. Please contact support regarding your KYC status.',
       );
     }
 
-    // Get today's transfer volume
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -152,214 +331,12 @@ export class InternalTransferUseCase {
       todayStart,
     );
 
-    // Check if this transfer would exceed the daily limit
     if (dailyVolume + amount > dailyLimit) {
       const remaining = Math.max(0, dailyLimit - dailyVolume);
       throw new BadRequestException(
         `Daily transfer limit exceeded. Your limit is $${dailyLimit}/day (KYC: ${kycStatus}). ` +
           `You have $${remaining.toFixed(2)} remaining today.`,
       );
-    }
-
-    this.logger.debug(
-      `Transfer limit check passed: user=${userId}, kycStatus=${kycStatus}, ` +
-        `dailyLimit=$${dailyLimit}, dailyVolume=$${dailyVolume.toFixed(2)}, amount=$${amount}`,
-    );
-  }
-
-  /**
-   * Executes the transfer transaction within a database transaction
-   * Uses optimistic locking to handle concurrent modifications
-   */
-  private async executeTransferTransaction(
-    input: InternalTransferInput,
-    recipient: { id: string; fullName: string },
-    currency: string,
-    attempt: number,
-  ): Promise<InternalTransferOutput> {
-    return await this.dataSource.transaction(async (manager) => {
-      // Get sender's wallet (no lock - using optimistic locking via version column)
-      const fromWalletOrm = await manager.findOne(WalletOrmEntity, {
-        where: { userId: input.fromUserId },
-      });
-
-      if (!fromWalletOrm) {
-        throw new NotFoundException('Sender wallet not found');
-      }
-
-      if (fromWalletOrm.status !== 'active') {
-        throw new BadRequestException('Sender wallet is not active');
-      }
-
-      // Check balance BEFORE transfer (critical security check)
-      if (Number(fromWalletOrm.balance) < input.amount) {
-        throw new BadRequestException('Insufficient balance');
-      }
-
-      // Get recipient's wallet (no lock - using optimistic locking)
-      const toWalletOrm = await manager.findOne(WalletOrmEntity, {
-        where: { userId: recipient.id },
-      });
-
-      if (!toWalletOrm) {
-        throw new NotFoundException('Recipient wallet not found');
-      }
-
-      if (toWalletOrm.status !== 'active') {
-        throw new BadRequestException('Recipient wallet is not active');
-      }
-
-      // Cannot transfer to yourself
-      if (fromWalletOrm.id === toWalletOrm.id) {
-        throw new BadRequestException('Cannot transfer to yourself');
-      }
-
-      this.logger.log(
-        `Processing internal transfer: ${input.fromUserId} -> ${recipient.id}, amount: ${input.amount} (attempt ${attempt})`,
-      );
-
-      // Execute transfer via payment gateway
-      const transferResponse = await this.paymentGateway.internalTransfer({
-        fromSubwalletId: fromWalletOrm.yellowCardWalletId,
-        toSubwalletId: toWalletOrm.yellowCardWalletId,
-        amount: input.amount,
-        currency,
-      });
-
-      // Update balances - version column auto-increments on save
-      // If another transaction modified the wallet, save() will throw OptimisticLockVersionMismatchError
-      fromWalletOrm.balance = Number(fromWalletOrm.balance) - input.amount;
-      toWalletOrm.balance = Number(toWalletOrm.balance) + input.amount;
-
-      await manager.save(fromWalletOrm);
-      await manager.save(toWalletOrm);
-
-      // Create transaction record for sender (debit)
-      const senderTransaction = TransactionEntity.createInternalTransfer({
-        walletId: fromWalletOrm.id,
-        amount: -input.amount, // Negative for debit
-        recipientWalletId: toWalletOrm.id,
-        recipientPhone: input.toPhone,
-        currency,
-        metadata: {
-          transferId: transferResponse.id,
-          direction: 'outbound',
-          recipientName: recipient.fullName,
-        },
-      });
-
-      // Create transaction record for recipient (credit)
-      const recipientTransaction = TransactionEntity.createInternalTransfer({
-        walletId: toWalletOrm.id,
-        amount: input.amount, // Positive for credit
-        recipientWalletId: fromWalletOrm.id,
-        recipientPhone: input.toPhone,
-        currency,
-        metadata: {
-          transferId: transferResponse.id,
-          direction: 'inbound',
-          senderWalletId: fromWalletOrm.id,
-        },
-      });
-
-      // Mark as completed (internal transfers are instant)
-      senderTransaction.complete();
-      recipientTransaction.complete();
-
-      await Promise.all([
-        this.transactionRepository.save(senderTransaction),
-        this.transactionRepository.save(recipientTransaction),
-      ]);
-
-      this.logger.log(
-        `Internal transfer completed: ${senderTransaction.id}, amount: ${input.amount}`,
-      );
-
-      // Record P2P transfer in Blnk ledger immediately
-      try {
-        const amountInMicroUSDC = BigInt(Math.round(input.amount * 1000000));
-        await this.blnkLedgerAdapter.recordP2PTransfer({
-          senderId: input.fromUserId,
-          recipientId: recipient.id,
-          amount: amountInMicroUSDC,
-          currency: 'USD',
-          reference: senderTransaction.id,
-          description: `P2P transfer from ${input.fromUserId} to ${recipient.id}`,
-          metadata: {
-            transferId: transferResponse.id,
-            senderWalletId: fromWalletOrm.id,
-            recipientWalletId: toWalletOrm.id,
-            recipientPhone: input.toPhone,
-            recipientName: recipient.fullName,
-          },
-        });
-        this.logger.log(
-          `Blnk ledger updated for P2P transfer: ${senderTransaction.id}`,
-        );
-      } catch (blnkError) {
-        // Log error but don't fail the transaction since database is already committed
-        this.logger.error(
-          `Failed to record P2P transfer in Blnk ledger: ${blnkError.message}`,
-          blnkError.stack,
-        );
-        // TODO: Add to retry queue or alert monitoring system
-      }
-
-      // Invalidate balance cache for both sender and recipient
-      await this.cacheInvalidationService.invalidateMultipleBalances([
-        input.fromUserId,
-        recipient.id,
-      ]);
-
-      return {
-        transactionId: senderTransaction.id,
-        fromWalletId: fromWalletOrm.id,
-        toWalletId: toWalletOrm.id,
-        toPhone: input.toPhone,
-        amount: input.amount,
-        currency,
-        fee: transferResponse.fee,
-        status: 'completed',
-      };
-    });
-  }
-
-  /**
-   * Executes transfer with retry logic for optimistic lock conflicts
-   * Retries up to MAX_RETRIES times with exponential backoff
-   */
-  private async executeWithRetry(
-    input: InternalTransferInput,
-    recipient: { id: string; fullName: string },
-    currency: string,
-    attempt = 1,
-  ): Promise<InternalTransferOutput> {
-    try {
-      return await this.executeTransferTransaction(
-        input,
-        recipient,
-        currency,
-        attempt,
-      );
-    } catch (error) {
-      // Handle optimistic lock conflict - retry with fresh data
-      if (
-        error instanceof OptimisticLockVersionMismatchError ||
-        error.message?.includes('version')
-      ) {
-        if (attempt < this.MAX_RETRIES) {
-          this.logger.warn(
-            `Optimistic lock conflict on internal transfer, retrying (attempt ${attempt + 1}/${this.MAX_RETRIES})`,
-          );
-          // Small delay before retry to reduce contention
-          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-          return this.executeWithRetry(input, recipient, currency, attempt + 1);
-        }
-        throw new ConflictException(
-          'Transfer failed due to concurrent modification. Please try again.',
-        );
-      }
-      throw error;
     }
   }
 }

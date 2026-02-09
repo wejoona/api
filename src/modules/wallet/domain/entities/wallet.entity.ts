@@ -10,6 +10,10 @@ export interface IWallet {
   // Circle integration
   circleWalletId: string | null;
   circleWalletAddress: string | null;
+  // Blnk ledger integration (source of truth for balances)
+  blnkBalanceId: string | null;
+  // Stellar integration
+  stellarAddress: string | null;
   currency: string;
   balance: number;
   kycStatus: KycStatus;
@@ -23,6 +27,8 @@ export interface CreateWalletProps {
   yellowCardWalletId?: string;
   circleWalletId?: string;
   circleWalletAddress?: string;
+  blnkBalanceId?: string;
+  stellarAddress?: string;
   currency?: string;
 }
 
@@ -33,6 +39,10 @@ export class WalletEntity implements IWallet {
   // Circle integration
   circleWalletId: string | null;
   circleWalletAddress: string | null;
+  // Blnk ledger integration (source of truth for balances)
+  blnkBalanceId: string | null;
+  // Stellar integration
+  stellarAddress: string | null;
   readonly currency: string;
   balance: number;
   kycStatus: KycStatus;
@@ -46,6 +56,8 @@ export class WalletEntity implements IWallet {
     this.yellowCardWalletId = props.yellowCardWalletId;
     this.circleWalletId = props.circleWalletId;
     this.circleWalletAddress = props.circleWalletAddress;
+    this.blnkBalanceId = props.blnkBalanceId;
+    this.stellarAddress = props.stellarAddress;
     this.currency = props.currency;
     this.balance = props.balance;
     this.kycStatus = props.kycStatus;
@@ -62,6 +74,8 @@ export class WalletEntity implements IWallet {
       yellowCardWalletId: props.yellowCardWalletId || null,
       circleWalletId: props.circleWalletId || null,
       circleWalletAddress: props.circleWalletAddress || null,
+      blnkBalanceId: props.blnkBalanceId || null,
+      stellarAddress: props.stellarAddress || null,
       currency: props.currency || 'USDC',
       balance: 0,
       kycStatus: 'none',
@@ -88,6 +102,22 @@ export class WalletEntity implements IWallet {
     if (circleWalletAddress) {
       this.circleWalletAddress = circleWalletAddress;
     }
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Link wallet to Blnk ledger balance (source of truth)
+   */
+  linkToBlnk(blnkBalanceId: string): void {
+    this.blnkBalanceId = blnkBalanceId;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Link wallet to Stellar address
+   */
+  linkToStellar(stellarAddress: string): void {
+    this.stellarAddress = stellarAddress;
     this.updatedAt = new Date();
   }
 
@@ -169,5 +199,13 @@ export class WalletEntity implements IWallet {
 
   get depositAddress(): string | null {
     return this.circleWalletAddress;
+  }
+
+  get isLinkedToBlnk(): boolean {
+    return this.blnkBalanceId !== null;
+  }
+
+  get isLinkedToStellar(): boolean {
+    return this.stellarAddress !== null;
   }
 }
