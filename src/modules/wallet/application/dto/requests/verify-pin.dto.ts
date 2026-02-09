@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Length, Matches } from 'class-validator';
 
-export class VerifyPinDto {
+export class WalletVerifyPinDto {
   @ApiProperty({
     description: 'The 4-6 digit PIN to verify',
     example: '1234',

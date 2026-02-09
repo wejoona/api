@@ -24,7 +24,7 @@ import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { TransactionRiskService } from '../services/transaction-risk.service';
 import { DeviceFingerprint } from '../../domain/interfaces/risk-assessment.types';
 
-class RegisterDeviceDto {
+class RiskRegisterDeviceDto {
   deviceId: string;
   platform: 'ios' | 'android' | 'web';
   osVersion?: string;
@@ -81,7 +81,7 @@ export class RiskController {
   @ApiResponse({ status: 200, description: 'Device registered' })
   async registerDevice(
     @CurrentUser() user: any,
-    @Body() dto: RegisterDeviceDto,
+    @Body() dto: RiskRegisterDeviceDto,
   ) {
     const fingerprint: DeviceFingerprint = {
       deviceId: dto.deviceId,

@@ -30,8 +30,8 @@ import {
   ExternalTransferDto,
   GetRateDto,
   SubmitKycDto,
-  VerifyPinDto,
-  SetPinDto,
+  WalletVerifyPinDto,
+  WalletSetPinDto,
   WithdrawDto,
 } from '../dto/requests';
 import {
@@ -751,7 +751,7 @@ export class WalletController {
   })
   async verifyPin(
     @Request() req: AuthenticatedRequest,
-    @Body() dto: VerifyPinDto,
+    @Body() dto: WalletVerifyPinDto,
   ) {
     return this.verifyPinUseCase.execute({
       userId: req.user.id,
@@ -776,7 +776,7 @@ export class WalletController {
     status: 400,
     description: 'Invalid PIN or PINs do not match',
   })
-  async setPin(@Request() req: AuthenticatedRequest, @Body() dto: SetPinDto) {
+  async setPin(@Request() req: AuthenticatedRequest, @Body() dto: WalletSetPinDto) {
     return this.setPinUseCase.execute({
       userId: req.user.id,
       pin: dto.pin,
