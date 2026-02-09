@@ -228,7 +228,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     SanctionsScreeningModule, // Sanctions screening (compliance)
     RegulatoryReportsModule, // BCEAO regulatory compliance reports
     EventStoreModule, // Event sourcing
-    ApiHealthModule, // External API health monitoring
+    // ApiHealthModule, // External API health monitoring — needs Prometheus metrics setup
     ReconciliationModule, // Ledger reconciliation
     BatchProcessingModule, // Batch payment processing
     ResilienceModule, // Circuit breaker patterns
