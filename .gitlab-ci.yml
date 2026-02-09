@@ -1,9 +1,18 @@
+# CI/CD Pipeline for USDC Wallet API
+# Registry: registry.wejoona.com (deploy token auth)
+# CI Variables required:
+#   CI_DEPLOY_USER    = gitlab+deploy-token-1
+#   CI_DEPLOY_PASSWORD = <deploy token secret> (masked)
+# Deploy: ArgoCD auto-syncs from k8s/kustomization.yaml newTag
+
 stages:
   - test
   - build
+  - deploy
 
 variables:
-  DOCKER_IMAGE: registry.wejoona.com/usdc-wallet-api
+  REGISTRY: registry.wejoona.com
+  IMAGE_NAME: usdc-wallet-api
 
 # Lint and unit tests
 test:unit:
@@ -24,7 +33,6 @@ test:unit:
     - develop
 
 # Contract tests - validate API responses match mobile expectations
-# CRITICAL: These tests catch breaking changes before deploy
 test:contracts:
   stage: test
   image: node:20-alpine
@@ -41,8 +49,7 @@ test:contracts:
     - main
     - develop
 
-# E2E Integration tests - validate complete user flows
-# Uses testcontainers for isolated PostgreSQL and Redis
+# E2E Integration tests
 test:e2e:
   stage: test
   image: node:20-alpine
@@ -63,30 +70,40 @@ test:e2e:
   only:
     - merge_requests
     - main
-  allow_failure: true  # E2E tests may be flaky, don't block deploys initially
+  allow_failure: true
 
-# Build Docker image using Kaniko (no privileged mode required)
+# Build and push Docker image
 build:
   stage: build
-  image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
-    entrypoint: [""]
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
   script:
-    - mkdir -p /kaniko/.docker
-    - AUTH=$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')
-    - printf '{"auths":{"%s":{"auth":"%s"},"registry.wejoona.com":{"auth":"%s"}}}' "$CI_REGISTRY" "$AUTH" "$AUTH" > /kaniko/.docker/config.json
-    - /kaniko/executor
-      --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-      --destination "${DOCKER_IMAGE}:${CI_COMMIT_SHA}"
-      --destination "${DOCKER_IMAGE}:latest"
-      --cache=true
-      --cache-repo "${DOCKER_IMAGE}/cache"
-      --cache-ttl 168h
-      --snapshot-mode=redo
-      --use-new-run
+    - docker login -u "$CI_DEPLOY_USER" -p "$CI_DEPLOY_PASSWORD" "$REGISTRY"
+    - docker build --platform linux/amd64 -t "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA" .
+    - docker push "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA"
+    - docker tag "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA" "$REGISTRY/$IMAGE_NAME:latest"
+    - docker push "$REGISTRY/$IMAGE_NAME:latest"
   only:
     - main
-    - tags
 
-# Deploy handled by ArgoCD Image Updater (watches registry.wejoona.com)
+# Update kustomization.yaml newTag for ArgoCD
+deploy:
+  stage: deploy
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache git sed
+    - git config user.email "ci@wejoona.com"
+    - git config user.name "GitLab CI"
+    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wejoona.com/${CI_PROJECT_PATH}.git"
+  script:
+    - git fetch origin main
+    - git checkout main
+    - 'sed -i "s/newTag: .*/newTag: ${CI_COMMIT_SHA}/" k8s/kustomization.yaml'
+    - git add k8s/kustomization.yaml
+    - git diff --cached --quiet && echo "No changes" || git commit -m "deploy: update image tag to ${CI_COMMIT_SHORT_SHA} [skip ci]"
+    - git push origin main
+  only:
+    - main
