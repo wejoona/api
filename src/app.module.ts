@@ -232,7 +232,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     BatchProcessingModule,
     ResilienceModule,
     PaymentLinksModule,
-    ApiHealthModule,
+    // ApiHealthModule, // Disabled — needs @willsoto/nestjs-prometheus for metric providers
   ],
   controllers: [AppController],
   providers: [
