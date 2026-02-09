@@ -57,3 +57,8 @@ CLAUDE.md
 
 # Pier (generated files)
 .pier/
+
+# Docker volume data
+pgadmin_data/
+typesense_data/
+redis_data/
