@@ -35,75 +35,15 @@ import {
   GetPaymentHistoryResponseDto,
   BillPaymentReceiptDto,
   GetCategoriesResponseDto,
-  CategoryInfoDto,
 } from '../dto/responses';
-import {
-  GetProvidersUseCase,
-  ValidateAccountUseCase,
-  PayBillUseCase,
-  GetPaymentHistoryUseCase,
-  GetReceiptUseCase,
-} from '../usecases';
-import { BillCategory } from '../../domain/types';
-
-const CATEGORY_INFO: Record<
-  BillCategory,
-  { displayName: string; description: string; icon: string }
-> = {
-  electricity: {
-    displayName: 'Electricity',
-    description: 'Pay your electricity bills',
-    icon: 'bolt',
-  },
-  water: {
-    displayName: 'Water',
-    description: 'Pay your water bills',
-    icon: 'water_drop',
-  },
-  internet: {
-    displayName: 'Internet',
-    description: 'Pay for internet services',
-    icon: 'wifi',
-  },
-  tv: {
-    displayName: 'TV',
-    description: 'Pay for cable and TV subscriptions',
-    icon: 'tv',
-  },
-  phone_credit: {
-    displayName: 'Phone Credit',
-    description: 'Top up mobile phone credit',
-    icon: 'phone_android',
-  },
-  insurance: {
-    displayName: 'Insurance',
-    description: 'Pay insurance premiums',
-    icon: 'security',
-  },
-  education: {
-    displayName: 'Education',
-    description: 'Pay school fees and tuition',
-    icon: 'school',
-  },
-  government: {
-    displayName: 'Government',
-    description: 'Pay government fees and taxes',
-    icon: 'account_balance',
-  },
-};
+import { BillPayClientService } from '../../infrastructure/services/bill-pay-client.service';
 
 @ApiTags('Bill Payments')
 @Controller('bill-payments')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BillPaymentController {
-  constructor(
-    private readonly getProvidersUseCase: GetProvidersUseCase,
-    private readonly validateAccountUseCase: ValidateAccountUseCase,
-    private readonly payBillUseCase: PayBillUseCase,
-    private readonly getPaymentHistoryUseCase: GetPaymentHistoryUseCase,
-    private readonly getReceiptUseCase: GetReceiptUseCase,
-  ) {}
+  constructor(private readonly billPayClient: BillPayClientService) {}
 
   // ============================================
   // PROVIDERS
@@ -119,7 +59,7 @@ export class BillPaymentController {
   async getProviders(
     @Query() query: GetProvidersQueryDto,
   ): Promise<GetProvidersResponseDto> {
-    return this.getProvidersUseCase.execute({
+    return this.billPayClient.getProviders({
       country: query.country,
       category: query.category,
     });
@@ -135,20 +75,7 @@ export class BillPaymentController {
   async getCategories(
     @Query('country') country?: string,
   ): Promise<GetCategoriesResponseDto> {
-    const result = await this.getProvidersUseCase.execute({
-      country: country as any,
-    });
-
-    const categories: CategoryInfoDto[] = result.availableCategories.map(
-      (category) => ({
-        category,
-        ...CATEGORY_INFO[category],
-        providerCount: result.providers.filter((p) => p.category === category)
-          .length,
-      }),
-    );
-
-    return { categories };
+    return this.billPayClient.getCategories(country);
   }
 
   // ============================================
@@ -171,7 +98,7 @@ export class BillPaymentController {
   async validateAccount(
     @Body() dto: ValidateAccountDto,
   ): Promise<ValidateAccountResponseDto> {
-    return this.validateAccountUseCase.execute({
+    return this.billPayClient.lookupBill({
       providerId: dto.providerId,
       accountNumber: dto.accountNumber,
       meterNumber: dto.meterNumber,
@@ -223,18 +150,20 @@ export class BillPaymentController {
       | string
       | undefined;
 
-    return this.payBillUseCase.execute({
-      userId: req.user.id,
-      providerId: dto.providerId,
-      accountNumber: dto.accountNumber,
-      meterNumber: dto.meterNumber,
-      customerName: dto.customerName,
-      amount: dto.amount,
-      currency: dto.currency,
-      phone: dto.phone,
-      email: dto.email,
+    return this.billPayClient.payBill(
+      req.user.id,
+      {
+        providerId: dto.providerId,
+        accountNumber: dto.accountNumber,
+        meterNumber: dto.meterNumber,
+        customerName: dto.customerName,
+        amount: dto.amount,
+        currency: dto.currency,
+        phone: dto.phone,
+        email: dto.email,
+      },
       idempotencyKey,
-    });
+    );
   }
 
   // ============================================
@@ -252,14 +181,13 @@ export class BillPaymentController {
     @Request() req: AuthenticatedRequest,
     @Query() query: GetPaymentHistoryQueryDto,
   ): Promise<GetPaymentHistoryResponseDto> {
-    return this.getPaymentHistoryUseCase.execute({
-      userId: req.user.id,
+    return this.billPayClient.listPayments(req.user.id, {
       page: query.page,
       limit: query.limit,
       category: query.category,
       status: query.status,
-      startDate: query.startDate,
-      endDate: query.endDate,
+      startDate: query.startDate?.toISOString(),
+      endDate: query.endDate?.toISOString(),
     });
   }
 
@@ -286,10 +214,7 @@ export class BillPaymentController {
     @Request() req: AuthenticatedRequest,
     @Param('id') paymentId: string,
   ): Promise<BillPaymentReceiptDto> {
-    return this.getReceiptUseCase.execute({
-      userId: req.user.id,
-      paymentId,
-    });
+    return this.billPayClient.getPayment(req.user.id, paymentId);
   }
 
   @Get(':id')
@@ -303,25 +228,6 @@ export class BillPaymentController {
     @Request() req: AuthenticatedRequest,
     @Param('id') paymentId: string,
   ): Promise<PayBillResponseDto> {
-    // Reuse receipt use case but return simplified response
-    const receipt = await this.getReceiptUseCase.execute({
-      userId: req.user.id,
-      paymentId,
-    });
-
-    return {
-      paymentId: receipt.paymentId,
-      transactionId: receipt.paymentId,
-      status: receipt.status,
-      receiptNumber: receipt.receiptNumber,
-      providerReference: receipt.providerReference,
-      tokenNumber: receipt.tokenNumber,
-      units: receipt.units,
-      amount: receipt.amount,
-      fee: receipt.fee,
-      totalAmount: receipt.totalAmount,
-      currency: receipt.currency,
-      paidAt: receipt.paidAt,
-    };
+    return this.billPayClient.getPayment(req.user.id, paymentId);
   }
 }

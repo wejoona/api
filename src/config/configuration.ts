@@ -200,6 +200,12 @@ export default () => ({
     pepScreeningProvider: process.env.PEP_SCREENING_PROVIDER || '', // 'world-check', 'dow-jones', etc.
   },
 
+  // Bill Pay Service (standalone proxy)
+  billPay: {
+    baseUrl: process.env.BILL_PAY_BASE_URL || 'http://billpay:3400',
+    apiKey: process.env.BILL_PAY_API_KEY || '',
+  },
+
   // NTM (Notification Template Manager)
   ntm: {
     baseUrl: process.env.NTM_BASE_URL || 'http://ntm:3100',
