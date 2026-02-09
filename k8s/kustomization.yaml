@@ -10,4 +10,4 @@ resources:
 
 images:
   - name: registry.wejoona.com/usdc-wallet-api
-    newTag: 191d7bacdfdcce98c0819137ec1ce601922d5956
+    newTag: 12e36a0f3553a0d29248f63f2d65b483bfaa3eac
