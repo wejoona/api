@@ -142,6 +142,32 @@ export const JOONAPAY_LEDGERS = {
   CUSTOMER_WALLETS: 'joonapay-customer-wallets',
 } as const;
 
+/**
+ * Get internal balance IDs from environment config, falling back to Blnk's
+ * `@`-prefix convention (which creates balances on-the-fly).
+ */
+export const getInternalBalances = () => ({
+  // Pay-in sources (money coming into the system)
+  PAY_IN_YELLOWCARD:
+    process.env.BLNK_CIRCLE_OMNIBUS_BALANCE_ID || '@PayInYellowCard',
+  PAY_IN_CIRCLE:
+    process.env.BLNK_CIRCLE_OMNIBUS_BALANCE_ID || '@PayInCircle',
+
+  // Pay-out destinations (money leaving the system)
+  PAY_OUT_YELLOWCARD:
+    process.env.BLNK_STELLAR_OMNIBUS_BALANCE_ID || '@PayOutYellowCard',
+  PAY_OUT_CIRCLE:
+    process.env.BLNK_CIRCLE_OMNIBUS_BALANCE_ID || '@PayOutCircle',
+
+  // Fee and revenue tracking
+  FEES: process.env.BLNK_PLATFORM_FEES_BALANCE_ID || '@Fees',
+  REVENUE: '@Revenue',
+
+  // Operating account
+  FLOAT: process.env.BLNK_FLOAT_BALANCE_ID || '@Float',
+});
+
+/** @deprecated Use getInternalBalances() for env-driven IDs */
 export const JOONAPAY_INTERNAL_BALANCES = {
   // Pay-in sources (money coming into the system)
   PAY_IN_YELLOWCARD: '@PayInYellowCard',

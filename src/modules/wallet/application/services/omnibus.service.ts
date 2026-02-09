@@ -19,6 +19,8 @@ export interface RouteExternalTransferResult {
   network: OmnibusNetwork;
   omnibusWalletId: string;
   estimatedFee: number;
+  /** Blnk balance ID for the omnibus account (for ledger transactions) */
+  blnkOmnibusBalanceId?: string;
 }
 
 /**
@@ -39,6 +41,10 @@ export class OmnibusService {
   private readonly circleOmnibusWalletId: string;
   private readonly stellarOmnibusAddress: string;
 
+  // Blnk balance IDs for omnibus accounts
+  private readonly blnkCircleOmnibusBalanceId: string;
+  private readonly blnkStellarOmnibusBalanceId: string;
+
   constructor(
     private readonly configService: ConfigService,
     @Inject(WALLET_PROVIDER)
@@ -52,6 +58,14 @@ export class OmnibusService {
     );
     this.stellarOmnibusAddress = this.configService.get<string>(
       'STELLAR_OMNIBUS_ADDRESS',
+      '',
+    );
+    this.blnkCircleOmnibusBalanceId = this.configService.get<string>(
+      'blnk.circleOmnibusBalanceId',
+      '',
+    );
+    this.blnkStellarOmnibusBalanceId = this.configService.get<string>(
+      'blnk.stellarOmnibusBalanceId',
       '',
     );
   }
@@ -105,6 +119,8 @@ export class OmnibusService {
           network: preferredNetwork,
           omnibusWalletId: walletId,
           estimatedFee: this.estimateFee(preferredNetwork, amount),
+          blnkOmnibusBalanceId:
+            this.getBlnkOmnibusBalanceId(preferredNetwork) || undefined,
         };
       }
     }
@@ -118,6 +134,8 @@ export class OmnibusService {
           network: 'circle',
           omnibusWalletId: this.circleOmnibusWalletId,
           estimatedFee: this.estimateFee('circle', amount),
+          blnkOmnibusBalanceId:
+            this.getBlnkOmnibusBalanceId('circle') || undefined,
         };
       }
     }
@@ -128,6 +146,8 @@ export class OmnibusService {
         network: 'stellar',
         omnibusWalletId: this.stellarOmnibusAddress,
         estimatedFee: this.estimateFee('stellar', amount),
+        blnkOmnibusBalanceId:
+          this.getBlnkOmnibusBalanceId('stellar') || undefined,
       };
     }
 
@@ -139,6 +159,8 @@ export class OmnibusService {
       network: 'circle',
       omnibusWalletId: this.circleOmnibusWalletId || 'unconfigured',
       estimatedFee: this.estimateFee('circle', amount),
+      blnkOmnibusBalanceId:
+        this.getBlnkOmnibusBalanceId('circle') || undefined,
     };
   }
 
@@ -178,6 +200,16 @@ export class OmnibusService {
   // ==========================================
   // Helpers
   // ==========================================
+
+  /**
+   * Get the Blnk balance ID for the omnibus account on a given network.
+   * Used by callers to record ledger transactions against the correct balance.
+   */
+  getBlnkOmnibusBalanceId(network: OmnibusNetwork): string | null {
+    if (network === 'circle') return this.blnkCircleOmnibusBalanceId || null;
+    if (network === 'stellar') return this.blnkStellarOmnibusBalanceId || null;
+    return null;
+  }
 
   private getOmnibusWalletId(network: OmnibusNetwork): string | null {
     if (network === 'circle') return this.circleOmnibusWalletId || null;

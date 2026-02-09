@@ -21,6 +21,7 @@ import {
 import {
   JOONAPAY_LEDGERS,
   JOONAPAY_INTERNAL_BALANCES,
+  getInternalBalances,
   BlnkTransactionStatus,
 } from '../blnk.types';
 import { BlnkSearchAdapter } from './blnk-search.adapter';
@@ -92,6 +93,9 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
   private generalLedgerId: string | null = null;
   private customerWalletsLedgerId: string | null = null;
 
+  // Resolved internal balance IDs (env-driven with @ fallbacks)
+  private readonly internalBalances: ReturnType<typeof getInternalBalances>;
+
   // USDC precision: 6 decimal places (1 USDC = 1,000,000 micro-USDC)
   private readonly USDC_PRECISION = 1000000;
 
@@ -109,6 +113,8 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     this.client = BlnkInit(blnkApiKey, {
       baseUrl: blnkUrl,
     });
+
+    this.internalBalances = getInternalBalances();
   }
 
   async onModuleInit(): Promise<void> {
@@ -123,17 +129,30 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     this.logger.log('Initializing Blnk ledger...');
 
     try {
-      // Create or get the General Ledger
-      this.generalLedgerId = await this.getOrCreateLedger(
-        JOONAPAY_LEDGERS.GENERAL,
-        { description: 'JoonaPay General Ledger - System accounts' },
+      const configuredLedgerId = this.configService.get<string>(
+        'blnk.ledgerId',
+        '',
       );
 
-      // Create or get the Customer Wallets Ledger
-      this.customerWalletsLedgerId = await this.getOrCreateLedger(
-        JOONAPAY_LEDGERS.CUSTOMER_WALLETS,
-        { description: 'JoonaPay Customer Wallets - User USDC balances' },
-      );
+      if (configuredLedgerId) {
+        // Use pre-created ledger from env config
+        this.generalLedgerId = configuredLedgerId;
+        this.customerWalletsLedgerId = configuredLedgerId;
+        this.logger.log(
+          `Using configured Blnk ledger ID: ${configuredLedgerId}`,
+        );
+      } else {
+        // Fallback: create ledgers dynamically
+        this.generalLedgerId = await this.getOrCreateLedger(
+          JOONAPAY_LEDGERS.GENERAL,
+          { description: 'JoonaPay General Ledger - System accounts' },
+        );
+
+        this.customerWalletsLedgerId = await this.getOrCreateLedger(
+          JOONAPAY_LEDGERS.CUSTOMER_WALLETS,
+          { description: 'JoonaPay Customer Wallets - User USDC balances' },
+        );
+      }
 
       this.logger.log('Blnk ledger initialized successfully');
       this.logger.log(`General Ledger ID: ${this.generalLedgerId}`);
@@ -266,8 +285,8 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     // Determine the pay-in source based on provider
     const source =
       provider === 'yellowcard'
-        ? JOONAPAY_INTERNAL_BALANCES.PAY_IN_YELLOWCARD
-        : JOONAPAY_INTERNAL_BALANCES.PAY_IN_CIRCLE;
+        ? this.internalBalances.PAY_IN_YELLOWCARD
+        : this.internalBalances.PAY_IN_CIRCLE;
 
     const destination = this.getUserBalanceId(userId, currency);
 
@@ -332,8 +351,8 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     // Determine the pay-out destination based on provider
     const destination =
       provider === 'yellowcard'
-        ? JOONAPAY_INTERNAL_BALANCES.PAY_OUT_YELLOWCARD
-        : JOONAPAY_INTERNAL_BALANCES.PAY_OUT_CIRCLE;
+        ? this.internalBalances.PAY_OUT_YELLOWCARD
+        : this.internalBalances.PAY_OUT_CIRCLE;
 
     // First, deduct the fee from user's balance
     if (fee > BigInt(0)) {
@@ -440,7 +459,7 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
     );
 
     const source = this.getUserBalanceId(userId, currency);
-    const destination = JOONAPAY_INTERNAL_BALANCES.PAY_OUT_CIRCLE;
+    const destination = this.internalBalances.PAY_OUT_CIRCLE;
 
     // Deduct fee first
     if (fee > BigInt(0)) {
@@ -607,7 +626,7 @@ export class BlnkLedgerAdapter implements ILedgerProvider, OnModuleInit {
       currency,
       precision: this.USDC_PRECISION,
       source,
-      destination: JOONAPAY_INTERNAL_BALANCES.FEES,
+      destination: this.internalBalances.FEES,
       description,
       meta_data: {
         type: 'fee',

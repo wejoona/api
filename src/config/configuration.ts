@@ -62,6 +62,11 @@ export default () => ({
   blnk: {
     url: process.env.BLNK_URL || 'http://localhost:5001',
     apiKey: process.env.BLNK_API_KEY || '',
+    ledgerId: process.env.BLNK_LEDGER_ID || '',
+    circleOmnibusBalanceId: process.env.BLNK_CIRCLE_OMNIBUS_BALANCE_ID || '',
+    stellarOmnibusBalanceId: process.env.BLNK_STELLAR_OMNIBUS_BALANCE_ID || '',
+    platformFeesBalanceId: process.env.BLNK_PLATFORM_FEES_BALANCE_ID || '',
+    floatBalanceId: process.env.BLNK_FLOAT_BALANCE_ID || '',
   },
 
   // SMS Provider (for OTP)
