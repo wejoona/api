@@ -242,6 +242,71 @@ services:
         max-file: "3"
 
   # ===========================================================================
+  # Blnk Finance Ledger (Server)
+  # ===========================================================================
+  blnk-server:
+    image: jerryenebeli/blnk:0.13.0
+    container_name: korido_blnk_server
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "blnk migrate up && blnk start"
+    ports:
+      - "${BLNK_PORT:-5001}:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./blnk/blnk.json:/blnk.json:ro
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Blnk Finance Worker
+  # ===========================================================================
+  blnk-worker:
+    image: jerryenebeli/blnk:0.13.0
+    container_name: korido_blnk_worker
+    restart: unless-stopped
+    entrypoint: ["blnk", "workers"]
+    depends_on:
+      - blnk-server
+    volumes:
+      - ./blnk/blnk.json:/blnk.json:ro
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Typesense (Search engine for Blnk)
+  # ===========================================================================
+  typesense:
+    image: typesense/typesense:29.0
+    container_name: korido_typesense
+    restart: unless-stopped
+    command: ["--data-dir", "/data", "--api-key=blnk-api-key", "--listen-port", "8108"]
+    volumes:
+      - typesense_data:/data
+    networks:
+      - usdc_wallet_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
   # MailHog (Optional - Email Testing)
   # ===========================================================================
   mailhog:
@@ -279,3 +344,5 @@ volumes:
     name: usdc_wallet_redis_data
   pgadmin_data:
     name: usdc_wallet_pgadmin_data
+  typesense_data:
+    name: usdc_wallet_typesense_data

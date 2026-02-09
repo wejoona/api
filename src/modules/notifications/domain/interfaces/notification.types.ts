@@ -179,6 +179,7 @@ export interface TransactionNotificationEvent {
   recipientName?: string;
   senderName?: string;
   status: string;
+  reason?: string;
 }
 
 export interface KycNotificationEvent {

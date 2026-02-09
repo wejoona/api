@@ -1,0 +1,28 @@
+{
+  "project_name": "Korido Ledger",
+  "data_source": {
+    "dns": "postgres://pier:pier@pier-postgres-16:5432/blnk?sslmode=disable"
+  },
+  "redis": {
+    "dns": "redis://pier-redis-7:6379"
+  },
+  "server": {
+    "domain": "blnk.dock",
+    "ssl": false,
+    "ssl_email": "",
+    "port": "5001"
+  },
+  "notification": {
+    "slack": {
+      "webhook_url": ""
+    },
+    "webhook": {
+      "url": "http://api:3000/api/v1/webhooks/blnk",
+      "headers": {}
+    }
+  },
+  "typesense": {
+    "dns": "http://typesense:8108",
+    "api_key": "blnk-api-key"
+  }
+}
