@@ -21,7 +21,7 @@ import {
   WALLET_PROVIDER,
   IWalletProvider,
 } from '@modules/providers/interfaces';
-import { IWalletRepository } from '@modules/wallet/domain/repositories/wallet.repository';
+import { IWalletRepository, WALLET_REPOSITORY } from '@modules/wallet/domain/repositories/wallet.repository';
 
 /**
  * Provider balance information
@@ -69,7 +69,7 @@ export class ProviderBalanceReconciliationService {
 
   constructor(
     private readonly reconciliationReportRepository: ReconciliationReportRepository,
-    @Inject('WALLET_REPOSITORY')
+    @Inject(WALLET_REPOSITORY)
     private readonly walletRepository: IWalletRepository,
     @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,

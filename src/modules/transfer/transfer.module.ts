@@ -1,6 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { Repositories } from '@modules/transfer/infrastructure/repositories';
+import { TransferRepository } from '@modules/transfer/infrastructure/repositories';
+import { TRANSFER_REPOSITORY } from '@modules/transfer/domain/repositories/transfer.repository';
 import { Queries } from '@modules/transfer/application/queries';
 import { Mappers } from '@modules/transfer/infrastructure/mappers';
 import { UseCases } from '@modules/transfer/application/domain/usecases';
@@ -21,11 +23,15 @@ import { WalletModule } from '../wallet/wallet.module';
     ...CommandHandlers,
     ...Queries,
     ...Repositories,
+    {
+      provide: TRANSFER_REPOSITORY,
+      useExisting: TransferRepository,
+    },
     ...Mappers,
     ...UseCases,
     ...Services,
   ],
   controllers: [...Controllers],
-  exports: [...Repositories],
+  exports: [...Repositories, TRANSFER_REPOSITORY],
 })
 export class TransferModule {}

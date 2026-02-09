@@ -7,6 +7,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
+import { BullModule } from '@nestjs/bull';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { configuration, envValidationSchema } from './config';
@@ -165,6 +166,20 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     // Scheduled tasks (reconciliation, cleanup jobs)
     ScheduleModule.forRoot(),
 
+    // Bull queue (Redis-backed job processing)
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        redis: {
+          host: configService.get<string>('redis.host', 'localhost'),
+          port: configService.get<number>('redis.port', 6379),
+          password: configService.get<string>('redis.password'),
+          db: configService.get<number>('redis.db', 0),
+        },
+      }),
+    }),
+
     // Distributed Tracing (OpenTelemetry + Jaeger)
     TracingModule,
 
@@ -222,18 +237,17 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     BusinessModule, // Business account management for organizations
     SubBusinessModule, // Sub-business entity management for organizations
 
-    // Newly wired modules
-    // === Orphan modules — deps fixed but need integration testing before enabling ===
-    // SavingsPotsModule,
-    // ScheduledPaymentsModule,
-    // SanctionsScreeningModule,
-    // RegulatoryReportsModule, // needs WALLET_REPOSITORY symbol
-    // EventStoreModule,
-    // ReconciliationModule, // needs WALLET_REPOSITORY symbol
-    // BatchProcessingModule,
-    // ResilienceModule,
-    // PaymentLinksModule,
-    // ApiHealthModule, // needs @willsoto/nestjs-prometheus
+    // Previously orphan modules — DI wiring verified
+    ResilienceModule,
+    EventStoreModule,
+    PaymentLinksModule,
+    BatchProcessingModule,
+    SavingsPotsModule,
+    ScheduledPaymentsModule,
+    SanctionsScreeningModule,
+    RegulatoryReportsModule,
+    ReconciliationModule,
+    ApiHealthModule,
   ],
   controllers: [AppController],
   providers: [
