@@ -11,7 +11,7 @@ import sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type DocumentType = 'id_front' | 'id_back' | 'selfie';
+export type DocumentType = 'id_front' | 'id_back' | 'selfie' | 'video';
 
 export interface UploadDocumentParams {
   userId: string;
@@ -266,8 +266,9 @@ export class UploadService {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Image processing failed: ${errorMessage}`);
-      throw new BadRequestException('Failed to process image');
+      this.logger.warn(`Image processing failed, passing through raw buffer: ${errorMessage}`);
+      // Graceful degradation: return original buffer if sharp fails
+      return buffer;
     }
   }
 

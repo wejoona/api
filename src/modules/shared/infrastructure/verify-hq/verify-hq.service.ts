@@ -6,6 +6,7 @@ import {
   LivenessSession,
   LivenessCheck,
   IdentityVerification,
+  ChallengeSubmitResult,
 } from '@joonapay/verify-hq-sdk';
 
 /**
@@ -33,30 +34,26 @@ export class VerifyHqService {
     this.logger.log(`VerifyHQ client initialized (url: ${baseUrl})`);
   }
 
-  /**
-   * Submit a document for verification
-   */
+  // === Document Verification ===
+
   async submitDocumentVerification(
     userId: string,
     docType: string,
     frontImage: Blob,
     backImage?: Blob,
   ): Promise<DocumentVerification> {
-    this.logger.log(
-      `Submitting document verification for user ${userId}, type=${docType}`,
-    );
+    this.logger.log(`Submitting document verification for user ${userId}, type=${docType}`);
     return this.client.submitDocument(userId, docType, frontImage, backImage);
   }
 
-  /**
-   * Get document verification status
-   */
   async getDocumentVerification(id: string): Promise<DocumentVerification> {
     return this.client.getDocumentVerification(id);
   }
 
+  // === Liveness (Challenge-based) ===
+
   /**
-   * Create a liveness session — returns session token + challenges
+   * Create session — returns sessionToken + array of challenges (2-3)
    */
   async createLivenessSession(userId: string): Promise<LivenessSession> {
     this.logger.log(`Creating liveness session for user ${userId}`);
@@ -64,52 +61,52 @@ export class VerifyHqService {
   }
 
   /**
-   * Submit liveness check — returns pass/fail
+   * Submit a photo for one challenge.
+   * When all challenges submitted, VerifyHQ auto-verifies and returns result.
    */
+  async submitChallenge(
+    sessionToken: string,
+    challengeId: string,
+    photo: Blob,
+  ): Promise<ChallengeSubmitResult> {
+    this.logger.log(`Submitting challenge ${challengeId} for session ${sessionToken}`);
+    return this.client.submitChallenge(sessionToken, challengeId, photo);
+  }
+
+  /**
+   * Submit reference selfie for face matching against challenge photos
+   */
+  async submitReferenceSelfie(sessionToken: string, selfie: Blob): Promise<LivenessCheck> {
+    this.logger.log(`Submitting reference selfie for session ${sessionToken}`);
+    return this.client.submitReferenceSelfie(sessionToken, selfie);
+  }
+
+  /** @deprecated Use submitChallenge() */
   async submitLivenessCheck(
     sessionToken: string,
     video: Blob,
     selfie: Blob,
   ): Promise<LivenessCheck> {
-    this.logger.log(`Submitting liveness check for session ${sessionToken}`);
+    this.logger.log(`[Legacy] Submitting liveness check for session ${sessionToken}`);
     return this.client.submitLiveness(sessionToken, video, selfie);
   }
 
-  /**
-   * Get liveness check status
-   */
   async getLivenessCheck(id: string): Promise<LivenessCheck> {
     return this.client.getLivenessCheck(id);
   }
 
-  /**
-   * Start full identity verification (doc + liveness + face match)
-   */
-  async startFullVerification(
-    userId: string,
-    tier?: string,
-  ): Promise<IdentityVerification> {
-    this.logger.log(
-      `Starting full verification for user ${userId}, tier=${tier || 'STANDARD'}`,
-    );
+  // === Identity Verification ===
+
+  async startFullVerification(userId: string, tier?: string): Promise<IdentityVerification> {
+    this.logger.log(`Starting full verification for user ${userId}, tier=${tier || 'STANDARD'}`);
     return this.client.startIdentityVerification(userId, tier);
   }
 
-  /**
-   * Get verification status for a verification ID
-   */
-  async getVerificationStatus(
-    verificationId: string,
-  ): Promise<IdentityVerification> {
+  async getVerificationStatus(verificationId: string): Promise<IdentityVerification> {
     return this.client.getVerificationStatus(verificationId);
   }
 
-  /**
-   * Get all verifications for a user
-   */
-  async getUserVerifications(
-    userId: string,
-  ): Promise<IdentityVerification[]> {
+  async getUserVerifications(userId: string): Promise<IdentityVerification[]> {
     return this.client.getUserVerifications(userId);
   }
 }

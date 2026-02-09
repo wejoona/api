@@ -2,45 +2,58 @@ export interface DocumentVerification {
   id: string;
   userId: string;
   documentType: string;
-  documentCountry: string;
   frontImageUrl: string;
   backImageUrl?: string;
-  extractedData?: {
-    fullName?: string;
-    dateOfBirth?: string;
-    documentNumber?: string;
-    expiryDate?: string;
-    nationality?: string;
-    gender?: string;
-    mrz?: string;
-  };
-  status: 'PENDING' | 'PROCESSING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED';
-  rejectionReason?: string;
+  status: string;
+  extractedData?: Record<string, any>;
   confidence?: number;
-  verifiedAt?: string;
   createdAt: string;
-  updatedAt: string;
+}
+
+export interface LivenessChallenge {
+  id: string;
+  type: string;
+  instruction: string;
 }
 
 export interface LivenessSession {
-  id: string;
-  userId: string;
   sessionToken: string;
-  challengeType: string;
-  challengeData: Record<string, any>;
+  challenges: LivenessChallenge[];
+}
+
+export interface ChallengeSubmitResult {
+  sessionToken: string;
   status: string;
-  createdAt: string;
+  challengesCompleted: number;
+  challengesTotal: number;
+  isAlive?: boolean;
+  confidence?: number;
+  result?: {
+    isAlive: boolean;
+    confidence: number;
+    antiSpoofScore: number;
+    faceMatchScore: number;
+    failureReason?: string;
+  };
 }
 
 export interface LivenessCheck {
   id: string;
   userId: string;
   sessionToken: string;
-  challengeType: string;
+  challenges: Array<{
+    id: string;
+    type: string;
+    instruction: string;
+    photoUrl?: string;
+    submittedAt?: string;
+    passed?: boolean;
+  }>;
   isAlive?: boolean;
   confidence?: number;
   antiSpoofScore?: number;
-  status: 'PENDING' | 'PROCESSING' | 'PASSED' | 'FAILED';
+  faceMatchScore?: number;
+  status: string;
   failureReason?: string;
   completedAt?: string;
   createdAt: string;
@@ -49,14 +62,10 @@ export interface LivenessCheck {
 export interface IdentityVerification {
   id: string;
   userId: string;
+  status: string;
   documentVerificationId?: string;
   livenessCheckId?: string;
-  faceMatchScore?: number;
-  overallStatus: 'PENDING' | 'IN_PROGRESS' | 'VERIFIED' | 'REJECTED' | 'MANUAL_REVIEW';
-  tier: 'BASIC' | 'STANDARD' | 'ENHANCED';
-  reviewedBy?: string;
-  reviewNotes?: string;
-  verifiedAt?: string;
-  expiresAt?: string;
+  overallScore?: number;
+  tier?: string;
   createdAt: string;
 }

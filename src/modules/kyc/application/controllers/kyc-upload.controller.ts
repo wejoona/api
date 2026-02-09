@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { UploadService } from '../../../upload/application/services/upload.service';
+import { UploadService, DocumentType } from '../../../upload/application/services/upload.service';
 import { JwtUser } from '../../../../common/guards';
 
 /**
@@ -126,6 +126,7 @@ export class KycUploadController {
       { name: 'idFront', maxCount: 1 },
       { name: 'idBack', maxCount: 1 },
       { name: 'selfie', maxCount: 1 },
+      { name: 'video', maxCount: 1 },
     ]),
   )
   async uploadDocuments(
@@ -135,53 +136,46 @@ export class KycUploadController {
       idFront?: Express.Multer.File[];
       idBack?: Express.Multer.File[];
       selfie?: Express.Multer.File[];
+      video?: Express.Multer.File[];
     },
   ) {
-    // Validate that all required files are present
-    if (!files.idFront?.[0] || !files.idBack?.[0] || !files.selfie?.[0]) {
+    // Support both batch upload (all at once) and single file upload
+    const fileEntries: { name: string; type: DocumentType; file: Express.Multer.File }[] = [];
+
+    if (files.idFront?.[0]) fileEntries.push({ name: 'idFront', type: 'id_front', file: files.idFront[0] });
+    if (files.idBack?.[0]) fileEntries.push({ name: 'idBack', type: 'id_back', file: files.idBack[0] });
+    if (files.selfie?.[0]) fileEntries.push({ name: 'selfie', type: 'selfie', file: files.selfie[0] });
+    if (files.video?.[0]) fileEntries.push({ name: 'video', type: 'video', file: files.video[0] });
+
+    if (fileEntries.length === 0) {
       throw new BadRequestException(
-        'All documents required: idFront, idBack, selfie',
+        'At least one file required: idFront, idBack, selfie, or video',
       );
     }
 
-    // Upload all documents in parallel for better performance
-    const [idFrontResult, idBackResult, selfieResult] = await Promise.all([
-      this.uploadService.uploadDocument({
-        userId: user.id,
-        type: 'id_front',
-        file: files.idFront[0],
-      }),
-      this.uploadService.uploadDocument({
-        userId: user.id,
-        type: 'id_back',
-        file: files.idBack[0],
-      }),
-      this.uploadService.uploadDocument({
-        userId: user.id,
-        type: 'selfie',
-        file: files.selfie[0],
-      }),
-    ]);
+    // Upload all provided documents in parallel
+    const results = await Promise.all(
+      fileEntries.map((entry) =>
+        this.uploadService.uploadDocument({
+          userId: user.id,
+          type: entry.type,
+          file: entry.file,
+        }).then((result) => ({ name: entry.name, result })),
+      ),
+    );
+
+    const documents: Record<string, { key: string; url: string; size: number }> = {};
+    for (const { name, result } of results) {
+      documents[name] = {
+        key: result.key,
+        url: result.url,
+        size: result.size,
+      };
+    }
 
     return {
       message: 'Documents uploaded successfully',
-      documents: {
-        idFront: {
-          key: idFrontResult.key,
-          url: idFrontResult.url,
-          size: idFrontResult.size,
-        },
-        idBack: {
-          key: idBackResult.key,
-          url: idBackResult.url,
-          size: idBackResult.size,
-        },
-        selfie: {
-          key: selfieResult.key,
-          url: selfieResult.url,
-          size: selfieResult.size,
-        },
-      },
+      documents,
     };
   }
 }

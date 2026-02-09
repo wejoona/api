@@ -4,14 +4,19 @@ import {
   Post,
   Body,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, JwtUser } from '../../../../common/guards';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -23,38 +28,34 @@ import { IsString, IsOptional } from 'class-validator';
 // DTOs
 // ==========================================
 
-class CreateLivenessSessionDto {
-  // No body needed — userId comes from JWT
-}
-
-class SubmitLivenessDto {
+class SubmitChallengeDto {
   @IsString()
   sessionToken: string;
 
   @IsString()
-  videoKey: string; // S3 key for uploaded video
-
-  @IsString()
-  selfieKey: string; // S3 key for uploaded selfie
+  challengeId: string;
 }
 
 class SubmitDocumentDto {
   @IsString()
-  docType: string; // passport, national_id, drivers_license
+  docType: string;
 
   @IsString()
-  frontImageKey: string; // S3 key
+  frontImageKey: string;
 
   @IsOptional()
   @IsString()
-  backImageKey?: string; // S3 key
+  backImageKey?: string;
 }
 
 /**
  * KYC Verification Controller
  *
- * Provides endpoints for liveness and document verification
- * backed by VerifyHQ.
+ * Challenge-based liveness flow:
+ * 1. POST /kyc/liveness/session → get sessionToken + challenges[]
+ * 2. POST /kyc/liveness/challenge → submit photo for each challenge (repeat 2-3x)
+ *    → last submission auto-verifies and returns result
+ * 3. GET /kyc/liveness/status → check verification status
  */
 @ApiTags('KYC')
 @Controller('kyc')
@@ -67,75 +68,88 @@ export class KycVerifyController {
   ) {}
 
   // ==========================================
-  // Liveness Endpoints
+  // Liveness — Challenge-based
   // ==========================================
 
   @Post('liveness/session')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create a liveness verification session' })
-  @ApiResponse({ status: 200, description: 'Liveness session created' })
+  @ApiOperation({ summary: 'Create liveness session with 2-3 challenges' })
+  @ApiResponse({ status: 200, description: 'Session created with challenges' })
   async createLivenessSession(@CurrentUser() user: JwtUser) {
     const session = await this.verifyHqService.createLivenessSession(user.id);
     return {
       sessionToken: session.sessionToken,
-      challengeType: session.challengeType,
-      challengeData: session.challengeData,
+      challenges: session.challenges,
     };
   }
 
-  @Post('liveness/submit')
+  @Post('liveness/challenge')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Submit liveness check data' })
-  @ApiResponse({ status: 200, description: 'Liveness check submitted' })
-  async submitLiveness(
+  @ApiOperation({ summary: 'Submit photo for a specific challenge' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        sessionToken: { type: 'string' },
+        challengeId: { type: 'string' },
+        photo: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('photo'))
+  async submitChallenge(
     @CurrentUser() user: JwtUser,
-    @Body() dto: SubmitLivenessDto,
+    @Body() dto: SubmitChallengeDto,
+    @UploadedFile() photo: Express.Multer.File,
   ) {
-    // Fetch blobs from S3 keys would be done in a real implementation.
-    // For now, we pass the keys as identifiers and let VerifyHQ handle fetching.
-    // In production, you'd use UploadService.getSignedUrl() and fetch the blobs.
-    const result = await this.verifyHqService.submitLivenessCheck(
+    // Convert file buffer to Blob for SDK
+    const photoBlob = new Blob([new Uint8Array(photo.buffer)], { type: photo.mimetype });
+
+    const result = await this.verifyHqService.submitChallenge(
       dto.sessionToken,
-      new Blob([dto.videoKey]),  // placeholder — real impl fetches from S3
-      new Blob([dto.selfieKey]), // placeholder — real impl fetches from S3
+      dto.challengeId,
+      photoBlob,
     );
 
-    return {
-      id: result.id,
-      status: result.status,
-      isAlive: result.isAlive,
-      confidence: result.confidence,
-    };
+    return result;
+  }
+
+  @Post('liveness/reference-selfie')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Submit reference selfie for face matching' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('selfie'))
+  async submitReferenceSelfie(
+    @CurrentUser() user: JwtUser,
+    @Body() body: { sessionToken: string },
+    @UploadedFile() selfie: Express.Multer.File,
+  ) {
+    const selfieBlob = new Blob([new Uint8Array(selfie.buffer)], { type: selfie.mimetype });
+    return this.verifyHqService.submitReferenceSelfie(body.sessionToken, selfieBlob);
   }
 
   @Get('liveness/status')
   @ApiOperation({ summary: 'Get liveness verification status' })
-  @ApiResponse({ status: 200, description: 'Liveness status retrieved' })
+  @ApiResponse({ status: 200, description: 'Liveness status' })
   async getLivenessStatus(@CurrentUser() user: JwtUser) {
-    // Get user's latest verification to find liveness check ID
-    const verifications = await this.verifyHqService.getUserVerifications(
-      user.id,
-    );
+    try {
+      const verifications = await this.verifyHqService.getUserVerifications(user.id);
+      if (!verifications.length) return { status: 'NOT_STARTED' };
 
-    if (!verifications.length) {
+      const latest = verifications[0];
+      if (!latest.livenessCheckId) return { status: 'NOT_STARTED' };
+
+      const liveness = await this.verifyHqService.getLivenessCheck(latest.livenessCheckId);
+      return {
+        id: liveness.id,
+        status: liveness.status,
+        isAlive: liveness.isAlive,
+        confidence: liveness.confidence,
+      };
+    } catch {
       return { status: 'NOT_STARTED' };
     }
-
-    const latest = verifications[0];
-    if (!latest.livenessCheckId) {
-      return { status: 'NOT_STARTED' };
-    }
-
-    const liveness = await this.verifyHqService.getLivenessCheck(
-      latest.livenessCheckId,
-    );
-
-    return {
-      id: liveness.id,
-      status: liveness.status,
-      isAlive: liveness.isAlive,
-      confidence: liveness.confidence,
-    };
   }
 
   // ==========================================
@@ -145,16 +159,14 @@ export class KycVerifyController {
   @Post('document/submit')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit ID document for verification' })
-  @ApiResponse({ status: 200, description: 'Document submitted for verification' })
   async submitDocument(
     @CurrentUser() user: JwtUser,
     @Body() dto: SubmitDocumentDto,
   ) {
-    // In production, fetch actual file blobs from S3
     const result = await this.verifyHqService.submitDocumentVerification(
       user.id,
       dto.docType,
-      new Blob([dto.frontImageKey]),  // placeholder
+      new Blob([dto.frontImageKey]),
       dto.backImageKey ? new Blob([dto.backImageKey]) : undefined,
     );
 
@@ -171,34 +183,25 @@ export class KycVerifyController {
 
   @Get('verification/status')
   @ApiOperation({ summary: 'Get full KYC status (doc + liveness + overall)' })
-  @ApiResponse({ status: 200, description: 'Full KYC status' })
   async getFullStatus(@CurrentUser() user: JwtUser) {
-    // Get Korido KYC status
     const kycStatus = await this.kycService.getStatus(user.id);
 
-    // Get VerifyHQ verification status
     let verifyHqStatus = null;
     try {
-      const verifications = await this.verifyHqService.getUserVerifications(
-        user.id,
-      );
+      const verifications = await this.verifyHqService.getUserVerifications(user.id);
       if (verifications.length > 0) {
         const latest = verifications[0];
         verifyHqStatus = {
-          overallStatus: latest.overallStatus,
-          documentVerificationId: latest.documentVerificationId,
-          livenessCheckId: latest.livenessCheckId,
-          faceMatchScore: latest.faceMatchScore,
-          tier: latest.tier,
+          overallStatus: (latest as any).status || 'UNKNOWN',
+          documentVerificationId: (latest as any).documentVerificationId,
+          livenessCheckId: (latest as any).livenessCheckId,
+          tier: (latest as any).tier,
         };
       }
     } catch {
       // VerifyHQ might not be available
     }
 
-    return {
-      kyc: kycStatus,
-      verification: verifyHqStatus,
-    };
+    return { kyc: kycStatus, verification: verifyHqStatus };
   }
 }

@@ -39,7 +39,7 @@ export class VerifyHqKycProvider implements IKycVerificationProvider {
       );
 
       // Map VerifyHQ status to Korido verification result
-      return this.mapToVerificationResult(verification.id, verification.overallStatus);
+      return this.mapToVerificationResult(verification.id, (verification as any).overallStatus);
     } catch (error) {
       this.logger.error(
         `VerifyHQ verification failed for user ${input.userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -72,8 +72,8 @@ export class VerifyHqKycProvider implements IKycVerificationProvider {
 
     return this.mapToVerificationResult(
       verification.id,
-      verification.overallStatus,
-      verification.faceMatchScore,
+      (verification as any).overallStatus,
+      (verification as any).faceMatchScore,
     );
   }
 

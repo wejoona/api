@@ -1,4 +1,4 @@
-import { DocumentVerification, LivenessSession, LivenessCheck, IdentityVerification } from './types';
+import { DocumentVerification, LivenessSession, LivenessCheck, IdentityVerification, ChallengeSubmitResult } from './types';
 
 export class VerifyHQClient {
   constructor(
@@ -33,6 +33,8 @@ export class VerifyHQClient {
     return res.json() as Promise<T>;
   }
 
+  // === Document Verification ===
+
   async submitDocument(
     userId: string,
     docType: string,
@@ -53,10 +55,34 @@ export class VerifyHQClient {
     return this.request<DocumentVerification>('GET', `/verifications/document/${id}`);
   }
 
+  // === Liveness (Challenge-based) ===
+
   async createLivenessSession(userId: string): Promise<LivenessSession> {
     return this.request<LivenessSession>('POST', '/verifications/liveness/session', { userId });
   }
 
+  async submitChallenge(
+    sessionToken: string,
+    challengeId: string,
+    photo: Blob,
+  ): Promise<ChallengeSubmitResult> {
+    const form = new FormData();
+    form.append('sessionToken', sessionToken);
+    form.append('challengeId', challengeId);
+    form.append('photo', photo);
+
+    return this.request<ChallengeSubmitResult>('POST', '/verifications/liveness/challenge', form, true);
+  }
+
+  async submitReferenceSelfie(sessionToken: string, selfie: Blob): Promise<LivenessCheck> {
+    const form = new FormData();
+    form.append('sessionToken', sessionToken);
+    form.append('selfie', selfie);
+
+    return this.request<LivenessCheck>('POST', '/verifications/liveness/reference-selfie', form, true);
+  }
+
+  /** @deprecated Use submitChallenge() instead */
   async submitLiveness(sessionToken: string, video: Blob, selfie: Blob): Promise<LivenessCheck> {
     const form = new FormData();
     form.append('sessionToken', sessionToken);
@@ -69,6 +95,8 @@ export class VerifyHQClient {
   async getLivenessCheck(id: string): Promise<LivenessCheck> {
     return this.request<LivenessCheck>('GET', `/verifications/liveness/${id}`);
   }
+
+  // === Identity Verification ===
 
   async startIdentityVerification(userId: string, tier?: string): Promise<IdentityVerification> {
     return this.request<IdentityVerification>('POST', '/verifications/identity', { userId, tier });
