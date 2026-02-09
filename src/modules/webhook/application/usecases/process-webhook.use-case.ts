@@ -564,7 +564,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       });
 
       // Also emit notification event
-      this.eventEmitter.emit('deposit.completed', {
+      this.eventEmitter.emit('transaction.deposit.completed', {
         userId: wallet.userId,
         amount: targetAmount,
         currency: 'USDC',
@@ -592,7 +592,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
 
       const wallet = await this.walletRepository.findById(transaction.walletId);
       if (wallet?.userId) {
-        this.eventEmitter.emit('deposit.failed', {
+        this.eventEmitter.emit('transaction.deposit.failed', {
           userId: wallet.userId,
           amount: String(transaction.amount),
           currency: 'USDC',
@@ -663,7 +663,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       });
 
       // Also emit notification event
-      this.eventEmitter.emit('withdrawal.completed', {
+      this.eventEmitter.emit('transaction.withdrawal.completed', {
         userId: wallet.userId,
         amount: String(transaction.amount),
         currency: 'USDC',
@@ -709,7 +709,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       });
 
       // Also emit notification event
-      this.eventEmitter.emit('withdrawal.failed', {
+      this.eventEmitter.emit('transaction.withdrawal.failed', {
         userId: wallet.userId,
         amount: String(transaction.amount),
         currency: 'USDC',
@@ -802,7 +802,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         provider: 'circle',
       });
 
-      this.eventEmitter.emit('deposit.completed', {
+      this.eventEmitter.emit('transaction.deposit.completed', {
         userId: wallet.userId,
         amount: String(amount),
         currency: 'USDC',

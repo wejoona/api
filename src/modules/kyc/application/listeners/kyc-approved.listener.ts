@@ -84,7 +84,7 @@ export class KycApprovedListener {
         await this.userRepository.save(user);
       }
 
-      // TODO: Send notification to user about rejection
+      // Notification handled by KycNotificationListener (kyc.rejected event)
     } catch (error) {
       this.logger.error(
         `Failed to update user status after KYC rejection: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -110,7 +110,7 @@ export class KycApprovedListener {
         await this.userRepository.save(user);
       }
 
-      // TODO: Notify admin team about new review
+      // Notification handled by KycNotificationListener (kyc.requires_review event)
     } catch (error) {
       this.logger.error(
         `Failed to update user status for manual review: ${error instanceof Error ? error.message : 'Unknown error'}`,

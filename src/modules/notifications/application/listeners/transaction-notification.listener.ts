@@ -157,4 +157,60 @@ export class TransactionNotificationListener {
       priority: 'high',
     });
   }
+
+  @OnEvent('transaction.deposit.failed')
+  async handleDepositFailed(event: TransactionNotificationEvent) {
+    this.logger.log(
+      `Sending deposit failed notification for ${event.transactionId}`,
+    );
+
+    await this.notificationService.send({
+      userId: event.userId,
+      category: 'transaction',
+      title: 'Deposit Failed',
+      body: `Your deposit of ${event.amount} ${event.currency} could not be processed`,
+      templateId: 'transaction.deposit.failed',
+      templateData: {
+        amount: event.amount,
+        currency: event.currency,
+        reason: event.reason || 'Unknown error',
+      },
+      data: {
+        type: 'deposit',
+        transactionId: event.transactionId,
+        status: 'failed',
+      },
+      deepLink: `/transactions/${event.transactionId}`,
+      channels: ['push', 'email', 'in_app'],
+      priority: 'high',
+    });
+  }
+
+  @OnEvent('transaction.transfer.failed')
+  async handleTransferFailed(event: TransactionNotificationEvent) {
+    this.logger.log(
+      `Sending transfer failed notification for ${event.transactionId}`,
+    );
+
+    await this.notificationService.send({
+      userId: event.userId,
+      category: 'transaction',
+      title: 'Transfer Failed',
+      body: `Your transfer of ${event.amount} ${event.currency} could not be completed`,
+      templateId: 'transaction.transfer.failed',
+      templateData: {
+        amount: event.amount,
+        currency: event.currency,
+        reason: event.reason || 'Unknown error',
+      },
+      data: {
+        type: 'transfer',
+        transactionId: event.transactionId,
+        status: 'failed',
+      },
+      deepLink: `/transactions/${event.transactionId}`,
+      channels: ['push', 'email', 'in_app'],
+      priority: 'high',
+    });
+  }
 }
