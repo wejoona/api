@@ -54,5 +54,6 @@ bun.lock
 .claude/
 CLAUDE.md
 
-# Pier generated files
+
+# Pier (generated files)
 .pier/

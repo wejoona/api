@@ -157,4 +157,34 @@ export class WebhookController {
       provider: 'circle',
     });
   }
+
+  @Post('blnk')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Handle Blnk Finance ledger webhooks (transaction events)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Blnk webhook acknowledged',
+  })
+  async handleBlnkWebhook(
+    @Body() payload: Record<string, unknown>,
+  ) {
+    const eventType = (payload.event as string) || 'unknown';
+    this.logger.log(`Received Blnk webhook: ${eventType}`);
+
+    // Blnk sends events for:
+    // - transaction.applied: Transaction was committed to the ledger
+    // - transaction.rejected: Transaction was rejected
+    // - transaction.inflight: Transaction is pending
+    // - balance.updated: A balance changed
+
+    // For now, log and acknowledge. The webhook→Blnk pipeline runs the other direction
+    // (our webhooks → Blnk ledger). Blnk→us webhooks are for reconciliation confirmation.
+    return {
+      success: true,
+      eventType,
+      message: 'acknowledged',
+    };
+  }
 }
