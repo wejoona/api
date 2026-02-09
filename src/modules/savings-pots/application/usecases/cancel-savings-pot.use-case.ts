@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
@@ -12,6 +13,7 @@ export class CancelSavingsPotUseCase {
   constructor(
     private readonly savingsPotRepository: SavingsPotRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -53,6 +55,14 @@ export class CancelSavingsPotUseCase {
     // Cancel the savings pot
     savingsPot.cancel();
 
-    return this.savingsPotRepository.save(savingsPot);
+    const saved = await this.savingsPotRepository.save(savingsPot);
+
+    this.eventEmitter.emit('savings.pot.cancelled', {
+      userId,
+      savingsPotId,
+      timestamp: new Date(),
+    });
+
+    return saved;
   }
 }

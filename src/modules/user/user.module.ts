@@ -40,6 +40,9 @@ import { DevController } from './application/controllers/dev.controller';
 // Guards
 import { JwtStrategy } from '../../common/guards';
 
+// Listeners
+import { UserRegisteredListener } from './application/listeners/user-registered.listener';
+
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
 import { KycModule } from '../kyc/kyc.module';
@@ -94,6 +97,8 @@ import { TransactionModule } from '../transaction/transaction.module';
     ChangePinUsecase,
     VerifyPinUsecase,
     ResetPinUsecase,
+    // Listeners
+    UserRegisteredListener,
     // Strategy
     JwtStrategy,
   ],

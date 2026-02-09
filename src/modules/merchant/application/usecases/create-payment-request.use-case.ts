@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentRequestEntity } from '../../domain/entities/payment-request.entity';
 import { MerchantRepository } from '../../infrastructure/repositories/merchant.repository';
 import { PaymentRequestRepository } from '../../infrastructure/repositories/payment-request.repository';
@@ -45,6 +46,7 @@ export class CreatePaymentRequestUseCase {
     private readonly merchantRepository: MerchantRepository,
     private readonly paymentRequestRepository: PaymentRequestRepository,
     private readonly qrCodeService: QrCodeService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -139,6 +141,15 @@ export class CreatePaymentRequestUseCase {
     this.logger.log(
       `Payment request ${savedRequest.requestId} created successfully`,
     );
+
+    this.eventEmitter.emit('merchant.payment.requested', {
+      userId,
+      merchantId,
+      requestId: savedRequest.requestId,
+      amount: savedRequest.amount,
+      currency: savedRequest.currency,
+      timestamp: new Date(),
+    });
 
     return {
       requestId: savedRequest.requestId,

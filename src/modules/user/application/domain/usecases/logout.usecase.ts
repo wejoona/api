@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -28,6 +29,7 @@ export class LogoutUsecase implements OnModuleDestroy {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.refreshSecret = this.configService.get<string>('jwt.refreshSecret');
     if (!this.refreshSecret) {
@@ -111,6 +113,11 @@ export class LogoutUsecase implements OnModuleDestroy {
           `Token already expired for user ${input.userId}, skipping blacklist`,
         );
       }
+
+      this.eventEmitter.emit('user.logged_out', {
+        userId: input.userId,
+        timestamp: new Date(),
+      });
 
       return {
         success: true,

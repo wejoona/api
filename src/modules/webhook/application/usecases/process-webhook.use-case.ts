@@ -571,6 +571,23 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         reference: depositId,
       });
 
+      // Emit deposit.completed for notification/realtime listeners
+      this.eventEmitter.emit('deposit.completed', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        amount: targetAmount,
+        currency: 'USDC',
+        reference: depositId,
+        timestamp: new Date(),
+      });
+
+      this.eventEmitter.emit('balance.updated', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        reason: 'deposit',
+        timestamp: new Date(),
+      });
+
       // Invalidate balance cache after successful deposit
       await this.cacheInvalidationService.invalidateBalance(wallet.userId);
     }
@@ -668,6 +685,23 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         amount: String(transaction.amount),
         currency: 'USDC',
         reference: withdrawalId,
+      });
+
+      // Emit withdrawal.completed for notification/realtime listeners
+      this.eventEmitter.emit('withdrawal.completed', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        amount: String(transaction.amount),
+        currency: 'USDC',
+        reference: withdrawalId,
+        timestamp: new Date(),
+      });
+
+      this.eventEmitter.emit('balance.updated', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        reason: 'withdrawal',
+        timestamp: new Date(),
       });
 
       // Invalidate balance cache after successful withdrawal
@@ -807,6 +841,22 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
         amount: String(amount),
         currency: 'USDC',
         reference: (inbound?.id as string) || 'circle_inbound',
+      });
+
+      this.eventEmitter.emit('deposit.completed', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        amount: String(amount),
+        currency: 'USDC',
+        reference: (inbound?.id as string) || 'circle_inbound',
+        timestamp: new Date(),
+      });
+
+      this.eventEmitter.emit('balance.updated', {
+        userId: wallet.userId,
+        walletId: wallet.id,
+        reason: 'deposit',
+        timestamp: new Date(),
       });
 
       // Invalidate balance cache after Circle inbound transfer

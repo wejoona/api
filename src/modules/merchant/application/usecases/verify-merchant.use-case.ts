@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantRepository } from '../../infrastructure/repositories/merchant.repository';
 
 export interface VerifyMerchantInput {
@@ -27,7 +28,10 @@ export interface VerifyMerchantOutput {
 export class VerifyMerchantUseCase {
   private readonly logger = new Logger(VerifyMerchantUseCase.name);
 
-  constructor(private readonly merchantRepository: MerchantRepository) {}
+  constructor(
+    private readonly merchantRepository: MerchantRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async execute(input: VerifyMerchantInput): Promise<VerifyMerchantOutput> {
     const { merchantId } = input;
@@ -52,6 +56,13 @@ export class VerifyMerchantUseCase {
     const savedMerchant = await this.merchantRepository.save(merchant);
 
     this.logger.log(`Merchant ${merchantId} verified successfully`);
+
+    this.eventEmitter.emit('merchant.verified', {
+      merchantId: savedMerchant.id,
+      businessName: savedMerchant.businessName,
+      adminUserId: input.adminUserId,
+      timestamp: new Date(),
+    });
 
     return {
       merchantId: savedMerchant.id,

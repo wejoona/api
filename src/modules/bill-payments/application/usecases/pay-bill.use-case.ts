@@ -5,6 +5,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource } from 'typeorm';
 import {
   BillProviderRepository,
@@ -59,6 +60,7 @@ export class PayBillUseCase {
     private readonly adapterService: BillAdapterService,
     private readonly dataSource: DataSource,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: PayBillInput): Promise<PayBillOutput> {
@@ -314,6 +316,22 @@ export class PayBillUseCase {
           `Bill payment completed: paymentId=${payment.id}, status=${result.status}`,
         );
 
+        this.eventEmitter.emit('bill.payment.completed', {
+          userId: input.userId,
+          paymentId: payment.id,
+          providerId: input.providerId,
+          amount: input.amount,
+          currency,
+          timestamp: new Date(),
+        });
+
+        this.eventEmitter.emit('balance.updated', {
+          userId: input.userId,
+          walletId: wallet.id,
+          reason: 'bill_payment',
+          timestamp: new Date(),
+        });
+
         return {
           ...result,
           paymentId: payment.id,
@@ -326,6 +344,15 @@ export class PayBillUseCase {
         this.logger.error(`Provider payment failed: ${error}`, error);
 
         await this.refundPayment(payment.id, wallet.id, totalAmount, error);
+
+        this.eventEmitter.emit('bill.payment.failed', {
+          userId: input.userId,
+          paymentId: payment.id,
+          providerId: input.providerId,
+          amount: input.amount,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date(),
+        });
 
         if (error instanceof BillPaymentError) {
           throw new BadRequestException(error.message);

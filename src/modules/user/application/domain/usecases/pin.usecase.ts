@@ -6,6 +6,7 @@ import {
   Inject,
   UnauthorizedException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
@@ -32,7 +33,10 @@ export class SetPinUsecase {
   // SECURITY: High salt rounds since we're hashing an already-hashed PIN
   private readonly SALT_ROUNDS = 12;
 
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async execute(input: SetPinInput): Promise<SetPinOutput> {
     const user = await this.userRepository.findById(input.userId);
@@ -60,6 +64,12 @@ export class SetPinUsecase {
     user.setPin(serverPinHash);
     await this.userRepository.save(user);
 
+    this.eventEmitter.emit('security.pin.changed', {
+      userId: input.userId,
+      action: 'set',
+      timestamp: new Date(),
+    });
+
     return {
       success: true,
       message: 'PIN set successfully',
@@ -86,7 +96,10 @@ export interface ChangePinOutput {
 export class ChangePinUsecase {
   private readonly SALT_ROUNDS = 12;
 
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async execute(input: ChangePinInput): Promise<ChangePinOutput> {
     const user = await this.userRepository.findById(input.userId);
@@ -148,6 +161,12 @@ export class ChangePinUsecase {
     user.setPin(serverPinHash);
     await this.userRepository.save(user);
 
+    this.eventEmitter.emit('security.pin.changed', {
+      userId: input.userId,
+      action: 'change',
+      timestamp: new Date(),
+    });
+
     return {
       success: true,
       message: 'PIN changed successfully',
@@ -178,6 +197,7 @@ export class VerifyPinUsecase {
   constructor(
     private readonly userRepository: UserRepository,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: VerifyPinInput): Promise<VerifyPinOutput> {
@@ -237,6 +257,11 @@ export class VerifyPinUsecase {
       this.PIN_TOKEN_TTL,
     );
 
+    this.eventEmitter.emit('security.pin.verified', {
+      userId: input.userId,
+      timestamp: new Date(),
+    });
+
     return {
       verified: true,
       pinToken,
@@ -267,6 +292,7 @@ export class ResetPinUsecase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly otpService: OtpService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: ResetPinInput): Promise<ResetPinOutput> {
@@ -294,6 +320,12 @@ export class ResetPinUsecase {
     // Set the new PIN and clear any lockout
     user.setPin(serverPinHash);
     await this.userRepository.save(user);
+
+    this.eventEmitter.emit('security.pin.changed', {
+      userId: input.userId,
+      action: 'reset',
+      timestamp: new Date(),
+    });
 
     return {
       success: true,

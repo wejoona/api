@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface DeleteWalletInput {
   walletId: string;
@@ -11,7 +12,10 @@ export interface DeleteWalletInput {
 
 @Injectable()
 export class DeleteWalletUseCase {
-  constructor(private readonly repository: WalletRepository) {}
+  constructor(
+    private readonly repository: WalletRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async execute(input: DeleteWalletInput): Promise<void> {
     const wallet = await this.repository.findById(input.walletId);
@@ -26,5 +30,11 @@ export class DeleteWalletUseCase {
     }
 
     await this.repository.delete(input.walletId);
+
+    this.eventEmitter.emit('wallet.deleted', {
+      walletId: input.walletId,
+      userId: wallet.userId,
+      timestamp: new Date(),
+    });
   }
 }

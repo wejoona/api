@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateWalletUseCase } from '../../../wallet/application/usecases';
 import { UserRepository } from '../../../user/infrastructure/repositories';
 
@@ -24,7 +25,27 @@ export class KycApprovedListener {
   constructor(
     private readonly createWalletUseCase: CreateWalletUseCase,
     private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  @OnEvent('kyc.submitted')
+  async handleKycSubmitted(event: {
+    userId: string;
+    kycVerificationId: string;
+  }): Promise<void> {
+    this.logger.log(`KYC submitted for user ${event.userId}`);
+    try {
+      const user = await this.userRepository.findById(event.userId);
+      if (user) {
+        user.updateKycStatus('submitted');
+        await this.userRepository.save(user);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to update user status after KYC submission: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
 
   @OnEvent('kyc.approved')
   async handleKycApproved(event: KycApprovedEvent): Promise<void> {
@@ -43,6 +64,18 @@ export class KycApprovedListener {
       // Update user KYC status
       user.updateKycStatus('approved');
       await this.userRepository.save(user);
+
+      this.eventEmitter.emit('kyc.status.changed', {
+        userId: event.userId,
+        status: 'approved',
+        timestamp: new Date(),
+      });
+
+      this.eventEmitter.emit('kyc.status_updated', {
+        userId: event.userId,
+        status: 'approved',
+        timestamp: new Date(),
+      });
 
       // Create wallet
       const wallet = await this.createWalletUseCase.execute({
@@ -82,6 +115,19 @@ export class KycApprovedListener {
       if (user) {
         user.updateKycStatus('rejected');
         await this.userRepository.save(user);
+
+        this.eventEmitter.emit('kyc.status.changed', {
+          userId: event.userId,
+          status: 'rejected',
+          reason: event.reason,
+          timestamp: new Date(),
+        });
+
+        this.eventEmitter.emit('kyc.status_updated', {
+          userId: event.userId,
+          status: 'rejected',
+          timestamp: new Date(),
+        });
       }
 
       // Notification handled by KycNotificationListener (kyc.rejected event)
@@ -103,10 +149,11 @@ export class KycApprovedListener {
     );
 
     try {
-      // Update user KYC status to pending
+      // Update user KYC status to submitted (in review) — NOT pending
+      // 'pending' would let the user re-submit, 'submitted' shows "under review"
       const user = await this.userRepository.findById(event.userId);
       if (user) {
-        user.updateKycStatus('pending');
+        user.updateKycStatus('submitted');
         await this.userRepository.save(user);
       }
 

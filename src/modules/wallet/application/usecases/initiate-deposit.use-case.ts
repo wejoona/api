@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WalletRepository } from '../../infrastructure/repositories/wallet.repository';
 import { TransactionRepository } from '../../../transaction/infrastructure/repositories/transaction.repository';
 import { TransactionEntity } from '../../../transaction/domain/entities/transaction.entity';
@@ -40,6 +41,7 @@ export class InitiateDepositUseCase {
     private readonly transactionRepository: TransactionRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: InitiateDepositInput): Promise<InitiateDepositOutput> {
@@ -89,6 +91,15 @@ export class InitiateDepositUseCase {
     });
 
     await this.transactionRepository.save(transaction);
+
+    this.eventEmitter.emit('wallet.deposit.initiated', {
+      userId: input.userId,
+      walletId: wallet.id,
+      transactionId: transaction.id,
+      amount: input.amount,
+      sourceCurrency: input.sourceCurrency,
+      timestamp: new Date(),
+    });
 
     return {
       transactionId: transaction.id,

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
@@ -13,6 +14,7 @@ export class WithdrawFromSavingsPotUseCase {
   constructor(
     private readonly savingsPotRepository: SavingsPotRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -53,7 +55,16 @@ export class WithdrawFromSavingsPotUseCase {
 
     // Save both entities
     await this.walletRepository.save(wallet);
-    return this.savingsPotRepository.save(savingsPot);
+    const saved = await this.savingsPotRepository.save(savingsPot);
+
+    this.eventEmitter.emit('savings.withdrawal.completed', {
+      userId,
+      savingsPotId,
+      amount: dto.amount,
+      timestamp: new Date(),
+    });
+
+    return saved;
   }
 
   async executeAll(
@@ -89,6 +100,15 @@ export class WithdrawFromSavingsPotUseCase {
 
     // Save both entities
     await this.walletRepository.save(wallet);
-    return this.savingsPotRepository.save(savingsPot);
+    const saved = await this.savingsPotRepository.save(savingsPot);
+
+    this.eventEmitter.emit('savings.withdrawal.completed', {
+      userId,
+      savingsPotId,
+      amount,
+      timestamp: new Date(),
+    });
+
+    return saved;
   }
 }

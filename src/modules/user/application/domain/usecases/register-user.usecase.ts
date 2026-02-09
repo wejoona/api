@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
@@ -21,6 +22,7 @@ export class RegisterUserUsecase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly otpService: OtpService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: RegisterUserInput): Promise<RegisterUserOutput> {
@@ -56,6 +58,12 @@ export class RegisterUserUsecase {
     await this.otpService.sendOtp(input.phone);
 
     this.logger.log(`New user registered: ${input.phone}`);
+
+    this.eventEmitter.emit('user.registered', {
+      userId: user.id,
+      phone: input.phone,
+      timestamp: new Date(),
+    });
 
     // SECURITY: Same response as existing user to prevent enumeration
     return {

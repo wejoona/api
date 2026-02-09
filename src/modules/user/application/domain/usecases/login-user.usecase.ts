@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
 
@@ -16,6 +17,7 @@ export class LoginUserUsecase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly otpService: OtpService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: LoginUserInput): Promise<LoginUserOutput> {
@@ -27,6 +29,12 @@ export class LoginUserUsecase {
 
     // Send OTP
     await this.otpService.sendOtp(input.phone);
+
+    this.eventEmitter.emit('user.login.requested', {
+      userId: user.id,
+      phone: input.phone,
+      timestamp: new Date(),
+    });
 
     return {
       success: true,

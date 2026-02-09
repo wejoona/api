@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantEntity } from '../../domain/entities/merchant.entity';
 import { MerchantCategory } from '../../domain/entities/merchant.types';
 import { MerchantRepository } from '../../infrastructure/repositories/merchant.repository';
@@ -62,6 +63,7 @@ export class RegisterMerchantUseCase {
     private readonly merchantRepository: MerchantRepository,
     private readonly walletRepository: WalletRepository,
     private readonly qrCodeService: QrCodeService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: RegisterMerchantInput): Promise<RegisterMerchantOutput> {
@@ -115,6 +117,14 @@ export class RegisterMerchantUseCase {
     const savedMerchant = await this.merchantRepository.save(merchant);
 
     this.logger.log(`Merchant ${savedMerchant.id} registered successfully`);
+
+    this.eventEmitter.emit('merchant.registered', {
+      userId: input.userId,
+      merchantId: savedMerchant.id,
+      businessName: savedMerchant.businessName,
+      category: savedMerchant.category,
+      timestamp: new Date(),
+    });
 
     return {
       merchantId: savedMerchant.id,

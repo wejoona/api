@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { CacheInvalidationService } from '../../../../shared/infrastructure/services';
@@ -20,6 +21,7 @@ export class UpdateProfileUsecase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(input: UpdateProfileInput): Promise<User> {
@@ -49,6 +51,12 @@ export class UpdateProfileUsecase {
 
     // Invalidate user profile cache
     await this.cacheInvalidationService.invalidateUserProfile(input.userId);
+
+    this.eventEmitter.emit('user.profile.updated', {
+      userId: input.userId,
+      updatedFields: Object.keys(input).filter(k => k !== 'userId' && input[k as keyof UpdateProfileInput] !== undefined),
+      timestamp: new Date(),
+    });
 
     return updatedUser;
   }

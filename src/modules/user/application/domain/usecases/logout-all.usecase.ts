@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -25,6 +26,7 @@ export class LogoutAllUsecase implements OnModuleDestroy {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.refreshSecret = this.configService.get<string>('jwt.refreshSecret');
     if (!this.refreshSecret) {
@@ -128,6 +130,11 @@ export class LogoutAllUsecase implements OnModuleDestroy {
       this.logger.log(
         `All tokens invalidated for user ${input.userId} at timestamp ${invalidationTimestamp}`,
       );
+
+      this.eventEmitter.emit('user.logged_out_all', {
+        userId: input.userId,
+        timestamp: new Date(),
+      });
 
       return {
         success: true,

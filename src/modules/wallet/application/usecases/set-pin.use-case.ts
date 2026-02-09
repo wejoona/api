@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../../../user/infrastructure/repositories';
 
@@ -23,7 +24,10 @@ export class SetPinUseCase {
   // Since PINs are only 4-6 digits, higher rounds provide more security
   private readonly SALT_ROUNDS = 12;
 
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async execute(input: SetPinInput): Promise<SetPinOutput> {
     const user = await this.userRepository.findById(input.userId);
@@ -55,6 +59,11 @@ export class SetPinUseCase {
     // Set the PIN
     user.setPin(pinHash);
     await this.userRepository.save(user);
+
+    this.eventEmitter.emit('wallet.pin.set', {
+      userId: input.userId,
+      timestamp: new Date(),
+    });
 
     return {
       success: true,

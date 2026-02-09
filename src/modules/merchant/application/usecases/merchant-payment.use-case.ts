@@ -5,6 +5,7 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MerchantPaymentEntity } from '../../domain/entities/merchant-payment.entity';
 import { MerchantRepository } from '../../infrastructure/repositories/merchant.repository';
 import { PaymentRequestRepository } from '../../infrastructure/repositories/payment-request.repository';
@@ -62,6 +63,7 @@ export class ProcessMerchantPaymentUseCase {
     private readonly qrCodeService: QrCodeService,
     @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -234,6 +236,16 @@ export class ProcessMerchantPaymentUseCase {
     this.logger.log(
       `Merchant payment ${savedPayment.paymentId} completed successfully`,
     );
+
+    this.eventEmitter.emit('merchant.payment.completed', {
+      customerId,
+      merchantId: merchant.id,
+      paymentId: savedPayment.paymentId,
+      amount: savedPayment.amount,
+      fee: savedPayment.fee,
+      currency: savedPayment.currency,
+      timestamp: new Date(),
+    });
 
     return {
       paymentId: savedPayment.paymentId,

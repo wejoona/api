@@ -232,7 +232,7 @@ export class KycVerificationService {
           context: snapshot.context,
         });
       } else if (finalState === 'manual_review') {
-        this.eventEmitter.emit('kyc.needs_review', {
+        this.eventEmitter.emit('kyc.requires_review', {
           userId,
           context: snapshot.context,
         });

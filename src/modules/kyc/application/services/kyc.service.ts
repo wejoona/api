@@ -162,6 +162,12 @@ export class KycService {
 
     await this.repository.save(kyc);
 
+    // Emit submitted event to update user's kyc_status
+    this.eventEmitter.emit('kyc.submitted', {
+      userId,
+      kycVerificationId: kyc.id,
+    });
+
     // Trigger auto-verification
     try {
       await this.triggerAutoVerification(kyc);

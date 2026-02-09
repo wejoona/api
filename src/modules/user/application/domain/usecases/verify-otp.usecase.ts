@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../entities';
@@ -37,6 +38,7 @@ export class VerifyOtpUsecase {
     private readonly jwtService: JwtService,
     private readonly kycService: KycService,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     // Use separate secret for refresh tokens - no fallback for security
     this.refreshSecret = this.configService.get<string>('jwt.refreshSecret');
@@ -141,6 +143,20 @@ export class VerifyOtpUsecase {
         expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
       },
     );
+
+    // Emit events
+    this.eventEmitter.emit('user.verified', {
+      userId: updatedUser.id,
+      phone: updatedUser.phone,
+      isFirstVerification,
+      timestamp: new Date(),
+    });
+
+    this.eventEmitter.emit('security.login.success', {
+      userId: updatedUser.id,
+      phone: updatedUser.phone,
+      timestamp: new Date(),
+    });
 
     return {
       user: updatedUser,
