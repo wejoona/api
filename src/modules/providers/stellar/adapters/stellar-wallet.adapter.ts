@@ -15,6 +15,7 @@ import {
 } from '../../interfaces';
 import { StellarHorizonService } from '../services/stellar-horizon.service';
 import { StellarConfig, StellarNetwork, StellarError } from '../stellar.types';
+import { KeyVaultService } from '@modules/shared/infrastructure/services';
 
 /**
  * Stellar Wallet Adapter
@@ -38,6 +39,7 @@ export class StellarWalletAdapter implements IWalletProvider {
   constructor(
     private readonly configService: ConfigService,
     private readonly horizonService: StellarHorizonService,
+    private readonly keyVault: KeyVaultService,
   ) {
     this.config = {
       network: (this.configService.get<string>('stellar.network') || 'testnet') as StellarNetwork,
@@ -99,13 +101,12 @@ export class StellarWalletAdapter implements IWalletProvider {
         balances: [],
         status: 'active',
         createdAt: new Date(),
-        // Store secret key in metadata (caller should encrypt this)
-        ...(data.metadata && {
-          metadata: {
-            ...data.metadata,
-            secretKey: keypair.secretKey, // IMPORTANT: Encrypt this before storing!
-          },
-        }),
+        // Store secret key encrypted in metadata
+        metadata: {
+          ...(data.metadata || {}),
+          secretKey: this.keyVault.encrypt(keypair.secretKey),
+          secretKeyEncrypted: this.keyVault.isEnabled(),
+        },
       } as ProviderWallet;
     } catch (error) {
       this.logger.error(
@@ -317,5 +318,18 @@ export class StellarWalletAdapter implements IWalletProvider {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Decrypt a stored secret key from wallet metadata
+   *
+   * Use this when you need the secret key for signing transactions.
+   * The key is encrypted at rest via KeyVaultService.
+   *
+   * @param encryptedKey The encrypted secret key from wallet metadata
+   * @returns Decrypted Stellar secret key (starts with S...)
+   */
+  decryptSecretKey(encryptedKey: string): string {
+    return this.keyVault.decrypt(encryptedKey);
   }
 }

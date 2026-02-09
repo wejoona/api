@@ -4,7 +4,7 @@ import { PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY } from './domain/gateways';
 import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
 import { SmsFactory, createSmsGateway } from './infrastructure/gateways/sms';
 import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
-import { CacheInvalidationService } from './infrastructure/services';
+import { CacheInvalidationService, KeyVaultService } from './infrastructure/services';
 
 /**
  * SharedModule provides global access to external service gateways.
@@ -29,6 +29,8 @@ import { CacheInvalidationService } from './infrastructure/services';
   providers: [
     // Cache Service
     CacheInvalidationService,
+    // Key Vault (AES-256-GCM encryption for secrets at rest)
+    KeyVaultService,
     // Payment Gateway (Yellow Card implementation)
     {
       provide: PAYMENT_GATEWAY,
@@ -58,6 +60,7 @@ import { CacheInvalidationService } from './infrastructure/services';
     SmsFactory,
     PushFactory,
     CacheInvalidationService,
+    KeyVaultService,
   ],
 })
 export class SharedModule {}

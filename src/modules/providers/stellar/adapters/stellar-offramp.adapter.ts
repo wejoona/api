@@ -19,6 +19,7 @@ import {
 } from '../../interfaces';
 import { StellarSep10Service } from '../services/stellar-sep10.service';
 import { StellarSep24Service } from '../services/stellar-sep24.service';
+import { KeyVaultService } from '@modules/shared/infrastructure/services';
 import {
   StellarConfig,
   StellarNetwork,
@@ -51,6 +52,7 @@ export class StellarOffRampAdapter implements IOffRampProvider {
     private readonly configService: ConfigService,
     private readonly sep10Service: StellarSep10Service,
     private readonly sep24Service: StellarSep24Service,
+    private readonly keyVault: KeyVaultService,
   ) {
     this.config = {
       network: (this.configService.get<string>('stellar.network') || 'testnet') as StellarNetwork,
@@ -226,15 +228,18 @@ export class StellarOffRampAdapter implements IOffRampProvider {
   ): Promise<WithdrawalResult> {
     try {
       // Get the source secret key for SEP-10 authentication
-      const sourceSecretKey = data.metadata?.sourceSecretKey as
+      const encryptedKey = data.metadata?.sourceSecretKey as
         | string
         | undefined;
 
-      if (!sourceSecretKey) {
+      if (!encryptedKey) {
         throw new StellarAuthError(
           'Source secret key required in metadata.sourceSecretKey for SEP-10 authentication',
         );
       }
+
+      // Decrypt the secret key (stored encrypted at rest)
+      const sourceSecretKey = this.keyVault.decrypt(encryptedKey);
 
       // Step 1: Authenticate with anchor via SEP-10
       const authToken = await this.sep10Service.authenticate(

@@ -20,6 +20,7 @@ import { StellarOffRampAdapter } from './adapters/stellar-offramp.adapter';
 import { StellarHorizonService } from './services/stellar-horizon.service';
 import { StellarSep10Service } from './services/stellar-sep10.service';
 import { StellarSep24Service } from './services/stellar-sep24.service';
+import { KeyVaultService } from '@modules/shared/infrastructure/services';
 
 /**
  * Stellar Provider Factory
@@ -37,6 +38,7 @@ export class StellarProviderFactory {
     private readonly horizonService: StellarHorizonService,
     private readonly sep10Service: StellarSep10Service,
     private readonly sep24Service: StellarSep24Service,
+    private readonly keyVault: KeyVaultService,
   ) {
     this.useMock =
       this.configService.get<boolean>('stellar.useMock') ?? false;
@@ -55,7 +57,7 @@ export class StellarProviderFactory {
       // Stellar testnet is free and safe for testing
       this.logger.log('Creating Stellar wallet provider (testnet mode)');
     }
-    return new StellarWalletAdapter(this.configService, this.horizonService);
+    return new StellarWalletAdapter(this.configService, this.horizonService, this.keyVault);
   }
 
   /**
@@ -79,6 +81,7 @@ export class StellarProviderFactory {
       this.configService,
       this.sep10Service,
       this.sep24Service,
+      this.keyVault,
     );
   }
 
@@ -93,6 +96,7 @@ export class StellarProviderFactory {
       this.configService,
       this.sep10Service,
       this.sep24Service,
+      this.keyVault,
     );
   }
 
