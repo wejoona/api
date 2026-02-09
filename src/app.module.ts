@@ -223,16 +223,17 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     SubBusinessModule, // Sub-business entity management for organizations
 
     // Newly wired modules
-    SavingsPotsModule,
-    ScheduledPaymentsModule,
-    SanctionsScreeningModule,
-    RegulatoryReportsModule,
-    EventStoreModule,
-    ReconciliationModule,
-    BatchProcessingModule,
-    ResilienceModule,
-    PaymentLinksModule,
-    // ApiHealthModule, // Disabled — needs @willsoto/nestjs-prometheus for metric providers
+    // === Orphan modules — deps fixed but need integration testing before enabling ===
+    // SavingsPotsModule,
+    // ScheduledPaymentsModule,
+    // SanctionsScreeningModule,
+    // RegulatoryReportsModule, // needs WALLET_REPOSITORY symbol
+    // EventStoreModule,
+    // ReconciliationModule, // needs WALLET_REPOSITORY symbol
+    // BatchProcessingModule,
+    // ResilienceModule,
+    // PaymentLinksModule,
+    // ApiHealthModule, // needs @willsoto/nestjs-prometheus
   ],
   controllers: [AppController],
   providers: [
