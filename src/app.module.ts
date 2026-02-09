@@ -63,6 +63,7 @@ import { SubBusinessModule } from './modules/sub-business';
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
 import { YellowCardModule } from './modules/providers/yellowcard';
+import { StellarModule } from './modules/providers/stellar';
 import { BlnkModule } from './modules/providers/blnk';
 import { TwilioModule } from './modules/twilio/twilio.module';
 
@@ -161,6 +162,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     // Provider modules (external integrations)
     CircleModule, // Identity, Wallets, Transfers
     YellowCardModule, // On-ramp/Off-ramp for Africa
+    StellarModule, // Stellar blockchain USDC (alternative to Circle)
     BlnkModule, // Ledger/Accounting (source of truth)
     TwilioModule, // SMS OTP delivery and webhook handling
 

@@ -5,7 +5,9 @@ import { DeviceRepository } from './domain/repositories/device.repository';
 import { TypeOrmDeviceRepository } from './infrastructure/repositories/device.repository';
 import { DeviceMapper } from './infrastructure/mappers/device.mapper';
 import { DeviceService } from './application/services/device.service';
+import { JweEncryptionService } from './application/services/jwe-encryption.service';
 import { DeviceController } from './application/controllers/device.controller';
+import { JwsDeviceGuard } from './application/guards/jws-device.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([DeviceOrmEntity])],
@@ -13,11 +15,13 @@ import { DeviceController } from './application/controllers/device.controller';
   providers: [
     DeviceMapper,
     DeviceService,
+    JweEncryptionService,
+    JwsDeviceGuard,
     {
       provide: DeviceRepository,
       useClass: TypeOrmDeviceRepository,
     },
   ],
-  exports: [DeviceService, DeviceRepository],
+  exports: [DeviceService, DeviceRepository, JweEncryptionService, JwsDeviceGuard],
 })
 export class DeviceModule {}

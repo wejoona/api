@@ -18,6 +18,8 @@ export interface RegisterDeviceParams {
   platform?: DevicePlatform;
   fcmToken?: string;
   ipAddress?: string;
+  publicKeyJwk?: Record<string, unknown>;
+  deviceName?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -66,6 +68,12 @@ export class DeviceService {
       }
       if (deviceInfo.appVersion) {
         device.updateAppVersion(deviceInfo.appVersion);
+      }
+      if (deviceInfo.publicKeyJwk) {
+        device.setPublicKey(deviceInfo.publicKeyJwk);
+      }
+      if (deviceInfo.deviceName) {
+        device.rename(deviceInfo.deviceName);
       }
       device.activate(); // Re-activate if was deactivated
 
@@ -206,6 +214,54 @@ export class DeviceService {
    */
   async countActiveDevices(userId: string): Promise<number> {
     return this.deviceRepository.countActiveDevices(userId);
+  }
+
+  /**
+   * Register a public key (JWK) for a device.
+   */
+  async registerPublicKey(
+    userId: string,
+    deviceId: string,
+    publicKeyJwk: Record<string, unknown>,
+  ): Promise<Device> {
+    const device = await this.deviceRepository.findById(deviceId);
+
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    if (device.userId !== userId) {
+      throw new ForbiddenException('Device does not belong to user');
+    }
+
+    device.setPublicKey(publicKeyJwk);
+    const saved = await this.deviceRepository.save(device);
+    this.logger.log(`Public key registered for device ${deviceId}`);
+    return saved;
+  }
+
+  /**
+   * Rename a device.
+   */
+  async renameDevice(
+    userId: string,
+    deviceId: string,
+    name: string,
+  ): Promise<Device> {
+    const device = await this.deviceRepository.findById(deviceId);
+
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    if (device.userId !== userId) {
+      throw new ForbiddenException('Device does not belong to user');
+    }
+
+    device.rename(name);
+    const saved = await this.deviceRepository.save(device);
+    this.logger.log(`Device ${deviceId} renamed to "${name}"`);
+    return saved;
   }
 
   private toResponse(device: Device): DeviceResponse {

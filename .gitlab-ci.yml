@@ -41,6 +41,30 @@ test:contracts:
     - main
     - develop
 
+# E2E Integration tests - validate complete user flows
+# Uses testcontainers for isolated PostgreSQL and Redis
+test:e2e:
+  stage: test
+  image: node:20-alpine
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    TESTCONTAINERS_RYUK_DISABLED: "true"
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  before_script:
+    - apk add --no-cache docker-cli
+    - npm ci --legacy-peer-deps
+  script:
+    - npm run test:e2e
+  only:
+    - merge_requests
+    - main
+  allow_failure: true  # E2E tests may be flaky, don't block deploys initially
+
 # Build Docker image using Kaniko (no privileged mode required)
 build:
   stage: build

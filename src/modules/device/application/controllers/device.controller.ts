@@ -22,6 +22,8 @@ import { DeviceService } from '../services/device.service';
 import {
   RegisterDeviceDto,
   UpdateFcmTokenDto,
+  RenameDeviceDto,
+  RegisterPublicKeyDto,
   DeviceResponseDto,
   DeviceActionResponseDto,
 } from '../dto';
@@ -224,5 +226,47 @@ export class DeviceController {
       message: `${count} device(s) revoked successfully`,
       count,
     };
+  }
+
+  @Post(':id/rename')
+  @ApiOperation({ summary: 'Rename a device' })
+  @ApiResponse({
+    status: 200,
+    description: 'Device renamed successfully',
+    type: DeviceActionResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Device not found' })
+  @ApiResponse({ status: 403, description: 'Device does not belong to user' })
+  async renameDevice(
+    @Param('id', ParseUUIDPipe) deviceId: string,
+    @Body() dto: RenameDeviceDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<DeviceActionResponseDto> {
+    await this.deviceService.renameDevice(user.id, deviceId, dto.name);
+    return { success: true, message: 'Device renamed successfully' };
+  }
+
+  @Post(':id/register-key')
+  @ApiOperation({
+    summary: 'Register or update public key for a device (ECDH P-256 JWK)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Public key registered successfully',
+    type: DeviceActionResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Device not found' })
+  @ApiResponse({ status: 403, description: 'Device does not belong to user' })
+  async registerPublicKey(
+    @Param('id', ParseUUIDPipe) deviceId: string,
+    @Body() dto: RegisterPublicKeyDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<DeviceActionResponseDto> {
+    await this.deviceService.registerPublicKey(
+      user.id,
+      deviceId,
+      dto.publicKeyJwk,
+    );
+    return { success: true, message: 'Public key registered successfully' };
   }
 }

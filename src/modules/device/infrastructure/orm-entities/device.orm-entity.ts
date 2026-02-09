@@ -83,6 +83,12 @@ export class DeviceOrmEntity {
   @Column({ name: 'login_count', type: 'integer', default: 0 })
   loginCount: number;
 
+  @Column({ name: 'public_key_jwk', type: 'jsonb', nullable: true })
+  publicKeyJwk: Record<string, unknown> | null;
+
+  @Column({ name: 'device_name', type: 'varchar', length: 255, nullable: true })
+  deviceName: string | null;
+
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, unknown> | null;
 

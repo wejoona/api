@@ -25,6 +25,8 @@ export class DeviceMapper {
       lastLoginAt: entity.lastLoginAt,
       lastIpAddress: entity.lastIpAddress,
       loginCount: entity.loginCount,
+      publicKeyJwk: entity.publicKeyJwk,
+      deviceName: entity.deviceName,
       metadata: entity.metadata,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -49,6 +51,8 @@ export class DeviceMapper {
     entity.lastLoginAt = device.lastLoginAt;
     entity.lastIpAddress = device.lastIpAddress;
     entity.loginCount = device.loginCount;
+    entity.publicKeyJwk = device.publicKeyJwk;
+    entity.deviceName = device.deviceName;
     entity.metadata = device.metadata;
     return entity;
   }

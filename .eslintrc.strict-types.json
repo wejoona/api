@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json.schemastore.org/eslintrc",
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json",
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+  ],
+  "rules": {
+    // ==========================================
+    // STRICT TYPE CHECKING
+    // ==========================================
+
+    // Disallow the 'any' type
+    "@typescript-eslint/no-explicit-any": "error",
+
+    // Disallow unsafe assignments
+    "@typescript-eslint/no-unsafe-assignment": "error",
+
+    // Disallow unsafe member access
+    "@typescript-eslint/no-unsafe-member-access": "error",
+
+    // Disallow unsafe calls
+    "@typescript-eslint/no-unsafe-call": "error",
+
+    // Disallow unsafe returns
+    "@typescript-eslint/no-unsafe-return": "error",
+
+    // Disallow unsafe argument passing
+    "@typescript-eslint/no-unsafe-argument": "error",
+
+    // Require type annotations in certain places
+    "@typescript-eslint/explicit-function-return-type": [
+      "warn",
+      {
+        "allowExpressions": true,
+        "allowTypedFunctionExpressions": true,
+        "allowHigherOrderFunctions": true
+      }
+    ],
+
+    // Require explicit return types on module exports
+    "@typescript-eslint/explicit-module-boundary-types": "warn",
+
+    // ==========================================
+    // TYPE-SAFETY IMPROVEMENTS
+    // ==========================================
+
+    // Enforce consistent type assertions
+    "@typescript-eslint/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "as",
+        "objectLiteralTypeAssertions": "never"
+      }
+    ],
+
+    // Require Array<T> instead of T[]
+    "@typescript-eslint/array-type": [
+      "error",
+      {
+        "default": "array-simple",
+        "readonly": "array-simple"
+      }
+    ],
+
+    // Enforce consistent type imports
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+
+    // Enforce consistent type exports
+    "@typescript-eslint/consistent-type-exports": [
+      "error",
+      {
+        "fixMixedExportsWithInlineTypeSpecifier": true
+      }
+    ],
+
+    // Require explicit accessibility modifiers
+    "@typescript-eslint/explicit-member-accessibility": [
+      "error",
+      {
+        "accessibility": "explicit",
+        "overrides": {
+          "constructors": "no-public"
+        }
+      }
+    ],
+
+    // ==========================================
+    // NULLISH CHECKING
+    // ==========================================
+
+    // Enforce strict null checks
+    "@typescript-eslint/strict-boolean-expressions": [
+      "warn",
+      {
+        "allowString": false,
+        "allowNumber": false,
+        "allowNullableObject": false
+      }
+    ],
+
+    // Prefer nullish coalescing
+    "@typescript-eslint/prefer-nullish-coalescing": "warn",
+
+    // Prefer optional chaining
+    "@typescript-eslint/prefer-optional-chain": "error",
+
+    // Disallow non-null assertions
+    "@typescript-eslint/no-non-null-assertion": "warn",
+
+    // ==========================================
+    // FUNCTION TYPES
+    // ==========================================
+
+    // Enforce function types over interfaces
+    "@typescript-eslint/prefer-function-type": "error",
+
+    // Disallow empty functions
+    "@typescript-eslint/no-empty-function": [
+      "error",
+      {
+        "allow": ["arrowFunctions", "decoratedFunctions"]
+      }
+    ],
+
+    // Require consistent return
+    "@typescript-eslint/no-invalid-void-type": "error",
+
+    // ==========================================
+    // PROMISES & ASYNC
+    // ==========================================
+
+    // Require await in async functions
+    "@typescript-eslint/require-await": "error",
+
+    // Disallow floating promises
+    "@typescript-eslint/no-floating-promises": "error",
+
+    // Require proper Promise handling
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": false,
+        "checksConditionals": true
+      }
+    ],
+
+    // Prefer await over then()
+    "@typescript-eslint/prefer-promise-reject-errors": "error",
+
+    // ==========================================
+    // TYPE DEFINITIONS
+    // ==========================================
+
+    // Prefer type imports
+    "@typescript-eslint/no-import-type-side-effects": "error",
+
+    // Disallow duplicate type constituents
+    "@typescript-eslint/no-duplicate-type-constituents": "error",
+
+    // Disallow redundant type constituents
+    "@typescript-eslint/no-redundant-type-constituents": "warn",
+
+    // Prefer Record over index signatures
+    "@typescript-eslint/consistent-indexed-object-style": [
+      "error",
+      "record"
+    ],
+
+    // ==========================================
+    // NAMING CONVENTIONS
+    // ==========================================
+
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "default",
+        "format": ["camelCase"]
+      },
+      {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE", "PascalCase"]
+      },
+      {
+        "selector": "parameter",
+        "format": ["camelCase"],
+        "leadingUnderscore": "allow"
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "interface",
+        "format": ["PascalCase"],
+        "custom": {
+          "regex": "^I[A-Z]",
+          "match": false
+        }
+      },
+      {
+        "selector": "typeParameter",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "enumMember",
+        "format": ["UPPER_CASE"]
+      }
+    ],
+
+    // ==========================================
+    // CODE QUALITY
+    // ==========================================
+
+    // Prefer for-of loops
+    "@typescript-eslint/prefer-for-of": "warn",
+
+    // Prefer includes over indexOf
+    "@typescript-eslint/prefer-includes": "warn",
+
+    // Prefer string starts/ends with
+    "@typescript-eslint/prefer-string-starts-ends-with": "warn",
+
+    // Prefer reduce type parameter
+    "@typescript-eslint/prefer-reduce-type-parameter": "warn",
+
+    // Prefer readonly parameters
+    "@typescript-eslint/prefer-readonly-parameter-types": "off",
+
+    // Require consistent this
+    "@typescript-eslint/no-this-alias": "error",
+
+    // Disallow unnecessary type arguments
+    "@typescript-eslint/no-unnecessary-type-arguments": "warn",
+
+    // Disallow unnecessary type assertions
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
+
+    // Disallow unnecessary type constraints
+    "@typescript-eslint/no-unnecessary-type-constraint": "error",
+
+    // ==========================================
+    // DISABLED RULES (Too Strict)
+    // ==========================================
+
+    // Allow empty interfaces (useful for marker interfaces)
+    "@typescript-eslint/no-empty-interface": "off",
+
+    // Allow inferrable types (sometimes explicit is better)
+    "@typescript-eslint/no-inferrable-types": "off",
+
+    // Allow require imports (needed for dynamic imports)
+    "@typescript-eslint/no-var-requires": "warn"
+  },
+
+  // ==========================================
+  // OVERRIDES FOR SPECIFIC FILES
+  // ==========================================
+
+  "overrides": [
+    {
+      "files": ["*.spec.ts", "*.test.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-empty-function": "off"
+      }
+    },
+    {
+      "files": ["*.dto.ts"],
+      "rules": {
+        "@typescript-eslint/explicit-function-return-type": "off"
+      }
+    },
+    {
+      "files": ["*.decorator.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/explicit-module-boundary-types": "off"
+      }
+    },
+    {
+      "files": ["*.migration.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "warn",
+        "@typescript-eslint/explicit-function-return-type": "off"
+      }
+    }
+  ]
+}

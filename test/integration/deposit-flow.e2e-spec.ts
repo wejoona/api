@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import {
   PostgreSqlContainer,
@@ -8,7 +8,7 @@ import {
 } from '@testcontainers/postgresql';
 import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { DataSource } from 'typeorm';
-import * as nock from 'nock';
+import nock from 'nock';
 
 /**
  * Deposit Flow Integration Tests

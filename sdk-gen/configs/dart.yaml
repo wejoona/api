@@ -1,0 +1,94 @@
+# OpenAPI Generator Configuration for Dart SDK
+# Generator: dart-dio
+# Documentation: https://openapi-generator.tech/docs/generators/dart-dio
+
+generatorName: dart-dio
+outputDir: ./output/dart
+inputSpec: http://localhost:3000/docs-json
+
+# Global Properties
+globalProperty:
+  models: ''
+  apis: ''
+  supportingFiles: 'Configuration,README,pubspec.yaml'
+
+# Additional Properties
+additionalProperties:
+  # Package Information
+  pubName: joonapay_sdk
+  pubVersion: 1.0.0
+  pubDescription: 'JoonaPay USDC Wallet API Client for Flutter'
+  pubAuthor: 'JoonaPay Engineering Team'
+  pubAuthorEmail: 'engineering@joonapay.com'
+  pubHomepage: 'https://github.com/joonapay/usdc-wallet'
+
+  # Dart/Flutter Options
+  nullSafe: true
+  nullSafe-array-default: true
+  useEnumExtension: true
+
+  # Serialization
+  serialization: json
+  dateLibrary: core
+
+  # API Structure
+  sourceFolder: lib
+
+  # HTTP Client (Dio)
+  dio: true
+  dioVersion: ^5.0.0
+
+  # Naming Conventions
+  allowUnicodeIdentifiers: false
+  ensureUniqueParams: true
+  prependFormOrBodyParameters: false
+  legacyDiscriminatorBehavior: true
+
+  # Documentation
+  withXml: false
+
+  # Additional Features
+  browserClient: false
+
+  # Dart Language Version
+  # Supports Flutter 3.0+
+
+# Template Directory (optional custom templates)
+# templateDir: ./templates/dart
+
+# Type Mappings
+typeMappings:
+  DateTime: DateTime
+  Date: DateTime
+  file: MultipartFile
+
+# Import Mappings
+importMappings:
+  MultipartFile: 'package:dio/dio.dart'
+
+# Reserved Words Mappings
+reservedWordsMappings: {}
+
+# Server Variables (defaults from OpenAPI spec)
+serverVariables: {}
+
+# Language-Specific Settings
+languageSpecificPrimitives:
+  - String
+  - bool
+  - int
+  - double
+  - num
+  - List
+  - Map
+  - DateTime
+
+# Inline Schema Options
+inlineSchemaNameDefaults:
+  arrayItemSuffix: Inner
+  mapItemSuffix: Entry
+
+# OpenAPI Generator Settings
+openapiGeneratorIgnoreList:
+  - .openapi-generator-ignore
+  - .gitignore

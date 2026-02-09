@@ -23,6 +23,8 @@ export interface DeviceProps {
   lastLoginAt?: Date | null;
   lastIpAddress?: string | null;
   loginCount?: number;
+  publicKeyJwk?: Record<string, unknown> | null;
+  deviceName?: string | null;
   metadata?: Record<string, unknown> | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -39,6 +41,8 @@ export interface CreateDeviceProps {
   platform?: DevicePlatform;
   fcmToken?: string | null;
   ipAddress?: string | null;
+  publicKeyJwk?: Record<string, unknown> | null;
+  deviceName?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -59,6 +63,8 @@ export class Device {
   private _lastLoginAt: Date | null;
   private _lastIpAddress: string | null;
   private _loginCount: number;
+  private _publicKeyJwk: Record<string, unknown> | null;
+  private _deviceName: string | null;
   private _metadata: Record<string, unknown> | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -80,6 +86,8 @@ export class Device {
     this._lastLoginAt = props.lastLoginAt ?? null;
     this._lastIpAddress = props.lastIpAddress ?? null;
     this._loginCount = props.loginCount ?? 0;
+    this._publicKeyJwk = props.publicKeyJwk ?? null;
+    this._deviceName = props.deviceName ?? null;
     this._metadata = props.metadata ?? null;
     this.createdAt = props.createdAt ?? new Date();
     this.updatedAt = props.updatedAt ?? new Date();
@@ -115,6 +123,14 @@ export class Device {
 
   get loginCount(): number {
     return this._loginCount;
+  }
+
+  get publicKeyJwk(): Record<string, unknown> | null {
+    return this._publicKeyJwk;
+  }
+
+  get deviceName(): string | null {
+    return this._deviceName;
   }
 
   get metadata(): Record<string, unknown> | null {
@@ -170,6 +186,18 @@ export class Device {
 
   updateMetadata(metadata: Record<string, unknown>): void {
     this._metadata = { ...this._metadata, ...metadata };
+  }
+
+  setPublicKey(jwk: Record<string, unknown>): void {
+    this._publicKeyJwk = jwk;
+  }
+
+  rename(name: string): void {
+    this._deviceName = name;
+  }
+
+  get hasPublicKey(): boolean {
+    return this._publicKeyJwk !== null;
   }
 
   static create(props: CreateDeviceProps): Device {

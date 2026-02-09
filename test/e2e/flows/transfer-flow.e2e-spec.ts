@@ -15,7 +15,7 @@
  */
 
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { E2ETestSetup } from '../setup';
 import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from '../helpers';
 import { v4 as uuidv4 } from 'uuid';

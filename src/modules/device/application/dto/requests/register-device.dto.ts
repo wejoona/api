@@ -80,6 +80,28 @@ export class RegisterDeviceDto {
   fcmToken?: string;
 
   @ApiPropertyOptional({
+    description:
+      'Device ECDH P-256 public key in JWK format for JWS/JWE operations',
+    example: {
+      kty: 'EC',
+      crv: 'P-256',
+      x: 'f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU',
+      y: 'x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0',
+    },
+  })
+  @IsOptional()
+  @IsObject()
+  publicKeyJwk?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Human-readable device name',
+    example: "Ben's iPhone 15",
+  })
+  @IsOptional()
+  @IsString()
+  deviceName?: string;
+
+  @ApiPropertyOptional({
     description: 'Additional device metadata',
     example: { screenSize: '6.1 inches', batteryLevel: 85 },
   })

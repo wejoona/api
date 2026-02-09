@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import helmet from 'helmet';
 import { AppModule } from '../../src/app.module';
 import { getSecurityHeadersConfig } from '../../src/config/security-headers.config';

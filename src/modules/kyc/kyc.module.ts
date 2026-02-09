@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // ORM Entities
 import { KycVerificationOrmEntity } from './infrastructure/orm-entities/kyc-verification.orm-entity';
@@ -11,6 +11,7 @@ import { KycVerificationRepository } from './infrastructure/repositories/kyc-ver
 
 // Providers
 import { MockKycProvider } from './infrastructure/providers/mock-kyc.provider';
+import { VerifyHqKycProvider } from './infrastructure/providers/verify-hq-kyc.provider';
 import { KYC_VERIFICATION_PROVIDER } from './domain/interfaces/kyc-verification-provider.interface';
 
 // Services
@@ -23,11 +24,15 @@ import { KycApprovedListener } from './application/listeners/kyc-approved.listen
 import { KycController } from './application/controllers/kyc.controller';
 import { AdminKycController } from './application/controllers/admin-kyc.controller';
 import { KycUploadController } from './application/controllers/kyc-upload.controller';
+import { KycVerifyController } from './application/controllers/kyc-verify.controller';
 
 // External modules
 import { UploadModule } from '../upload/upload.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { UserModule } from '../user/user.module';
+
+// VerifyHQ
+import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
 
 /**
  * KYC Module
@@ -51,16 +56,31 @@ import { UserModule } from '../user/user.module';
     UploadModule,
     forwardRef(() => WalletModule),
     forwardRef(() => UserModule),
+    VerifyHqModule,
   ],
-  controllers: [KycController, AdminKycController, KycUploadController],
+  controllers: [KycController, AdminKycController, KycUploadController, KycVerifyController],
   providers: [
     // Repository
     KycVerificationRepository,
 
-    // KYC Verification Provider (mock for now, can be swapped for real provider)
+    // KYC Verification Provider
+    // Uses VerifyHQ when VERIFY_HQ_API_KEY is set, otherwise mock
+    MockKycProvider,
+    VerifyHqKycProvider,
     {
       provide: KYC_VERIFICATION_PROVIDER,
-      useClass: MockKycProvider,
+      useFactory: (
+        configService: ConfigService,
+        mockProvider: MockKycProvider,
+        verifyHqProvider: VerifyHqKycProvider,
+      ) => {
+        const apiKey = configService.get<string>('VERIFY_HQ_API_KEY');
+        if (apiKey && apiKey !== 'your-api-key-here') {
+          return verifyHqProvider;
+        }
+        return mockProvider;
+      },
+      inject: [ConfigService, MockKycProvider, VerifyHqKycProvider],
     },
 
     // Service

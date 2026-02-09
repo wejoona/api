@@ -1,0 +1,92 @@
+# OpenAPI Generator Configuration for TypeScript SDK
+# Generator: typescript-axios
+# Documentation: https://openapi-generator.tech/docs/generators/typescript-axios
+
+generatorName: typescript-axios
+outputDir: ./output/typescript
+inputSpec: http://localhost:3000/docs-json
+
+# Global Properties
+globalProperty:
+  models: ''
+  apis: ''
+  supportingFiles: 'Configuration,README'
+
+# Additional Properties
+additionalProperties:
+  # Package Information
+  npmName: '@joonapay/sdk'
+  npmVersion: '1.0.0'
+  npmRepository: 'https://github.com/joonapay/usdc-wallet'
+
+  # Naming Conventions
+  modelPropertyNaming: camelCase
+  enumPropertyNaming: UPPERCASE
+  paramNaming: camelCase
+
+  # TypeScript Options
+  supportsES6: true
+  withInterfaces: true
+  useSingleRequestParameter: false
+  withSeparateModelsAndApi: true
+
+  # API Structure
+  apiPackage: api
+  modelPackage: models
+
+  # HTTP Client
+  platform: node
+  stringEnums: true
+
+  # Documentation
+  withXml: false
+  licenseName: MIT
+
+  # Additional Features
+  npmRepository: 'https://github.com/joonapay/usdc-wallet'
+  snapshot: false
+
+  # Authentication
+  # Supports JWT Bearer tokens automatically from OpenAPI spec
+
+# Template Directory (optional custom templates)
+# templateDir: ./templates/typescript
+
+# Type Mappings
+typeMappings:
+  DateTime: Date
+  Date: Date
+
+# Import Mappings
+importMappings: {}
+
+# Reserved Words Mappings
+reservedWordsMappings: {}
+
+# Server Variables (defaults from OpenAPI spec)
+serverVariables: {}
+
+# Files to Generate
+files:
+  api.mustache:
+    destinationFilename: api.ts
+  configuration.mustache:
+    destinationFilename: configuration.ts
+  index.mustache:
+    destinationFilename: index.ts
+
+# Language-Specific Settings
+languageSpecificPrimitives:
+  - string
+  - boolean
+  - number
+  - Array
+  - object
+
+# Inline Schema Options
+inlineSchemaNameDefaults:
+  arrayItemSuffix: Item
+  mapItemSuffix: Entry
+
+# OpenAPI Generator Settings
+openapiGeneratorIgnoreList: []

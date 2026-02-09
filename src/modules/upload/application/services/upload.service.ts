@@ -7,7 +7,7 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
 

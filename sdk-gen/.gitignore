@@ -1,0 +1,19 @@
+# SDK Outputs (commit these to track changes)
+# output/
+
+# Node modules
+node_modules/
+
+# Temporary files
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -15,7 +15,14 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm ls:*)",
+      "Bash(1)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(timeout 10 npm run start:dev:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

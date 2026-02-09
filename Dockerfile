@@ -21,6 +21,7 @@ WORKDIR /app
 
 # Copy package files for dependency installation
 COPY package.json bun.lock* ./
+COPY packages/ ./packages/
 
 # Install all dependencies (bun is 10-20x faster than npm)
 RUN bun install --frozen-lockfile 2>/dev/null || bun install
@@ -35,11 +36,13 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
+COPY packages/ ./packages/
 
 # Copy source code and config files needed for build
 COPY src ./src
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
+COPY tsconfig.prod.json ./
 COPY nest-cli.json ./
 
 # Build the application using bun
@@ -86,8 +89,10 @@ ENV PORT=3000
 # Copy built application from builder stage
 # Order matters: most stable files first for better layer caching
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.prod.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY .env.docker .env
 
 # Switch to non-root user
 USER nestjs
@@ -112,4 +117,5 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Start the application
 # Using exec form to ensure node receives signals
-CMD ["node", "dist/main.js"]
+ENV TS_NODE_PROJECT=tsconfig.prod.json
+CMD ["node", "-r", "tsconfig-paths/register", "dist/src/main.js"]

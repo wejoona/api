@@ -1,0 +1,18 @@
+# OpenAPI Generator Ignore
+# Use this file to prevent certain files from being overwritten
+
+# Custom package.json
+package.json
+
+# Custom README
+README.md
+
+# Custom tsconfig
+tsconfig.json
+
+# NPM ignore
+.npmignore
+
+# Tests (add your own)
+**/*.test.ts
+**/*.spec.ts

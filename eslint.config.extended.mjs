@@ -1,0 +1,845 @@
+// @ts-check
+import eslint from '@eslint/js';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import unusedImports from 'eslint-plugin-unused-imports';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      '*.config.mjs',
+      '*.config.js',
+    ],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+  eslintPluginPrettierRecommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+      sourceType: 'commonjs',
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    plugins: {
+      'unused-imports': unusedImports,
+    },
+    rules: {
+      // ==========================================
+      // STRICT TYPE SAFETY
+      // ==========================================
+
+      // No any type allowed - enforce explicit types
+      '@typescript-eslint/no-explicit-any': [
+        'error',
+        {
+          ignoreRestArgs: false,
+          fixToUnknown: true,
+        },
+      ],
+
+      // Explicit function return types required
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        {
+          allowExpressions: false,
+          allowTypedFunctionExpressions: true,
+          allowHigherOrderFunctions: true,
+          allowDirectConstAssertionInArrowFunctions: true,
+          allowConciseArrowFunctionExpressionsStartingWithVoid: false,
+        },
+      ],
+
+      // Explicit module boundary types
+      '@typescript-eslint/explicit-module-boundary-types': [
+        'error',
+        {
+          allowArgumentsExplicitlyTypedAsAny: false,
+          allowDirectConstAssertionInArrowFunctions: true,
+          allowHigherOrderFunctions: false,
+          allowTypedFunctionExpressions: true,
+        },
+      ],
+
+      // Disallow unsafe type operations
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+
+      // ==========================================
+      // NAMING CONVENTIONS (NestJS-specific)
+      // ==========================================
+
+      '@typescript-eslint/naming-convention': [
+        'error',
+        // Default: camelCase
+        {
+          selector: 'default',
+          format: ['camelCase'],
+          leadingUnderscore: 'forbid',
+          trailingUnderscore: 'forbid',
+        },
+        // Variables: camelCase, UPPER_CASE (constants), PascalCase (components)
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        // Constants: UPPER_CASE
+        {
+          selector: 'variable',
+          modifiers: ['const'],
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+        },
+        // Parameters: camelCase with leading underscore allowed for unused
+        {
+          selector: 'parameter',
+          format: ['camelCase'],
+          leadingUnderscore: 'allow',
+        },
+        // Properties: camelCase
+        {
+          selector: 'property',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        // Methods: camelCase
+        {
+          selector: 'method',
+          format: ['camelCase'],
+          leadingUnderscore: 'forbid',
+        },
+        // Functions: camelCase
+        {
+          selector: 'function',
+          format: ['camelCase', 'PascalCase'],
+        },
+        // Type-like: PascalCase
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+        },
+        // Classes: PascalCase (NestJS convention)
+        {
+          selector: 'class',
+          format: ['PascalCase'],
+          suffix: [
+            'Controller',
+            'Service',
+            'Module',
+            'Guard',
+            'Interceptor',
+            'Pipe',
+            'Filter',
+            'Decorator',
+            'Entity',
+            'Dto',
+            'Repository',
+            'Factory',
+            'Strategy',
+            'Provider',
+            'Middleware',
+            'Gateway',
+            'Resolver',
+            'Command',
+            'Query',
+            'Handler',
+            'Event',
+            'Saga',
+          ],
+        },
+        // Interfaces: PascalCase without 'I' prefix
+        {
+          selector: 'interface',
+          format: ['PascalCase'],
+          custom: {
+            regex: '^I[A-Z]',
+            match: false,
+          },
+        },
+        // Type aliases: PascalCase
+        {
+          selector: 'typeAlias',
+          format: ['PascalCase'],
+        },
+        // Type parameters: PascalCase (single letter or descriptive)
+        {
+          selector: 'typeParameter',
+          format: ['PascalCase'],
+        },
+        // Enums: PascalCase
+        {
+          selector: 'enum',
+          format: ['PascalCase'],
+          suffix: ['Status', 'Type', 'Mode', 'State', 'Role', 'Level'],
+        },
+        // Enum members: UPPER_CASE
+        {
+          selector: 'enumMember',
+          format: ['UPPER_CASE'],
+        },
+        // Object literal properties can be any format (for API responses)
+        {
+          selector: 'objectLiteralProperty',
+          format: null,
+        },
+      ],
+
+      // ==========================================
+      // UNUSED VARIABLES & IMPORTS
+      // ==========================================
+
+      // Disable base rule, use plugin version
+      '@typescript-eslint/no-unused-vars': 'off',
+
+      // Remove unused imports automatically
+      'unused-imports/no-unused-imports': 'error',
+
+      // Warn on unused variables with underscore exception
+      'unused-imports/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+
+      // ==========================================
+      // PREFER CONST & LET
+      // ==========================================
+
+      // Prefer const over let when variable is not reassigned
+      'prefer-const': [
+        'error',
+        {
+          destructuring: 'all',
+          ignoreReadBeforeAssign: false,
+        },
+      ],
+
+      // Disallow var
+      'no-var': 'error',
+
+      // Require const in destructuring
+      'prefer-destructuring': [
+        'warn',
+        {
+          VariableDeclarator: {
+            array: false,
+            object: true,
+          },
+          AssignmentExpression: {
+            array: false,
+            object: false,
+          },
+        },
+      ],
+
+      // ==========================================
+      // NO CONSOLE IN PRODUCTION
+      // ==========================================
+
+      // Disallow console statements (use Logger instead)
+      'no-console': [
+        'error',
+        {
+          allow: [],
+        },
+      ],
+
+      // Disallow debugger statements
+      'no-debugger': 'error',
+
+      // Disallow alert, confirm, prompt
+      'no-alert': 'error',
+
+      // ==========================================
+      // NESTJS-SPECIFIC PATTERNS
+      // ==========================================
+
+      // Require explicit accessibility modifiers on class members
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        {
+          accessibility: 'explicit',
+          overrides: {
+            constructors: 'no-public',
+            properties: 'explicit',
+            methods: 'explicit',
+          },
+        },
+      ],
+
+      // Enforce parameter properties (NestJS DI pattern)
+      '@typescript-eslint/parameter-properties': [
+        'warn',
+        {
+          prefer: 'parameter-property',
+        },
+      ],
+
+      // Require consistent member ordering
+      '@typescript-eslint/member-ordering': [
+        'warn',
+        {
+          default: [
+            // Static fields
+            'public-static-field',
+            'protected-static-field',
+            'private-static-field',
+            // Static methods
+            'public-static-method',
+            'protected-static-method',
+            'private-static-method',
+            // Instance fields
+            'public-instance-field',
+            'protected-instance-field',
+            'private-instance-field',
+            // Constructors
+            'constructor',
+            // Instance methods
+            'public-instance-method',
+            'protected-instance-method',
+            'private-instance-method',
+          ],
+        },
+      ],
+
+      // Disallow empty constructors
+      '@typescript-eslint/no-useless-constructor': 'error',
+
+      // Require super() in constructors
+      'constructor-super': 'error',
+
+      // ==========================================
+      // TYPE INFERENCE & ASSERTIONS
+      // ==========================================
+
+      // Enforce consistent type assertions
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: 'never',
+        },
+      ],
+
+      // Enforce consistent type imports
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          disallowTypeAnnotations: false,
+          fixStyle: 'separate-type-imports',
+        },
+      ],
+
+      // Enforce consistent type exports
+      '@typescript-eslint/consistent-type-exports': [
+        'error',
+        {
+          fixMixedExportsWithInlineTypeSpecifier: true,
+        },
+      ],
+
+      // Disallow unnecessary type arguments
+      '@typescript-eslint/no-unnecessary-type-arguments': 'error',
+
+      // Disallow unnecessary type assertions
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+
+      // Disallow unnecessary type constraints
+      '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+
+      // ==========================================
+      // PROMISE & ASYNC HANDLING
+      // ==========================================
+
+      // Require await in async functions
+      '@typescript-eslint/require-await': 'error',
+
+      // Disallow floating promises
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          ignoreVoid: true,
+          ignoreIIFE: false,
+        },
+      ],
+
+      // Require proper Promise handling
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+            properties: false,
+            returns: true,
+            variables: true,
+          },
+          checksConditionals: true,
+        },
+      ],
+
+      // Prefer promise reject with Error objects
+      '@typescript-eslint/prefer-promise-reject-errors': 'error',
+
+      // Await thenable values
+      '@typescript-eslint/await-thenable': 'error',
+
+      // No async functions without await
+      'require-await': 'off',
+
+      // ==========================================
+      // NULL/UNDEFINED SAFETY
+      // ==========================================
+
+      // Enforce strict null checks
+      '@typescript-eslint/strict-boolean-expressions': [
+        'error',
+        {
+          allowString: false,
+          allowNumber: false,
+          allowNullableObject: false,
+          allowNullableBoolean: false,
+          allowNullableString: false,
+          allowNullableNumber: false,
+          allowAny: false,
+        },
+      ],
+
+      // Prefer nullish coalescing
+      '@typescript-eslint/prefer-nullish-coalescing': [
+        'error',
+        {
+          ignoreConditionalTests: false,
+          ignoreMixedLogicalExpressions: false,
+        },
+      ],
+
+      // Prefer optional chaining
+      '@typescript-eslint/prefer-optional-chain': 'error',
+
+      // Disallow non-null assertions
+      '@typescript-eslint/no-non-null-assertion': 'error',
+
+      // Disallow non-null assertion with optional chaining
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+
+      // ==========================================
+      // FUNCTION & METHOD RULES
+      // ==========================================
+
+      // Disallow empty functions (except decorators)
+      '@typescript-eslint/no-empty-function': [
+        'error',
+        {
+          allow: ['decoratedFunctions', 'overrideMethods'],
+        },
+      ],
+
+      // Enforce function types over interfaces
+      '@typescript-eslint/prefer-function-type': 'error',
+
+      // No invalid void types
+      '@typescript-eslint/no-invalid-void-type': 'error',
+
+      // Prefer readonly parameters where possible
+      '@typescript-eslint/prefer-readonly-parameter-types': 'off',
+
+      // ==========================================
+      // ARRAY & OBJECT RULES
+      // ==========================================
+
+      // Prefer array literal over Array constructor
+      'no-array-constructor': 'off',
+      '@typescript-eslint/no-array-constructor': 'error',
+
+      // Prefer for-of loops
+      '@typescript-eslint/prefer-for-of': 'error',
+
+      // Prefer includes over indexOf
+      '@typescript-eslint/prefer-includes': 'error',
+
+      // Prefer string starts/ends with
+      '@typescript-eslint/prefer-string-starts-ends-with': 'error',
+
+      // Prefer reduce type parameter
+      '@typescript-eslint/prefer-reduce-type-parameter': 'error',
+
+      // Consistent indexed object style (prefer Record)
+      '@typescript-eslint/consistent-indexed-object-style': ['error', 'record'],
+
+      // Array type consistency
+      '@typescript-eslint/array-type': [
+        'error',
+        {
+          default: 'array-simple',
+          readonly: 'array-simple',
+        },
+      ],
+
+      // ==========================================
+      // CLASS RULES
+      // ==========================================
+
+      // Require consistent this usage
+      '@typescript-eslint/no-this-alias': [
+        'error',
+        {
+          allowDestructuring: true,
+          allowedNames: [],
+        },
+      ],
+
+      // No duplicate class members
+      'no-dupe-class-members': 'off',
+      '@typescript-eslint/no-dupe-class-members': 'error',
+
+      // No unnecessary qualifiers
+      '@typescript-eslint/no-unnecessary-qualifier': 'error',
+
+      // ==========================================
+      // IMPORT/EXPORT RULES
+      // ==========================================
+
+      // No duplicate imports
+      'no-duplicate-imports': 'error',
+
+      // No import type side effects
+      '@typescript-eslint/no-import-type-side-effects': 'error',
+
+      // No require imports (use ES6 imports)
+      '@typescript-eslint/no-require-imports': 'error',
+
+      // ==========================================
+      // CODE QUALITY RULES
+      // ==========================================
+
+      // Disallow loss of precision
+      'no-loss-of-precision': 'off',
+      '@typescript-eslint/no-loss-of-precision': 'error',
+
+      // Disallow magic numbers
+      '@typescript-eslint/no-magic-numbers': [
+        'off',
+        {
+          ignore: [-1, 0, 1, 2],
+          ignoreArrayIndexes: true,
+          ignoreDefaultValues: true,
+          ignoreEnums: true,
+          ignoreNumericLiteralTypes: true,
+          ignoreReadonlyClassProperties: true,
+        },
+      ],
+
+      // Disallow duplicate type constituents
+      '@typescript-eslint/no-duplicate-type-constituents': 'error',
+
+      // Disallow redundant type constituents
+      '@typescript-eslint/no-redundant-type-constituents': 'error',
+
+      // No unnecessary boolean literal comparisons
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+
+      // No unnecessary conditions
+      '@typescript-eslint/no-unnecessary-condition': [
+        'error',
+        {
+          allowConstantLoopConditions: true,
+        },
+      ],
+
+      // Restrict template expressions
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowNumber: true,
+          allowBoolean: false,
+          allowAny: false,
+          allowNullish: false,
+          allowRegExp: false,
+        },
+      ],
+
+      // Restrict plus operands
+      '@typescript-eslint/restrict-plus-operands': [
+        'error',
+        {
+          skipCompoundAssignments: false,
+          allowAny: false,
+        },
+      ],
+
+      // ==========================================
+      // GENERAL JAVASCRIPT RULES
+      // ==========================================
+
+      // Prefer template literals
+      'prefer-template': 'error',
+
+      // Prefer arrow callbacks
+      'prefer-arrow-callback': [
+        'error',
+        {
+          allowNamedFunctions: false,
+          allowUnboundThis: false,
+        },
+      ],
+
+      // No useless escape
+      'no-useless-escape': 'error',
+
+      // No useless catch
+      'no-useless-catch': 'error',
+
+      // No fallthrough in switch cases
+      'no-fallthrough': 'error',
+
+      // No case declarations
+      'no-case-declarations': 'error',
+
+      // Require default case in switch
+      'default-case': 'warn',
+
+      // No implicit coercion
+      'no-implicit-coercion': [
+        'error',
+        {
+          boolean: true,
+          number: true,
+          string: true,
+          disallowTemplateShorthand: false,
+        },
+      ],
+
+      // No nested ternary
+      'no-nested-ternary': 'warn',
+
+      // No unneeded ternary
+      'no-unneeded-ternary': 'error',
+
+      // Yoda conditions
+      yoda: ['error', 'never'],
+
+      // Curly braces for all control statements
+      curly: ['error', 'all'],
+
+      // Dot notation
+      'dot-notation': 'off',
+      '@typescript-eslint/dot-notation': [
+        'error',
+        {
+          allowKeywords: true,
+          allowPattern: '^[a-z]+(_[a-z]+)+$',
+        },
+      ],
+
+      // Eqeqeq (strict equality)
+      eqeqeq: ['error', 'always'],
+
+      // No eval
+      'no-eval': 'error',
+
+      // No implied eval
+      'no-implied-eval': 'off',
+      '@typescript-eslint/no-implied-eval': 'error',
+
+      // No new Function
+      'no-new-func': 'error',
+
+      // No throw literal
+      'no-throw-literal': 'off',
+      '@typescript-eslint/only-throw-error': 'error',
+
+      // Return await in try-catch
+      'no-return-await': 'off',
+      '@typescript-eslint/return-await': ['error', 'in-try-catch'],
+
+      // ==========================================
+      // PERFORMANCE
+      // ==========================================
+
+      // No unnecessary template literals
+      '@typescript-eslint/no-base-to-string': 'error',
+
+      // Prefer readonly
+      '@typescript-eslint/prefer-readonly': 'warn',
+
+      // Prefer as const
+      '@typescript-eslint/prefer-as-const': 'error',
+
+      // Prettier integration
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    },
+  },
+
+  // ==========================================
+  // FILE-SPECIFIC OVERRIDES
+  // ==========================================
+
+  // Test files - relax type safety
+  {
+    files: [
+      '**/*.spec.ts',
+      '**/*.test.ts',
+      '**/__tests__/**/*.ts',
+      '**/test/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // DTOs - relax function return type
+  {
+    files: ['**/*.dto.ts', '**/dto/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        {
+          accessibility: 'no-public',
+        },
+      ],
+    },
+  },
+
+  // Entities - relax for decorators
+  {
+    files: ['**/*.entity.ts', '**/entities/**/*.ts', '**/orm-entities/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        {
+          accessibility: 'no-public',
+        },
+      ],
+    },
+  },
+
+  // Decorators - allow any for metadata
+  {
+    files: ['**/*.decorator.ts', '**/decorators/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/ban-types': 'off',
+    },
+  },
+
+  // Migrations - relax for legacy code
+  {
+    files: ['**/*.migration.ts', '**/migrations/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // Guards - allow injectable pattern
+  {
+    files: ['**/*.guard.ts', '**/guards/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    },
+  },
+
+  // Interceptors - allow injectable pattern
+  {
+    files: ['**/*.interceptor.ts', '**/interceptors/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    },
+  },
+
+  // Pipes - allow transform pattern
+  {
+    files: ['**/*.pipe.ts', '**/pipes/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    },
+  },
+
+  // Filters - allow exception handling pattern
+  {
+    files: ['**/*.filter.ts', '**/filters/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    },
+  },
+
+  // Middleware - allow request handling pattern
+  {
+    files: ['**/*.middleware.ts', '**/middleware/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    },
+  },
+
+  // Config files - allow any and console
+  {
+    files: [
+      '**/*.config.ts',
+      '**/config/**/*.ts',
+      'jest.config.ts',
+      'webpack.config.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  // Scripts - allow console and require
+  {
+    files: ['**/scripts/**/*.ts', '**/seeds/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
+  // Main/Bootstrap files - allow console for startup logs
+  {
+    files: ['**/main.ts', '**/bootstrap.ts'],
+    rules: {
+      'no-console': ['error', { allow: ['log', 'error', 'warn'] }],
+    },
+  },
+);

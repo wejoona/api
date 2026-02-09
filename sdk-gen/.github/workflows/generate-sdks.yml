@@ -1,0 +1,146 @@
+name: Generate SDKs
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/**/*.controller.ts'
+      - 'src/**/*.dto.ts'
+      - 'src/main.ts'
+  workflow_dispatch:
+
+jobs:
+  generate-sdks:
+    name: Generate TypeScript and Dart SDKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start API server
+        run: |
+          npm run start:dev &
+          echo $! > api.pid
+
+      - name: Wait for API to be ready
+        run: |
+          timeout 120 bash -c 'until curl -f http://localhost:3000/docs-json > /dev/null 2>&1; do sleep 2; done'
+
+      - name: Validate OpenAPI spec
+        run: npm run sdk:validate
+
+      - name: Generate SDKs
+        run: npm run sdk:generate
+
+      - name: Build TypeScript SDK
+        run: |
+          cd sdk-gen/output/typescript
+          npm install
+          npm run build
+
+      - name: Analyze Dart SDK
+        run: |
+          cd sdk-gen/output/dart
+          flutter pub get
+          flutter analyze
+
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f api.pid ]; then
+            kill $(cat api.pid) || true
+            rm api.pid
+          fi
+
+      - name: Commit and push SDKs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add sdk-gen/output
+          git diff --staged --quiet || git commit -m "chore: regenerate SDKs [skip ci]"
+          git push
+
+      - name: Create release tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION=$(jq -r '.version' sdk-gen/output/typescript/package.json)
+          git tag -a "sdk-v$VERSION" -m "SDK Release v$VERSION"
+          git push origin "sdk-v$VERSION"
+
+  publish-typescript:
+    name: Publish TypeScript SDK to NPM
+    runs-on: ubuntu-latest
+    needs: generate-sdks
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Pull latest changes
+        run: git pull
+
+      - name: Publish to NPM
+        run: |
+          cd sdk-gen/output/typescript
+          npm install
+          npm run build
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-dart:
+    name: Publish Dart SDK to pub.dev
+    runs-on: ubuntu-latest
+    needs: generate-sdks
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Pull latest changes
+        run: git pull
+
+      - name: Setup pub credentials
+        run: |
+          mkdir -p ~/.pub-cache
+          echo '${{ secrets.PUB_CREDENTIALS }}' > ~/.pub-cache/credentials.json
+
+      - name: Publish to pub.dev
+        run: |
+          cd sdk-gen/output/dart
+          flutter pub get
+          flutter pub publish --force
