@@ -23,6 +23,7 @@ import {
   NotificationEventListener,
   AuditEventListener,
 } from '@modules/notification/application/domain/event-listeners';
+import { NtmNotificationListener } from '@modules/notification/application/listeners/ntm-notification.listener';
 
 @Module({
   imports: [
@@ -43,6 +44,8 @@ import {
     // Event Listeners
     NotificationEventListener,
     AuditEventListener,
+    // NTM External Notification Delivery
+    NtmNotificationListener,
   ],
   controllers: [...Controllers],
   exports: [...Services], // Export NotificationService and PushNotificationService for use in other modules

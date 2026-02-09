@@ -1,10 +1,11 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY } from './domain/gateways';
 import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
 import { SmsFactory, createSmsGateway } from './infrastructure/gateways/sms';
 import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
-import { CacheInvalidationService, KeyVaultService } from './infrastructure/services';
+import { CacheInvalidationService, KeyVaultService, NtmClientService } from './infrastructure/services';
 
 /**
  * SharedModule provides global access to external service gateways.
@@ -25,10 +26,12 @@ import { CacheInvalidationService, KeyVaultService } from './infrastructure/serv
  */
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, HttpModule],
   providers: [
     // Cache Service
     CacheInvalidationService,
+    // NTM Client (Notification Template Manager)
+    NtmClientService,
     // Key Vault (AES-256-GCM encryption for secrets at rest)
     KeyVaultService,
     // Payment Gateway (Yellow Card implementation)
@@ -61,6 +64,7 @@ import { CacheInvalidationService, KeyVaultService } from './infrastructure/serv
     PushFactory,
     CacheInvalidationService,
     KeyVaultService,
+    NtmClientService,
   ],
 })
 export class SharedModule {}

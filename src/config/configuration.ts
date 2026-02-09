@@ -200,6 +200,13 @@ export default () => ({
     pepScreeningProvider: process.env.PEP_SCREENING_PROVIDER || '', // 'world-check', 'dow-jones', etc.
   },
 
+  // NTM (Notification Template Manager)
+  ntm: {
+    baseUrl: process.env.NTM_BASE_URL || 'http://ntm:3100',
+    apiKey: process.env.NTM_API_KEY || '',
+    useMock: process.env.NTM_USE_MOCK !== 'false',
+  },
+
   // APM (Application Performance Monitoring)
   apm: {
     enabled: process.env.APM_ENABLED === 'true',
