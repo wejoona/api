@@ -232,7 +232,7 @@ export class ScheduledJobsService {
         this.logger.warn(
           `Found ${stuckTransactions.length} stuck transactions in processing state`,
         );
-        // TODO: Send alert notification
+        // PROVIDER_INTEGRATION: Send alert via notification service
         // TODO: Attempt to retry or resolve stuck transactions
       }
     } catch (error) {

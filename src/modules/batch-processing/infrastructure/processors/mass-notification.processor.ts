@@ -144,7 +144,7 @@ export class MassNotificationProcessor implements IBatchProcessor {
     // Simulate async notification sending
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // TODO: Integrate with notification service
+    // PROVIDER_INTEGRATION: Wire to NotificationService
     // - Route to appropriate channel (push/email/sms/in-app)
     // - Handle delivery confirmation
     // - Log notification sent event

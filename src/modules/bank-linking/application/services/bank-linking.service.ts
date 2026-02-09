@@ -164,7 +164,7 @@ export class BankLinkingService {
       `Linked bank account ${saved.id} for wallet ${walletId}: ${bank.name}`,
     );
 
-    // TODO: Initiate verification process (send OTP, etc.)
+    // PROVIDER_INTEGRATION: Initiate MoMo/Wave OTP verification
 
     return this.toResponse(saved);
   }
@@ -183,7 +183,7 @@ export class BankLinkingService {
       throw new BadRequestException('Account is already verified');
     }
 
-    // TODO: Verify OTP with bank or third-party service
+    // PROVIDER_INTEGRATION: Verify OTP with MoMo/Wave API
     // For now, accept "123456" as valid OTP (matching mobile mock)
     if (otp !== '123456') {
       throw new BadRequestException('Invalid OTP code');
@@ -261,7 +261,7 @@ export class BankLinkingService {
       );
     }
 
-    // TODO: Fetch actual balance from bank or third-party service
+    // PROVIDER_INTEGRATION: Fetch balance from linked MoMo/Wave account
     // For now, return mock balance
     const balance = 500000;
     account.updateBalance(balance);
@@ -297,7 +297,7 @@ export class BankLinkingService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    // TODO: Initiate actual deposit transaction with bank or payment processor
+    // PROVIDER_INTEGRATION: Initiate deposit via MoMo/Wave collection API
     const transactionId = `tx-${Date.now()}`;
 
     this.logger.log(
@@ -336,7 +336,7 @@ export class BankLinkingService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    // TODO: Initiate actual withdrawal transaction with bank or payment processor
+    // PROVIDER_INTEGRATION: Initiate withdrawal via MoMo/Wave disbursement API
     const transactionId = `tx-${Date.now()}`;
     const estimatedCompletion = new Date();
     estimatedCompletion.setHours(estimatedCompletion.getHours() + 2);

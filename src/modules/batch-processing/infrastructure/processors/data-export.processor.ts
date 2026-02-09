@@ -129,7 +129,7 @@ export class DataExportProcessor implements IBatchProcessor {
     // Simulate data export
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // TODO: Implement actual data export
+    // PROVIDER_INTEGRATION: Implement data export (CSV/PDF)
     // - Fetch user profile
     // - Fetch transactions
     // - Fetch wallet data

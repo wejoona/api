@@ -70,7 +70,7 @@ export class ReconciliationAlertListener {
     // 3. Log to security audit system
     // 4. Potentially suspend wallet until reconciled
 
-    // TODO: Integrate with notification service
+    // PROVIDER_INTEGRATION: Wire to NotificationService
     // await this.notificationService.send({
     //   userId: 'admin',
     //   category: 'finance',
@@ -121,7 +121,7 @@ export class ReconciliationAlertListener {
     }
 
     // In production, send daily summary email
-    // TODO: Integrate with email service
+    // PROVIDER_INTEGRATION: Wire to SendGrid/SES
     // await this.emailService.send({
     //   to: 'finance@joonapay.com',
     //   subject: `Daily Balance Reconciliation Report - ${new Date().toLocaleDateString()}`,
@@ -169,7 +169,7 @@ export class ReconciliationAlertListener {
     // 3. SMS to on-call finance team
     // 4. Create incident in incident management system
 
-    // TODO: Integrate with incident management
+    // PROVIDER_INTEGRATION: Wire to incident management
     // await this.incidentService.create({
     //   severity: 'critical',
     //   title: `${count} Critical Balance Discrepancies`,
@@ -195,7 +195,7 @@ export class ReconciliationAlertListener {
       `Reconciliation failed for ${source} at ${timestamp}: ${error}`,
     );
 
-    // TODO: Send alert to engineering team
+    // PROVIDER_INTEGRATION: Send engineering alert
     // await this.notificationService.send({
     //   userId: 'engineering',
     //   category: 'system',

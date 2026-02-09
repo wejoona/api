@@ -123,7 +123,7 @@ export class ScheduledReportProcessor implements IBatchProcessor {
     // Simulate data fetching
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // TODO: Implement actual data fetching based on report type
+    // PROVIDER_INTEGRATION: Implement report data aggregation
     // - Query appropriate tables
     // - Apply filters
     // - Aggregate if needed
@@ -154,7 +154,7 @@ export class ScheduledReportProcessor implements IBatchProcessor {
     _reportUrl: string,
     _reportType: string,
   ): Promise<void> {
-    // TODO: Send email with report link
+    // PROVIDER_INTEGRATION: Send email with report
     // - Format email template
     // - Attach or link to report
     // - Send via email service

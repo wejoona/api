@@ -236,7 +236,7 @@ export class ReconciliationAlertListener {
     message: string;
     reportId: string;
   }): void {
-    // TODO: Integrate with actual notification service
+    // PROVIDER_INTEGRATION: Wire to NotificationService when ready
     // Examples:
     // - this.slackService.sendMessage(payload);
     // - this.emailService.sendToFinanceTeam(payload);
@@ -257,7 +257,7 @@ export class ReconciliationAlertListener {
     reportId: string;
     data?: Record<string, unknown>;
   }): void {
-    // TODO: Integrate with actual alerting service
+    // PROVIDER_INTEGRATION: Wire to alerting (PagerDuty/OpsGenie)
     // Examples:
     // - this.pagerDutyService.createIncident(payload);
     // - this.opsGenieService.createAlert(payload);

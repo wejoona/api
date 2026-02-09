@@ -294,7 +294,7 @@ export class SARGeneratorService {
       );
     }
 
-    // TODO: Integrate with BCEAO SAR submission API
+    // PROVIDER_INTEGRATION: Wire to BCEAO regulatory reporting API
     sar.status = 'submitted';
     sar.submittedBy = officerId;
     sar.submittedAt = new Date();

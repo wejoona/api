@@ -416,7 +416,7 @@ export class AMLCFTService {
       throw new Error(`User ${userId} not found`);
     }
 
-    // TODO: Integrate with PEP screening database
+    // PROVIDER_INTEGRATION: Wire to ComplyAdvantage/Refinitiv PEP API
     // For now, return negative screening result
     return {
       userId,

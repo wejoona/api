@@ -269,7 +269,7 @@ export class ContactService {
       };
     }
 
-    // TODO: Implement actual invitation logic
+    // PROVIDER_INTEGRATION: Implement invitation flow (SMS/deep link)
     // - Send SMS with download link
     // - Track invitation status
     // - Reward referrals
