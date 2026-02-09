@@ -79,6 +79,22 @@ export function validateProductionConfig(): void {
   if (process.env.SMS_PROVIDER === 'mock') {
     throw new Error('SMS_PROVIDER cannot be mock in production');
   }
+
+  if (process.env.FCM_USE_MOCK === 'true') {
+    throw new Error('FCM_USE_MOCK must be false in production');
+  }
+
+  if (process.env.TWILIO_USE_MOCK === 'true') {
+    throw new Error('TWILIO_USE_MOCK must be false in production');
+  }
+
+  if (process.env.AWS_USE_MOCK === 'true') {
+    throw new Error('AWS_USE_MOCK must be false in production');
+  }
+
+  if (process.env.STELLAR_USE_MOCK === 'true') {
+    throw new Error('STELLAR_USE_MOCK must be false in production');
+  }
 }
 
 export { developmentConfig } from './development.config';

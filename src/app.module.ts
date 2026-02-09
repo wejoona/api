@@ -60,6 +60,18 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BusinessModule } from './modules/business';
 import { SubBusinessModule } from './modules/sub-business';
 
+// Previously unregistered modules
+import { SavingsPotsModule } from './modules/savings-pots/savings-pots.module';
+import { ScheduledPaymentsModule } from './modules/scheduled-payments/scheduled-payments.module';
+import { SanctionsScreeningModule } from './modules/sanctions-screening/sanctions-screening.module';
+import { RegulatoryReportsModule } from './modules/regulatory-reports/regulatory-reports.module';
+import { EventStoreModule } from './modules/event-store/event-store.module';
+import { ApiHealthModule } from './modules/api-health/api-health.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { BatchProcessingModule } from './modules/batch-processing/batch-processing.module';
+import { ResilienceModule } from './modules/resilience/resilience.module';
+import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
+
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
 import { YellowCardModule } from './modules/providers/yellowcard';
@@ -209,6 +221,18 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     AnalyticsModule, // Spending insights and analytics
     BusinessModule, // Business account management for organizations
     SubBusinessModule, // Sub-business entity management for organizations
+
+    // Newly wired modules
+    SavingsPotsModule, // Savings pots with 6 use cases
+    ScheduledPaymentsModule, // Scheduled/recurring payments
+    SanctionsScreeningModule, // Sanctions screening (compliance)
+    RegulatoryReportsModule, // BCEAO regulatory compliance reports
+    EventStoreModule, // Event sourcing
+    ApiHealthModule, // External API health monitoring
+    ReconciliationModule, // Ledger reconciliation
+    BatchProcessingModule, // Batch payment processing
+    ResilienceModule, // Circuit breaker patterns
+    PaymentLinksModule, // Payment links
   ],
   controllers: [AppController],
   providers: [

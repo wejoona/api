@@ -19,7 +19,10 @@ import {
 } from '@modules/notification/infrastructure/fcm';
 
 // Event Listeners
-import { NotificationEventListener } from '@modules/notification/application/domain/event-listeners';
+import {
+  NotificationEventListener,
+  AuditEventListener,
+} from '@modules/notification/application/domain/event-listeners';
 
 @Module({
   imports: [
@@ -39,6 +42,7 @@ import { NotificationEventListener } from '@modules/notification/application/dom
     FcmTokenRepository,
     // Event Listeners
     NotificationEventListener,
+    AuditEventListener,
   ],
   controllers: [...Controllers],
   exports: [...Services], // Export NotificationService and PushNotificationService for use in other modules
