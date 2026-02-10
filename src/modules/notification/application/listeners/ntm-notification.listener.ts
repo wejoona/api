@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NtmClientService } from '@modules/shared/infrastructure/services';
+import { FcmTokenRepository } from '@modules/notification/infrastructure/fcm/fcm-token.repository';
 
 /**
  * NTM Notification Listener
@@ -15,13 +16,16 @@ import { NtmClientService } from '@modules/shared/infrastructure/services';
 export class NtmNotificationListener {
   private readonly logger = new Logger(NtmNotificationListener.name);
 
-  constructor(private readonly ntmClient: NtmClientService) {}
+  constructor(
+    private readonly ntmClient: NtmClientService,
+    private readonly fcmTokenRepository: FcmTokenRepository,
+  ) {}
 
   // ─── KYC Events ──────────────────────────────────────────────
 
   @OnEvent('kyc.submitted')
-  handleKycSubmitted(payload: any) {
-    this.sendSafe({
+  async handleKycSubmitted(payload: any) {
+    await this.sendSafe({
       template: 'kyc-submitted',
       channel: 'push',
       recipient: { userId: payload.userId },
@@ -30,9 +34,9 @@ export class NtmNotificationListener {
   }
 
   @OnEvent('kyc.approved')
-  handleKycApproved(payload: any) {
-    this.sendSafe({
-      template: 'kyc-approved',
+  async handleKycApproved(payload: any) {
+    await this.sendSafe({
+      template: 'kyc.approved',
       channel: 'push',
       recipient: { userId: payload.userId },
       variables: { firstName: payload.firstName, kycId: payload.kycId },
@@ -41,8 +45,8 @@ export class NtmNotificationListener {
   }
 
   @OnEvent('kyc.rejected')
-  handleKycRejected(payload: any) {
-    this.sendSafe({
+  async handleKycRejected(payload: any) {
+    await this.sendSafe({
       template: 'kyc-rejected',
       channel: 'push',
       recipient: { userId: payload.userId },
@@ -67,14 +71,15 @@ export class NtmNotificationListener {
   // ─── Transaction Events ──────────────────────────────────────
 
   @OnEvent('transaction.deposit.completed')
-  handleDepositCompleted(payload: any) {
-    this.sendSafe({
-      template: 'deposit-completed',
+  async handleDepositCompleted(payload: any) {
+    await this.sendSafe({
+      template: 'deposit.completed',
       channel: 'push',
       recipient: { userId: payload.userId },
       variables: {
         amount: payload.amount,
         currency: payload.currency,
+        usdcAmount: payload.usdcAmount || payload.amount, // Fallback if usdcAmount not provided
         transactionId: payload.transactionId,
       },
       priority: 'high',
@@ -82,8 +87,8 @@ export class NtmNotificationListener {
   }
 
   @OnEvent('transaction.deposit.failed')
-  handleDepositFailed(payload: any) {
-    this.sendSafe({
+  async handleDepositFailed(payload: any) {
+    await this.sendSafe({
       template: 'deposit-failed',
       channel: 'push',
       recipient: { userId: payload.userId },
@@ -97,9 +102,9 @@ export class NtmNotificationListener {
   }
 
   @OnEvent('transaction.transfer.sent')
-  handleTransferCompleted(payload: any) {
-    this.sendSafe({
-      template: 'transfer-sent',
+  async handleTransferCompleted(payload: any) {
+    await this.sendSafe({
+      template: 'transfer.sent',
       channel: 'push',
       recipient: { userId: payload.userId },
       variables: {
@@ -112,9 +117,9 @@ export class NtmNotificationListener {
   }
 
   @OnEvent('transaction.transfer.received')
-  handleTransferReceived(payload: any) {
-    this.sendSafe({
-      template: 'transfer-received',
+  async handleTransferReceived(payload: any) {
+    await this.sendSafe({
+      template: 'transfer.received',
       channel: 'push',
       recipient: { userId: payload.userId },
       variables: {
@@ -376,12 +381,52 @@ export class NtmNotificationListener {
    * Fire-and-forget send with error swallowing.
    * Notification failures must never crash the main flow.
    */
-  private sendSafe(notification: Parameters<NtmClientService['send']>[0]) {
-    this.ntmClient.send(notification).catch((error) => {
+  private async sendSafe(notification: Parameters<NtmClientService['send']>[0]) {
+    try {
+      // For push notifications, we need to get FCM tokens
+      if (notification.channel === 'push' && notification.recipient.userId) {
+        const fcmTokens = await this.fcmTokenRepository.findActiveByUserId(
+          notification.recipient.userId
+        );
+
+        if (fcmTokens.length === 0) {
+          this.logger.warn(
+            `No active FCM tokens found for user ${notification.recipient.userId}, skipping push notification`
+          );
+          return;
+        }
+
+        // Send to all active tokens for the user
+        for (const tokenEntity of fcmTokens) {
+          const notificationWithToken = {
+            ...notification,
+            recipient: {
+              ...notification.recipient,
+              deviceToken: tokenEntity.token,
+            },
+          };
+
+          this.ntmClient.send(notificationWithToken).catch((error) => {
+            this.logger.error(
+              `[NTM] Error sending ${notification.template} to token ${tokenEntity.token.substring(0, 20)}...: ${error.message}`,
+              error.stack,
+            );
+          });
+        }
+      } else {
+        // For non-push notifications or when no userId is provided
+        this.ntmClient.send(notification).catch((error) => {
+          this.logger.error(
+            `[NTM] Unhandled error sending ${notification.template}: ${error.message}`,
+            error.stack,
+          );
+        });
+      }
+    } catch (error) {
       this.logger.error(
-        `[NTM] Unhandled error sending ${notification.template}: ${error.message}`,
+        `[NTM] Error in sendSafe for ${notification.template}: ${error.message}`,
         error.stack,
       );
-    });
+    }
   }
 }

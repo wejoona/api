@@ -45,6 +45,9 @@ export class UserResponse {
   @ApiProperty({ example: true })
   canWithdraw: boolean;
 
+  @ApiProperty({ example: false, description: 'Whether user has set a PIN' })
+  hasPin: boolean;
+
   @ApiProperty({ example: '2026-01-18T12:00:00.000Z' })
   createdAt: Date;
 
@@ -66,6 +69,7 @@ export class UserResponse {
       kycRejectionReason !== undefined ? kycRejectionReason : null;
     response.canTransact = user.canTransact;
     response.canWithdraw = user.canWithdraw;
+    response.hasPin = user.hasPin;
     response.createdAt = user.createdAt;
     return response;
   }
