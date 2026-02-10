@@ -166,6 +166,8 @@ export class KycService {
     this.eventEmitter.emit('kyc.submitted', {
       userId,
       kycVerificationId: kyc.id,
+      firstName: input.firstName,
+      lastName: input.lastName,
     });
 
     // Trigger auto-verification

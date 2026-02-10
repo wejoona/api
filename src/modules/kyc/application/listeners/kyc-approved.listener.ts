@@ -32,12 +32,23 @@ export class KycApprovedListener {
   async handleKycSubmitted(event: {
     userId: string;
     kycVerificationId: string;
+    firstName?: string;
+    lastName?: string;
   }): Promise<void> {
     this.logger.log(`KYC submitted for user ${event.userId}`);
     try {
       const user = await this.userRepository.findById(event.userId);
       if (user) {
         user.updateKycStatus('submitted');
+
+        // Sync name from KYC to user profile if not already set
+        if (event.firstName && !user.firstName) {
+          user.updateProfile({
+            firstName: event.firstName,
+            lastName: event.lastName || undefined,
+          });
+        }
+
         await this.userRepository.save(user);
       }
     } catch (error) {
