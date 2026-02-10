@@ -1,7 +1,7 @@
 import { Injectable, Logger, Inject, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ILedgerProvider } from '../../../providers/interfaces';
+import { ILedgerProvider, LEDGER_PROVIDER } from '../../../providers/interfaces';
 import { DepositRepository, CreateDepositParams, UpdateDepositParams, ListDepositsParams } from '../../infrastructure/repositories/deposit.repository';
 import { PaymentProviderFactory } from '../../infrastructure/providers/payment-provider.factory';
 import { DepositTokenService } from './deposit-token.service';
@@ -24,7 +24,7 @@ export class DepositService {
     private readonly tokenService: DepositTokenService,
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
-    @Inject('LEDGER_PROVIDER')
+    @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,
   ) {
     this.usdcXofRate = this.configService.get<number>('USDC_XOF_RATE', 600);
