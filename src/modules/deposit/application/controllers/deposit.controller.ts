@@ -8,6 +8,8 @@ import {
   UseGuards,
   Request,
   ValidationPipe,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import { DepositService } from '../services/deposit.service';
+import { UserRepository } from '../../../user/infrastructure/repositories';
 import { InitiateDepositDto } from '../dto/initiate-deposit.dto';
 import { ConfirmDepositDto } from '../dto/confirm-deposit.dto';
 import { InitiateDepositResponseDto, DepositStatusResponseDto, ProviderInfoDto } from '../dto/deposit-response.dto';
@@ -34,7 +37,11 @@ class ListDepositsQueryDto {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class DepositController {
-  constructor(private readonly depositService: DepositService) {}
+  constructor(
+    private readonly depositService: DepositService,
+    @Inject(forwardRef(() => UserRepository))
+    private readonly userRepository: UserRepository,
+  ) {}
 
   @Get('providers')
   @ApiOperation({
@@ -69,9 +76,9 @@ export class DepositController {
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })) 
     dto: InitiateDepositDto,
   ): Promise<InitiateDepositResponseDto> {
-    // TODO: Get user's phone number from user profile
-    // For now, use the phone from DTO or fallback
-    const userPhoneNumber = undefined; // await this.userService.getUserPhone(req.user.id);
+    // Get user's phone number from profile for provider matching
+    const user = await this.userRepository.findById(req.user.id);
+    const userPhoneNumber = user?.phone;
     
     return this.depositService.initiateDeposit(req.user.id, dto, userPhoneNumber);
   }

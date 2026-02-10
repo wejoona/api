@@ -37,6 +37,9 @@ export class RefreshResponse {
     description: 'Access token expiry in seconds (e.g., 900 = 15 minutes)',
   })
   expiresIn: number;
+
+  @ApiPropertyOptional({ type: UserResponse, description: 'User data (included on refresh)' })
+  user?: UserResponse;
 }
 
 export class OtpSentResponse {

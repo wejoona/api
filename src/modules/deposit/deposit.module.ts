@@ -1,5 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SharedModule } from '../shared/shared.module';
+import { UserModule } from '../user/user.module';
 
 // ORM Entities
 import { DepositEntity } from './domain/entities/deposit.entity';
@@ -27,8 +29,8 @@ import { WaveMockProvider } from './infrastructure/providers/mock/wave-mock.prov
 @Module({
   imports: [
     TypeOrmModule.forFeature([DepositEntity]),
-    // EventEmitterModule is already global
-    // ConfigModule is already global
+    SharedModule,
+    forwardRef(() => UserModule),
   ],
   providers: [
     // Repositories

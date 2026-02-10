@@ -134,6 +134,7 @@ export class AuthController {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       expiresIn: result.expiresIn,
+      user: UserResponse.fromDomain(result.user),
     };
   }
 
