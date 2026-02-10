@@ -50,10 +50,13 @@ export class NtmClientService {
     }
 
     try {
+      // Convert to NTM API format
+      const ntmPayload = this.mapToNtmFormat(notification);
+      
       const { data } = await firstValueFrom(
         this.httpService.post<NtmSendResponse>(
           `${this.baseUrl}/api/v1/notifications/send`,
-          notification,
+          ntmPayload,
           { headers: this.getHeaders() },
         ),
       );
@@ -80,10 +83,15 @@ export class NtmClientService {
     }
 
     try {
+      // Convert all notifications to NTM format
+      const ntmPayloads = notifications.map(notification => 
+        this.mapToNtmFormat(notification)
+      );
+
       const { data } = await firstValueFrom(
         this.httpService.post<NtmSendBulkResponse>(
           `${this.baseUrl}/api/v1/notifications/send-bulk`,
-          { notifications },
+          { notifications: ntmPayloads },
           { headers: this.getHeaders() },
         ),
       );
@@ -95,6 +103,45 @@ export class NtmClientService {
       );
       return { deliveryIds: [] };
     }
+  }
+
+  /**
+   * Map internal notification format to NTM API format
+   */
+  private mapToNtmFormat(notification: NtmNotification): any {
+    // Determine recipient address based on channel
+    let recipientAddress: string;
+    let recipientId: string = notification.recipient.userId || 'unknown';
+
+    switch (notification.channel) {
+      case 'push':
+        recipientAddress = notification.recipient.deviceToken || '';
+        break;
+      case 'sms':
+        recipientAddress = notification.recipient.phone || '';
+        break;
+      case 'email':
+        recipientAddress = notification.recipient.email || '';
+        break;
+      default:
+        recipientAddress = '';
+    }
+
+    // Map to NTM SendNotificationDto format
+    return {
+      templateSlug: notification.template,
+      channel: notification.channel,
+      recipientId: recipientId,
+      recipientAddress: recipientAddress,
+      context: notification.variables,
+      tenantId: '00000000-0000-0000-0000-000000000001', // Default tenant ID
+      locale: 'fr', // Default locale
+      priority: notification.priority || 'normal',
+      metadata: {
+        source: 'korido',
+        originalPriority: notification.priority,
+      },
+    };
   }
 
   private getHeaders(): Record<string, string> {

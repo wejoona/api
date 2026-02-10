@@ -124,7 +124,7 @@ export interface RecordDepositParams {
   currency: string;
   reference: string;
   description?: string;
-  provider: 'yellowcard' | 'circle';
+  provider: 'yellowcard' | 'circle' | 'mobile_money';
   externalId?: string;
   fee?: bigint;
   metadata?: Record<string, unknown>;
@@ -136,7 +136,7 @@ export interface RecordWithdrawalParams {
   currency: string;
   reference: string;
   description?: string;
-  provider: 'yellowcard' | 'circle';
+  provider: 'yellowcard' | 'circle' | 'mobile_money';
   fee: bigint;
   inflight?: boolean;
   metadata?: Record<string, unknown>;

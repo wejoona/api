@@ -84,6 +84,7 @@ import { TwilioModule } from './modules/twilio/twilio.module';
 // APM and Profiling
 import { ApmService } from './common/apm';
 import { DatabaseProfiler } from './common/profilers/database.profiler';
+import { DepositsModule } from './modules/deposits/deposits.module';
 
 @Module({
   imports: [
@@ -250,6 +251,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     RegulatoryReportsModule,
     ReconciliationModule,
     ApiHealthModule,
+    DepositsModule,
   ],
   controllers: [AppController],
   providers: [
