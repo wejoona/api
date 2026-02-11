@@ -13,6 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -20,6 +21,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -207,8 +209,13 @@ export class PaymentLinkController {
 
   @Post('code/:code/pay')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PinVerificationGuard)
   @ApiBearerAuth()
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /user/pin/verify',
+    required: true,
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Pay a payment link',

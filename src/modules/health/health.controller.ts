@@ -79,6 +79,28 @@ export class HealthController {
     };
   }
 
+  @Get('time')
+  @ApiOperation({ summary: 'Server time for client clock synchronization' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current server time',
+    schema: {
+      example: {
+        serverTime: '2026-02-11T03:30:00.000Z',
+        timestamp: 1739245800000,
+        timezone: 'UTC',
+      },
+    },
+  })
+  serverTime() {
+    const now = new Date();
+    return {
+      serverTime: now.toISOString(),
+      timestamp: now.getTime(),
+      timezone: 'UTC',
+    };
+  }
+
   @Get('detailed')
   @ApiOperation({ summary: 'Detailed health check with all services' })
   @ApiResponse({
