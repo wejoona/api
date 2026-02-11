@@ -130,6 +130,7 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
 
     const { publicKey, privateKey } = await generateKeyPair('RSA-OAEP-256', {
       modulusLength: 2048,
+      extractable: true,
     });
 
     const publicJwk = await exportJWK(publicKey);
