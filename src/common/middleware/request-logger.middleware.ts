@@ -29,9 +29,18 @@ export class RequestLoggerMiddleware implements NestMiddleware {
         this.logger.log(message);
       }
 
-      // Set response time header for client visibility
-      res.setHeader('X-Response-Time', `${duration}ms`);
     });
+
+    // Set response time header before response is sent
+    const origEnd = res.end;
+    const startTime = start;
+    res.end = function (...args: any[]) {
+      const duration = Date.now() - startTime;
+      if (!res.headersSent) {
+        res.setHeader('X-Response-Time', `${duration}ms`);
+      }
+      return origEnd.apply(res, args);
+    } as any;
 
     next();
   }
