@@ -56,6 +56,16 @@ export class WhitelistedAddress implements IWhitelistedAddress {
   }
 
   static create(props: CreateWhitelistedAddressProps): WhitelistedAddress {
+    if (!props.address || props.address.trim().length === 0) {
+      throw new Error('Wallet address is required');
+    }
+    if (!props.label || props.label.trim().length === 0) {
+      throw new Error('Address label is required');
+    }
+    if (props.label.length > 100) {
+      throw new Error('Address label must be 100 characters or less');
+    }
+
     const now = new Date();
     return new WhitelistedAddress({
       id: uuidv4(),

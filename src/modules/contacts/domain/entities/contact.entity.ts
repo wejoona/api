@@ -54,6 +54,16 @@ export class Contact implements IContact {
   }
 
   static create(props: CreateContactProps): Contact {
+    if (!props.name || props.name.trim().length === 0) {
+      throw new Error('Contact name is required');
+    }
+    if (!props.phone && !props.walletAddress && !props.username) {
+      throw new Error('At least one identifier (phone, wallet address, or username) is required');
+    }
+    if (props.phone && !props.phone.startsWith('+')) {
+      throw new Error('Phone number must be in E.164 format (e.g., +225...)');
+    }
+
     const now = new Date();
     return new Contact({
       id: uuidv4(),

@@ -173,6 +173,13 @@ export class Business {
   }
 
   static create(props: CreateBusinessProps): Business {
+    if (!props.name || props.name.trim().length === 0) {
+      throw new Error('Business name is required');
+    }
+    if (!props.ownerId) {
+      throw new Error('Business owner ID is required');
+    }
+
     return new Business({
       ...props,
       status: BusinessStatus.PENDING,

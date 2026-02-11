@@ -62,6 +62,19 @@ export class ApiKey {
   }
 
   static create(props: CreateApiKeyProps): ApiKey {
+    if (!props.name || props.name.trim().length === 0) {
+      throw new Error('API key name is required');
+    }
+    if (props.name.length > 100) {
+      throw new Error('API key name must be 100 characters or less');
+    }
+    if (!props.keyHash) {
+      throw new Error('API key hash is required');
+    }
+    if (props.rateLimit !== undefined && (props.rateLimit < 1 || props.rateLimit > 10000)) {
+      throw new Error('Rate limit must be between 1 and 10000');
+    }
+
     return new ApiKey({
       name: props.name,
       keyHash: props.keyHash,
