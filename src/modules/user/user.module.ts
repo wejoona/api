@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UploadModule } from '../upload/upload.module';
 
 // ORM Entities
 import { UserOrmEntity } from './infrastructure/orm-entities';
@@ -68,6 +69,7 @@ import { TransactionModule } from '../transaction/transaction.module';
     forwardRef(() => WalletModule),
     forwardRef(() => KycModule),
     forwardRef(() => TransactionModule),
+    forwardRef(() => UploadModule),
   ],
   controllers: [
     AuthController,

@@ -7,10 +7,18 @@ import {
   Query,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadService } from '../../../upload/application/services/upload.service';
+import { IUserRepository, USER_REPOSITORY } from '../../domain/repositories/user.repository';
 import {
   ApiTags,
   ApiOperation,
@@ -221,6 +229,10 @@ export class UserController {
     private readonly changePinUsecase: ChangePinUsecase,
     private readonly verifyPinUsecase: VerifyPinUsecase,
     private readonly resetPinUsecase: ResetPinUsecase,
+    @Inject(forwardRef(() => UploadService))
+    private readonly uploadService: UploadService,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
   ) {}
 
   @Get('profile')
@@ -253,6 +265,36 @@ export class UserController {
     });
 
     return UserResponse.fromDomain(user);
+  }
+
+  @Post('avatar')
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(
+    @Request() req: AuthenticatedRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    const result = await this.uploadService.uploadDocument({
+      userId: req.user.id,
+      type: 'selfie', // reuse selfie type for avatar storage path
+      file,
+    });
+
+    // Update user's avatar URL and persist
+    const user = await this.userRepository.findById(req.user.id);
+    if (!user) throw new BadRequestException('User not found');
+    user.updateAvatar(result.url);
+    await this.userRepository.save(user);
+
+    return {
+      avatarUrl: result.url,
+      message: 'Avatar uploaded successfully',
+    };
   }
 
   @Get('username/check/:username')

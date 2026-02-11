@@ -23,6 +23,9 @@ export class UserResponse {
   @ApiProperty({ example: 'amadou@example.com', nullable: true })
   email: string | null;
 
+  @ApiProperty({ example: null, nullable: true })
+  avatarUrl: string | null;
+
   @ApiProperty({ example: 'CI' })
   countryCode: string;
 
@@ -63,6 +66,7 @@ export class UserResponse {
     response.firstName = user.firstName;
     response.lastName = user.lastName;
     response.email = user.email;
+    response.avatarUrl = user.avatarUrl;
     response.countryCode = user.countryCode;
     response.kycStatus = user.kycStatus;
     response.kycRejectionReason =

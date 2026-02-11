@@ -80,6 +80,10 @@ export class UserOrmEntity {
   @Column({ name: 'suspended_reason', type: 'text', nullable: true })
   suspendedReason: string | null;
 
+  // Avatar
+  @Column({ name: 'avatar_url', type: 'varchar', length: 512, nullable: true })
+  avatarUrl: string | null;
+
   // PIN fields
   @Column({ name: 'pin_hash', type: 'varchar', length: 255, nullable: true })
   pinHash: string | null;

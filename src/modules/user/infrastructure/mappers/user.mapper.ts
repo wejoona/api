@@ -16,6 +16,7 @@ export class UserMapper {
       firstName: orm.firstName,
       lastName: orm.lastName,
       email: orm.email,
+      avatarUrl: orm.avatarUrl,
       countryCode: orm.countryCode,
       kycStatus: orm.kycStatus as KycStatus,
       kycProviderId: orm.kycProviderId,
@@ -43,6 +44,7 @@ export class UserMapper {
     orm.firstName = domain.firstName;
     orm.lastName = domain.lastName;
     orm.email = domain.email;
+    orm.avatarUrl = domain.avatarUrl;
     orm.countryCode = domain.countryCode;
     orm.kycStatus = domain.kycStatus;
     orm.kycProviderId = domain.kycProviderId;

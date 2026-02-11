@@ -12,6 +12,7 @@ export interface IUser {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  avatarUrl: string | null;
   countryCode: string;
   kycStatus: KycStatus;
   kycProviderId: string | null;
@@ -52,6 +53,7 @@ export class User implements IUser {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  avatarUrl: string | null;
   readonly countryCode: string;
   kycStatus: KycStatus;
   kycProviderId: string | null;
@@ -79,6 +81,7 @@ export class User implements IUser {
     this.firstName = props.firstName;
     this.lastName = props.lastName;
     this.email = props.email;
+    this.avatarUrl = props.avatarUrl;
     this.countryCode = props.countryCode;
     this.kycStatus = props.kycStatus;
     this.kycProviderId = props.kycProviderId;
@@ -106,6 +109,7 @@ export class User implements IUser {
       firstName: null,
       lastName: null,
       email: null,
+      avatarUrl: null,
       countryCode: props.countryCode || 'CI',
       kycStatus: 'pending',
       kycProviderId: null,
@@ -144,6 +148,11 @@ export class User implements IUser {
   /**
    * Set username (@handle)
    */
+  updateAvatar(avatarUrl: string | null): void {
+    this.avatarUrl = avatarUrl;
+    this.updatedAt = new Date();
+  }
+
   setUsername(username: string | null): void {
     this.username = username;
     this.updatedAt = new Date();
