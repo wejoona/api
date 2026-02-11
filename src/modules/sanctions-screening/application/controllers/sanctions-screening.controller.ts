@@ -37,6 +37,8 @@ import {
  * - GET /sanctions-screening/statistics - Get screening statistics
  * - GET /sanctions-screening/health - Provider health check
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Sanctions Screening')
 @Controller('sanctions-screening')
 @UseGuards(JwtAuthGuard)
 export class SanctionsScreeningController {

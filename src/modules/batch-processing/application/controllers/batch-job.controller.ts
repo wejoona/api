@@ -19,6 +19,8 @@ import { CreateBatchJobDto } from '../dto/create-batch-job.dto';
 import { UpdateBatchJobDto } from '../dto/update-batch-job.dto';
 import { BatchJobFiltersDto } from '../dto/batch-job-filters.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Batch Processing')
 @Controller('batch-jobs')
 @UseGuards(JwtAuthGuard)
 export class BatchJobController {

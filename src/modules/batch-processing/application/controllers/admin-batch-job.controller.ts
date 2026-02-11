@@ -13,6 +13,8 @@ import { BatchJobService } from '../services/batch-job.service';
 import { BatchJobFiltersDto } from '../dto/batch-job-filters.dto';
 import { BatchQueueService } from '../../infrastructure/queues/batch-queue.service';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Batch Processing - Admin')
 @Controller('admin/batch-jobs')
 @UseGuards(JwtAuthGuard)
 // TODO: Add AdminGuard to restrict access to admin users only

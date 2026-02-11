@@ -20,6 +20,8 @@ import {
   WithdrawToBankDto,
 } from '../dto/link-bank-account.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Bank Linking')
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class BankLinkingController {

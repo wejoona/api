@@ -23,6 +23,8 @@ interface UserPayload {
   walletId?: string;
 }
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Recurring Transfers')
 @Controller('recurring-transfers')
 @UseGuards(JwtAuthGuard)
 export class RecurringTransferController {

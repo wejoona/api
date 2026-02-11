@@ -11,6 +11,8 @@ import {
 // import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 // import { AdminGuard } from '@common/guards/admin.guard';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Data Retention')
 @Controller('data-retention')
 // @UseGuards(JwtAuthGuard, AdminGuard) // Enable when auth is ready
 export class DataRetentionController {

@@ -10,6 +10,8 @@ import {
   ApiHealthSummaryDto,
 } from '../dto/api-health-response.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('API Health')
 @Controller('api-health')
 export class ApiHealthController {
   constructor(

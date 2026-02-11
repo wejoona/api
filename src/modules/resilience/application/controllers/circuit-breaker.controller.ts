@@ -40,6 +40,8 @@ export class UpdateCircuitConfigDto {
  * - POST /resilience/:service/open - Manually open circuit breaker
  * - POST /resilience/:service/config - Update circuit breaker configuration
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Circuit Breaker')
 @Controller('resilience')
 @UseGuards(JwtAuthGuard)
 export class CircuitBreakerController {

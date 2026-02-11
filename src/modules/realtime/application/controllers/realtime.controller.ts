@@ -6,6 +6,8 @@ import { ConnectedClientRepository } from '../../domain/repositories/connected-c
 import { NotificationService } from '../services/notification.service';
 import { SendNotificationDto } from '../dto/send-notification.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Realtime')
 @Controller('realtime')
 @UseGuards(JwtAuthGuard)
 export class RealtimeController {

@@ -20,6 +20,8 @@ import {
   ApiKeyCreatedResponseDto,
 } from '../dto/api-key-response.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('API Keys')
 @Controller('api-keys')
 @UseGuards(JwtAuthGuard)
 export class ApiKeyController {

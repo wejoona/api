@@ -25,6 +25,8 @@ import { NovuNotificationService } from '../domain/services/novu-notification.se
  * These endpoints are typically called by the mobile app
  * after user authentication.
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Notifications - Novu')
 @Controller('notifications/novu')
 @UseGuards(JwtAuthGuard)
 export class NovuController {

@@ -18,6 +18,8 @@ import {
  * Provides HTTP endpoints for event sourcing operations
  * Note: These should be protected with admin-only guards in production
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Event Store')
 @Controller('event-store')
 export class EventStoreController {
   constructor(

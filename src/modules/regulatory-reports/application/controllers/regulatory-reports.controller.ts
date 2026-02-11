@@ -49,6 +49,8 @@ import {
  * - Report generation requires COMPLIANCE_OFFICER or ADMIN role
  * - Approval/submission requires COMPLIANCE_MANAGER or ADMIN role
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Regulatory Reports')
 @Controller('regulatory-reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RegulatoryReportsController {

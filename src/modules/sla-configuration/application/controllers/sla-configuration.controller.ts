@@ -20,6 +20,8 @@ import {
   SlaConfigurationResponseDto,
 } from '../dto/sla-configuration.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('SLA Configuration')
 @Controller('admin/sla-configurations')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin', 'super_admin')

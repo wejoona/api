@@ -21,6 +21,8 @@ interface UserPayload {
   countryCode?: string;
 }
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Feature Flags')
 @Controller('feature-flags')
 export class FeatureFlagController {
   constructor(private readonly featureFlagService: FeatureFlagService) {}
@@ -67,6 +69,8 @@ export class FeatureFlagController {
   }
 }
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Feature Flags')
 @Controller('admin/feature-flags')
 @UseGuards(JwtAuthGuard)
 export class AdminFeatureFlagController {

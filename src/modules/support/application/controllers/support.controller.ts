@@ -28,6 +28,8 @@ interface UserPayload {
   phone: string;
 }
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Support')
 @Controller('support/tickets')
 @UseGuards(JwtAuthGuard)
 export class SupportController {

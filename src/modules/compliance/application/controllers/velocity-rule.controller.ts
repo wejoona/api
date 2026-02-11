@@ -29,6 +29,8 @@ import {
  * REST API for managing velocity rules.
  * These endpoints are typically used by admin/compliance dashboards.
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Compliance - Velocity Rules')
 @Controller('compliance/velocity-rules')
 // @UseGuards(JwtAuthGuard, AdminGuard) // Uncomment when auth is integrated
 export class VelocityRuleController {

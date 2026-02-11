@@ -19,6 +19,8 @@ interface UserPayload {
   phone: string;
 }
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Sessions')
 @Controller('sessions')
 @UseGuards(JwtAuthGuard)
 export class SessionController {

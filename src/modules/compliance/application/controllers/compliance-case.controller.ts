@@ -36,6 +36,8 @@ import {
  * REST API endpoints for managing compliance cases, notes, and evidence.
  * All endpoints require authentication.
  */
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Compliance - Cases')
 @Controller('compliance/cases')
 @UseGuards(JwtAuthGuard)
 export class ComplianceCaseController {

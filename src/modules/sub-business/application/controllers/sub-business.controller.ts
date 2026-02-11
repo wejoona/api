@@ -15,6 +15,8 @@ import { SubBusinessService } from '../services/sub-business.service';
 import { CreateSubBusinessDto } from '../dto/create-sub-business.dto';
 import { UpdateSubBusinessDto } from '../dto/update-sub-business.dto';
 
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('Sub-Business')
 @Controller('sub-businesses')
 @UseGuards(JwtAuthGuard)
 export class SubBusinessController {
