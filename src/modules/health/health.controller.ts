@@ -79,6 +79,18 @@ export class HealthController {
     };
   }
 
+  @Get('version')
+  @ApiOperation({ summary: 'API version information' })
+  @ApiResponse({ status: 200, description: 'Version info' })
+  version() {
+    return {
+      version: process.env.npm_package_version || '1.2.3',
+      build: process.env.BUILD_NUMBER || 'dev',
+      node: process.version,
+      uptime: Math.floor(process.uptime()),
+    };
+  }
+
   @Get('time')
   @ApiOperation({ summary: 'Server time for client clock synchronization' })
   @ApiResponse({
