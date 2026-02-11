@@ -10,6 +10,7 @@ import { UserOrmEntity } from './infrastructure/orm-entities';
 
 // Repositories
 import { UserRepository } from './infrastructure/repositories';
+import { USER_REPOSITORY } from './domain/repositories/user.repository';
 
 // Services
 import { OtpService } from './application/domain/services';
@@ -80,6 +81,7 @@ import { TransactionModule } from '../transaction/transaction.module';
   providers: [
     // Repository
     UserRepository,
+    { provide: USER_REPOSITORY, useExisting: UserRepository },
     // Services
     OtpService,
     // Use Cases
@@ -104,6 +106,6 @@ import { TransactionModule } from '../transaction/transaction.module';
     // Strategy
     JwtStrategy,
   ],
-  exports: [UserRepository, JwtStrategy, PassportModule],
+  exports: [UserRepository, USER_REPOSITORY, JwtStrategy, PassportModule],
 })
 export class UserModule {}

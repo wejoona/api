@@ -3,7 +3,7 @@
  * Handles scheduled and recurring payment functionality
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -17,8 +17,12 @@ import { ExecutionRepository } from './infrastructure/repositories/execution.rep
 // Controllers
 import { ScheduledPaymentController } from './application/controllers/scheduled-payment.controller';
 
+// External modules
+import { WalletModule } from '../wallet/wallet.module';
+import { UserModule } from '../user/user.module';
+
 @Module({
-  imports: [ConfigModule, EventEmitterModule.forRoot()],
+  imports: [ConfigModule, EventEmitterModule.forRoot(), forwardRef(() => WalletModule), forwardRef(() => UserModule)],
   controllers: [ScheduledPaymentController],
   providers: [
     // Repositories
