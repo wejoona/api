@@ -1,9 +1,11 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { Contact } from '../../domain/entities';
 import { ContactRepository } from '../../infrastructure/repositories';
@@ -26,9 +28,12 @@ export interface UpdateContactInput {
 
 @Injectable()
 export class ContactService {
+  private readonly logger = new Logger(ContactService.name);
+
   constructor(
     private readonly contactRepository: ContactRepository,
     private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createContact(input: CreateContactInput): Promise<Contact> {
@@ -247,32 +252,33 @@ export class ContactService {
   }
 
   /**
-   * Send invite to non-JoonaPay contact
-   * TODO: Implement SMS/WhatsApp invitation logic
+   * Send invite to non-Korido contact via SMS
    */
   async inviteContact(
     phone: string,
   ): Promise<{ success: boolean; message: string }> {
-    // Validate phone number format
     if (!phone.startsWith('+')) {
       throw new BadRequestException(
         'Phone number must include country code (e.g., +225...)',
       );
     }
 
-    // Check if user already exists
     const existingUser = await this.userRepository.findByPhone(phone);
     if (existingUser) {
       return {
         success: false,
-        message: 'This user is already on JoonaPay',
+        message: 'This user is already on Korido',
       };
     }
 
-    // PROVIDER_INTEGRATION: Implement invitation flow (SMS/deep link)
-    // - Send SMS with download link
-    // - Track invitation status
-    // - Reward referrals
+    // Emit invitation event for notification system to handle
+    this.eventEmitter.emit('contact.invited', {
+      phone,
+      inviteLink: 'https://korido.app/download',
+      message: `You've been invited to Korido! Send money instantly across borders. Download now: https://korido.app/download`,
+    });
+
+    this.logger.log(`Invitation sent to ${phone.substring(0, 6)}***`);
 
     return {
       success: true,

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   IKycVerificationProvider,
   VerifyIdentityInput,
@@ -26,7 +27,10 @@ export class VerifyHqKycProvider implements IKycVerificationProvider {
   readonly providerName = 'verify-hq';
   readonly autoApprovalThreshold = 80;
 
-  constructor(private readonly verifyHqService: VerifyHqService) {}
+  constructor(
+    private readonly verifyHqService: VerifyHqService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async verifyIdentity(input: VerifyIdentityInput): Promise<VerificationResult> {
     this.logger.log(`Verifying identity via VerifyHQ for user ${input.userId}`);
@@ -77,9 +81,22 @@ export class VerifyHqKycProvider implements IKycVerificationProvider {
     );
   }
 
-  validateWebhookSignature(_payload: string, _signature: string): boolean {
-    // TODO: Implement VerifyHQ webhook signature validation
-    return true;
+  validateWebhookSignature(payload: string, signature: string): boolean {
+    if (!signature) return false;
+    const secret = this.configService.get<string>('VERIFYHQ_WEBHOOK_SECRET');
+    if (!secret) {
+      this.logger.warn('VERIFYHQ_WEBHOOK_SECRET not configured, skipping signature validation');
+      return true; // Allow in dev when secret not configured
+    }
+    const crypto = require('crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex');
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature),
+    );
   }
 
   parseWebhookPayload(payload: Record<string, unknown>): VerificationResult {
