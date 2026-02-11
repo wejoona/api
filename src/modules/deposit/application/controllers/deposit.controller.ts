@@ -11,6 +11,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -58,6 +59,7 @@ export class DepositController {
   }
 
   @Post('initiate')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
     summary: 'Start a deposit',
     description: 'Initiates a mobile money deposit and returns payment instructions',
@@ -84,6 +86,7 @@ export class DepositController {
   }
 
   @Post('confirm')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({
     summary: 'Confirm deposit with OTP or trigger PUSH notification',
     description: 'Confirms a pending deposit using OTP (for Orange) or triggers status check (for MTN/Moov)',
