@@ -371,24 +371,16 @@ export class UserController {
     if (!query || query.length < 2) {
       return { users: [] };
     }
-    // Search by phone or username
-    const users = await this.userRepository.findAll();
-    const results = users
-      .filter((u: any) =>
-        u.phone?.includes(query) ||
-        u.username?.toLowerCase().includes(query.toLowerCase()) ||
-        u.firstName?.toLowerCase().includes(query.toLowerCase()) ||
-        u.lastName?.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 20)
-      .map((u: any) => ({
-        id: u.id,
-        username: u.username,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        phone: u.phone ? u.phone.substring(0, 6) + '****' : null,
-        avatarUrl: u.avatarUrl,
-      }));
+    // DB-level search (indexed, no full table scan)
+    const users = await this.userRepository.search(query, 20);
+    const results = users.map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phone: u.phone ? u.phone.substring(0, 6) + '****' : null,
+      avatarUrl: u.avatarUrl,
+    }));
     return { users: results, total: results.length };
   }
 

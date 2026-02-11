@@ -180,26 +180,6 @@ export class DepositController {
     });
   }
 
-  @Post('webhook/:providerCode')
-  @ApiOperation({
-    summary: 'Webhook receiver for payment providers',
-    description: 'Receives webhook notifications from mobile money providers',
-  })
-  @ApiParam({ 
-    name: 'providerCode', 
-    description: 'Provider code (OMCI, MTNCI, MOOVCI, WAVECI)',
-    example: 'WAVECI',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Webhook processed successfully',
-  })
-  // Note: This endpoint should not use JwtAuthGuard as it's called by external providers
-  async handleWebhook(
-    @Param('providerCode') providerCode: string,
-    @Body() payload: any,
-  ): Promise<{ status: string }> {
-    await this.depositService.handleWebhook(providerCode, payload);
-    return { status: 'ok' };
-  }
+  // Webhook endpoint moved to DepositWebhookController (no JwtAuth, HMAC-verified)
+  // Route: POST /webhooks/deposit/:providerCode
 }

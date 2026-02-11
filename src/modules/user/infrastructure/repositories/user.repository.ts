@@ -93,6 +93,23 @@ export class UserRepository {
     return orms.map((orm) => UserMapper.toDomain(orm));
   }
 
+  /**
+   * Search users by phone, username, or name using DB query (not in-memory).
+   * Returns max 20 results. Phone is partial-matched, names are prefix-matched.
+   */
+  async search(query: string, limit = 20): Promise<User[]> {
+    const escaped = escapeLikePattern(query.toLowerCase());
+    const orms = await this.ormRepository
+      .createQueryBuilder('user')
+      .where('user.phone LIKE :phone', { phone: `%${escaped}%` })
+      .orWhere('LOWER(user.username) LIKE :name', { name: `${escaped}%` })
+      .orWhere('LOWER(user.firstName) LIKE :name', { name: `${escaped}%` })
+      .orWhere('LOWER(user.lastName) LIKE :name', { name: `${escaped}%` })
+      .take(limit)
+      .getMany();
+    return orms.map((orm) => UserMapper.toDomain(orm));
+  }
+
   async findAll(): Promise<User[]> {
     const orms = await this.ormRepository.find({
       order: { createdAt: 'DESC' },

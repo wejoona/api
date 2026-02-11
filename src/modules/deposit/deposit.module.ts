@@ -15,6 +15,7 @@ import { DepositTokenService } from './application/services/deposit-token.servic
 
 // Controllers
 import { DepositController } from './application/controllers/deposit.controller';
+import { DepositWebhookController } from './application/controllers/deposit-webhook.controller';
 
 // Event Listeners
 import { DepositCompletedListener } from './application/listeners/deposit-completed.listener';
@@ -50,7 +51,7 @@ import { WaveMockProvider } from './infrastructure/providers/mock/wave-mock.prov
     MoovMockProvider,
     WaveMockProvider,
   ],
-  controllers: [DepositController],
+  controllers: [DepositController, DepositWebhookController],
   exports: [
     DepositService,
     DepositRepository,
