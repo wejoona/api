@@ -18,7 +18,7 @@ import { CreateCardDto } from '../dto/create-card.dto';
 import { UpdateSpendingLimitDto } from '../dto/update-card.dto';
 import { CardResponseDto, CardListResponseDto } from '../dto/card-response.dto';
 
-@Controller('api/v1/cards')
+@Controller('cards')
 @UseGuards(JwtAuthGuard)
 export class CardController {
   constructor(private readonly cardService: CardService) {}

@@ -234,7 +234,7 @@ export class ContactService {
         matches.push({
           phoneHash: userPhoneHash,
           userId: user.id,
-          avatarUrl: null, // TODO: Add avatar support when user profile is implemented
+          avatarUrl: user.avatarUrl || null,
         });
       }
     }
