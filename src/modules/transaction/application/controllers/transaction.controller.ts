@@ -141,7 +141,7 @@ export class TransactionController {
   async getStats(@Request() req: AuthenticatedRequest) {
     const result = await this.getTransactionsUseCase.execute({
       userId: req.user.id,
-      page: 1,
+      offset: 0,
       limit: 1000,
     });
 

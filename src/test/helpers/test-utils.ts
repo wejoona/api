@@ -410,6 +410,7 @@ export function createTestUser(options: CreateTestUserOptions = {}): User {
     email: null,
     avatarUrl: null,
     countryCode: 'CI',
+    preferredLocale: 'fr',
     kycStatus: options.kycStatus || 'pending',
     kycProviderId: null,
     circleUserId: null,

@@ -37,6 +37,7 @@ export interface IUser {
 export interface CreateUserProps {
   phone: string;
   countryCode?: string;
+  preferredLocale?: string;
 }
 
 export interface UpdateUserProps {

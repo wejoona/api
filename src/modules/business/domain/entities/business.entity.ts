@@ -176,7 +176,7 @@ export class Business {
     if (!props.name || props.name.trim().length === 0) {
       throw new Error('Business name is required');
     }
-    if (!props.ownerId) {
+    if (!props.userId) {
       throw new Error('Business owner ID is required');
     }
 

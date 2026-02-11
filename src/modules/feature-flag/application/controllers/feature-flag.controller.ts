@@ -69,8 +69,7 @@ export class FeatureFlagController {
   }
 }
 
-import { ApiTags } from '@nestjs/swagger';
-@ApiTags('Feature Flags')
+@ApiTags('Feature Flags Admin')
 @Controller('admin/feature-flags')
 @UseGuards(JwtAuthGuard)
 export class AdminFeatureFlagController {

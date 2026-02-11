@@ -246,7 +246,6 @@ export class ScheduledJobsService {
         // Mark as failed after 30 min stuck — prevents infinite processing state
         for (const tx of stuckTransactions) {
           tx.status = 'failed';
-          tx.updatedAt = new Date();
           await this.transactionRepository.save(tx);
           this.logger.warn(`Marked stuck transaction ${tx.id} as failed (stuck >30min)`);
         }
