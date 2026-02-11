@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { DataRetentionService } from '../services/data-retention.service';
 import { RetentionPolicyRepository } from '../../domain/repositories/retention-policy.repository';
 import { CreateDeletionRequestDto, UpdateRetentionPolicyDto } from '../dto';
@@ -6,15 +6,15 @@ import {
   DeletionStatus,
   DeletionType,
 } from '../../infrastructure/orm-entities/data-deletion-request.orm-entity';
-
-// Note: Add JwtAuthGuard and AdminGuard when implementing auth
-// import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-// import { AdminGuard } from '@common/guards/admin.guard';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 
 import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Data Retention')
 @Controller('data-retention')
-// @UseGuards(JwtAuthGuard, AdminGuard) // Enable when auth is ready
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class DataRetentionController {
   constructor(
     private readonly retentionService: DataRetentionService,

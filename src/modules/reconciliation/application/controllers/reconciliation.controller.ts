@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -43,9 +45,9 @@ import {
   ReconciliationReportType,
   ReconciliationReportEntity,
 } from '../../domain/entities/reconciliation-report.entity';
-// import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-// import { RolesGuard } from '@common/guards/roles.guard';
-// import { Roles } from '@common/decorators/roles.decorator';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 // import { CurrentUser } from '@common/decorators/current-user.decorator';
 
 /**
@@ -61,8 +63,8 @@ import {
  */
 @ApiTags('Reconciliation')
 @Controller('reconciliation')
-// @UseGuards(JwtAuthGuard, RolesGuard)
-// @Roles('admin', 'finance')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'finance')
 @ApiBearerAuth()
 export class ReconciliationController {
   private readonly logger = new Logger(ReconciliationController.name);
@@ -202,7 +204,7 @@ export class ReconciliationController {
 
     const report = await this.reconciliationReportRepository.findById(id);
     if (!report) {
-      throw new Error('Report not found');
+      throw new NotFoundException('Report not found');
     }
 
     return this.mapReportToDto(report);
@@ -229,7 +231,7 @@ export class ReconciliationController {
 
     const report = await this.reconciliationReportRepository.findById(id);
     if (!report) {
-      throw new Error('Report not found');
+      throw new NotFoundException('Report not found');
     }
 
     report.markReviewed('system-user', dto.notes); // Replace with user.id in production

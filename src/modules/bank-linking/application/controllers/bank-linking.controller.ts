@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { PinVerificationGuard } from '@common/guards/pin-verification.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { BankLinkingService } from '../services/bank-linking.service';
 import {
@@ -110,6 +111,7 @@ export class BankLinkingController {
    * POST /api/v1/bank-accounts/:id/deposit - Deposit from bank account
    */
   @Post('bank-accounts/:id/deposit')
+  @UseGuards(PinVerificationGuard)
   async deposit(
     @CurrentUser() user: any,
     @Param('id') id: string,
@@ -127,6 +129,7 @@ export class BankLinkingController {
    * POST /api/v1/bank-accounts/:id/withdraw - Withdraw to bank account
    */
   @Post('bank-accounts/:id/withdraw')
+  @UseGuards(PinVerificationGuard)
   async withdraw(
     @CurrentUser() user: any,
     @Param('id') id: string,

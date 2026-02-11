@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +15,9 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../common/guards/roles.guard';
+import { Roles } from '../../../../common/decorators/roles.decorator';
 import { ReconciliationService } from '../domain/services/reconciliation.service';
 import {
   UserReconciliationReportDto,
@@ -31,8 +35,8 @@ import {
  */
 @ApiTags('Reconciliation')
 @Controller('reconciliation')
-// @UseGuards(JwtAuthGuard, RolesGuard) // Uncomment in production
-// @Roles('admin', 'finance') // Restrict to admin/finance team
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'finance')
 @ApiBearerAuth()
 export class ReconciliationController {
   private readonly logger = new Logger(ReconciliationController.name);

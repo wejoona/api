@@ -7,7 +7,11 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../common/guards/roles.guard';
+import { Roles } from '../../../../common/decorators/roles.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -40,7 +44,8 @@ import { RetryDeadletterResponseDto } from '../dto/responses/retry-deadletter.re
  */
 @ApiTags('Webhook Admin')
 @Controller('admin/webhooks/deadletters')
-// @UseGuards(JwtAuthGuard, AdminGuard) // Uncomment when auth is implemented
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @ApiBearerAuth()
 export class WebhookAdminController {
   constructor(

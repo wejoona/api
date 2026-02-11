@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  BadRequestException,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
@@ -76,7 +77,7 @@ export class BeneficiaryController {
   ): Promise<BeneficiaryResponse> {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const beneficiary = await this.beneficiaryService.getBeneficiary(
@@ -111,7 +112,7 @@ export class BeneficiaryController {
   ): Promise<BeneficiaryResponse> {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const beneficiary = await this.beneficiaryService.createBeneficiary({
@@ -147,7 +148,7 @@ export class BeneficiaryController {
   ): Promise<{ success: boolean; message: string }> {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     await this.beneficiaryService.updateBeneficiary(
@@ -165,7 +166,7 @@ export class BeneficiaryController {
   ): Promise<{ success: boolean; isFavorite: boolean }> {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const beneficiary = await this.beneficiaryService.toggleFavorite(
@@ -182,7 +183,7 @@ export class BeneficiaryController {
   ): Promise<{ success: boolean; message: string }> {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     await this.beneficiaryService.deleteBeneficiary(walletId, beneficiaryId);

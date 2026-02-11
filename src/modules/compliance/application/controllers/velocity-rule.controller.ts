@@ -10,7 +10,11 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 import { VelocityRuleService } from '../services/velocity-rule.service';
 import {
   CreateVelocityRuleDto,
@@ -32,7 +36,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Compliance - Velocity Rules')
 @Controller('compliance/velocity-rules')
-// @UseGuards(JwtAuthGuard, AdminGuard) // Uncomment when auth is integrated
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'compliance_officer')
 export class VelocityRuleController {
   constructor(private readonly velocityRuleService: VelocityRuleService) {}
 

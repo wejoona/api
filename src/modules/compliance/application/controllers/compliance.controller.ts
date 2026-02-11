@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -48,11 +49,15 @@ import {
  * - Compliance dashboard
  * - Risk assessment
  */
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+
 @ApiTags('Compliance')
 @ApiBearerAuth()
 @Controller('compliance')
-// @UseGuards(JwtAuthGuard, RolesGuard) // Uncomment when auth is ready
-// @Roles('admin', 'compliance_officer')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'compliance_officer')
 export class ComplianceController {
   constructor(
     private readonly bceaoReportingService: BCEAOReportingService,

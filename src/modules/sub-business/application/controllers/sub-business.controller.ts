@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
@@ -37,7 +38,7 @@ export class SubBusinessController {
     // 1. Get the user's business
     // 2. Create a new wallet for the sub-business
     // 3. Link them together
-    throw new Error('Not implemented: requires business context');
+    throw new BadRequestException('Not implemented: requires business context');
   }
 
   @Get(':id')

@@ -109,6 +109,7 @@ export class SavingsPotController {
   }
 
   @Post(':id/deposit')
+  @UseGuards(PinVerificationGuard)
   @ApiOperation({ summary: 'Deposit funds to a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Deposit successful' })

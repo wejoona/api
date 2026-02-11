@@ -8,6 +8,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { BulkPaymentService } from '../services/bulk-payment.service';
 import { CreateBulkPaymentDto } from '../dto/create-bulk-payment.dto';
 import {
@@ -32,6 +33,7 @@ export class BulkPaymentController {
   }
 
   @Post('batches')
+  @UseGuards(PinVerificationGuard)
   async createBatch(
     @Body() dto: CreateBulkPaymentDto,
     @Request() req: AuthenticatedRequest,

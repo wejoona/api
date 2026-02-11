@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min } from 'class-validator';
 
 export class LinkBankAccountDto {
   @IsString()
@@ -25,7 +25,8 @@ export class VerifyBankAccountDto {
 }
 
 export class DepositFromBankDto {
-  @IsNotEmpty()
+  @IsNumber()
+  @Min(0.01, { message: 'Amount must be at least 0.01' })
   amount: number;
 
   @IsOptional()
@@ -34,7 +35,8 @@ export class DepositFromBankDto {
 }
 
 export class WithdrawToBankDto {
-  @IsNotEmpty()
+  @IsNumber()
+  @Min(0.01, { message: 'Amount must be at least 0.01' })
   amount: number;
 
   @IsOptional()
