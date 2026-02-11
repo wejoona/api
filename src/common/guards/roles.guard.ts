@@ -11,6 +11,7 @@ export type UserRole =
   | 'user'
   | 'admin'
   | 'super_admin'
+  | 'finance'
   | 'compliance_officer'
   | 'compliance_manager';
 export { Roles };

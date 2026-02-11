@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { TestAwareThrottlerGuard } from './common/guards/test-aware-throttler.guard';
 import { CqrsModule } from '@nestjs/cqrs';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -257,10 +258,10 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     AppService,
     ApmService,
     DatabaseProfiler,
-    // Apply rate limiting globally to all endpoints
+    // Apply rate limiting globally — bypassed in dev with X-Test-Bypass header
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: TestAwareThrottlerGuard,
     },
   ],
 })
