@@ -13,6 +13,7 @@ export interface IUser {
   lastName: string | null;
   email: string | null;
   avatarUrl: string | null;
+  preferredLocale: string;
   countryCode: string;
   kycStatus: KycStatus;
   kycProviderId: string | null;
@@ -54,6 +55,7 @@ export class User implements IUser {
   lastName: string | null;
   email: string | null;
   avatarUrl: string | null;
+  preferredLocale: string;
   readonly countryCode: string;
   kycStatus: KycStatus;
   kycProviderId: string | null;
@@ -82,6 +84,7 @@ export class User implements IUser {
     this.lastName = props.lastName;
     this.email = props.email;
     this.avatarUrl = props.avatarUrl;
+    this.preferredLocale = props.preferredLocale;
     this.countryCode = props.countryCode;
     this.kycStatus = props.kycStatus;
     this.kycProviderId = props.kycProviderId;
@@ -110,6 +113,7 @@ export class User implements IUser {
       lastName: null,
       email: null,
       avatarUrl: null,
+      preferredLocale: props.preferredLocale || 'fr',
       countryCode: props.countryCode || 'CI',
       kycStatus: 'pending',
       kycProviderId: null,
@@ -148,6 +152,15 @@ export class User implements IUser {
   /**
    * Update avatar URL
    */
+  updateLocale(locale: string): void {
+    const validLocales = ['en', 'fr', 'pt', 'ar'];
+    if (!validLocales.includes(locale)) {
+      throw new Error(`Invalid locale: ${locale}. Must be one of: ${validLocales.join(', ')}`);
+    }
+    this.preferredLocale = locale;
+    this.updatedAt = new Date();
+  }
+
   updateAvatar(avatarUrl: string | null): void {
     this.avatarUrl = avatarUrl;
     this.updatedAt = new Date();

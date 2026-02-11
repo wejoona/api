@@ -118,6 +118,53 @@ export class TransactionController {
     });
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get transaction statistics for current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction statistics',
+    schema: {
+      example: {
+        totalTransactions: 42,
+        totalDeposits: 15,
+        totalWithdrawals: 8,
+        totalTransfers: 19,
+        totalDeposited: 250000,
+        totalWithdrawn: 80000,
+        totalTransferred: 190000,
+        currency: 'USDC',
+        firstTransactionAt: '2026-01-15T10:00:00.000Z',
+        lastTransactionAt: '2026-02-11T03:00:00.000Z',
+      },
+    },
+  })
+  async getStats(@Request() req: AuthenticatedRequest) {
+    const result = await this.getTransactionsUseCase.execute({
+      userId: req.user.id,
+      page: 1,
+      limit: 1000,
+    });
+
+    const txs = result.transactions || [];
+    const deposits = txs.filter((t: any) => t.type === 'deposit');
+    const withdrawals = txs.filter((t: any) => t.type === 'withdrawal');
+    const transfers = txs.filter((t: any) => t.type === 'transfer');
+    const sum = (arr: any[]) => arr.reduce((s: number, t: any) => s + (parseFloat(t.amount) || 0), 0);
+
+    return {
+      totalTransactions: txs.length,
+      totalDeposits: deposits.length,
+      totalWithdrawals: withdrawals.length,
+      totalTransfers: transfers.length,
+      totalDeposited: sum(deposits),
+      totalWithdrawn: sum(withdrawals),
+      totalTransferred: sum(transfers),
+      currency: 'USDC',
+      firstTransactionAt: txs.length > 0 ? txs[txs.length - 1].createdAt : null,
+      lastTransactionAt: txs.length > 0 ? txs[0].createdAt : null,
+    };
+  }
+
   @Get('deposit/:id/status')
   @ApiOperation({ summary: 'Get deposit status (live from payment provider)' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })

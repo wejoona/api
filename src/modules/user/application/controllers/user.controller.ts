@@ -297,6 +297,20 @@ export class UserController {
     };
   }
 
+  @Put('locale')
+  @ApiOperation({ summary: 'Update preferred locale' })
+  @ApiResponse({ status: 200, description: 'Locale updated' })
+  async updateLocale(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { locale: string },
+  ) {
+    const user = await this.userRepository.findById(req.user.id);
+    if (!user) throw new BadRequestException('User not found');
+    user.updateLocale(body.locale);
+    await this.userRepository.save(user);
+    return { locale: user.preferredLocale, message: 'Locale updated' };
+  }
+
   @Delete('avatar')
   @ApiOperation({ summary: 'Remove user avatar' })
   @ApiResponse({ status: 200, description: 'Avatar removed' })

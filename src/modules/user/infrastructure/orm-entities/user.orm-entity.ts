@@ -84,6 +84,9 @@ export class UserOrmEntity {
   @Column({ name: 'avatar_url', type: 'varchar', length: 512, nullable: true })
   avatarUrl: string | null;
 
+  @Column({ name: 'preferred_locale', type: 'varchar', length: 5, default: "'fr'" })
+  preferredLocale: string;
+
   // PIN fields
   @Column({ name: 'pin_hash', type: 'varchar', length: 255, nullable: true })
   pinHash: string | null;

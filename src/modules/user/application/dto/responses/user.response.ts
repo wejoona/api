@@ -26,6 +26,9 @@ export class UserResponse {
   @ApiProperty({ example: null, nullable: true })
   avatarUrl: string | null;
 
+  @ApiProperty({ example: 'fr', description: 'Preferred locale (en, fr, pt, ar)' })
+  preferredLocale: string;
+
   @ApiProperty({ example: 'CI' })
   countryCode: string;
 
@@ -67,6 +70,7 @@ export class UserResponse {
     response.lastName = user.lastName;
     response.email = user.email;
     response.avatarUrl = user.avatarUrl;
+    response.preferredLocale = user.preferredLocale;
     response.countryCode = user.countryCode;
     response.kycStatus = user.kycStatus;
     response.kycRejectionReason =
