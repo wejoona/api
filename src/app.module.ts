@@ -30,6 +30,7 @@ import { ReportsModule } from './modules/reports';
 import { JobsModule } from './modules/jobs';
 import { HealthModule } from './modules/health';
 import { SecurityModule } from './modules/security';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { LegalModule } from './modules/legal/legal.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
@@ -219,6 +220,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     HealthModule,
     MetricsModule,
     SecurityModule,
+    MessagingModule,
     LegalModule,
     ContactsModule,
     UserPreferencesModule,
