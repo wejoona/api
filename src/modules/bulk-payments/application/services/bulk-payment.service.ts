@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BulkPaymentRepository } from '../../domain/repositories/bulk-payment.repository';
 import {
   BulkPaymentEntity,
@@ -18,7 +19,10 @@ import {
 
 @Injectable()
 export class BulkPaymentService {
-  constructor(private readonly bulkPaymentRepository: BulkPaymentRepository) {}
+  constructor(
+    private readonly bulkPaymentRepository: BulkPaymentRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async createBatch(
     walletId: string,
@@ -49,9 +53,13 @@ export class BulkPaymentService {
     // Save to database
     const saved = await this.bulkPaymentRepository.save(bulkPayment);
 
-    // TODO: Trigger async processing (via queue or event)
-    // For now, we'll just return the created batch
-    // In production, this should emit an event or queue a job
+    // Emit event for async processing
+    this.eventEmitter.emit('bulk-payment.submitted', {
+      bulkPaymentId: saved.id,
+      walletId,
+      itemCount: items.length,
+      totalAmount: items.reduce((sum, item) => sum + item.amount, 0),
+    });
 
     return this.mapToResponseDto(saved);
   }

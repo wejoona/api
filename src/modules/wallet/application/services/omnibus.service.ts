@@ -6,6 +6,7 @@ import {
   LEDGER_PROVIDER,
   ILedgerProvider,
 } from '../../../providers/interfaces';
+import { StellarHorizonService } from '../../../providers/stellar/services/stellar-horizon.service';
 
 export type OmnibusNetwork = 'circle' | 'stellar';
 
@@ -51,6 +52,7 @@ export class OmnibusService {
     private readonly walletProvider: IWalletProvider,
     @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,
+    private readonly stellarHorizonService: StellarHorizonService,
   ) {
     this.circleOmnibusWalletId = this.configService.get<string>(
       'CIRCLE_OMNIBUS_WALLET_ID',
@@ -88,9 +90,14 @@ export class OmnibusService {
       }
 
       if (network === 'stellar') {
-        // TODO: Implement Stellar balance check via StellarWalletAdapter
-        this.logger.warn('Stellar omnibus balance check not yet implemented');
-        return 0;
+        if (!this.stellarOmnibusAddress) {
+          this.logger.warn('STELLAR_OMNIBUS_ADDRESS not configured');
+          return 0;
+        }
+        const balance = await this.stellarHorizonService.getUsdcBalance(
+          this.stellarOmnibusAddress,
+        );
+        return parseFloat(balance);
       }
 
       return 0;
@@ -172,12 +179,12 @@ export class OmnibusService {
     userId: string,
   ): Promise<{ network: OmnibusNetwork; address: string }> {
     this.logger.log(`Sweeping funds to per-user wallet for user ${userId}`);
-    // TODO: Implement lazy per-user wallet creation + on-chain transfer
-    // 1. Check if user has a per-user Circle wallet; if not, create one
+    // PROVIDER_INTEGRATION: Requires Circle Programmable Wallets API (mainnet keys)
+    // 1. Check if user has a per-user Circle wallet; if not, create via Circle API
     // 2. Transfer from omnibus to per-user wallet on-chain
     // 3. Record the movement in Blnk ledger
     throw new Error(
-      'sweepToPerUser not yet implemented — per-user wallets are lazy',
+      'sweepToPerUser requires Circle mainnet keys — not yet configured',
     );
   }
 
@@ -190,11 +197,11 @@ export class OmnibusService {
     this.logger.log(
       `Consolidating per-user wallet back to omnibus for user ${userId}`,
     );
-    // TODO: Implement consolidation
+    // PROVIDER_INTEGRATION: Requires per-user wallets to exist first (depends on sweepToPerUser)
     // 1. Find user's per-user on-chain wallet
     // 2. Transfer all funds back to omnibus
     // 3. Record in Blnk ledger
-    throw new Error('consolidateFromPerUser not yet implemented');
+    throw new Error('consolidateFromPerUser requires per-user wallets — not yet configured');
   }
 
   // ==========================================
