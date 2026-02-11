@@ -20,7 +20,7 @@ import {
   WithdrawToBankDto,
 } from '../dto/link-bank-account.dto';
 
-@Controller('api/v1')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class BankLinkingController {
   constructor(private readonly bankLinkingService: BankLinkingService) {}
