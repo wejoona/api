@@ -180,6 +180,7 @@ export interface TransactionNotificationEvent {
   senderName?: string;
   status: string;
   reason?: string;
+  balance?: number;
 }
 
 export interface KycNotificationEvent {

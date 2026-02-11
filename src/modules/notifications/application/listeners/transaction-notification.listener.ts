@@ -29,7 +29,7 @@ export class TransactionNotificationListener {
       templateData: {
         amount: event.amount,
         currency: event.currency,
-        balance: event.amount, // TODO: Get actual balance
+        balance: event.balance ?? event.amount, // Uses event balance if provided, else amount as fallback
       },
       data: {
         type: 'deposit',

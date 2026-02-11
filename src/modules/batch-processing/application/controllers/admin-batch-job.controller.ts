@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@common/guards/roles.guard';
 import { BatchJobService } from '../services/batch-job.service';
 import { BatchJobFiltersDto } from '../dto/batch-job-filters.dto';
 import { BatchQueueService } from '../../infrastructure/queues/batch-queue.service';
@@ -16,8 +17,8 @@ import { BatchQueueService } from '../../infrastructure/queues/batch-queue.servi
 import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Batch Processing - Admin')
 @Controller('admin/batch-jobs')
-@UseGuards(JwtAuthGuard)
-// TODO: Add AdminGuard to restrict access to admin users only
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'super_admin')
 export class AdminBatchJobController {
   constructor(
     private readonly batchJobService: BatchJobService,

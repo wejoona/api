@@ -5,6 +5,7 @@
 
 import {
   Injectable,
+  Inject,
   Logger,
   BadRequestException,
   NotFoundException,
@@ -21,6 +22,8 @@ import {
 } from '../../domain/interfaces/scheduled-payment.types';
 import { ScheduleRepository } from '../../infrastructure/repositories/schedule.repository';
 import { ExecutionRepository } from '../../infrastructure/repositories/execution.repository';
+import { InternalTransferUseCase } from '../../../wallet/application/usecases/internal-transfer.use-case';
+import { IUserRepository, USER_REPOSITORY } from '../../../user/domain/repositories/user.repository';
 
 // Frequency to milliseconds mapping
 const __FREQUENCY_MS: Record<ScheduleFrequency, number> = {
@@ -41,6 +44,8 @@ export class ScheduledPaymentService {
     private readonly scheduleRepository: ScheduleRepository,
     private readonly executionRepository: ExecutionRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly internalTransferUseCase: InternalTransferUseCase,
+    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
   ) {}
 
   /**
@@ -368,16 +373,20 @@ export class ScheduledPaymentService {
     await this.executionRepository.create(execution);
 
     try {
-      // TODO: Actually execute the payment via transfer service
-      // const transactionId = await this.transferService.transfer({
-      //   fromUserId: schedule.userId,
-      //   toId: schedule.recipientId,
-      //   amount: schedule.amount,
-      //   currency: schedule.currency,
-      // });
+      // Look up recipient phone for internal transfer
+      const recipient = await this.userRepository.findById(schedule.recipientId);
+      if (!recipient) {
+        throw new Error(`Recipient ${schedule.recipientId} not found`);
+      }
 
-      // For now, simulate success
-      const transactionId = `tx_${uuidv4()}`;
+      const result = await this.internalTransferUseCase.execute({
+        fromUserId: schedule.userId,
+        toPhone: recipient.phone,
+        amount: schedule.amount,
+        currency: schedule.currency,
+      });
+
+      const transactionId = result.transactionId;
 
       // Update execution as completed
       await this.executionRepository.update(execution.id, {

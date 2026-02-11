@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '@common/guards/roles.guard';
 import { EventStoreService } from '../services/event-store.service';
 import { EventReplayService } from '../services/event-replay.service';
 import { ProjectionBuilderService } from '../services/projection-builder.service';
@@ -21,6 +23,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 @ApiTags('Event Store')
 @Controller('event-store')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin', 'super_admin')
 export class EventStoreController {
   constructor(
     private readonly eventStoreService: EventStoreService,
