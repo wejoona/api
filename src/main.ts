@@ -109,6 +109,11 @@ async function bootstrap() {
   // Cookie parser with secure defaults
   app.use(cookieParser());
 
+  // Request logging with response time
+  const { RequestLoggerMiddleware } = require("./common/middleware/request-logger.middleware");
+  const requestLogger = new RequestLoggerMiddleware();
+  app.use(requestLogger.use.bind(requestLogger));
+
   logger.log(`Security headers configured for environment: ${nodeEnv}`);
 
   // Request body size limits (prevent DoS)
