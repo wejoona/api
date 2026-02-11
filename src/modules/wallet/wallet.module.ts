@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
+import { StellarModule } from '../providers/stellar/stellar.module';
 
 // ORM Entities
 import { WalletOrmEntity } from './infrastructure/orm-entities/wallet.orm-entity';
@@ -63,6 +64,7 @@ import {
     CircleModule,
     BlnkModule,
     RiskModule, // Circle Compliance Engine for address screening
+    StellarModule,
   ],
   providers: [
     // Repositories
