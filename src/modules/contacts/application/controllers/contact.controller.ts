@@ -20,6 +20,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { PaginationQueryDto } from '../../../../common/dto/pagination.dto';
 import {
   CreateContactDto,
   UpdateContactDto,
@@ -64,13 +65,18 @@ export class ContactController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all contacts' })
+  @ApiOperation({ summary: 'Get all contacts (paginated)' })
   @ApiResponse({ status: 200, type: ContactListResponse })
   async getContacts(
     @Request() req: AuthenticatedRequest,
+    @Query() pagination: PaginationQueryDto,
   ): Promise<ContactListResponse> {
     const contacts = await this.contactService.getContacts(req.user.id);
-    return ContactListResponse.fromDomain(contacts);
+    // Apply pagination in-memory (for small contact lists)
+    const start = pagination.skip;
+    const end = start + pagination.take;
+    const paged = contacts.slice(start, end);
+    return ContactListResponse.fromDomain(paged);
   }
 
   @Get('favorites')
