@@ -21,6 +21,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { SensitiveEndpoint } from '../../../security/application/decorators/sensitive-endpoint.decorator';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { IdempotencyInterceptor } from '../../../../common/interceptors';
@@ -173,6 +174,7 @@ export class WalletController {
   }
 
   @Post('deposit')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Initiate a deposit (XOF → USD)' })
@@ -353,6 +355,7 @@ export class WalletController {
   // ============================================
 
   @Post('transfer/internal')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -410,6 +413,7 @@ export class WalletController {
   }
 
   @Post('transfer/external')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -549,6 +553,7 @@ export class WalletController {
   }
 
   @Post('withdraw')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
   @UseInterceptors(IdempotencyInterceptor)

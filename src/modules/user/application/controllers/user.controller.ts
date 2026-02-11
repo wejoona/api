@@ -28,6 +28,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { SensitiveEndpoint } from '../../../security/application/decorators/sensitive-endpoint.decorator';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import {
   RegisterUserDto,
@@ -450,6 +451,7 @@ export class UserController {
   // ============================================
 
   @Post('pin/set')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @ApiOperation({
@@ -478,6 +480,7 @@ export class UserController {
   }
 
   @Post('pin/change')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
@@ -511,6 +514,7 @@ export class UserController {
   }
 
   @Post('pin/verify')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({
@@ -544,6 +548,7 @@ export class UserController {
   }
 
   @Post('pin/reset')
+  @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @ApiOperation({
