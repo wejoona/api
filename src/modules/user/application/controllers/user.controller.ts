@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../../../upload/application/services/upload.service';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/repositories/user.repository';
+import { UserRepository } from '../../infrastructure/repositories';
 import {
   ApiTags,
   ApiOperation,
@@ -231,8 +231,7 @@ export class UserController {
     private readonly resetPinUsecase: ResetPinUsecase,
     @Inject(forwardRef(() => UploadService))
     private readonly uploadService: UploadService,
-    @Inject(USER_REPOSITORY)
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: UserRepository,
   ) {}
 
   @Get('profile')
