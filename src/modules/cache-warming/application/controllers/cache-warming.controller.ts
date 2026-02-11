@@ -23,8 +23,9 @@ import {
  * Admin endpoints for managing cache warming operations.
  * Requires authentication and admin role.
  */
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags } ApiExcludeController } from '@nestjs/swagger';
 @ApiTags('Cache Warming')
+@ApiExcludeController()
 @Controller('admin/cache')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin', 'super_admin')

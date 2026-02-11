@@ -10,6 +10,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -95,7 +96,7 @@ export class RecurringTransferController {
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) throw new Error('User has no wallet');
+    if (!walletId) throw new BadRequestException('User has no wallet');
     const transfer = await this.recurringTransferService.getRecurringTransfer(walletId, id);
     return this.mapTransfer(transfer);
   }
@@ -107,7 +108,7 @@ export class RecurringTransferController {
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) throw new Error('User has no wallet');
+    if (!walletId) throw new BadRequestException('User has no wallet');
     const transfer = await this.recurringTransferService.createRecurringTransfer({
       walletId,
       recipientPhone: dto.recipientPhone,
@@ -133,7 +134,7 @@ export class RecurringTransferController {
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) throw new Error('User has no wallet');
+    if (!walletId) throw new BadRequestException('User has no wallet');
     const transfer = await this.recurringTransferService.updateRecurringTransfer(walletId, id, {
       amount: dto.amount,
       frequency: dto.frequency,
@@ -153,7 +154,7 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const transfer = await this.recurringTransferService.pauseRecurringTransfer(
@@ -176,7 +177,7 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const transfer =
@@ -197,7 +198,7 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     await this.recurringTransferService.cancelRecurringTransfer(walletId, id);
@@ -212,7 +213,7 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const history = await this.recurringTransferService.getExecutionHistory(
@@ -231,7 +232,7 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) {
-      throw new Error('User has no wallet');
+      throw new BadRequestException('User has no wallet');
     }
 
     const dates = await this.recurringTransferService.getNextExecutionDates(
