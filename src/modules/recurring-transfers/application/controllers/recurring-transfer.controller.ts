@@ -23,16 +23,42 @@ interface UserPayload {
   walletId?: string;
 }
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @ApiTags('Recurring Transfers')
 @Controller('recurring-transfers')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class RecurringTransferController {
+  private mapTransfer(transfer: any) {
+    return {
+      id: transfer.id,
+      walletId: transfer.walletId,
+      recipientPhone: transfer.recipientPhone,
+      recipientName: transfer.recipientName,
+      amount: transfer.amount,
+      currency: transfer.currency,
+      frequency: transfer.frequency,
+      startDate: transfer.startDate,
+      endDate: transfer.endDate,
+      nextExecutionDate: transfer.nextExecutionDate,
+      occurrencesTotal: transfer.occurrencesTotal,
+      occurrencesRemaining: transfer.occurrencesRemaining,
+      status: transfer.status,
+      note: transfer.note,
+      dayOfWeek: transfer.dayOfWeek,
+      dayOfMonth: transfer.dayOfMonth,
+      executedCount: transfer.executedCount,
+      createdAt: transfer.createdAt,
+      updatedAt: transfer.updatedAt,
+    };
+  }
+
   constructor(
     private readonly recurringTransferService: RecurringTransferService,
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'List all recurring transfers' })
   async getAll(@CurrentUser() user: UserPayload) {
     const walletId = user.walletId;
     if (!walletId) {
@@ -45,6 +71,7 @@ export class RecurringTransferController {
   }
 
   @Get('upcoming')
+  @ApiOperation({ summary: 'Get upcoming scheduled executions' })
   async getUpcoming(
     @CurrentUser() user: UserPayload,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
@@ -62,141 +89,64 @@ export class RecurringTransferController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get recurring transfer details' })
   async getOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) {
-      throw new Error('User has no wallet');
-    }
-
-    const transfer = await this.recurringTransferService.getRecurringTransfer(
-      walletId,
-      id,
-    );
-
-    return {
-      id: transfer.id,
-      walletId: transfer.walletId,
-      recipientPhone: transfer.recipientPhone,
-      recipientName: transfer.recipientName,
-      amount: transfer.amount,
-      currency: transfer.currency,
-      frequency: transfer.frequency,
-      startDate: transfer.startDate,
-      endDate: transfer.endDate,
-      nextExecutionDate: transfer.nextExecutionDate,
-      occurrencesTotal: transfer.occurrencesTotal,
-      occurrencesRemaining: transfer.occurrencesRemaining,
-      status: transfer.status,
-      note: transfer.note,
-      dayOfWeek: transfer.dayOfWeek,
-      dayOfMonth: transfer.dayOfMonth,
-      executedCount: transfer.executedCount,
-      createdAt: transfer.createdAt,
-      updatedAt: transfer.updatedAt,
-    };
+    if (!walletId) throw new Error('User has no wallet');
+    const transfer = await this.recurringTransferService.getRecurringTransfer(walletId, id);
+    return this.mapTransfer(transfer);
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create a recurring transfer' })
   async create(
     @Body() dto: CreateRecurringTransferDto,
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) {
-      throw new Error('User has no wallet');
-    }
-
-    const transfer =
-      await this.recurringTransferService.createRecurringTransfer({
-        walletId,
-        recipientPhone: dto.recipientPhone,
-        recipientName: dto.recipientName,
-        amount: dto.amount,
-        currency: dto.currency || 'XOF',
-        frequency: dto.frequency,
-        startDate: new Date(dto.startDate),
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        occurrences: dto.occurrences,
-        note: dto.note,
-        dayOfWeek: dto.dayOfWeek,
-        dayOfMonth: dto.dayOfMonth,
-      });
-
-    return {
-      id: transfer.id,
-      walletId: transfer.walletId,
-      recipientPhone: transfer.recipientPhone,
-      recipientName: transfer.recipientName,
-      amount: transfer.amount,
-      currency: transfer.currency,
-      frequency: transfer.frequency,
-      startDate: transfer.startDate,
-      endDate: transfer.endDate,
-      nextExecutionDate: transfer.nextExecutionDate,
-      occurrencesTotal: transfer.occurrencesTotal,
-      occurrencesRemaining: transfer.occurrencesRemaining,
-      status: transfer.status,
-      note: transfer.note,
-      dayOfWeek: transfer.dayOfWeek,
-      dayOfMonth: transfer.dayOfMonth,
-      executedCount: transfer.executedCount,
-      createdAt: transfer.createdAt,
-      updatedAt: transfer.updatedAt,
-    };
+    if (!walletId) throw new Error('User has no wallet');
+    const transfer = await this.recurringTransferService.createRecurringTransfer({
+      walletId,
+      recipientPhone: dto.recipientPhone,
+      recipientName: dto.recipientName,
+      amount: dto.amount,
+      currency: dto.currency || 'XOF',
+      frequency: dto.frequency,
+      startDate: new Date(dto.startDate),
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      occurrences: dto.occurrences,
+      note: dto.note,
+      dayOfWeek: dto.dayOfWeek,
+      dayOfMonth: dto.dayOfMonth,
+    });
+    return this.mapTransfer(transfer);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a recurring transfer' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRecurringTransferDto,
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
-    if (!walletId) {
-      throw new Error('User has no wallet');
-    }
-
-    const transfer =
-      await this.recurringTransferService.updateRecurringTransfer(
-        walletId,
-        id,
-        {
-          amount: dto.amount,
-          frequency: dto.frequency,
-          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-          note: dto.note,
-          dayOfWeek: dto.dayOfWeek,
-          dayOfMonth: dto.dayOfMonth,
-        },
-      );
-
-    return {
-      id: transfer.id,
-      walletId: transfer.walletId,
-      recipientPhone: transfer.recipientPhone,
-      recipientName: transfer.recipientName,
-      amount: transfer.amount,
-      currency: transfer.currency,
-      frequency: transfer.frequency,
-      startDate: transfer.startDate,
-      endDate: transfer.endDate,
-      nextExecutionDate: transfer.nextExecutionDate,
-      occurrencesTotal: transfer.occurrencesTotal,
-      occurrencesRemaining: transfer.occurrencesRemaining,
-      status: transfer.status,
-      note: transfer.note,
-      dayOfWeek: transfer.dayOfWeek,
-      dayOfMonth: transfer.dayOfMonth,
-      executedCount: transfer.executedCount,
-      createdAt: transfer.createdAt,
-      updatedAt: transfer.updatedAt,
-    };
+    if (!walletId) throw new Error('User has no wallet');
+    const transfer = await this.recurringTransferService.updateRecurringTransfer(walletId, id, {
+      amount: dto.amount,
+      frequency: dto.frequency,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      note: dto.note,
+      dayOfWeek: dto.dayOfWeek,
+      dayOfMonth: dto.dayOfMonth,
+    });
+    return this.mapTransfer(transfer);
   }
 
   @Post(':id/pause')
+  @ApiOperation({ summary: 'Pause a recurring transfer' })
   async pause(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
@@ -219,6 +169,7 @@ export class RecurringTransferController {
   }
 
   @Post(':id/resume')
+  @ApiOperation({ summary: 'Resume a paused recurring transfer' })
   async resume(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
@@ -239,6 +190,7 @@ export class RecurringTransferController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Cancel a recurring transfer' })
   async cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
@@ -253,6 +205,7 @@ export class RecurringTransferController {
   }
 
   @Get(':id/history')
+  @ApiOperation({ summary: 'Get execution history for a recurring transfer' })
   async getHistory(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,
@@ -270,6 +223,7 @@ export class RecurringTransferController {
   }
 
   @Get(':id/next-dates')
+  @ApiOperation({ summary: 'Preview next execution dates' })
   async getNextDates(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserPayload,

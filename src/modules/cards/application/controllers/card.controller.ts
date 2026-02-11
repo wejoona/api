@@ -18,14 +18,17 @@ import { CreateCardDto } from '../dto/create-card.dto';
 import { UpdateSpendingLimitDto } from '../dto/update-card.dto';
 import { CardResponseDto, CardListResponseDto } from '../dto/card-response.dto';
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @ApiTags('Cards')
 @Controller('cards')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class CardController {
   constructor(private readonly cardService: CardService) {}
 
   @Get()
+  @ApiOperation({ summary: 'List all cards for current user' })
+  @ApiResponse({ status: 200, description: 'Cards retrieved', type: CardListResponseDto })
   async getCards(@CurrentUser() user: User): Promise<CardListResponseDto> {
     const cards = await this.cardService.getCards(user.id);
     return CardListResponseDto.fromEntities(cards);
@@ -33,6 +36,8 @@ export class CardController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new virtual card' })
+  @ApiResponse({ status: 201, description: 'Card created', type: CardResponseDto })
   async createCard(
     @Body() dto: CreateCardDto,
     @CurrentUser() user: User,
@@ -43,6 +48,8 @@ export class CardController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get card details' })
+  @ApiResponse({ status: 200, description: 'Card details', type: CardResponseDto })
   async getCard(
     @Param('id') id: string,
     @CurrentUser() user: User,
@@ -53,6 +60,7 @@ export class CardController {
   }
 
   @Put(':id/freeze')
+  @ApiOperation({ summary: 'Freeze a card' })
   async freezeCard(
     @Param('id') id: string,
     @CurrentUser() user: User,
@@ -62,6 +70,7 @@ export class CardController {
   }
 
   @Put(':id/unfreeze')
+  @ApiOperation({ summary: 'Unfreeze a card' })
   async unfreezeCard(
     @Param('id') id: string,
     @CurrentUser() user: User,
@@ -71,6 +80,7 @@ export class CardController {
   }
 
   @Put(':id/limit')
+  @ApiOperation({ summary: 'Update card spending limit' })
   async updateLimit(
     @Param('id') id: string,
     @Body() dto: UpdateSpendingLimitDto,
@@ -82,6 +92,8 @@ export class CardController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cancel a card permanently' })
+  @ApiResponse({ status: 204, description: 'Card cancelled' })
   async cancelCard(
     @Param('id') id: string,
     @CurrentUser() user: User,
