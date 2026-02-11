@@ -9,6 +9,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -126,6 +127,7 @@ export class SavingsPotController {
   }
 
   @Post(':id/withdraw')
+  @UseGuards(PinVerificationGuard)
   @ApiOperation({ summary: 'Withdraw funds from a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Withdrawal successful' })
@@ -144,6 +146,7 @@ export class SavingsPotController {
   }
 
   @Post(':id/withdraw-all')
+  @UseGuards(PinVerificationGuard)
   @ApiOperation({ summary: 'Withdraw all funds from a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Full withdrawal successful' })

@@ -13,6 +13,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { RecurringTransferService } from '../services/recurring-transfer.service';
 import { CreateRecurringTransferDto } from '../dto/create-recurring-transfer.dto';
@@ -102,7 +103,8 @@ export class RecurringTransferController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a recurring transfer' })
+  @UseGuards(PinVerificationGuard)
+  @ApiOperation({ summary: 'Create a recurring transfer (requires PIN)' })
   async create(
     @Body() dto: CreateRecurringTransferDto,
     @CurrentUser() user: UserPayload,

@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Query,
   Param,
@@ -294,6 +295,17 @@ export class UserController {
       avatarUrl: result.url,
       message: 'Avatar uploaded successfully',
     };
+  }
+
+  @Delete('avatar')
+  @ApiOperation({ summary: 'Remove user avatar' })
+  @ApiResponse({ status: 200, description: 'Avatar removed' })
+  async removeAvatar(@Request() req: AuthenticatedRequest) {
+    const user = await this.userRepository.findById(req.user.id);
+    if (!user) throw new BadRequestException('User not found');
+    user.updateAvatar(null);
+    await this.userRepository.save(user);
+    return { message: 'Avatar removed successfully' };
   }
 
   @Get('username/check/:username')
