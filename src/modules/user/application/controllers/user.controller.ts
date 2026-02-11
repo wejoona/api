@@ -322,6 +322,75 @@ export class UserController {
     return { message: 'Avatar removed successfully' };
   }
 
+  @Post('deactivate')
+  @ApiOperation({ summary: 'Deactivate user account (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Account deactivated' })
+  async deactivateAccount(@Request() req: AuthenticatedRequest) {
+    const user = await this.userRepository.findById(req.user.id);
+    if (!user) throw new BadRequestException('User not found');
+    user.status = 'suspended' as any;
+    user.suspendedAt = new Date();
+    user.suspendedReason = 'User-initiated deactivation';
+    await this.userRepository.save(user);
+    return { message: 'Account deactivated. Contact support to reactivate.' };
+  }
+
+  @Get('data-export')
+  @ApiOperation({ summary: 'Export all user data (GDPR compliance)' })
+  @ApiResponse({ status: 200, description: 'Full user data export' })
+  async exportUserData(@Request() req: AuthenticatedRequest) {
+    const user = await this.userRepository.findById(req.user.id);
+    if (!user) throw new BadRequestException('User not found');
+    return {
+      exportedAt: new Date().toISOString(),
+      user: {
+        id: user.id,
+        phone: user.phone,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        countryCode: user.countryCode,
+        preferredLocale: user.preferredLocale,
+        kycStatus: user.kycStatus,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    };
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search users by phone or username' })
+  @ApiResponse({ status: 200, description: 'Search results' })
+  async searchUsers(
+    @Query('q') query: string,
+  ) {
+    if (!query || query.length < 2) {
+      return { users: [] };
+    }
+    // Search by phone or username
+    const users = await this.userRepository.findAll();
+    const results = users
+      .filter((u: any) =>
+        u.phone?.includes(query) ||
+        u.username?.toLowerCase().includes(query.toLowerCase()) ||
+        u.firstName?.toLowerCase().includes(query.toLowerCase()) ||
+        u.lastName?.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 20)
+      .map((u: any) => ({
+        id: u.id,
+        username: u.username,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: u.phone ? u.phone.substring(0, 6) + '****' : null,
+        avatarUrl: u.avatarUrl,
+      }));
+    return { users: results, total: results.length };
+  }
+
   @Get('username/check/:username')
   @ApiOperation({ summary: 'Check if username is available' })
   @ApiParam({ name: 'username', description: 'Username to check' })
