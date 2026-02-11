@@ -79,6 +79,22 @@ export class HealthController {
     };
   }
 
+  @Get('exchange-rates')
+  @ApiOperation({ summary: 'Get current exchange rates' })
+  @ApiResponse({ status: 200, description: 'Exchange rates' })
+  exchangeRates() {
+    return {
+      baseCurrency: 'USDC',
+      rates: {
+        XOF: { buy: 595.0, sell: 605.0, mid: 600.0 },
+        USD: { buy: 1.0, sell: 1.0, mid: 1.0 },
+        EUR: { buy: 0.92, sell: 0.94, mid: 0.93 },
+      },
+      updatedAt: new Date().toISOString(),
+      source: 'internal',
+    };
+  }
+
   @Get('version')
   @ApiOperation({ summary: 'API version information' })
   @ApiResponse({ status: 200, description: 'Version info' })
