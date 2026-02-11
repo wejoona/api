@@ -28,10 +28,11 @@ interface UserPayload {
   phone: string;
 }
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @ApiTags('Support')
 @Controller('support/tickets')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 

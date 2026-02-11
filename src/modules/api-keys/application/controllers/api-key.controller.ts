@@ -20,10 +20,11 @@ import {
   ApiKeyCreatedResponseDto,
 } from '../dto/api-key-response.dto';
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @ApiTags('API Keys')
 @Controller('api-keys')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
 

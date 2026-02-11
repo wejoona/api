@@ -16,10 +16,11 @@ import {
   FailedReportResponseDto,
 } from '../dto/bulk-payment-response.dto';
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @ApiTags('Bulk Payments')
 @Controller('bulk-payments')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class BulkPaymentController {
   constructor(private readonly bulkPaymentService: BulkPaymentService) {}
 

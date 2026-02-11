@@ -26,10 +26,11 @@ interface UserPayload {
   walletId?: string;
 }
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 @ApiTags('Beneficiaries')
 @Controller('beneficiaries')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class BeneficiaryController {
   constructor(private readonly beneficiaryService: BeneficiaryService) {}
 

@@ -19,10 +19,11 @@ interface UserPayload {
   phone: string;
 }
 
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @ApiTags('Sessions')
 @Controller('sessions')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
