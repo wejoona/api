@@ -12,10 +12,11 @@
     }]
   },
   "transformIgnorePatterns": [
-    "node_modules/(?!(uuid)/)"
+    "node_modules/(?!(uuid|jose)/)"
   ],
   "moduleNameMapper": {
     "^uuid$": "<rootDir>/../node_modules/uuid/dist/index.js",
+    "^nanoid$": "<rootDir>/mocks/nanoid.js",
     "^@/(.*)$": "<rootDir>/../src/$1",
     "^@modules/(.*)$": "<rootDir>/../src/modules/$1",
     "^@common/(.*)$": "<rootDir>/../src/common/$1",
