@@ -26,6 +26,7 @@ import { CacheInvalidationService } from '../../../shared/infrastructure/service
 import { v4 as uuidv4 } from 'uuid';
 import { TransactionRiskService } from '../../../risk/application/services/transaction-risk.service';
 import { OmnibusService } from '../services/omnibus.service';
+import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
 
 // SECURITY: KYC-based daily transfer limits
 const DAILY_TRANSFER_LIMITS = {
@@ -87,6 +88,7 @@ export class ExternalTransferUseCase {
     private readonly omnibusService: OmnibusService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly riskService: TransactionRiskService,
+    private readonly riskEvaluationService: RiskEvaluationService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -121,6 +123,21 @@ export class ExternalTransferUseCase {
 
     // Check KYC-based transfer limits
     await this.checkTransferLimits(input.userId, input.amount);
+
+    // Risk evaluation via Risk Manager
+    const riskResult = await this.riskEvaluationService.evaluateTransfer({
+      transactionId: uuidv4(),
+      amount: input.amount,
+      currency,
+      senderId: input.userId,
+      receiverId: input.toAddress,
+      type: 'WITHDRAWAL',
+    });
+    if (riskResult?.decision === 'STEP_UP') {
+      throw new BadRequestException(
+        'Additional verification required for this withdrawal. Please verify your identity and try again.',
+      );
+    }
 
     // Get wallet
     const wallet = await this._walletRepository.findByUserId(input.userId);

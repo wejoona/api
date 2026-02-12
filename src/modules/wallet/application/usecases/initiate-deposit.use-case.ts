@@ -13,6 +13,8 @@ import {
   IPaymentGateway,
   PaymentInstructions,
 } from '../../../shared/domain/gateways';
+import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface InitiateDepositInput {
   userId: string;
@@ -41,6 +43,7 @@ export class InitiateDepositUseCase {
     private readonly transactionRepository: TransactionRepository,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly riskEvaluationService: RiskEvaluationService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -62,6 +65,26 @@ export class InitiateDepositUseCase {
     // Validate amount
     if (input.amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    // Risk evaluation via Risk Manager
+    const riskResult = await this.riskEvaluationService.evaluate({
+      transactionId: uuidv4(),
+      amount: input.amount,
+      currency: input.sourceCurrency,
+      type: 'DEPOSIT',
+      senderId: input.userId,
+      senderCountry: 'CI',
+    });
+    if (riskResult?.decision === 'DECLINE') {
+      throw new BadRequestException(
+        'This deposit has been flagged by our risk system. Please contact support.',
+      );
+    }
+    if (riskResult?.decision === 'STEP_UP') {
+      throw new BadRequestException(
+        'Additional verification required for this deposit.',
+      );
     }
 
     // Initiate deposit with payment gateway
