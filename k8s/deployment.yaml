@@ -48,8 +48,8 @@ spec:
         fsGroup: 1001
       containers:
         - name: api
-          image: usdc-wallet-api:latest
-          imagePullPolicy: Never
+          image: localhost:30500/usdc-wallet-api:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000
