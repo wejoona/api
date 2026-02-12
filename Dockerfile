@@ -38,6 +38,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY packages/ ./packages/
 
+# Re-link workspace packages (bun symlinks resolve to host paths)
+RUN rm -rf node_modules/@joonapay/verify-hq-sdk && \
+    mkdir -p node_modules/@joonapay && \
+    ln -s ../../packages/verify-hq-sdk node_modules/@joonapay/verify-hq-sdk
+
 # Copy source code and config files needed for build
 COPY src ./src
 COPY tsconfig.json ./
