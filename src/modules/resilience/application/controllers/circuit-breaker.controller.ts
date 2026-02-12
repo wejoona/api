@@ -15,13 +15,34 @@ import {
   ServiceCircuitConfig,
 } from '../../circuit-breaker.service';
 
+import { IsOptional, IsNumber, IsBoolean, Min } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+
 /**
  * DTO for updating circuit breaker configuration
  */
 export class UpdateCircuitConfigDto {
+  @ApiPropertyOptional({ description: 'Number of failures before opening circuit' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
   failureThreshold?: number;
+
+  @ApiPropertyOptional({ description: 'Reset timeout in ms' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   resetTimeout?: number;
+
+  @ApiPropertyOptional({ description: 'Request timeout in ms' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   requestTimeout?: number;
+
+  @ApiPropertyOptional({ description: 'Whether circuit breaker is enabled' })
+  @IsOptional()
+  @IsBoolean()
   enabled?: boolean;
 }
 

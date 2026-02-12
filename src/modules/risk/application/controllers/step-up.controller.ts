@@ -27,35 +27,11 @@ import {
   OperationStepUpInput,
 } from '../services/step-up.service';
 import { StepUpValidation } from '../../domain/interfaces/step-up.types';
-
-class EvaluateTransactionDto {
-  type: 'transfer' | 'deposit' | 'withdrawal' | 'exchange';
-  amount: number;
-  currency: string;
-  recipientId?: string;
-  recipientType?: 'internal' | 'external' | 'merchant';
-  isFirstTransactionToRecipient?: boolean;
-  deviceId?: string;
-}
-
-class EvaluateOperationDto {
-  operation:
-    | 'pin_change'
-    | 'add_recipient'
-    | 'account_recovery'
-    | 'kyc_selfie'
-    | 'biometric_enroll'
-    | 'export_keys'
-    | 'delete_account';
-  metadata?: Record<string, unknown>;
-}
-
-class ValidateStepUpDto {
-  challengeToken: string;
-  livenessSessionId?: string;
-  biometricVerified?: boolean;
-  otpVerified?: boolean;
-}
+import {
+  EvaluateTransactionDto,
+  EvaluateOperationDto,
+  ValidateStepUpDto,
+} from '../dto';
 
 @ApiTags('Step-Up Authentication')
 @ApiBearerAuth()

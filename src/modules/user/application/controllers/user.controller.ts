@@ -43,6 +43,7 @@ import {
   ChangePinDto,
   VerifyPinDto,
   ResetPinDto,
+  UpdateLocaleDto,
 } from '../dto/requests';
 import {
   UserResponse,
@@ -303,7 +304,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'Locale updated' })
   async updateLocale(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { locale: string },
+    @Body() body: UpdateLocaleDto,
   ) {
     const user = await this.userRepository.findById(req.user.id);
     if (!user) throw new BadRequestException('User not found');

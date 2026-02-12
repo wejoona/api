@@ -25,13 +25,7 @@ import { UserRepository } from '../../../user/infrastructure/repositories';
 import { InitiateDepositDto } from '../dto/initiate-deposit.dto';
 import { ConfirmDepositDto } from '../dto/confirm-deposit.dto';
 import { InitiateDepositResponseDto, DepositStatusResponseDto, ProviderInfoDto } from '../dto/deposit-response.dto';
-import { DepositStatus } from '../../domain/enums/deposit-status.enum';
-
-class ListDepositsQueryDto {
-  status?: DepositStatus;
-  limit?: number = 20;
-  offset?: number = 0;
-}
+import { ListDepositsQueryDto } from '../dto/list-deposits-query.dto';
 
 @ApiTags('Deposits')
 @Controller('deposits')

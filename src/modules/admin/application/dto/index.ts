@@ -8,3 +8,4 @@ export {
   TransactionTimeSeriesItemDto,
   UserGrowthTimeSeriesItemDto,
 } from './dashboard-stats.dto';
+export { AuditLogQueryDto } from './audit-log-query.dto';

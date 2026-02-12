@@ -25,37 +25,7 @@ import {
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { ScheduledPaymentService } from '../services/scheduled-payment.service';
-import { ScheduleFrequency } from '../../domain/interfaces/scheduled-payment.types';
-
-class CreateScheduleDto {
-  name: string;
-  description?: string;
-  recipientId: string;
-  recipientType: 'internal' | 'external' | 'merchant';
-  recipientName?: string;
-  amount: number;
-  currency: string;
-  frequency: ScheduleFrequency;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  time: string;
-  timezone: string;
-  startDate: string;
-  endDate?: string;
-  maxOccurrences?: number;
-}
-
-class UpdateScheduleDto {
-  name?: string;
-  description?: string;
-  amount?: number;
-  frequency?: ScheduleFrequency;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  time?: string;
-  endDate?: string;
-  maxOccurrences?: number;
-}
+import { CreateScheduleDto, UpdateScheduleDto } from '../dto';
 
 @ApiTags('Scheduled Payments')
 @ApiBearerAuth()

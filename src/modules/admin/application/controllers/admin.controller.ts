@@ -34,21 +34,11 @@ import {
   RejectKycDto,
   DashboardStatsDto,
   EnhancedDashboardStatsDto,
+  AuditLogQueryDto,
 } from '../dto';
 
 interface AuthenticatedRequest {
   user: { id: string; role: string };
-}
-
-class AuditLogQueryDto {
-  page?: number;
-  limit?: number;
-  actorId?: string;
-  action?: string;
-  resourceType?: string;
-  resourceId?: string;
-  startDate?: string;
-  endDate?: string;
 }
 
 @ApiTags('Admin')

@@ -23,28 +23,7 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { TransactionRiskService } from '../services/transaction-risk.service';
 import { DeviceFingerprint } from '../../domain/interfaces/risk-assessment.types';
-
-class RiskRegisterDeviceDto {
-  deviceId: string;
-  platform: 'ios' | 'android' | 'web';
-  osVersion?: string;
-  appVersion?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  isEmulator?: boolean;
-  isRooted?: boolean;
-}
-
-class ScreenUserDto {
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  dateOfBirth?: string;
-  nationality?: string;
-  countryOfResidence?: string;
-  idType?: string;
-  idNumber?: string;
-}
+import { RiskRegisterDeviceDto, ScreenUserDto } from '../dto';
 
 @ApiTags('Risk')
 @ApiBearerAuth()

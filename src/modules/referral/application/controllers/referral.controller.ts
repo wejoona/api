@@ -6,6 +6,8 @@ import {
   Query,
   UseGuards,
   HttpStatus,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -143,7 +145,7 @@ export class ReferralController {
   @ApiOperation({ summary: 'Get referral leaderboard' })
   @ApiResponse({ status: HttpStatus.OK, type: LeaderboardResponse })
   async getLeaderboard(
-    @Query('limit') limit: number = 10,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<LeaderboardResponse> {
     const topReferrers = await this.referralService.getLeaderboard(limit);
     return {

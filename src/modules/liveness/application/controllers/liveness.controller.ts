@@ -19,36 +19,7 @@ import {
 import { LivenessService } from '../services/liveness.service';
 import { JwtAuthGuard, JwtUser } from '../../../../common/guards';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-
-/**
- * DTO for starting a liveness session
- */
-class StartLivenessDto {
-  // No additional fields needed - uses authenticated user ID
-}
-
-/**
- * DTO for submitting a challenge response
- */
-class SubmitChallengeDto {
-  sessionId: string;
-  challengeId: string;
-  videoFrameBase64: string; // Base64 encoded video frame/selfie
-}
-
-/**
- * DTO for completing a session
- */
-class CompleteSessionDto {
-  sessionId: string;
-}
-
-/**
- * DTO for cancelling a session
- */
-class CancelSessionDto {
-  sessionId: string;
-}
+import { StartLivenessDto, SubmitChallengeDto, CompleteSessionDto, CancelSessionDto } from '../dto';
 
 /**
  * Liveness Controller

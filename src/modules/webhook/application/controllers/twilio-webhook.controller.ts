@@ -9,6 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiTags } from '@nestjs/swagger';
 import * as crypto from 'crypto';
 import { TwilioWebhookService } from '../services/twilio-webhook.service';
 
@@ -40,6 +41,7 @@ interface TwilioWebhookPayload {
  *
  * Security: Validates Twilio signature to prevent spoofing
  */
+@ApiTags('Twilio Webhooks')
 @Controller('webhooks/twilio')
 export class TwilioWebhookController {
   private readonly logger = new Logger(TwilioWebhookController.name);

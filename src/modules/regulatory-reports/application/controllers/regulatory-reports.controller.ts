@@ -27,6 +27,8 @@ import {
   GenerateSARDto,
   GenerateAuditExportDto,
 } from '../dto/generate-report.dto';
+import { GenerateQuarterlySummaryDto } from '../dto/generate-quarterly-summary.dto';
+import { ReportNotesDto, ReportRejectDto } from '../dto/report-workflow.dto';
 import {
   ReportSummaryDto,
   ReportDetailDto,
@@ -284,7 +286,7 @@ export class RegulatoryReportsController {
   @Roles('compliance_manager', 'admin')
   @HttpCode(HttpStatus.CREATED)
   async generateQuarterlySummary(
-    @Body() body: { quarter: 1 | 2 | 3 | 4; year: number },
+    @Body() body: GenerateQuarterlySummaryDto,
     @CurrentUser() user: User,
   ): Promise<ReportDetailDto> {
     const report = await this.complianceSummaryService.generateQuarterlySummary(
@@ -358,7 +360,7 @@ export class RegulatoryReportsController {
   @Roles('compliance_officer', 'compliance_manager', 'admin')
   async submitForReview(
     @Param('id') id: string,
-    @Body() body: { notes?: string },
+    @Body() body: ReportNotesDto,
     @CurrentUser() user: User,
   ): Promise<ReportDetailDto> {
     const report = await this.reportRepository.findById(id);
@@ -380,7 +382,7 @@ export class RegulatoryReportsController {
   @Roles('compliance_manager', 'admin')
   async approveReport(
     @Param('id') id: string,
-    @Body() body: { notes?: string },
+    @Body() body: ReportNotesDto,
     @CurrentUser() user: User,
   ): Promise<ReportDetailDto> {
     const report = await this.reportRepository.findById(id);
@@ -402,7 +404,7 @@ export class RegulatoryReportsController {
   @Roles('compliance_manager', 'admin')
   async rejectReport(
     @Param('id') id: string,
-    @Body() body: { reason: string },
+    @Body() body: ReportRejectDto,
     @CurrentUser() _user: User,
   ): Promise<ReportDetailDto> {
     const report = await this.reportRepository.findById(id);
