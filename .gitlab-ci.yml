@@ -1,5 +1,5 @@
 # CI/CD Pipeline for USDC Wallet API
-# Build on VPS runner → import to k3s → ArgoCD auto-syncs
+# Build on VPS runner → import to k3s → auto-deployed
 # No registry needed. Image lives in k3s containerd.
 
 stages:
@@ -15,15 +15,14 @@ build:
   tags:
     - vps-prod
   script:
-    - docker build --platform linux/amd64 -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
+    - docker build --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
     - docker save "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" | k3s ctr images import -
     - docker save "$IMAGE_NAME:latest" | k3s ctr images import -
-    # Cleanup local docker image to save disk
     - docker rmi "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:latest" || true
   only:
     - main
 
-# Rolling deploy via kubectl (ArgoCD will also auto-sync)
+# Rolling deploy via kubectl
 deploy:
   stage: deploy
   tags:
