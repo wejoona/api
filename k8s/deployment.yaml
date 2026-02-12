@@ -48,8 +48,8 @@ spec:
         fsGroup: 1001
       containers:
         - name: api
-          image: registry.wejoona.com/usdc-wallet-api:latest
-          imagePullPolicy: Always
+          image: usdc-wallet-api:latest
+          imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 3000
@@ -137,8 +137,6 @@ spec:
             matchLabels:
               app: usdc-wallet-api
       terminationGracePeriodSeconds: 30
-      imagePullSecrets:
-        - name: gitlab-registry
 
 ---
 # =============================================================================

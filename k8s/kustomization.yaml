@@ -9,5 +9,5 @@ resources:
   # secrets.yaml managed separately (not in git)
 
 images:
-  - name: registry.wejoona.com/usdc-wallet-api
-    newTag: v1.2.2
+  - name: usdc-wallet-api
+    newTag: v1.2.8
