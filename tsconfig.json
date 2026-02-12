@@ -25,7 +25,8 @@
       "@common/*": ["common/*"],
       "@config/*": ["config/*"],
       "@types/*": ["types/*"],
-      "@types": ["types/index"]
+      "@types": ["types/index"],
+      "@joonapay/*": ["../node_modules/@joonapay/*"]
     }
   },
   "exclude": [
