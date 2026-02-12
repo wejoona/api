@@ -7,7 +7,3 @@ resources:
   - configmap.yaml
   - minio.yaml
   # secrets.yaml managed separately (not in git)
-
-images:
-  - name: usdc-wallet-api
-    newTag: v1.2.8

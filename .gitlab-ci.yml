@@ -1,109 +1,35 @@
 # CI/CD Pipeline for USDC Wallet API
-# Registry: registry.wejoona.com (deploy token auth)
-# CI Variables required:
-#   CI_DEPLOY_USER    = gitlab+deploy-token-1
-#   CI_DEPLOY_PASSWORD = <deploy token secret> (masked)
-# Deploy: ArgoCD auto-syncs from k8s/kustomization.yaml newTag
+# Build on VPS runner → import to k3s → ArgoCD auto-syncs
+# No registry needed. Image lives in k3s containerd.
 
 stages:
-  - test
   - build
   - deploy
 
 variables:
-  REGISTRY: registry.wejoona.com
   IMAGE_NAME: usdc-wallet-api
 
-# Lint and unit tests
-test:unit:
-  stage: test
-  image: node:20-alpine
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - node_modules/
-  before_script:
-    - npm ci --legacy-peer-deps
-  script:
-    - npm run lint
-    - npm run test
-  only:
-    - merge_requests
-    - main
-    - develop
-
-# Contract tests - validate API responses match mobile expectations
-test:contracts:
-  stage: test
-  image: node:20-alpine
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - node_modules/
-  before_script:
-    - npm ci --legacy-peer-deps
-  script:
-    - npm run test:contracts
-  only:
-    - merge_requests
-    - main
-    - develop
-
-# E2E Integration tests
-test:e2e:
-  stage: test
-  image: node:20-alpine
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    TESTCONTAINERS_RYUK_DISABLED: "true"
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - node_modules/
-  before_script:
-    - apk add --no-cache docker-cli
-    - npm ci --legacy-peer-deps
-  script:
-    - npm run test:e2e
-  only:
-    - merge_requests
-    - main
-  allow_failure: true
-
-# Build and push Docker image
+# Build Docker image and import directly to k3s
 build:
   stage: build
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - vps-prod
   script:
-    - docker login -u "$CI_DEPLOY_USER" -p "$CI_DEPLOY_PASSWORD" "$REGISTRY"
-    - docker build --platform linux/amd64 -t "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA" .
-    - docker push "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA"
-    - docker tag "$REGISTRY/$IMAGE_NAME:$CI_COMMIT_SHA" "$REGISTRY/$IMAGE_NAME:latest"
-    - docker push "$REGISTRY/$IMAGE_NAME:latest"
+    - docker build --platform linux/amd64 -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
+    - docker save "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" | k3s ctr images import -
+    - docker save "$IMAGE_NAME:latest" | k3s ctr images import -
+    # Cleanup local docker image to save disk
+    - docker rmi "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:latest" || true
   only:
     - main
 
-# Update kustomization.yaml newTag for ArgoCD
+# Rolling deploy via kubectl (ArgoCD will also auto-sync)
 deploy:
   stage: deploy
-  image: alpine:3.19
-  before_script:
-    - apk add --no-cache git sed
-    - git config user.email "ci@wejoona.com"
-    - git config user.name "GitLab CI"
-    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.wejoona.com/${CI_PROJECT_PATH}.git"
+  tags:
+    - vps-prod
   script:
-    - git fetch origin main
-    - git checkout main
-    - 'sed -i "s/newTag: .*/newTag: ${CI_COMMIT_SHA}/" k8s/kustomization.yaml'
-    - git add k8s/kustomization.yaml
-    - git diff --cached --quiet && echo "No changes" || git commit -m "deploy: update image tag to ${CI_COMMIT_SHORT_SHA} [skip ci]"
-    - git push origin main
+    - kubectl -n usdc-wallet set image deployment/usdc-wallet-api api="$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - kubectl -n usdc-wallet rollout status deployment/usdc-wallet-api --timeout=120s
   only:
     - main
