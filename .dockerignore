@@ -21,8 +21,6 @@ package-lock.json.bak
 # -----------------------------------------------------------------------------
 # Build output (rebuilt in container)
 # -----------------------------------------------------------------------------
-dist
-!packages/*/dist
 build
 out
 coverage
