@@ -1,34 +1,34 @@
 # CI/CD Pipeline for USDC Wallet API
-# Build on VPS runner → import to k3s → auto-deployed
-# No registry needed. Image lives in k3s containerd.
+# Build → push to local registry → deploy via kubectl
+# Registry: localhost:30500 (K8s NodePort → internal registry)
 
 stages:
   - build
   - deploy
 
 variables:
+  REGISTRY: localhost:30500
   IMAGE_NAME: usdc-wallet-api
+  FULL_IMAGE: $REGISTRY/$IMAGE_NAME
 
-# Build Docker image and import directly to k3s
 build:
   stage: build
   tags:
     - vps-prod
   script:
-    - DOCKER_BUILDKIT=1 docker build -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
-    - docker save "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" | k3s ctr images import -
-    - docker save "$IMAGE_NAME:latest" | k3s ctr images import -
-    - docker rmi "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:latest" || true
+    - DOCKER_BUILDKIT=1 docker build -t "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA" -t "$FULL_IMAGE:latest" .
+    - docker push "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$FULL_IMAGE:latest"
+    - docker rmi "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA" "$FULL_IMAGE:latest" || true
   only:
     - main
 
-# Rolling deploy via kubectl
 deploy:
   stage: deploy
   tags:
     - vps-prod
   script:
-    - kubectl -n usdc-wallet set image deployment/usdc-wallet-api api="$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - kubectl -n usdc-wallet set image deployment/usdc-wallet-api api="$FULL_IMAGE:$CI_COMMIT_SHORT_SHA"
     - kubectl -n usdc-wallet rollout status deployment/usdc-wallet-api --timeout=120s
   only:
     - main
