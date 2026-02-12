@@ -15,7 +15,7 @@ build:
   tags:
     - vps-prod
   script:
-    - docker build --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
+    - DOCKER_BUILDKIT=1 docker build --no-cache -t "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" -t "$IMAGE_NAME:latest" .
     - docker save "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" | k3s ctr images import -
     - docker save "$IMAGE_NAME:latest" | k3s ctr images import -
     - docker rmi "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:latest" || true
