@@ -30,7 +30,8 @@ import { ReportsModule } from './modules/reports';
 import { JobsModule } from './modules/jobs';
 import { HealthModule } from './modules/health';
 import { SecurityModule } from './modules/security';
-import { MessagingModule } from './modules/messaging/messaging.module';
+// MessagingModule loaded conditionally (PULSAR_ENABLED=true)
+import { RiskModule } from './modules/risk/risk.module';
 import { LegalModule } from './modules/legal/legal.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
@@ -220,7 +221,8 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     HealthModule,
     MetricsModule,
     SecurityModule,
-    MessagingModule,
+    ...(process.env.PULSAR_ENABLED === 'true' ? [require('./modules/messaging/messaging.module').MessagingModule] : []),
+    RiskModule,
     LegalModule,
     ContactsModule,
     UserPreferencesModule,

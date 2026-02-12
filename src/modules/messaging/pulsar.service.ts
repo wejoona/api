@@ -1,13 +1,14 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Pulsar from 'pulsar-client';
+let Pulsar: any;
+try { Pulsar = require('pulsar-client'); } catch { Pulsar = null; }
 
 @Injectable()
 export class PulsarService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PulsarService.name);
-  private client: Pulsar.Client | null = null;
-  private producers = new Map<string, Pulsar.Producer>();
-  private consumers = new Map<string, Pulsar.Consumer>();
+  private client: any = null;
+  private producers = new Map<string, any>();
+  private consumers = new Map<string, any>();
 
   constructor(private readonly config: ConfigService) {}
 

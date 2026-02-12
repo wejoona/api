@@ -16,6 +16,7 @@ import { MockRiskClient } from './infrastructure/clients/mock-risk.client';
 // Services
 import { TransactionRiskService } from './application/services/transaction-risk.service';
 import { StepUpService } from './application/services/step-up.service';
+import { RiskEvaluationService } from './risk-evaluation.service';
 
 // Guards
 import { RiskAssessmentGuard } from './application/guards/risk-assessment.guard';
@@ -61,12 +62,14 @@ import { CircleComplianceAdapter } from '../providers/circle/adapters/circle-com
     // Services
     TransactionRiskService,
     StepUpService,
+    RiskEvaluationService,
 
     // Guards
     RiskAssessmentGuard,
   ],
   exports: [
     TransactionRiskService,
+    RiskEvaluationService,
     StepUpService,
     RiskAssessmentGuard,
     RiskClientFactory,

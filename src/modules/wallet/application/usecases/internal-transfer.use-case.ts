@@ -17,6 +17,7 @@ import {
   ILedgerProvider,
 } from '../../../providers/interfaces';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
+import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface InternalTransferInput {
@@ -71,6 +72,7 @@ export class InternalTransferUseCase {
     private readonly ledgerProvider: ILedgerProvider,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly riskEvaluationService: RiskEvaluationService,
   ) {}
 
   async execute(input: InternalTransferInput): Promise<InternalTransferOutput> {
@@ -84,6 +86,21 @@ export class InternalTransferUseCase {
 
     // Step 3: Check daily limits based on KYC status
     await this.checkDailyLimits(input.fromUserId, input.amount);
+
+    // Step 3.5: Risk evaluation (via Risk Manager service)
+    const riskResult = await this.riskEvaluationService.evaluateTransfer({
+      transactionId: uuidv4(),
+      amount: input.amount,
+      currency,
+      senderId: input.fromUserId,
+      receiverId: recipient.id,
+      type: 'P2P',
+    });
+    if (riskResult?.decision === 'STEP_UP') {
+      throw new BadRequestException(
+        'Additional verification required for this transfer. Please verify your PIN and try again.',
+      );
+    }
 
     // Step 4: Load wallets
     const fromWallet = await this._walletRepository.findByUserId(

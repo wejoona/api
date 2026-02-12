@@ -78,7 +78,7 @@ export class WalletCreditConsumer implements OnModuleInit {
         currency: payload.currency,
         reference: payload.idempotencyKey,
         description: `PaySwitch ${payload.reason}: stx=${payload.switchTransactionId}`,
-        provider: payload.sourceSystem,
+        provider: payload.sourceSystem as any,
         externalId: payload.switchTransactionId,
       });
 
