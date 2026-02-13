@@ -62,3 +62,4 @@ CLAUDE.md
 pgadmin_data/
 typesense_data/
 redis_data/
+dist/
