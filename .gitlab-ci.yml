@@ -1,7 +1,5 @@
-# CI/CD Pipeline for USDC Wallet API
-# Build → push to local registry → deploy via kubectl
-# Registry: localhost:30500 (K8s NodePort → internal registry)
-
+# Korido API CI/CD
+# Build → push to registry → update gitops → ArgoCD syncs
 stages:
   - build
   - deploy
@@ -9,17 +7,18 @@ stages:
 variables:
   REGISTRY: localhost:30500
   IMAGE_NAME: usdc-wallet-api
-  FULL_IMAGE: $REGISTRY/$IMAGE_NAME
+  FULL_IMAGE: "${REGISTRY}/${IMAGE_NAME}"
+  GITOPS_REPO: "https://BenOuttara:${CI_JOB_TOKEN}@gitlab.wejoona.com/korido/gitops.git"
 
 build:
   stage: build
   tags:
     - vps-prod
   script:
-    - DOCKER_BUILDKIT=1 docker build -t "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA" -t "$FULL_IMAGE:latest" .
-    - docker push "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA"
-    - docker push "$FULL_IMAGE:latest"
-    - docker rmi "$FULL_IMAGE:$CI_COMMIT_SHORT_SHA" "$FULL_IMAGE:latest" || true
+    - DOCKER_BUILDKIT=1 docker build -t "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}" -t "${FULL_IMAGE}:latest" .
+    - docker push "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker push "${FULL_IMAGE}:latest"
+    - docker rmi "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${FULL_IMAGE}:latest" || true
   only:
     - main
 
@@ -28,7 +27,14 @@ deploy:
   tags:
     - vps-prod
   script:
-    - kubectl -n usdc-wallet set image deployment/usdc-wallet-api api="$FULL_IMAGE:$CI_COMMIT_SHORT_SHA"
-    - kubectl -n usdc-wallet rollout status deployment/usdc-wallet-api --timeout=120s
+    - git clone "https://BenOuttara:${GITOPS_TOKEN}@gitlab.wejoona.com/korido/gitops.git" /tmp/gitops-korido
+    - cd /tmp/gitops-korido
+    - "sed -i 's/tag: .*/tag: \"${CI_COMMIT_SHORT_SHA}\"/' envs/prod/api/values.yaml"
+    - git config user.email "ci@wejoona.com"
+    - git config user.name "GitLab CI"
+    - git add -A
+    - "git commit -m 'deploy: korido-api ${CI_COMMIT_SHORT_SHA} [skip ci]' || true"
+    - git push origin main || true
+    - rm -rf /tmp/gitops-korido
   only:
     - main
