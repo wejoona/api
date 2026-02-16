@@ -7,6 +7,7 @@ import {
   Body,
   Query,
   Param,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -14,9 +15,11 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  NotFoundException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../../../upload/application/services/upload.service';
 import { UserRepository } from '../../infrastructure/repositories';
@@ -29,6 +32,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { SensitiveEndpoint } from '../../../security/application/decorators/sensitive-endpoint.decorator';
+import { Public } from '../../../../common/decorators/public.decorator';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import {
   RegisterUserDto,
@@ -286,14 +290,15 @@ export class UserController {
       file,
     });
 
-    // Update user's avatar URL (use public URL if available, else signed)
+    // Store a relative API URL (not internal MinIO URL which is unreachable from mobile)
     const user = await this.userRepository.findById(req.user.id);
     if (!user) throw new BadRequestException('User not found');
-    user.updateAvatar(result.publicUrl ?? result.url);
+    const avatarApiUrl = `/user/avatar/${req.user.id}`;
+    user.updateAvatar(avatarApiUrl);
     await this.userRepository.save(user);
 
     return {
-      avatarUrl: result.publicUrl ?? result.url,
+      avatarUrl: avatarApiUrl,
       message: 'Avatar uploaded successfully',
     };
   }
@@ -321,6 +326,29 @@ export class UserController {
     user.updateAvatar(null);
     await this.userRepository.save(user);
     return { message: 'Avatar removed successfully' };
+  }
+
+  @Public()
+  @Get('avatar/:userId')
+  @ApiOperation({ summary: 'Get user avatar image (proxy from storage)' })
+  @ApiResponse({ status: 200, description: 'Avatar image' })
+  @ApiResponse({ status: 404, description: 'No avatar' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  async getAvatar(
+    @Param('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const key = `${userId}/avatar.jpg`;
+      const buffer = await this.uploadService.getFileBuffer(key);
+      res.set({
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.send(buffer);
+    } catch {
+      throw new NotFoundException('Avatar not found');
+    }
   }
 
   @Post('deactivate')

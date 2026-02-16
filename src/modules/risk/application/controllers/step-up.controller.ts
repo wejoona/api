@@ -31,6 +31,8 @@ import {
   EvaluateTransactionDto,
   EvaluateOperationDto,
   ValidateStepUpDto,
+  SendOtpDto,
+  VerifyOtpDto,
 } from '../dto';
 
 @ApiTags('Step-Up Authentication')
@@ -170,6 +172,49 @@ export class StepUpController {
         : {
             complete: false,
           },
+    };
+  }
+
+  /**
+   * Send OTP for step-up verification
+   */
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send OTP for step-up verification' })
+  @ApiResponse({ status: 200, description: 'OTP sent' })
+  async sendOtp(@CurrentUser() user: any, @Body() dto: SendOtpDto) {
+    const result = await this.stepUpService.sendOtp(
+      user.id,
+      dto.challengeToken,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Verify OTP code
+   */
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify OTP code for step-up' })
+  @ApiResponse({ status: 200, description: 'OTP verified' })
+  async verifyOtp(@CurrentUser() _user: any, @Body() dto: VerifyOtpDto) {
+    const result = await this.stepUpService.verifyOtp(
+      dto.challengeToken,
+      dto.code,
+    );
+
+    return {
+      success: true,
+      data: {
+        valid: result.valid,
+        stepUpType: result.stepUpType,
+        completedAt: result.completedAt,
+        expiresAt: result.expiresAt,
+      },
     };
   }
 

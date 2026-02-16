@@ -338,6 +338,29 @@ export class UploadService {
   }
 
   /**
+   * Get raw file buffer from storage
+   */
+  async getFileBuffer(key: string, bucket = BUCKETS.users): Promise<Buffer> {
+    if (this.useMock) {
+      const buf = this.mockStorage.get(`${bucket}/${key}`);
+      if (buf) return buf;
+      // Try filesystem
+      const filePath = path.join(this.mockStoragePath, bucket, key.replace(/\//g, '_'));
+      if (fs.existsSync(filePath)) return fs.readFileSync(filePath);
+      throw new BadRequestException('File not found');
+    }
+
+    const response = await this.s3Client!.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
+
+  /**
    * Get signed URL for viewing any file
    */
   async getSignedUrl(key: string, bucketOrExpiry?: string | number, expiresIn = 3600): Promise<string> {

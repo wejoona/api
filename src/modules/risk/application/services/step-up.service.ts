@@ -70,6 +70,12 @@ export class StepUpService {
   // Completed step-ups (cached for session)
   private readonly completedStepUps = new Map<string, StepUpResult>();
 
+  // OTP storage: challengeToken → { code, userId, expiresAt }
+  private readonly otpStore = new Map<
+    string,
+    { code: string; userId: string; expiresAt: Date; attempts: number }
+  >();
+
   constructor(
     private readonly riskService: TransactionRiskService,
     private readonly configService: ConfigService,
@@ -394,6 +400,79 @@ export class StepUpService {
     };
 
     return `${flowEmoji[flow]} Please verify with ${verificationText[stepUpType] || stepUpType}`;
+  }
+
+  /**
+   * Send OTP for step-up verification
+   */
+  async sendOtp(
+    userId: string,
+    challengeToken: string,
+  ): Promise<{ sent: boolean }> {
+    const pending = this.pendingChallenges.get(challengeToken);
+    if (!pending || pending.userId !== userId) {
+      throw new Error('Invalid or expired challenge token');
+    }
+
+    // Generate 6-digit OTP
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store with 5min expiry
+    this.otpStore.set(challengeToken, {
+      code,
+      userId,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      attempts: 0,
+    });
+
+    // Mock SMS send
+    this.logger.log(`[MOCK SMS] OTP ${code} sent to user ${userId}`);
+
+    return { sent: true };
+  }
+
+  /**
+   * Verify OTP code against challenge token
+   */
+  async verifyOtp(
+    challengeToken: string,
+    code: string,
+  ): Promise<StepUpResult> {
+    const otpEntry = this.otpStore.get(challengeToken);
+    if (!otpEntry) {
+      throw new Error('No OTP found for this challenge');
+    }
+
+    if (new Date() > otpEntry.expiresAt) {
+      this.otpStore.delete(challengeToken);
+      throw new Error('OTP has expired');
+    }
+
+    otpEntry.attempts += 1;
+    if (otpEntry.attempts > 5) {
+      this.otpStore.delete(challengeToken);
+      this.pendingChallenges.delete(challengeToken);
+      throw new Error('Too many OTP attempts');
+    }
+
+    if (otpEntry.code !== code) {
+      throw new Error('Invalid OTP code');
+    }
+
+    // OTP valid — complete step-up
+    this.otpStore.delete(challengeToken);
+    this.pendingChallenges.delete(challengeToken);
+
+    const result: StepUpResult = {
+      valid: true,
+      stepUpType: 'otp',
+      completedAt: new Date(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    };
+
+    this.completedStepUps.set(challengeToken, result);
+    this.logger.log(`OTP verified for challenge ${challengeToken}`);
+    return result;
   }
 
   /**
