@@ -49,6 +49,7 @@ import { UserRegisteredListener } from './application/listeners/user-registered.
 import { WalletModule } from '../wallet/wallet.module';
 import { KycModule } from '../kyc/kyc.module';
 import { TransactionModule } from '../transaction/transaction.module';
+import { SessionModule } from '../session/session.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { TransactionModule } from '../transaction/transaction.module';
     forwardRef(() => KycModule),
     forwardRef(() => TransactionModule),
     forwardRef(() => UploadModule),
+    SessionModule,
   ],
   controllers: [
     AuthController,

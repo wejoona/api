@@ -11,10 +11,14 @@ import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { OtpService } from '../services';
 import { KycService } from '../../../../kyc/application/services/kyc.service';
+import { SessionService } from '../../../../session/application/services/session.service';
 
 export interface VerifyOtpInput {
   phone: string;
   otp: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceId?: string;
 }
 
 export interface VerifyOtpOutput {
@@ -38,6 +42,7 @@ export class VerifyOtpUsecase {
     private readonly jwtService: JwtService,
     private readonly kycService: KycService,
     private readonly configService: ConfigService,
+    private readonly sessionService: SessionService,
     private readonly eventEmitter: EventEmitter2,
   ) {
     // Use separate secret for refresh tokens - no fallback for security
@@ -143,6 +148,21 @@ export class VerifyOtpUsecase {
         expiresIn: this.refreshExpiresIn as `${number}${'s' | 'm' | 'h' | 'd'}`,
       },
     );
+
+    // Create session record
+    try {
+      await this.sessionService.createSession({
+        userId: updatedUser.id,
+        deviceId: input.deviceId,
+        refreshToken,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        expiresInSeconds: this.parseExpirationToSeconds(this.refreshExpiresIn),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to create session: ${error.message}`);
+      // Don't fail login if session creation fails
+    }
 
     // Emit events
     this.eventEmitter.emit('user.verified', {

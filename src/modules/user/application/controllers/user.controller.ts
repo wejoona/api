@@ -118,10 +118,13 @@ export class AuthController {
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Verify OTP and get access token' })
   @ApiResponse({ status: 200, type: AuthResponse })
-  async verifyOtp(@Body() dto: VerifyOtpDto): Promise<AuthResponse> {
+  async verifyOtp(@Body() dto: VerifyOtpDto, @Request() req): Promise<AuthResponse> {
     const result = await this.verifyOtpUsecase.execute({
       phone: dto.phone,
       otp: dto.otp,
+      ipAddress: req.ip,
+      userAgent: req.headers?.['user-agent'],
+      deviceId: req.headers?.['x-device-id'],
     });
 
     return {
