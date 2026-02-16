@@ -293,14 +293,15 @@ export class UserController {
     // Generate a small base64 thumbnail (64x64) for DB storage — no MinIO dependency
     let thumbBase64: string | null = null;
     try {
-      const sharp = (await import('sharp')).default;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const sharp = require('sharp');
       const thumbBuffer = await sharp(file.buffer)
         .resize(64, 64, { fit: 'cover' })
         .jpeg({ quality: 60 })
         .toBuffer();
       thumbBase64 = `data:image/jpeg;base64,${thumbBuffer.toString('base64')}`;
     } catch {
-      // Thumbnail generation failed — proceed without it
+      // Thumbnail generation failed (sharp not available) — proceed without it
     }
 
     // Store relative API URL + base64 thumb in DB
