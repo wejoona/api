@@ -26,6 +26,9 @@ export class UserResponse {
   @ApiProperty({ example: null, nullable: true })
   avatarUrl: string | null;
 
+  @ApiProperty({ example: null, nullable: true, description: 'Base64 thumbnail (64x64) for offline display' })
+  avatarThumb: string | null;
+
   @ApiProperty({ example: 'fr', description: 'Preferred locale (en, fr, pt, ar)' })
   preferredLocale: string;
 
@@ -70,6 +73,7 @@ export class UserResponse {
     response.lastName = user.lastName;
     response.email = user.email;
     response.avatarUrl = user.avatarUrl;
+    response.avatarThumb = user.avatarThumb;
     response.preferredLocale = user.preferredLocale;
     response.countryCode = user.countryCode;
     response.kycStatus = user.kycStatus;

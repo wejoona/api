@@ -290,15 +290,29 @@ export class UserController {
       file,
     });
 
-    // Store a relative API URL (not internal MinIO URL which is unreachable from mobile)
+    // Generate a small base64 thumbnail (64x64) for DB storage — no MinIO dependency
+    let thumbBase64: string | null = null;
+    try {
+      const sharp = (await import('sharp')).default;
+      const thumbBuffer = await sharp(file.buffer)
+        .resize(64, 64, { fit: 'cover' })
+        .jpeg({ quality: 60 })
+        .toBuffer();
+      thumbBase64 = `data:image/jpeg;base64,${thumbBuffer.toString('base64')}`;
+    } catch {
+      // Thumbnail generation failed — proceed without it
+    }
+
+    // Store relative API URL + base64 thumb in DB
     const user = await this.userRepository.findById(req.user.id);
     if (!user) throw new BadRequestException('User not found');
     const avatarApiUrl = `/user/avatar/${req.user.id}`;
-    user.updateAvatar(avatarApiUrl);
+    user.updateAvatar(avatarApiUrl, thumbBase64);
     await this.userRepository.save(user);
 
     return {
       avatarUrl: avatarApiUrl,
+      avatarThumb: thumbBase64,
       message: 'Avatar uploaded successfully',
     };
   }
