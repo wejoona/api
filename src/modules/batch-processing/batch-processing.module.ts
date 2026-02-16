@@ -15,6 +15,8 @@ import { TypeOrmBatchJobRepository } from './infrastructure/repositories/typeorm
 
 // ORM Entities
 import { BatchJobOrmEntity } from './infrastructure/orm-entities/batch-job.orm-entity';
+import { UserOrmEntity } from '../user/infrastructure/orm-entities/user.orm-entity';
+import { TransactionOrmEntity } from '../transaction/infrastructure/orm-entities/transaction.orm-entity';
 
 // Queue Services
 import {
@@ -27,10 +29,16 @@ import { BulkKycProcessor } from './infrastructure/processors/bulk-kyc.processor
 import { MassNotificationProcessor } from './infrastructure/processors/mass-notification.processor';
 import { ScheduledReportProcessor } from './infrastructure/processors/scheduled-report.processor';
 import { DataExportProcessor } from './infrastructure/processors/data-export.processor';
+import { KycModule } from '../kyc/kyc.module';
+import { NotificationModule } from '../notification/notification.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BatchJobOrmEntity]),
+    TypeOrmModule.forFeature([BatchJobOrmEntity, UserOrmEntity, TransactionOrmEntity]),
+    KycModule,
+    NotificationModule,
+    NotificationsModule,
     BullModule.registerQueue({
       name: BATCH_QUEUE_NAME,
       defaultJobOptions: {

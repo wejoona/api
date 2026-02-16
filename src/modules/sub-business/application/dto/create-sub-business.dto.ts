@@ -12,6 +12,10 @@ import { SubBusinessType } from '../../domain/entities/sub-business.entity';
 export class CreateSubBusinessDto {
   @IsString()
   @IsNotEmpty()
+  walletId: string;
+
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsOptional()

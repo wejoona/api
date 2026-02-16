@@ -86,7 +86,24 @@ export class WalletCreditConsumer implements OnModuleInit {
         `[${traceId}] Wallet credited: ${payload.amount} ${payload.currency} → user ${user.id} (txn: ${result.transactionId})`,
       );
 
-      // 3. Publish wallet.credited confirmation back to PaySwitch
+      // 3. Fetch post-credit balance
+      let walletBalance = 0;
+      try {
+        const balanceInfo = await this.ledger.getUserBalance(
+          user.id,
+          payload.currency,
+        );
+        if (balanceInfo) {
+          // Convert from bigint (6 decimal USDC precision) to number
+          walletBalance = Number(balanceInfo.balance) / 1_000_000;
+        }
+      } catch (balanceErr) {
+        this.logger.warn(
+          `[${traceId}] Failed to fetch post-credit balance for user ${user.id}: ${balanceErr.message}`,
+        );
+      }
+
+      // 4. Publish wallet.credited confirmation back to PaySwitch
       await this.pulsar.publish(TOPIC_WALLET_CREDITED, {
         version: 1,
         eventId: uuid(),
@@ -99,7 +116,7 @@ export class WalletCreditConsumer implements OnModuleInit {
           userId: payload.userId,
           amount: payload.amount,
           currency: payload.currency,
-          walletBalance: 0, // TODO: fetch post-credit balance
+          walletBalance,
           blnkTransactionId: result.transactionId,
           idempotencyKey: payload.idempotencyKey,
         },

@@ -3,7 +3,7 @@
  * Integrates with external Risk Manager service and Circle Compliance Engine
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -32,6 +32,9 @@ import { RISK_CLIENT } from './domain/interfaces/risk-client.interface';
 // Circle Compliance Engine
 import { CircleComplianceAdapter } from '../providers/circle/adapters/circle-compliance.adapter';
 
+// User module (for RiskAssessmentGuard → UserRepository)
+import { UserModule } from '../user/user.module';
+
 @Module({
   imports: [
     ConfigModule,
@@ -40,6 +43,7 @@ import { CircleComplianceAdapter } from '../providers/circle/adapters/circle-com
       maxRedirects: 5,
     }),
     EventEmitterModule.forRoot(),
+    forwardRef(() => UserModule),
   ],
   controllers: [RiskController, StepUpController],
   providers: [

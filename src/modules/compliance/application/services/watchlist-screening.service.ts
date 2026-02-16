@@ -13,6 +13,7 @@ import {
   WatchlistMatchType,
 } from '../../domain/entities/watchlist-match.entity';
 import { UserOrmEntity } from '../../../user/infrastructure/orm-entities/user.orm-entity';
+import { KycVerificationOrmEntity } from '../../../kyc/infrastructure/orm-entities/kyc-verification.orm-entity';
 
 /**
  * Screening Result
@@ -68,6 +69,8 @@ export class WatchlistScreeningService {
     private readonly watchlistRepository: WatchlistRepository,
     @InjectRepository(UserOrmEntity)
     private readonly userRepository: Repository<UserOrmEntity>,
+    @InjectRepository(KycVerificationOrmEntity)
+    private readonly kycRepository: Repository<KycVerificationOrmEntity>,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
@@ -192,9 +195,29 @@ export class WatchlistScreeningService {
       }
     }
 
-    // Search by identifiers if available
-    // Note: identificationNumber not yet available in UserOrmEntity
-    // TODO: Add identificationNumber field to UserOrmEntity when KYC data is integrated
+    // Enrich matching with KYC data (DOB, identifiers)
+    const kycData = await this.kycRepository.findOne({
+      where: { userId: user.id },
+    });
+
+    // Boost scores if DOB matches a watchlist entry's DOB
+    if (kycData?.dateOfBirth) {
+      for (const match of matches) {
+        const entry = nameMatches.find((e) => e.id === match.entryId);
+        if (entry && (entry as any).dateOfBirth === kycData.dateOfBirth) {
+          match.score = Math.min(100, match.score + 15);
+        }
+      }
+    }
+
+    // Search by identifiers from KYC data
+    if (kycData?.idNumber) {
+      const idMatches = await this.screenByIdentifier(
+        kycData.idNumber,
+        listType,
+      );
+      matches.push(...idMatches);
+    }
 
     return matches;
   }
@@ -267,10 +290,6 @@ export class WatchlistScreeningService {
       highestScore = nameScore;
       matchType = 'fuzzy_name';
     }
-
-    // Boost score if DOB matches
-    // Note: dateOfBirth not yet available in UserOrmEntity
-    // TODO: Add dateOfBirth field when KYC data is integrated
 
     // Boost score if nationality matches
     if (user.countryCode && entry.nationality) {

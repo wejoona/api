@@ -281,20 +281,19 @@ export class UserController {
       throw new BadRequestException('No file provided');
     }
 
-    const result = await this.uploadService.uploadDocument({
+    const result = await this.uploadService.uploadAvatar({
       userId: req.user.id,
-      type: 'selfie', // reuse selfie type for avatar storage path
       file,
     });
 
-    // Update user's avatar URL and persist
+    // Update user's avatar URL (use public URL if available, else signed)
     const user = await this.userRepository.findById(req.user.id);
     if (!user) throw new BadRequestException('User not found');
-    user.updateAvatar(result.url);
+    user.updateAvatar(result.publicUrl ?? result.url);
     await this.userRepository.save(user);
 
     return {
-      avatarUrl: result.url,
+      avatarUrl: result.publicUrl ?? result.url,
       message: 'Avatar uploaded successfully',
     };
   }

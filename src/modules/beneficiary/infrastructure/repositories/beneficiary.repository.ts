@@ -92,4 +92,16 @@ export class TypeOrmBeneficiaryRepository extends BeneficiaryRepository {
   async countByWalletId(walletId: string): Promise<number> {
     return this.repo.count({ where: { walletId } });
   }
+
+  async findByBeneficiaryUserIds(userIds: string[]): Promise<Beneficiary[]> {
+    if (userIds.length === 0) return [];
+
+    const entities = await this.repo
+      .createQueryBuilder('beneficiary')
+      .where('beneficiary.beneficiary_user_id IN (:...userIds)', { userIds })
+      .orderBy('beneficiary.lastTransferAt', 'DESC')
+      .getMany();
+
+    return entities.map((e) => this.mapper.toDomain(e));
+  }
 }

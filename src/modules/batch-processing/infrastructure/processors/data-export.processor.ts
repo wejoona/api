@@ -4,6 +4,12 @@ import {
   BatchProcessorResult,
 } from '../../domain/interfaces/batch-processor.interface';
 import { BatchJob } from '../../domain/entities/batch-job.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
+import { UserOrmEntity } from '../../../user/infrastructure/orm-entities/user.orm-entity';
+import { TransactionOrmEntity } from '../../../transaction/infrastructure/orm-entities/transaction.orm-entity';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface DataExportPayload {
   exportType:
@@ -29,6 +35,19 @@ interface DataExportPayload {
 @Injectable()
 export class DataExportProcessor implements IBatchProcessor {
   private readonly logger = new Logger(DataExportProcessor.name);
+  private readonly exportDir = path.join(process.cwd(), 'exports');
+
+  constructor(
+    @InjectRepository(UserOrmEntity)
+    private readonly userRepository: Repository<UserOrmEntity>,
+    @InjectRepository(TransactionOrmEntity)
+    private readonly transactionRepository: Repository<TransactionOrmEntity>,
+  ) {
+    // Ensure export directory exists
+    if (!fs.existsSync(this.exportDir)) {
+      fs.mkdirSync(this.exportDir, { recursive: true });
+    }
+  }
 
   async process(job: BatchJob): Promise<BatchProcessorResult> {
     this.logger.log(`Processing data export job: ${job.id}`);
@@ -124,42 +143,140 @@ export class DataExportProcessor implements IBatchProcessor {
 
   private async exportUserData(
     userId: string,
-    _payload: DataExportPayload,
+    payload: DataExportPayload,
   ): Promise<any> {
-    // Simulate data export
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const data: Record<string, any> = {};
 
-    // PROVIDER_INTEGRATION: Implement data export (CSV/PDF)
-    // - Fetch user profile
-    // - Fetch transactions
-    // - Fetch wallet data
-    // - Fetch KYC documents
-    // - Apply date range filters
-    // - Format according to GDPR requirements
+    // Fetch user profile
+    if (
+      payload.exportType === 'user_data' ||
+      payload.exportType === 'full_account'
+    ) {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+      if (user) {
+        data.profile = {
+          id: user.id,
+          phone: user.phone,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          countryCode: user.countryCode,
+          kycStatus: user.kycStatus,
+          role: user.role,
+          status: user.status,
+          preferredLocale: user.preferredLocale,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      }
+    }
 
+    // Fetch transactions
+    if (
+      payload.exportType === 'transaction_history' ||
+      payload.exportType === 'full_account' ||
+      payload.exportType === 'wallet_statements'
+    ) {
+      const whereClause: any = [
+        { walletId: userId },
+        { recipientWalletId: userId },
+      ];
+
+      if (payload.dateRange) {
+        const dateFilter = Between(
+          new Date(payload.dateRange.startDate),
+          new Date(payload.dateRange.endDate),
+        );
+        whereClause[0].createdAt = dateFilter;
+        whereClause[1].createdAt = dateFilter;
+      }
+
+      const transactions = await this.transactionRepository.find({
+        where: whereClause,
+        order: { createdAt: 'DESC' },
+        take: 10000, // Safety limit
+      });
+
+      data.transactions = transactions.map((tx) => ({
+        id: tx.id,
+        type: tx.type,
+        status: tx.status,
+        amount: tx.amount,
+        currency: tx.currency,
+        walletId: tx.walletId,
+        recipientWalletId: tx.recipientWalletId,
+        failureReason: tx.failureReason,
+        createdAt: tx.createdAt,
+      }));
+    }
+
+    const jsonStr = JSON.stringify(data);
     return {
       userId,
-      data: {},
-      size: 1024 * 100, // Mock 100KB
+      data,
+      size: Buffer.byteLength(jsonStr, 'utf-8'),
     };
   }
 
   private async generateExportFile(
     userId: string,
-    _exportData: any,
+    exportData: any,
     payload: DataExportPayload,
   ): Promise<string> {
-    // Simulate file generation
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const timestamp = Date.now();
+    const filename = `${userId}_${timestamp}.${payload.format}`;
+    const filePath = path.join(this.exportDir, filename);
 
-    // TODO: Generate actual export file
-    // - Format data according to chosen format
-    // - Encrypt if requested
-    // - Compress files
-    // - Upload to S3 with expiration
-    // - Return signed URL
+    if (payload.format === 'json') {
+      const content = JSON.stringify(exportData.data, null, 2);
+      fs.writeFileSync(filePath, content, 'utf-8');
+    } else if (payload.format === 'csv') {
+      // Convert each data section to CSV
+      const csvParts: string[] = [];
 
-    const mockUrl = `https://s3.amazonaws.com/exports/${userId}/${Date.now()}.${payload.format}`;
-    return mockUrl;
+      for (const [section, records] of Object.entries(exportData.data)) {
+        if (Array.isArray(records) && records.length > 0) {
+          const headers = Object.keys(records[0]);
+          csvParts.push(`# ${section}`);
+          csvParts.push(headers.join(','));
+          for (const record of records) {
+            const row = headers.map((h) => {
+              const val = record[h];
+              if (val === null || val === undefined) return '';
+              const str = String(val);
+              // Escape CSV values containing commas or quotes
+              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+              }
+              return str;
+            });
+            csvParts.push(row.join(','));
+          }
+          csvParts.push('');
+        } else if (records && typeof records === 'object' && !Array.isArray(records)) {
+          csvParts.push(`# ${section}`);
+          const obj = records as Record<string, any>;
+          csvParts.push('field,value');
+          for (const [key, value] of Object.entries(obj)) {
+            csvParts.push(`${key},"${String(value ?? '').replace(/"/g, '""')}"`);
+          }
+          csvParts.push('');
+        }
+      }
+
+      fs.writeFileSync(filePath, csvParts.join('\n'), 'utf-8');
+    } else {
+      // xlsx not supported without additional dependency - fall back to JSON
+      const content = JSON.stringify(exportData.data, null, 2);
+      fs.writeFileSync(filePath, content, 'utf-8');
+    }
+
+    this.logger.log(`Export file generated: ${filePath}`);
+
+    // In production, upload to S3 and return signed URL
+    // For now, return local file path
+    return filePath;
   }
 }

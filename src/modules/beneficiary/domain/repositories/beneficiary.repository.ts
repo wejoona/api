@@ -30,4 +30,8 @@ export abstract class BeneficiaryRepository {
   abstract delete(id: string): Promise<void>;
 
   abstract countByWalletId(walletId: string): Promise<number>;
+
+  abstract findByBeneficiaryUserIds(
+    userIds: string[],
+  ): Promise<Beneficiary[]>;
 }

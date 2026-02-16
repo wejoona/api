@@ -33,12 +33,14 @@ import { ReconciliationAlertListener } from './application/domain/events/reconci
 
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TransactionOrmEntity]),
     CqrsModule,
     forwardRef(() => WalletModule),
+    NotificationsModule,
     // Note: BlnkModule and CircleModule are @Global() so providers
     // (RECONCILIATION_PROVIDER, LEDGER_PROVIDER, WALLET_PROVIDER) are available
   ],

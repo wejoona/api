@@ -86,6 +86,19 @@ export class BatchJobService {
     return batchJob;
   }
 
+  /**
+   * Admin method: get any batch job without userId ownership check
+   */
+  async getBatchJobAdmin(id: string): Promise<BatchJob> {
+    const batchJob = await this.batchJobRepository.findById(id);
+
+    if (!batchJob) {
+      throw new NotFoundException(`Batch job ${id} not found`);
+    }
+
+    return batchJob;
+  }
+
   async getUserBatchJobs(userId: string): Promise<BatchJob[]> {
     return this.batchJobRepository.findByUserId(userId);
   }

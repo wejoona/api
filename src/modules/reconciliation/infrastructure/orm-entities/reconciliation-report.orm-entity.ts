@@ -9,7 +9,6 @@ import {
 
 @Entity('reconciliation_reports')
 @Index(['type', 'periodStart', 'periodEnd'])
-@Index(['status'])
 export class ReconciliationReportOrmEntity {
   @PrimaryColumn('uuid')
   id: string;

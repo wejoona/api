@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { KycVerificationOrmEntity } from '../kyc/infrastructure/orm-entities/kyc-verification.orm-entity';
 
 // Entities
 import {
@@ -89,6 +90,7 @@ import { TransactionScreeningGuard } from './application/guards';
       // External entities
       TransactionOrmEntity,
       UserOrmEntity,
+      KycVerificationOrmEntity,
     ]),
     ConfigModule,
     ScheduleModule.forRoot(), // Enable cron jobs

@@ -101,9 +101,7 @@ export class AdminBatchJobController {
 
   @Get(':id')
   async getBatchJob(@Param('id') id: string) {
-    // Admin can view any job, so we pass a dummy userId that won't match
-    // TODO: Refactor to add a separate admin method that doesn't check userId
-    const batchJob = await this.batchJobService.getBatchJob(id, id);
+    const batchJob = await this.batchJobService.getBatchJobAdmin(id);
     return {
       success: true,
       data: batchJob,

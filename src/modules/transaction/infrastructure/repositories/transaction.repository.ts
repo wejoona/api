@@ -480,4 +480,25 @@ export class TransactionRepository {
 
     return ormEntities.map((orm) => this.mapper.toDomainEntity(orm));
   }
+
+  /**
+   * GRAPHQL: Find transactions by recipient wallet IDs (batch loading)
+   */
+  async findByRecipientWalletIds(
+    recipientWalletIds: string[],
+  ): Promise<TransactionEntity[]> {
+    if (recipientWalletIds.length === 0) {
+      return [];
+    }
+
+    const ormEntities = await this.repository
+      .createQueryBuilder('transaction')
+      .where('transaction.recipient_wallet_id IN (:...recipientWalletIds)', {
+        recipientWalletIds,
+      })
+      .orderBy('transaction.createdAt', 'DESC')
+      .getMany();
+
+    return ormEntities.map((orm) => this.mapper.toDomainEntity(orm));
+  }
 }

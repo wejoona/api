@@ -57,14 +57,30 @@ export class BeneficiaryLoader {
 
   /**
    * DataLoader for batching beneficiaries by beneficiary user ID
-   * Note: This method cannot be efficiently implemented without repository support
-   * Returns empty arrays for all requests until repository method is added
    */
   readonly byBeneficiaryUserId = new DataLoader<string, Beneficiary[]>(
     async (beneficiaryUserIds: readonly string[]) => {
-      // TODO: Implement repository method findByBeneficiaryUserIds for efficient batch loading
-      // For now, return empty arrays to avoid compilation errors
-      return beneficiaryUserIds.map(() => []);
+      const beneficiaries =
+        await this.beneficiaryRepository.findByBeneficiaryUserIds(
+          beneficiaryUserIds as string[],
+        );
+
+      // Group by beneficiary user ID
+      const grouped = new Map<string, Beneficiary[]>();
+      for (const id of beneficiaryUserIds) {
+        grouped.set(id, []);
+      }
+      for (const b of beneficiaries) {
+        const userId = (b as any).beneficiaryUserId;
+        if (userId) {
+          const existing = grouped.get(userId);
+          if (existing) {
+            existing.push(b);
+          }
+        }
+      }
+
+      return beneficiaryUserIds.map((id) => grouped.get(id) || []);
     },
     {
       cache: true,

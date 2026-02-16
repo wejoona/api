@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ReconciliationStartedEvent,
   ReconciliationCompletedEvent,
@@ -28,6 +28,8 @@ import {
 @Injectable()
 export class ReconciliationAlertListener {
   private readonly logger = new Logger(ReconciliationAlertListener.name);
+
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
   /**
    * Log when reconciliation starts
@@ -228,7 +230,7 @@ export class ReconciliationAlertListener {
   }
 
   /**
-   * Send notification (implement actual notification service integration)
+   * Send notification via event emitter for downstream handlers
    */
   private sendNotification(payload: {
     type: 'info' | 'warning' | 'error';
@@ -236,19 +238,16 @@ export class ReconciliationAlertListener {
     message: string;
     reportId: string;
   }): void {
-    // PROVIDER_INTEGRATION: Wire to NotificationService when ready
-    // Examples:
-    // - this.slackService.sendMessage(payload);
-    // - this.emailService.sendToFinanceTeam(payload);
-    // - this.teamsService.sendCard(payload);
-
-    this.logger.debug(
-      `[NOTIFICATION] ${payload.type.toUpperCase()}: ${payload.title}`,
+    this.logger.log(
+      `[NOTIFICATION] ${payload.type.toUpperCase()}: ${payload.title} - ${payload.message}`,
     );
+
+    // Emit event for downstream notification handlers (Slack, email, etc.)
+    this.eventEmitter.emit('reconciliation.notification', payload);
   }
 
   /**
-   * Send critical alert (implement actual alerting service integration)
+   * Send critical alert via event emitter for downstream handlers
    */
   private sendAlert(payload: {
     severity: 'critical' | 'high' | 'medium' | 'low';
@@ -257,14 +256,11 @@ export class ReconciliationAlertListener {
     reportId: string;
     data?: Record<string, unknown>;
   }): void {
-    // PROVIDER_INTEGRATION: Wire to alerting (PagerDuty/OpsGenie)
-    // Examples:
-    // - this.pagerDutyService.createIncident(payload);
-    // - this.opsGenieService.createAlert(payload);
-    // - this.datadogService.sendEvent(payload);
-
     this.logger.error(
       `[ALERT] ${payload.severity.toUpperCase()}: ${payload.title} - ${payload.message}`,
     );
+
+    // Emit event for downstream alert handlers (PagerDuty, OpsGenie, etc.)
+    this.eventEmitter.emit('reconciliation.alert', payload);
   }
 }

@@ -54,14 +54,27 @@ export class TransactionLoader {
 
   /**
    * DataLoader for batching transactions by recipient wallet ID
-   * Note: This method cannot be efficiently implemented without repository support
-   * Returns empty arrays for all requests until repository method is added
    */
   readonly byRecipientWalletId = new DataLoader<string, TransactionEntity[]>(
     async (recipientWalletIds: readonly string[]) => {
-      // TODO: Implement repository method findByRecipientWalletIds for efficient batch loading
-      // For now, return empty arrays to avoid compilation errors
-      return recipientWalletIds.map(() => []);
+      const transactions =
+        await this.transactionRepository.findByRecipientWalletIds(
+          recipientWalletIds as string[],
+        );
+
+      // Group transactions by recipient wallet ID
+      const grouped = new Map<string, TransactionEntity[]>();
+      for (const id of recipientWalletIds) {
+        grouped.set(id, []);
+      }
+      for (const tx of transactions) {
+        const existing = grouped.get(tx.recipientWalletId);
+        if (existing) {
+          existing.push(tx);
+        }
+      }
+
+      return recipientWalletIds.map((id) => grouped.get(id) || []);
     },
     {
       cache: true,

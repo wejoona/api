@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TransactionRiskService } from '../services/transaction-risk.service';
+import { StepUpService } from '../services/step-up.service';
+import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 
 export const RISK_CHECK_KEY = 'risk_check';
 export const SKIP_RISK_CHECK_KEY = 'skip_risk_check';
@@ -60,6 +62,8 @@ export class RiskAssessmentGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly riskService: TransactionRiskService,
+    private readonly stepUpService: StepUpService,
+    private readonly userRepository: UserRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -119,7 +123,7 @@ export class RiskAssessmentGuard implements CanActivate {
         amount: parseFloat(amount) || 0,
         currency,
         recipientId,
-        recipientType: this.determineRecipientType(recipientId),
+        recipientType: await this.determineRecipientType(recipientId),
         channel: this.determineChannel(request),
         deviceFingerprint,
         skipSanctionsCheck: options.skipSanctionsCheck,
@@ -160,9 +164,24 @@ export class RiskAssessmentGuard implements CanActivate {
           );
         }
 
-        // TODO: Validate step-up token
+        // Validate the step-up token using StepUpService
+        const stepUpResult = this.stepUpService.isStepUpComplete(stepUpToken);
+        if (!stepUpResult) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.PRECONDITION_REQUIRED,
+              error: 'Invalid or expired step-up token',
+              message:
+                'The provided step-up token is invalid or has expired. Please complete step-up authentication again.',
+              code: 'STEP_UP_INVALID',
+              stepUpType: result.stepUpType,
+            },
+            HttpStatus.PRECONDITION_REQUIRED,
+          );
+        }
+
         this.logger.log(
-          `Step-up token provided for transaction: ${transactionId}`,
+          `Step-up token validated for transaction: ${transactionId}`,
         );
       }
 
@@ -207,12 +226,19 @@ export class RiskAssessmentGuard implements CanActivate {
     };
   }
 
-  private determineRecipientType(
+  private async determineRecipientType(
     recipientId?: string,
-  ): 'internal' | 'external' | 'merchant' {
+  ): Promise<'internal' | 'external' | 'merchant'> {
     if (!recipientId) return 'external';
     if (recipientId.startsWith('merchant_')) return 'merchant';
-    // TODO: Check if recipient is internal user
+
+    // Check if recipient is an internal user
+    try {
+      const user = await this.userRepository.findById(recipientId);
+      if (user) return 'internal';
+    } catch {
+      // If lookup fails, default to external
+    }
     return 'external';
   }
 
