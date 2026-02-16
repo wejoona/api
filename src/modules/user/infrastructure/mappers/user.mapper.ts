@@ -32,6 +32,10 @@ export class UserMapper {
       pinSetAt: orm.pinSetAt,
       pinAttempts: orm.pinAttempts ?? 0,
       pinLockedUntil: orm.pinLockedUntil,
+      emailVerificationCode: orm.emailVerificationCode ?? null,
+      emailVerificationToken: orm.emailVerificationToken ?? null,
+      emailVerificationExpiresAt: orm.emailVerificationExpiresAt ?? null,
+      emailVerified: orm.emailVerified ?? false,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
     });
@@ -62,6 +66,10 @@ export class UserMapper {
     orm.pinSetAt = domain.pinSetAt;
     orm.pinAttempts = domain.pinAttempts;
     orm.pinLockedUntil = domain.pinLockedUntil;
+    orm.emailVerificationCode = domain.emailVerificationCode;
+    orm.emailVerificationToken = domain.emailVerificationToken;
+    orm.emailVerificationExpiresAt = domain.emailVerificationExpiresAt;
+    orm.emailVerified = domain.emailVerified;
     orm.createdAt = domain.createdAt;
     orm.updatedAt = domain.updatedAt;
     return orm;

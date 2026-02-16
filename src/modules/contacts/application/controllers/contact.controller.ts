@@ -27,6 +27,7 @@ import {
   SearchContactsDto,
   SyncContactsDto,
   InviteContactDto,
+  CheckContactsDto,
 } from '../dto/requests';
 import {
   ContactResponse,
@@ -35,13 +36,17 @@ import {
   InviteContactResponse,
 } from '../dto/responses';
 import { ContactService } from '../services';
+import { UserRepository } from '../../../user/infrastructure/repositories';
 
 @ApiTags('Contacts')
 @Controller('contacts')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ContactController {
-  constructor(private readonly contactService: ContactService) {}
+  constructor(
+    private readonly contactService: ContactService,
+    private readonly userRepository: UserRepository,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -166,6 +171,32 @@ export class ContactController {
     @Param('id') contactId: string,
   ): Promise<void> {
     await this.contactService.deleteContact(contactId, req.user.id);
+  }
+
+  @Post('check')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check which phone numbers are registered Korido users',
+    description: 'Accepts up to 500 phone numbers and returns matching registered users.',
+  })
+  @ApiResponse({ status: 200, description: 'Registered users found' })
+  async checkContacts(
+    @Body() dto: CheckContactsDto,
+  ) {
+    // Normalize phone numbers to international format (strip spaces/dashes)
+    const normalized = dto.phoneNumbers.map((p) =>
+      p.replace(/[\s\-()]/g, ''),
+    );
+
+    const users = await this.userRepository.findByPhones(normalized);
+
+    return {
+      registered: users.map((u) => ({
+        phone: u.phone,
+        userId: u.id,
+        displayName: u.displayName,
+      })),
+    };
   }
 
   @Post('sync')

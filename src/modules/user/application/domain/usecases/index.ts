@@ -11,3 +11,5 @@ export * from './logout-all.usecase';
 export * from './username.usecase';
 export * from './get-user-limits.usecase';
 export * from './pin.usecase';
+export * from './verify-email.usecase';
+export * from './email-status.usecase';

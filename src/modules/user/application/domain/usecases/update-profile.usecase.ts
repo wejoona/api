@@ -6,7 +6,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
-import { CacheInvalidationService } from '../../../../shared/infrastructure/services';
+import { CacheInvalidationService, NtmClientService } from '../../../../shared/infrastructure/services';
 
 export interface UpdateProfileInput {
   userId: string;
@@ -22,6 +22,7 @@ export class UpdateProfileUsecase {
     private readonly userRepository: UserRepository,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly ntmClient: NtmClientService,
   ) {}
 
   async execute(input: UpdateProfileInput): Promise<User> {
@@ -40,12 +41,35 @@ export class UpdateProfileUsecase {
       }
     }
 
+    // Check if email is changing
+    const emailChanged = input.email !== undefined && input.email !== user.email;
+
     user.updateProfile({
       username: input.username,
       firstName: input.firstName,
       lastName: input.lastName,
       email: input.email,
     });
+
+    // If email changed, generate verification code and send via NTM
+    if (emailChanged && input.email) {
+      const { code } = user.generateEmailVerification();
+
+      // Send verification email via NTM (fire-and-forget)
+      this.ntmClient.send({
+        template: 'email.verification',
+        channel: 'email',
+        recipient: {
+          userId: user.id,
+          email: input.email,
+        },
+        variables: {
+          code,
+          userName: user.firstName || 'Utilisateur',
+        },
+        priority: 'high',
+      }).catch(() => { /* logged internally */ });
+    }
 
     const updatedUser = await this.userRepository.save(user);
 

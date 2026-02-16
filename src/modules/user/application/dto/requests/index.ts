@@ -8,3 +8,4 @@ export * from './logout-all.dto';
 export * from './username.dto';
 export * from './pin.dto';
 export * from './update-locale.dto';
+export * from './verify-email.dto';

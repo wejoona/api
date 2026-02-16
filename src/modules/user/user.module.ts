@@ -33,6 +33,8 @@ import {
   ChangePinUsecase,
   VerifyPinUsecase,
   ResetPinUsecase,
+  VerifyEmailUsecase,
+  EmailStatusUsecase,
 } from './application/domain/usecases';
 
 // Controllers
@@ -103,6 +105,8 @@ import { SessionModule } from '../session/session.module';
     ChangePinUsecase,
     VerifyPinUsecase,
     ResetPinUsecase,
+    VerifyEmailUsecase,
+    EmailStatusUsecase,
     // Listeners
     UserRegisteredListener,
     // Strategy

@@ -31,6 +31,11 @@ export interface IUser {
   pinSetAt: Date | null;
   pinAttempts: number;
   pinLockedUntil: Date | null;
+  // Email verification fields
+  emailVerificationCode: string | null;
+  emailVerificationToken: string | null;
+  emailVerificationExpiresAt: Date | null;
+  emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +80,11 @@ export class User implements IUser {
   pinSetAt: Date | null;
   pinAttempts: number;
   pinLockedUntil: Date | null;
+  // Email verification fields
+  emailVerificationCode: string | null;
+  emailVerificationToken: string | null;
+  emailVerificationExpiresAt: Date | null;
+  emailVerified: boolean;
   readonly createdAt: Date;
   updatedAt: Date;
 
@@ -102,6 +112,10 @@ export class User implements IUser {
     this.pinSetAt = props.pinSetAt;
     this.pinAttempts = props.pinAttempts;
     this.pinLockedUntil = props.pinLockedUntil;
+    this.emailVerificationCode = props.emailVerificationCode;
+    this.emailVerificationToken = props.emailVerificationToken;
+    this.emailVerificationExpiresAt = props.emailVerificationExpiresAt;
+    this.emailVerified = props.emailVerified;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
@@ -132,6 +146,10 @@ export class User implements IUser {
       pinSetAt: null,
       pinAttempts: 0,
       pinLockedUntil: null,
+      emailVerificationCode: null,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+      emailVerified: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -309,6 +327,61 @@ export class User implements IUser {
   setRole(role: UserRole): void {
     this.role = role;
     this.updatedAt = new Date();
+  }
+
+  // ============================================
+  // EMAIL VERIFICATION METHODS
+  // ============================================
+
+  /**
+   * Generate a 6-digit email verification code and token
+   */
+  generateEmailVerification(): { code: string; token: string } {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const token = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 min expiry
+
+    this.emailVerificationCode = code;
+    this.emailVerificationToken = token;
+    this.emailVerificationExpiresAt = expiresAt;
+    this.emailVerified = false;
+    this.updatedAt = new Date();
+
+    return { code, token };
+  }
+
+  /**
+   * Verify email with code
+   */
+  verifyEmail(code: string): boolean {
+    if (!this.emailVerificationCode || !this.emailVerificationExpiresAt) {
+      return false;
+    }
+    if (new Date() > this.emailVerificationExpiresAt) {
+      return false;
+    }
+    if (this.emailVerificationCode !== code) {
+      return false;
+    }
+    this.emailVerified = true;
+    this.emailVerificationCode = null;
+    this.emailVerificationToken = null;
+    this.emailVerificationExpiresAt = null;
+    this.updatedAt = new Date();
+    return true;
+  }
+
+  get isEmailVerified(): boolean {
+    return this.emailVerified;
+  }
+
+  get hasPendingEmailVerification(): boolean {
+    return (
+      this.emailVerificationCode !== null &&
+      this.emailVerificationExpiresAt !== null &&
+      new Date() < this.emailVerificationExpiresAt
+    );
   }
 
   // ============================================

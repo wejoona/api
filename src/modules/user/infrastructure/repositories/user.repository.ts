@@ -110,6 +110,15 @@ export class UserRepository {
     return orms.map((orm) => UserMapper.toDomain(orm));
   }
 
+  async findByPhones(phones: string[]): Promise<User[]> {
+    if (phones.length === 0) return [];
+    const orms = await this.ormRepository
+      .createQueryBuilder('user')
+      .where('user.phone IN (:...phones)', { phones })
+      .getMany();
+    return orms.map((orm) => UserMapper.toDomain(orm));
+  }
+
   async findAll(): Promise<User[]> {
     const orms = await this.ormRepository.find({
       order: { createdAt: 'DESC' },

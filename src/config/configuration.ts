@@ -213,9 +213,10 @@ export default () => ({
 
   // NTM (Notification Template Manager)
   ntm: {
-    baseUrl: process.env.NTM_BASE_URL || 'http://ntm:3100',
+    baseUrl: process.env.NTM_BASE_URL || process.env.NTM_URL || 'http://ntm:3100',
     apiKey: process.env.NTM_API_KEY || '',
     useMock: process.env.NTM_USE_MOCK !== 'false',
+    tenantId: process.env.NTM_TENANT_ID || 'korido-app-id',
   },
 
   // APM (Application Performance Monitoring)

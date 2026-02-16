@@ -76,6 +76,7 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
 import { BatchProcessingModule } from './modules/batch-processing/batch-processing.module';
 import { ResilienceModule } from './modules/resilience/resilience.module';
 import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
+import { AppConfigModule } from './modules/app-config/app-config.module';
 
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
@@ -256,6 +257,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     RegulatoryReportsModule,
     ReconciliationModule,
     ApiHealthModule,
+    AppConfigModule,
   ],
   controllers: [AppController],
   providers: [

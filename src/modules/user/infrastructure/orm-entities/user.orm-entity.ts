@@ -103,6 +103,19 @@ export class UserOrmEntity {
   @Column({ name: 'pin_locked_until', type: 'timestamp', nullable: true })
   pinLockedUntil: Date | null;
 
+  // Email verification fields
+  @Column({ name: 'email_verification_code', type: 'varchar', length: 6, nullable: true })
+  emailVerificationCode: string | null;
+
+  @Column({ name: 'email_verification_token', type: 'varchar', length: 255, nullable: true })
+  emailVerificationToken: string | null;
+
+  @Column({ name: 'email_verification_expires_at', type: 'timestamp', nullable: true })
+  emailVerificationExpiresAt: Date | null;
+
+  @Column({ name: 'email_verified', type: 'boolean', default: false })
+  emailVerified: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

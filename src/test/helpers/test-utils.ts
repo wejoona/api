@@ -424,6 +424,10 @@ export function createTestUser(options: CreateTestUserOptions = {}): User {
     pinSetAt: options.hasPin ? now : null,
     pinAttempts: options.pinAttempts || 0,
     pinLockedUntil: options.pinLockedUntil || null,
+    emailVerificationCode: null,
+    emailVerificationToken: null,
+    emailVerificationExpiresAt: null,
+    emailVerified: false,
     createdAt: now,
     updatedAt: now,
   };

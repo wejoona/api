@@ -48,6 +48,7 @@ import {
   VerifyPinDto,
   ResetPinDto,
   UpdateLocaleDto,
+  VerifyEmailDto,
 } from '../dto/requests';
 import {
   UserResponse,
@@ -79,6 +80,8 @@ import {
   ChangePinUsecase,
   VerifyPinUsecase,
   ResetPinUsecase,
+  VerifyEmailUsecase,
+  EmailStatusUsecase,
 } from '../domain/usecases';
 
 @ApiTags('Authentication')
@@ -239,6 +242,8 @@ export class UserController {
     private readonly changePinUsecase: ChangePinUsecase,
     private readonly verifyPinUsecase: VerifyPinUsecase,
     private readonly resetPinUsecase: ResetPinUsecase,
+    private readonly verifyEmailUsecase: VerifyEmailUsecase,
+    private readonly emailStatusUsecase: EmailStatusUsecase,
     @Inject(forwardRef(() => UploadService))
     private readonly uploadService: UploadService,
     private readonly userRepository: UserRepository,
@@ -482,6 +487,32 @@ export class UserController {
     return this.getUserLimitsUseCase.execute({
       userId: req.user.id,
     });
+  }
+
+  // ============================================
+  // EMAIL VERIFICATION ENDPOINTS
+  // ============================================
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with 6-digit code' })
+  @ApiResponse({ status: 200, description: 'Email verified' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired code' })
+  async verifyEmail(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: VerifyEmailDto,
+  ) {
+    return this.verifyEmailUsecase.execute({
+      userId: req.user.id,
+      code: dto.code,
+    });
+  }
+
+  @Get('email-status')
+  @ApiOperation({ summary: 'Get email verification status' })
+  @ApiResponse({ status: 200, description: 'Email status returned' })
+  async getEmailStatus(@Request() req: AuthenticatedRequest) {
+    return this.emailStatusUsecase.execute({ userId: req.user.id });
   }
 
   // ============================================
