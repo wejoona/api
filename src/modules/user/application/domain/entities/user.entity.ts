@@ -13,6 +13,7 @@ export interface IUser {
   lastName: string | null;
   email: string | null;
   avatarUrl: string | null;
+  avatarThumb: string | null;
   preferredLocale: string;
   countryCode: string;
   kycStatus: KycStatus;
@@ -56,6 +57,7 @@ export class User implements IUser {
   lastName: string | null;
   email: string | null;
   avatarUrl: string | null;
+  avatarThumb: string | null;
   preferredLocale: string;
   readonly countryCode: string;
   kycStatus: KycStatus;
@@ -85,6 +87,7 @@ export class User implements IUser {
     this.lastName = props.lastName;
     this.email = props.email;
     this.avatarUrl = props.avatarUrl;
+    this.avatarThumb = props.avatarThumb;
     this.preferredLocale = props.preferredLocale;
     this.countryCode = props.countryCode;
     this.kycStatus = props.kycStatus;
@@ -114,6 +117,7 @@ export class User implements IUser {
       lastName: null,
       email: null,
       avatarUrl: null,
+      avatarThumb: null,
       preferredLocale: props.preferredLocale || 'fr',
       countryCode: props.countryCode || 'CI',
       kycStatus: 'pending',
@@ -162,8 +166,11 @@ export class User implements IUser {
     this.updatedAt = new Date();
   }
 
-  updateAvatar(avatarUrl: string | null): void {
+  updateAvatar(avatarUrl: string | null, avatarThumb?: string | null): void {
     this.avatarUrl = avatarUrl;
+    if (avatarThumb !== undefined) {
+      this.avatarThumb = avatarThumb;
+    }
     this.updatedAt = new Date();
   }
 
