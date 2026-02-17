@@ -52,6 +52,7 @@ import { BankLinkingModule } from './modules/bank-linking/bank-linking.module';
 import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
 import { RecurringTransferModule } from './modules/recurring-transfers/recurring-transfer.module';
 import { DepositModule } from './modules/deposit/deposit.module';
+import { ExchangeRateModule } from './modules/exchange-rate/exchange-rate.module';
 import { ApiKeysModule } from './modules/api-keys';
 import { CardsModule } from './modules/cards/cards.module';
 import { SlaConfigurationModule } from './modules/sla-configuration';
@@ -207,6 +208,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     SessionModule, // User session management with refresh tokens
     WalletModule,
     DepositModule, // Mobile money to USDC deposits
+    ExchangeRateModule, // CFA/USD/USDC exchange rates
     BeneficiaryModule, // Saved beneficiaries for faster transfers
     BankLinkingModule, // Bank account linking for deposits/withdrawals
     RecurringTransferModule, // Recurring/scheduled transfers

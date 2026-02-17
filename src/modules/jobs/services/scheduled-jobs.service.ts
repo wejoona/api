@@ -10,6 +10,7 @@ import { AuditLogEntity } from '@modules/admin/infrastructure/persistence/typeor
 import { FcmTokenOrmEntity } from '@modules/notification/infrastructure/fcm';
 import { NotificationOrmEntity } from '@modules/notification/infrastructure/orm-entities';
 import { SessionService } from '@modules/session/application/services/session.service';
+import { CronHubReporterService } from '@common/services/cronhub-reporter.service';
 
 @Injectable()
 export class ScheduledJobsService {
@@ -29,6 +30,7 @@ export class ScheduledJobsService {
     private readonly sessionService: SessionService,
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly cronHub: CronHubReporterService,
   ) {}
 
   // ==========================================
@@ -42,6 +44,7 @@ export class ScheduledJobsService {
   @Cron(CronExpression.EVERY_HOUR)
   async expireStaleTransactions(): Promise<void> {
     const jobName = 'expire_stale_transactions';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -69,6 +72,7 @@ export class ScheduledJobsService {
       }
 
       await this.completeJob(job.id, processed);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log(`Expired ${processed} stale transactions`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -84,6 +88,7 @@ export class ScheduledJobsService {
   @Cron('0 3 * * *')
   async cleanupTransactionMetadata(): Promise<void> {
     const jobName = 'cleanup_transaction_metadata';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -102,6 +107,7 @@ export class ScheduledJobsService {
         .execute();
 
       await this.completeJob(job.id, result.affected || 0);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log(
         `Cleaned up metadata for ${result.affected} old transactions`,
       );
@@ -123,6 +129,7 @@ export class ScheduledJobsService {
   @Cron('0 2 * * 0')
   async cleanupAuditLogs(): Promise<void> {
     const jobName = 'cleanup_audit_logs';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -137,6 +144,7 @@ export class ScheduledJobsService {
       });
 
       await this.completeJob(job.id, result.affected || 0);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log(`Cleaned up ${result.affected} old audit logs`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -156,6 +164,7 @@ export class ScheduledJobsService {
   @Cron('0 1 * * *')
   async dailyReconciliation(): Promise<void> {
     const jobName = 'daily_reconciliation';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -210,6 +219,7 @@ export class ScheduledJobsService {
       });
 
       await this.completeJob(job.id, completedTransactions.length);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log('Daily reconciliation completed');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -275,6 +285,7 @@ export class ScheduledJobsService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredSessions(): Promise<void> {
     const jobName = 'cleanup_expired_sessions';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -283,6 +294,7 @@ export class ScheduledJobsService {
       const count = await this.sessionService.cleanupExpiredSessions();
 
       await this.completeJob(job.id, count);
+      await this.cronHub.pingComplete(jobName);
       if (count > 0) {
         this.logger.log(`Cleaned up ${count} expired sessions`);
       }
@@ -309,6 +321,7 @@ export class ScheduledJobsService {
   @Cron('0 4 * * *')
   async cleanupInactiveFcmTokens(): Promise<void> {
     const jobName = 'cleanup_fcm_tokens';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -326,6 +339,7 @@ export class ScheduledJobsService {
         .execute();
 
       await this.completeJob(job.id, result.affected || 0);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log(`Cleaned up ${result.affected} inactive FCM tokens`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -343,6 +357,7 @@ export class ScheduledJobsService {
   @Cron('0 3 * * 6')
   async cleanupOldNotifications(): Promise<void> {
     const jobName = 'cleanup_notifications';
+    await this.cronHub.pingStart(jobName);
     const job = await this.startJob(jobName);
 
     try {
@@ -360,6 +375,7 @@ export class ScheduledJobsService {
         .execute();
 
       await this.completeJob(job.id, result.affected || 0);
+      await this.cronHub.pingComplete(jobName);
       this.logger.log(`Cleaned up ${result.affected} old notifications`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
