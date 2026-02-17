@@ -123,17 +123,15 @@ export class TransferController {
     @Body() dto: CreateInternalTransferDto,
   ): Promise<TransferResponse> {
     // Execute the transfer using the wallet use case
+    // DTO amount is in dollars (e.g., 50.00), use case expects dollars
     const result = await this.internalTransferUseCase.execute({
       fromUserId: req.user.id,
       toPhone: dto.recipientPhone,
-      amount: dto.amount / 100, // Convert cents to dollars for use case
+      amount: dto.amount,
       currency: dto.currency || 'USDC',
     });
 
-    // Find the transfer record created by the use case
-    // The use case creates transactions, but we need to return transfer information
-    // For now, we'll construct a response from the use case result
-    // In a real implementation, you might want to create a Transfer entity in the use case
+    // Construct transfer response from use case result
     return {
       id: result.transactionId,
       reference: `INT-${result.transactionId.substring(0, 8).toUpperCase()}`,
@@ -143,9 +141,9 @@ export class TransferController {
       senderWalletId: result.fromWalletId,
       recipientWalletId: result.toWalletId,
       recipientPhone: result.toPhone,
-      amount: dto.amount,
-      fee: result.fee * 100, // Convert to cents
-      totalAmount: dto.amount + result.fee * 100,
+      amount: result.amount,
+      fee: result.fee,
+      totalAmount: result.amount + result.fee,
       currency: result.currency,
       note: dto.note,
       createdAt: new Date(),
@@ -221,10 +219,11 @@ export class TransferController {
     @Body() dto: CreateExternalTransferDto,
   ): Promise<TransferResponse> {
     // Execute the transfer using the wallet use case
+    // DTO amount is in dollars (e.g., 50.00), use case expects dollars
     const result = await this.externalTransferUseCase.execute({
       userId: req.user.id,
       toAddress: dto.recipientAddress,
-      amount: dto.amount / 100, // Convert cents to dollars for use case
+      amount: dto.amount,
       currency: dto.currency || 'USDC',
       network: dto.network || 'polygon',
     });
@@ -238,9 +237,9 @@ export class TransferController {
       senderWalletId: result.walletId,
       recipientAddress: result.toAddress,
       recipientBlockchain: dto.network || 'polygon',
-      amount: dto.amount,
-      fee: result.fee * 100, // Convert to cents
-      totalAmount: dto.amount + result.fee * 100,
+      amount: result.amount,
+      fee: result.fee,
+      totalAmount: result.amount + result.fee,
       currency: result.currency,
       note: dto.note,
       createdAt: new Date(),

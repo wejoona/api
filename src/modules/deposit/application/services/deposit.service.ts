@@ -194,11 +194,67 @@ export class DepositService {
   }
 
   async handleWebhook(providerCode: string, payload: any): Promise<void> {
-    this.logger.log(`Handling webhook from ${providerCode}:`, payload);
+    this.logger.log(`Handling webhook from ${providerCode}:`, JSON.stringify(payload));
 
-    // Implementation depends on provider webhook format
-    // For now, this is a placeholder
-    this.logger.warn('Webhook handling not implemented yet');
+    try {
+      // Extract transaction ID from webhook payload
+      // Different providers may send different field names
+      const providerTransactionId =
+        payload.providerTransactionId ||
+        payload.transactionId ||
+        payload.transaction_id ||
+        payload.reference ||
+        payload.externalId;
+
+      if (!providerTransactionId) {
+        this.logger.warn(`Webhook from ${providerCode} missing transaction ID, payload: ${JSON.stringify(payload)}`);
+        return;
+      }
+
+      // Look up deposit by provider transaction ID
+      const deposit = await this.depositRepository.findByProviderTransactionId(providerTransactionId);
+      if (!deposit) {
+        this.logger.warn(`No deposit found for provider transaction ID: ${providerTransactionId}`);
+        return;
+      }
+
+      // Skip if deposit is already in a terminal state
+      if (deposit.status === DepositStatus.COMPLETED || deposit.status === DepositStatus.FAILED || deposit.status === DepositStatus.EXPIRED) {
+        this.logger.log(`Deposit ${deposit.id} already in terminal state: ${deposit.status}`);
+        return;
+      }
+
+      // Determine status from webhook payload
+      const webhookStatus = (
+        payload.status ||
+        payload.state ||
+        payload.event_type ||
+        ''
+      ).toLowerCase();
+
+      if (['success', 'successful', 'completed', 'settled', 'approved'].includes(webhookStatus)) {
+        const providerReference = payload.providerReference || payload.provider_reference || payload.receipt || providerTransactionId;
+        await this.completeDeposit(deposit, providerReference);
+        this.logger.log(`Deposit ${deposit.id} completed via webhook from ${providerCode}`);
+      } else if (['failed', 'failure', 'declined', 'rejected', 'cancelled'].includes(webhookStatus)) {
+        const reason = payload.reason || payload.failure_reason || payload.message || 'Payment failed';
+        await this.failDeposit(deposit, reason);
+        this.logger.log(`Deposit ${deposit.id} failed via webhook from ${providerCode}: ${reason}`);
+      } else if (['pending', 'processing'].includes(webhookStatus)) {
+        // Update to processing state if still in earlier state
+        if (deposit.status !== DepositStatus.PROCESSING) {
+          await this.depositRepository.update(deposit.id, {
+            status: DepositStatus.PROCESSING,
+          });
+        }
+        this.logger.log(`Deposit ${deposit.id} still processing (webhook status: ${webhookStatus})`);
+      } else {
+        this.logger.warn(`Unknown webhook status "${webhookStatus}" from ${providerCode} for deposit ${deposit.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error processing webhook from ${providerCode}:`, error);
+      throw error;
+    }
   }
 
   async getProviders(): Promise<ProviderInfoDto[]> {
