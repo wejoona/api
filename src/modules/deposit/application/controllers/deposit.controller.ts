@@ -20,6 +20,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { Idempotent, IdempotencyGuard } from '../../../../common/middleware/idempotency';
 import { DepositService } from '../services/deposit.service';
 import { UserRepository } from '../../../user/infrastructure/repositories';
 import { InitiateDepositDto } from '../dto/initiate-deposit.dto';

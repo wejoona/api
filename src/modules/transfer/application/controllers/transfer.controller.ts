@@ -11,7 +11,6 @@ import {
   HttpStatus,
   ParseIntPipe,
   DefaultValuePipe,
-  UseInterceptors,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -30,7 +29,7 @@ import {
   AuthenticatedRequest,
   PinVerificationGuard,
 } from '../../../../common/guards';
-import { IdempotencyInterceptor } from '../../../../common/interceptors';
+import { Idempotent, IdempotencyGuard } from '../../../../common/middleware/idempotency';
 import {
   CreateInternalTransferDto,
   CreateExternalTransferDto,
@@ -57,7 +56,8 @@ export class TransferController {
   @UseGuards(PinVerificationGuard)
   // SECURITY: Rate limit transfers to prevent abuse (10 per minute per user)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
-  @UseInterceptors(IdempotencyInterceptor)
+  @UseGuards(IdempotencyGuard)
+  @Idempotent({ required: true })
   @ApiOperation({ summary: 'Transfer to another user by phone number (P2P)' })
   @ApiHeader({
     name: 'X-Pin-Token',
@@ -160,7 +160,8 @@ export class TransferController {
   @UseGuards(PinVerificationGuard)
   // SECURITY: Stricter rate limit for external transfers (5 per minute per user)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
-  @UseInterceptors(IdempotencyInterceptor)
+  @UseGuards(IdempotencyGuard)
+  @Idempotent({ required: true })
   @ApiOperation({ summary: 'Send USDC to external blockchain address' })
   @ApiHeader({
     name: 'X-Pin-Token',

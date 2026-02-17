@@ -80,6 +80,9 @@ import { ResilienceModule } from './modules/resilience/resilience.module';
 import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
 import { AppConfigModule } from './modules/app-config/app-config.module';
 
+// Idempotency
+import { IdempotencyModule } from './common/middleware/idempotency';
+
 // Provider Modules
 import { CircleModule } from './modules/providers/circle';
 import { YellowCardModule } from './modules/providers/yellowcard';
@@ -262,6 +265,9 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     ReconciliationModule,
     ApiHealthModule,
     AppConfigModule,
+
+    // Idempotency key handling for financial operations
+    IdempotencyModule,
   ],
   controllers: [AppController],
   providers: [
