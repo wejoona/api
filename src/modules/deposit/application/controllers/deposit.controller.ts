@@ -54,6 +54,8 @@ export class DepositController {
   }
 
   @Post('initiate')
+  @UseGuards(IdempotencyGuard)
+  @Idempotent({ required: true })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
     summary: 'Start a deposit',

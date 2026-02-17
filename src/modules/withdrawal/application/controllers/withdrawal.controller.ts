@@ -18,6 +18,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { Idempotent, IdempotencyGuard } from '../../../../common/middleware/idempotency';
 import { WithdrawalService } from '../services/withdrawal.service';
 import { InitiateWithdrawalDto } from '../dto/initiate-withdrawal.dto';
 import { WithdrawalResponseDto } from '../dto/withdrawal-response.dto';
@@ -30,6 +31,8 @@ export class WithdrawalController {
   constructor(private readonly withdrawalService: WithdrawalService) {}
 
   @Post('initiate')
+  @UseGuards(IdempotencyGuard)
+  @Idempotent({ required: true })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
     summary: 'Initiate a withdrawal to MoMo',
