@@ -2,14 +2,13 @@
  * Deposit Webhook Controller
  *
  * SEPARATE controller for external payment provider webhooks.
- * NO JwtAuthGuard — providers authenticate via HMAC signature or verification callback.
+ * NO JwtAuthGuard — providers authenticate via HMAC signature.
  *
  * Security layers:
- * 1. HMAC-SHA256 signature verification (for providers that support it)
- * 2. CinetPay: verify via /payment/check API call (no HMAC from CinetPay)
- * 3. IP whitelist check (optional, per provider)
- * 4. Replay protection via timestamp + nonce
- * 5. Rate limiting
+ * 1. HMAC-SHA256 signature verification (X-Webhook-Signature header)
+ * 2. IP whitelist check (optional, per provider)
+ * 3. Replay protection via timestamp + nonce
+ * 4. Rate limiting
  */
 import {
   Controller,
@@ -23,16 +22,14 @@ import {
   BadRequestException,
   UnauthorizedException,
   Logger,
-  Optional,
+  RawBodyRequest,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import * as crypto from 'crypto';
 import { DepositService } from '../services/deposit.service';
-import { CinetPayProvider } from '../../infrastructure/providers/cinetpay/cinetpay.provider';
-import { YellowCardProvider } from '../../infrastructure/providers/yellowcard/yellowcard.provider';
 
 /** Provider-specific webhook secrets and allowed IPs */
 interface ProviderWebhookConfig {
@@ -52,16 +49,15 @@ export class DepositWebhookController {
   constructor(
     private readonly depositService: DepositService,
     private readonly configService: ConfigService,
-    @Optional() private readonly cinetPayProvider?: CinetPayProvider,
-    @Optional() private readonly yellowCardProvider?: YellowCardProvider,
   ) {
     // Load per-provider webhook secrets from config
     this.providerConfigs = new Map();
 
-    const providers = ['OMCI', 'MTNCI', 'MOOVCI', 'WAVECI', 'BLNK', 'CINETPAY', 'YELLOWCARD'];
+    const providers = ['OMCI', 'MTNCI', 'MOOVCI', 'WAVECI', 'BLNK'];
     for (const code of providers) {
       const secret = this.configService.get<string>(
         `WEBHOOK_SECRET_${code}`,
+        // Fallback to global secret in dev
         this.configService.get<string>('WEBHOOK_SECRET', ''),
       );
       const ipsRaw = this.configService.get<string>(`WEBHOOK_IPS_${code}`, '');
@@ -71,7 +67,7 @@ export class DepositWebhookController {
         this.providerConfigs.set(code, {
           secret,
           allowedIps,
-          signatureHeader: 'x-webhook-signature',
+          signatureHeader: `x-webhook-signature`,
         });
       }
     }
@@ -84,133 +80,14 @@ export class DepositWebhookController {
     setInterval(() => this.processedNonces.clear(), 600_000);
   }
 
-  /**
-   * CinetPay webhook endpoint.
-   * CinetPay posts to notify_url with cpm_trans_id, cpm_trans_status, etc.
-   * We verify by calling CinetPay's /payment/check API.
-   */
-  @Post('cinetpay')
-  @HttpCode(HttpStatus.OK)
-  @SkipThrottle()
-  @ApiOperation({ summary: 'CinetPay payment notification webhook' })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleCinetPayWebhook(
-    @Body() payload: Record<string, any>,
-  ): Promise<{ status: string; message: string }> {
-    this.logger.log(`CinetPay webhook received: ${JSON.stringify(payload)}`);
-
-    const transactionId = payload.cpm_trans_id;
-    if (!transactionId) {
-      throw new BadRequestException('Missing cpm_trans_id in CinetPay webhook');
-    }
-
-    if (!this.cinetPayProvider) {
-      this.logger.error('CinetPay webhook received but provider not configured');
-      throw new BadRequestException('CinetPay provider not configured');
-    }
-
-    // Verify by calling CinetPay API to check actual transaction status
-    const { result } = await this.cinetPayProvider.verifyWebhookAndGetStatus(transactionId);
-
-    this.logger.log(
-      `CinetPay webhook verified for tx ${transactionId}: status=${result.status}`,
-    );
-
-    // Delegate to deposit service
-    await this.depositService.handleWebhook('CINETPAY', {
-      transactionId,
-      status: result.status,
-      providerReference: result.providerReference,
-      failureReason: result.failureReason,
-    });
-
-    return { status: 'ok', message: 'Processed' };
-  }
-
-  /**
-   * Yellow Card webhook endpoint.
-   * Yellow Card sends HMAC-signed webhooks.
-   */
-  @Post('yellowcard')
-  @HttpCode(HttpStatus.OK)
-  @SkipThrottle()
-  @ApiOperation({ summary: 'Yellow Card payment notification webhook' })
-  @ApiHeader({ name: 'X-YC-Signature', description: 'HMAC-SHA256 signature', required: true })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleYellowCardWebhook(
-    @Body() payload: Record<string, any>,
-    @Headers('x-yc-signature') signature: string | undefined,
-    @Req() req: Request,
-  ): Promise<{ status: string; message: string }> {
-    this.logger.log(`Yellow Card webhook received: event=${payload.event}`);
-
-    if (!this.yellowCardProvider) {
-      this.logger.error('Yellow Card webhook received but provider not configured');
-      throw new BadRequestException('Yellow Card provider not configured');
-    }
-
-    // Verify signature
-    if (signature) {
-      const rawBody = JSON.stringify(payload);
-      const isValid = this.yellowCardProvider.verifyWebhookSignature(rawBody, signature);
-      if (!isValid) {
-        this.logger.warn('Yellow Card webhook signature verification failed');
-        throw new UnauthorizedException('Invalid webhook signature');
-      }
-    } else {
-      const isDev = this.configService.get<string>('nodeEnv') === 'development';
-      if (!isDev) {
-        throw new UnauthorizedException('Missing X-YC-Signature header');
-      }
-      this.logger.warn('DEV MODE: Accepting unsigned Yellow Card webhook');
-    }
-
-    const paymentId = payload.data?.id || payload.id;
-    const eventStatus = payload.event || payload.status;
-
-    if (!paymentId) {
-      throw new BadRequestException('Missing payment ID in Yellow Card webhook');
-    }
-
-    // Determine status from event
-    let status: 'success' | 'pending' | 'failed';
-    switch (eventStatus?.toLowerCase()) {
-      case 'payment.completed':
-      case 'completed':
-      case 'settled':
-        status = 'success';
-        break;
-      case 'payment.failed':
-      case 'failed':
-      case 'cancelled':
-      case 'expired':
-        status = 'failed';
-        break;
-      default:
-        status = 'pending';
-    }
-
-    await this.depositService.handleWebhook('YELLOWCARD', {
-      transactionId: paymentId,
-      status,
-      providerReference: paymentId,
-      failureReason: status === 'failed' ? (payload.data?.statusMessage || eventStatus) : undefined,
-    });
-
-    return { status: 'ok', message: 'Processed' };
-  }
-
-  /**
-   * Generic webhook endpoint for mock providers (OMCI, MTNCI, etc.).
-   * Uses HMAC-SHA256 signature verification.
-   */
   @Post(':providerCode')
   @HttpCode(HttpStatus.OK)
-  @SkipThrottle()
+  @SkipThrottle() // Providers may send bursts; we verify via signature instead
   @ApiOperation({
     summary: 'Receive deposit webhook from payment provider',
     description:
-      'Endpoint for mock/legacy providers. Requires HMAC-SHA256 signature.',
+      'Endpoint for mobile money providers to notify of deposit status changes. ' +
+      'Requires HMAC-SHA256 signature in X-Webhook-Signature header.',
   })
   @ApiParam({
     name: 'providerCode',
@@ -221,6 +98,16 @@ export class DepositWebhookController {
     name: 'X-Webhook-Signature',
     description: 'HMAC-SHA256 signature of the request body',
     required: true,
+  })
+  @ApiHeader({
+    name: 'X-Webhook-Timestamp',
+    description: 'Unix timestamp of when the webhook was sent',
+    required: false,
+  })
+  @ApiHeader({
+    name: 'X-Webhook-Nonce',
+    description: 'Unique nonce to prevent replay attacks',
+    required: false,
   })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   @ApiResponse({ status: 400, description: 'Invalid payload or signature' })
@@ -238,6 +125,7 @@ export class DepositWebhookController {
 
     // ── 1. Verify provider is configured ──
     if (!providerConfig) {
+      // In dev mode without secrets, allow through with warning
       const isDev = this.configService.get<string>('nodeEnv') === 'development';
       if (isDev) {
         this.logger.warn(
@@ -263,11 +151,15 @@ export class DepositWebhookController {
 
     // ── 3. Signature verification ──
     if (!signature) {
-      throw new UnauthorizedException('Missing X-Webhook-Signature header');
+      throw new UnauthorizedException(
+        'Missing X-Webhook-Signature header',
+      );
     }
 
     const rawBody = JSON.stringify(payload);
-    const signaturePayload = timestamp ? `${timestamp}.${rawBody}` : rawBody;
+    const signaturePayload = timestamp
+      ? `${timestamp}.${rawBody}`
+      : rawBody;
 
     const expectedSignature = crypto
       .createHmac('sha256', providerConfig.secret)
@@ -280,7 +172,9 @@ export class DepositWebhookController {
     );
 
     if (!isValid) {
-      this.logger.warn(`Webhook signature mismatch for ${providerCode}`);
+      this.logger.warn(
+        `Webhook signature mismatch for ${providerCode}`,
+      );
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -289,7 +183,9 @@ export class DepositWebhookController {
       const ts = parseInt(timestamp, 10);
       const now = Math.floor(Date.now() / 1000);
       if (Math.abs(now - ts) > this.replayWindow) {
-        throw new BadRequestException('Webhook timestamp outside acceptable window');
+        throw new BadRequestException(
+          'Webhook timestamp outside acceptable window',
+        );
       }
     }
 
@@ -302,7 +198,9 @@ export class DepositWebhookController {
     }
 
     // ── 5. Process webhook ──
-    this.logger.log(`Processing verified webhook from ${providerCode}`);
+    this.logger.log(
+      `Processing verified webhook from ${providerCode}`,
+    );
     await this.depositService.handleWebhook(providerCode, payload);
 
     return { status: 'ok', message: 'Processed' };

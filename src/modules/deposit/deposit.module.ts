@@ -26,8 +26,6 @@ import { OrangeMockProvider } from './infrastructure/providers/mock/orange-mock.
 import { MtnMockProvider } from './infrastructure/providers/mock/mtn-mock.provider';
 import { MoovMockProvider } from './infrastructure/providers/mock/moov-mock.provider';
 import { WaveMockProvider } from './infrastructure/providers/mock/wave-mock.provider';
-import { CinetPayProvider } from './infrastructure/providers/cinetpay/cinetpay.provider';
-import { YellowCardProvider } from './infrastructure/providers/yellowcard/yellowcard.provider';
 
 @Module({
   imports: [
@@ -52,8 +50,6 @@ import { YellowCardProvider } from './infrastructure/providers/yellowcard/yellow
     MtnMockProvider,
     MoovMockProvider,
     WaveMockProvider,
-    CinetPayProvider,
-    YellowCardProvider,
   ],
   controllers: [DepositController, DepositWebhookController],
   exports: [

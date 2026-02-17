@@ -194,45 +194,11 @@ export class DepositService {
   }
 
   async handleWebhook(providerCode: string, payload: any): Promise<void> {
-    this.logger.log(`Handling webhook from ${providerCode}: ${JSON.stringify(payload)}`);
+    this.logger.log(`Handling webhook from ${providerCode}:`, payload);
 
-    const { transactionId, status, providerReference, failureReason } = payload;
-
-    if (!transactionId) {
-      this.logger.warn(`Webhook from ${providerCode} missing transactionId`);
-      return;
-    }
-
-    // Find deposit by transaction ID (which is the deposit ID for CinetPay,
-    // or the providerTransactionId for YellowCard)
-    let deposit: DepositEntity | null = null;
-
-    // Try finding by deposit ID first (CinetPay uses our transaction_id)
-    deposit = await this.depositRepository.findById(transactionId);
-
-    // If not found, search by provider transaction ID (YellowCard)
-    if (!deposit) {
-      deposit = await this.depositRepository.findByProviderTransactionId(transactionId);
-    }
-
-    if (!deposit) {
-      this.logger.warn(`Webhook: No deposit found for transactionId ${transactionId}`);
-      return;
-    }
-
-    // Skip if already in terminal state
-    if (deposit.status === DepositStatus.COMPLETED || deposit.status === DepositStatus.FAILED) {
-      this.logger.log(`Webhook: Deposit ${deposit.id} already in terminal state ${deposit.status}`);
-      return;
-    }
-
-    if (status === 'success') {
-      await this.completeDeposit(deposit, providerReference);
-    } else if (status === 'failed') {
-      await this.failDeposit(deposit, failureReason || `Payment failed via ${providerCode}`);
-    } else {
-      this.logger.log(`Webhook: Deposit ${deposit.id} still pending from ${providerCode}`);
-    }
+    // Implementation depends on provider webhook format
+    // For now, this is a placeholder
+    this.logger.warn('Webhook handling not implemented yet');
   }
 
   async getProviders(): Promise<ProviderInfoDto[]> {
