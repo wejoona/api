@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IPaymentProvider } from '../../domain/interfaces/payment-provider.interface';
 import { OrangeMockProvider } from './mock/orange-mock.provider';
 import { MtnMockProvider } from './mock/mtn-mock.provider';
 import { MoovMockProvider } from './mock/moov-mock.provider';
 import { WaveMockProvider } from './mock/wave-mock.provider';
+import { CinetPayProvider } from './cinetpay/cinetpay.provider';
+import { YellowCardProvider } from './yellowcard/yellowcard.provider';
 
 @Injectable()
 export class PaymentProviderFactory {
@@ -17,12 +19,15 @@ export class PaymentProviderFactory {
     private readonly mtnMock: MtnMockProvider,
     private readonly moovMock: MoovMockProvider,
     private readonly waveMock: WaveMockProvider,
+    @Optional() private readonly cinetPayProvider?: CinetPayProvider,
+    @Optional() private readonly yellowCardProvider?: YellowCardProvider,
   ) {
-    this.useMock = this.configService.get<boolean>('DEPOSIT_USE_MOCK', true);
-    
-    if (!this.useMock) {
-      this.logger.warn('Real providers not implemented yet. Falling back to mock providers.');
-      this.useMock = true;
+    this.useMock = this.configService.get<string>('DEPOSIT_USE_MOCK', 'true') !== 'false';
+
+    if (this.useMock) {
+      this.logger.log('Using MOCK payment providers');
+    } else {
+      this.logger.log('Using REAL payment providers (CinetPay + YellowCard)');
     }
   }
 
@@ -33,8 +38,37 @@ export class PaymentProviderFactory {
       return this.getMockProvider(providerCode);
     }
 
-    // In production, return real provider implementations
-    throw new Error(`Real provider ${providerCode} not implemented yet`);
+    return this.getRealProvider(providerCode);
+  }
+
+  private getRealProvider(providerCode: string): IPaymentProvider {
+    switch (providerCode.toUpperCase()) {
+      case 'CINETPAY':
+        // CinetPay handles all mobile money operators
+        if (!this.cinetPayProvider) {
+          throw new Error('CinetPayProvider not configured. Check CINETPAY_* env vars.');
+        }
+        return this.cinetPayProvider;
+
+      case 'YELLOWCARD':
+        if (!this.yellowCardProvider) {
+          throw new Error('YellowCardProvider not configured. Check YELLOWCARD_* env vars.');
+        }
+        return this.yellowCardProvider;
+
+      // Map individual operator codes to CinetPay in real mode
+      case 'OMCI':
+      case 'MTNCI':
+      case 'MOOVCI':
+      case 'WAVECI':
+        if (!this.cinetPayProvider) {
+          throw new Error('CinetPayProvider not configured. Check CINETPAY_* env vars.');
+        }
+        return this.cinetPayProvider;
+
+      default:
+        throw new Error(`Unsupported provider: ${providerCode}`);
+    }
   }
 
   private getMockProvider(providerCode: string): IPaymentProvider {
@@ -53,12 +87,14 @@ export class PaymentProviderFactory {
   }
 
   getAllProviders(): IPaymentProvider[] {
-    return [
-      this.orangeMock,
-      this.mtnMock,
-      this.moovMock,
-      this.waveMock,
-    ];
+    if (this.useMock) {
+      return [this.orangeMock, this.mtnMock, this.moovMock, this.waveMock];
+    }
+
+    const providers: IPaymentProvider[] = [];
+    if (this.cinetPayProvider) providers.push(this.cinetPayProvider);
+    if (this.yellowCardProvider) providers.push(this.yellowCardProvider);
+    return providers;
   }
 
   getProviderInfo() {
