@@ -45,7 +45,7 @@ import { YellowCardModule } from '@modules/providers/yellowcard';
     TypeOrmModule.forFeature([WebhookDeadletterOrmEntity]),
     forwardRef(() => TransactionModule),
     forwardRef(() => WalletModule),
-    YellowCardModule,
+    ...(process.env.YELLOW_CARD_ENABLED === 'true' ? [YellowCardModule] : []),
   ],
   providers: [
     ProcessWebhookUseCase,

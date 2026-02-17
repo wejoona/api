@@ -14,6 +14,11 @@ export class YellowCardHealthIndicator extends HealthIndicator {
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
+    // Yellow Card integration disabled — always report as healthy (skipped)
+    if (this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true') {
+      return this.getStatus(key, true, { note: 'Yellow Card disabled (YELLOW_CARD_ENABLED=false)', skipped: true });
+    }
+
     const apiUrl = this.configService.get<string>(
       'yellowCard.apiUrl',
       'https://sandbox.api.yellowcard.io',

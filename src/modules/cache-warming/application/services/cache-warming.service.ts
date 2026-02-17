@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -33,7 +33,7 @@ export class CacheWarmingService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
     private readonly featureFlagService: FeatureFlagService,
-    private readonly yellowCardRatesService: YellowCardRatesService,
+    @Optional() private readonly yellowCardRatesService: YellowCardRatesService,
   ) {}
 
   /**
@@ -97,6 +97,12 @@ export class CacheWarmingService {
    * Pre-fetches commonly used currency pairs
    */
   async warmExchangeRates(): Promise<void> {
+    // Yellow Card integration disabled — skip rate warming
+    if (this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true') {
+      this.logger.debug('Skipping exchange rate warming (Yellow Card disabled)');
+      return;
+    }
+
     const startTime = Date.now();
     this.logger.debug('Warming exchange rates cache...');
 

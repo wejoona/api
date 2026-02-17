@@ -14,13 +14,16 @@ import {
   TwilioHealthCollector,
 } from './infrastructure/collectors';
 
+// Yellow Card collectors are conditionally included based on YELLOW_CARD_ENABLED env var
+const yellowCardEnabled = process.env.YELLOW_CARD_ENABLED === 'true';
+
 @Module({
   imports: [ScheduleModule.forRoot(), ConfigModule],
   controllers: [ApiHealthController],
   providers: [
     // Health Collectors
     CircleHealthCollector,
-    YellowCardHealthCollector,
+    ...(yellowCardEnabled ? [YellowCardHealthCollector] : []),
     TwilioHealthCollector,
 
     // Inject collectors into service
@@ -28,13 +31,17 @@ import {
       provide: 'HEALTH_COLLECTORS',
       useFactory: (
         circle: CircleHealthCollector,
-        yellowCard: YellowCardHealthCollector,
         twilio: TwilioHealthCollector,
-      ) => [circle, yellowCard, twilio],
+        ...optional: any[]
+      ) => {
+        const collectors = [circle, twilio];
+        if (optional.length > 0) collectors.push(...optional);
+        return collectors;
+      },
       inject: [
         CircleHealthCollector,
-        YellowCardHealthCollector,
         TwilioHealthCollector,
+        ...(yellowCardEnabled ? [YellowCardHealthCollector] : []),
       ],
     },
 

@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  Optional,
   Logger,
   OnModuleDestroy,
   UnauthorizedException,
@@ -55,7 +56,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
   constructor(
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
-    @Inject(ONRAMP_PROVIDER_CI)
+    @Inject(ONRAMP_PROVIDER_CI) @Optional()
     private readonly onRampProvider: IOnRampProvider,
     private readonly transactionRepository: TransactionRepository,
     private readonly walletRepository: WalletRepository,
@@ -178,6 +179,10 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     // Route to appropriate handler based on provider
     switch (provider) {
       case 'yellowcard':
+        if (!this.onRampProvider) {
+          this.logger.warn('Yellow Card webhook received but YELLOW_CARD_ENABLED=false');
+          return { success: false, eventType: 'yellowcard.disabled', processed: false };
+        }
         return this.processYellowCardWebhook(input);
       case 'circle':
         return this.processCircleWebhook(input);

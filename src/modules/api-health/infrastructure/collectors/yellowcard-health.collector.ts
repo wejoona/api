@@ -18,6 +18,17 @@ export class YellowCardHealthCollector implements HealthCollector {
   }
 
   async checkHealth(): Promise<HealthCheckResult> {
+    // Yellow Card integration disabled — return healthy stub
+    if (this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true') {
+      return {
+        provider: ApiProvider.YELLOW_CARD,
+        endpoint: '/business/rates',
+        available: false,
+        latencyMs: 0,
+        metadata: { disabled: true, note: 'YELLOW_CARD_ENABLED=false' },
+      };
+    }
+
     const baseUrl = this.configService.get<string>(
       'yellowCard.apiUrl',
       'https://sandbox.api.yellowcard.io',

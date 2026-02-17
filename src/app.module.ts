@@ -200,7 +200,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
 
     // Provider modules (external integrations)
     CircleModule, // Identity, Wallets, Transfers
-    YellowCardModule, // On-ramp/Off-ramp for Africa
+    ...(process.env.YELLOW_CARD_ENABLED === 'true' ? [YellowCardModule] : []), // On-ramp/Off-ramp for Africa (disabled: moving to Stellar+Circle)
     StellarModule, // Stellar blockchain USDC (alternative to Circle)
     BlnkModule, // Ledger/Accounting (source of truth)
     TwilioModule, // SMS OTP delivery and webhook handling

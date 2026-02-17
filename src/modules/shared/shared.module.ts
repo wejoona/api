@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY } from './domain/gateways';
 import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
+import { NoopPaymentAdapter } from './infrastructure/gateways/payment/noop-payment.adapter';
 import { SmsFactory, createSmsGateway } from './infrastructure/gateways/sms';
 import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
 import { CacheInvalidationService, KeyVaultService, NtmClientService } from './infrastructure/services';
@@ -35,10 +36,10 @@ import { SentryService } from '../../common/services/sentry.service';
     NtmClientService,
     // Key Vault (AES-256-GCM encryption for secrets at rest)
     KeyVaultService,
-    // Payment Gateway (Yellow Card implementation)
+    // Payment Gateway (Yellow Card or no-op based on YELLOW_CARD_ENABLED env var)
     {
       provide: PAYMENT_GATEWAY,
-      useClass: YellowCardPaymentAdapter,
+      useClass: process.env.YELLOW_CARD_ENABLED === 'true' ? YellowCardPaymentAdapter : NoopPaymentAdapter,
     },
     // SMS Factory
     SmsFactory,
