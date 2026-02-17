@@ -18,6 +18,7 @@ import { TransactionRiskService } from './application/services/transaction-risk.
 import { StepUpService } from './application/services/step-up.service';
 import { RiskEvaluationService } from './risk-evaluation.service';
 import { TransactionRiskListener } from './application/listeners/transaction-risk.listener';
+import { ComplianceEventBridgeListener } from './application/listeners/compliance-event-bridge.listener';
 
 // Guards
 import { RiskAssessmentGuard } from './application/guards/risk-assessment.guard';
@@ -69,6 +70,7 @@ import { UserModule } from '../user/user.module';
     StepUpService,
     RiskEvaluationService,
     TransactionRiskListener,
+    ComplianceEventBridgeListener,
 
     // Guards
     RiskAssessmentGuard,

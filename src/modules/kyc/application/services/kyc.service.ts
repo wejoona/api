@@ -19,6 +19,7 @@ import {
 } from '../../domain/interfaces/kyc-verification-provider.interface';
 import { UploadService } from '../../../upload/application/services/upload.service';
 import { ConfigService } from '@nestjs/config';
+import { ConsentService } from '../../../consent/application/services/consent.service';
 
 export interface SubmitKycDocumentsInput {
   userId: string;
@@ -74,6 +75,7 @@ export class KycService {
     private readonly uploadService: UploadService,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
+    private readonly consentService: ConsentService,
   ) {
     this.autoApprovalEnabled = this.configService.get<boolean>(
       'kyc.autoApprovalEnabled',
@@ -131,6 +133,9 @@ export class KycService {
     input: SubmitKycDocumentsInput,
   ): Promise<KycVerificationOrmEntity> {
     const { userId } = input;
+
+    // Verify all required consents are granted BEFORE processing KYC
+    await this.consentService.verifyKycConsents(userId);
 
     // Get or create KYC record
     let kyc = await this.repository.findByUserId(userId);

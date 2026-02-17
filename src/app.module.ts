@@ -79,6 +79,7 @@ import { BatchProcessingModule } from './modules/batch-processing/batch-processi
 import { ResilienceModule } from './modules/resilience/resilience.module';
 import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
 import { AppConfigModule } from './modules/app-config/app-config.module';
+import { ConsentModule } from './modules/consent/consent.module';
 
 // Idempotency
 import { IdempotencyModule } from './common/middleware/idempotency';
@@ -265,6 +266,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     ReconciliationModule,
     ApiHealthModule,
     AppConfigModule,
+    ConsentModule, // GDPR/BCEAO consent tracking for KYC, marketing, data processing
 
     // Idempotency key handling for financial operations
     IdempotencyModule,

@@ -30,6 +30,7 @@ import { KycVerifyController } from './application/controllers/kyc-verify.contro
 import { UploadModule } from '../upload/upload.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { UserModule } from '../user/user.module';
+import { ConsentModule } from '../consent/consent.module';
 
 // VerifyHQ
 import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
@@ -57,6 +58,7 @@ import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
     forwardRef(() => WalletModule),
     forwardRef(() => UserModule),
     VerifyHqModule,
+    ConsentModule, // Consent verification before KYC submission
   ],
   controllers: [KycController, AdminKycController, KycUploadController, KycVerifyController],
   providers: [

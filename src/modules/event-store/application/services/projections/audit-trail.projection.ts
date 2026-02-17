@@ -17,8 +17,14 @@ export class AuditTrailProjection implements IProjectionHandler {
     'wallet.credited',
     'wallet.debited',
     'user.verified',
+    'user.registered',
     'kyc.submitted',
     'kyc.approved',
+    'kyc.rejected',
+    'consent.granted',
+    'consent.revoked',
+    'security.login.success',
+    'security.pin.changed',
   ];
 
   buildInitial(event: Event): Record<string, any> {
@@ -75,7 +81,11 @@ export class AuditTrailProjection implements IProjectionHandler {
       'transaction.completed',
       'wallet.created',
       'user.verified',
+      'user.registered',
       'kyc.approved',
+      'kyc.rejected',
+      'consent.granted',
+      'consent.revoked',
     ];
     return criticalEvents.includes(event.eventType);
   }
