@@ -86,6 +86,65 @@ export class TransactionController {
     });
   }
 
+  // NOTE: /stats MUST be declared before /:id to avoid NestJS matching "stats" as a UUID param
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Get transaction statistics for current user',
+    description:
+      'Returns aggregate statistics. Note: currently fetches up to 10 000 transactions; ' +
+      'a dedicated SQL aggregate query should replace this for production scale.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction statistics',
+    schema: {
+      example: {
+        totalTransactions: 42,
+        totalDeposits: 15,
+        totalWithdrawals: 8,
+        totalTransfers: 19,
+        totalDeposited: 250000,
+        totalWithdrawn: 80000,
+        totalTransferred: 190000,
+        currency: 'USDC',
+        firstTransactionAt: '2026-01-15T10:00:00.000Z',
+        lastTransactionAt: '2026-02-11T03:00:00.000Z',
+      },
+    },
+  })
+  async getStats(@Request() req: AuthenticatedRequest) {
+    // TODO: Replace with dedicated SQL aggregate query for O(1) performance
+    // SELECT type, COUNT(*) as count, SUM(amount) as total, MIN(created_at), MAX(created_at)
+    // FROM transactions WHERE wallet_id = ? GROUP BY type
+    const result = await this.getTransactionsUseCase.execute({
+      userId: req.user.id,
+      offset: 0,
+      limit: 10000,
+    });
+
+    const txs = result.transactions || [];
+    const deposits = txs.filter((t: any) => t.type === 'deposit');
+    const withdrawals = txs.filter((t: any) => t.type === 'withdrawal');
+    const transfers = txs.filter(
+      (t: any) => t.type === 'transfer' || t.type === 'transfer_internal' || t.type === 'transfer_external',
+    );
+    const sum = (arr: any[]) =>
+      arr.reduce((s: number, t: any) => s + (parseFloat(t.amount) || 0), 0);
+
+    return {
+      totalTransactions: txs.length,
+      totalDeposits: deposits.length,
+      totalWithdrawals: withdrawals.length,
+      totalTransfers: transfers.length,
+      totalDeposited: Math.round(sum(deposits) * 100) / 100,
+      totalWithdrawn: Math.round(sum(withdrawals) * 100) / 100,
+      totalTransferred: Math.round(sum(transfers) * 100) / 100,
+      currency: 'USDC',
+      firstTransactionAt: txs.length > 0 ? txs[txs.length - 1].createdAt : null,
+      lastTransactionAt: txs.length > 0 ? txs[0].createdAt : null,
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get transaction details' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })
@@ -112,6 +171,7 @@ export class TransactionController {
       },
     },
   })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async getTransaction(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -120,53 +180,6 @@ export class TransactionController {
       userId: req.user.id,
       transactionId: id,
     });
-  }
-
-  @Get('stats')
-  @ApiOperation({ summary: 'Get transaction statistics for current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Transaction statistics',
-    schema: {
-      example: {
-        totalTransactions: 42,
-        totalDeposits: 15,
-        totalWithdrawals: 8,
-        totalTransfers: 19,
-        totalDeposited: 250000,
-        totalWithdrawn: 80000,
-        totalTransferred: 190000,
-        currency: 'USDC',
-        firstTransactionAt: '2026-01-15T10:00:00.000Z',
-        lastTransactionAt: '2026-02-11T03:00:00.000Z',
-      },
-    },
-  })
-  async getStats(@Request() req: AuthenticatedRequest) {
-    const result = await this.getTransactionsUseCase.execute({
-      userId: req.user.id,
-      offset: 0,
-      limit: 1000,
-    });
-
-    const txs = result.transactions || [];
-    const deposits = txs.filter((t: any) => t.type === 'deposit');
-    const withdrawals = txs.filter((t: any) => t.type === 'withdrawal');
-    const transfers = txs.filter((t: any) => t.type === 'transfer');
-    const sum = (arr: any[]) => arr.reduce((s: number, t: any) => s + (parseFloat(t.amount) || 0), 0);
-
-    return {
-      totalTransactions: txs.length,
-      totalDeposits: deposits.length,
-      totalWithdrawals: withdrawals.length,
-      totalTransfers: transfers.length,
-      totalDeposited: sum(deposits),
-      totalWithdrawn: sum(withdrawals),
-      totalTransferred: sum(transfers),
-      currency: 'USDC',
-      firstTransactionAt: txs.length > 0 ? txs[txs.length - 1].createdAt : null,
-      lastTransactionAt: txs.length > 0 ? txs[0].createdAt : null,
-    };
   }
 
   @Post(':id/reverse')

@@ -28,7 +28,7 @@ interface UserPayload {
   phone: string;
 }
 
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 @ApiTags('Support')
 @Controller('support/tickets')
 @UseGuards(JwtAuthGuard)
@@ -41,6 +41,9 @@ export class SupportController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a support ticket' })
+  @ApiResponse({ status: 201, description: 'Ticket created', type: TicketResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid ticket data' })
   async createTicket(
     @Body() dto: CreateTicketDto,
     @CurrentUser() user: UserPayload,
@@ -58,6 +61,11 @@ export class SupportController {
    * Get all tickets for the current user.
    */
   @Get()
+  @ApiOperation({ summary: 'List user support tickets' })
+  @ApiQuery({ name: 'status', required: false, description: 'Comma-separated status filter' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Paginated ticket list' })
   async getTickets(
     @CurrentUser() user: UserPayload,
     @Query('status') status?: string,
@@ -80,6 +88,8 @@ export class SupportController {
    * Get active (non-resolved) tickets for the current user.
    */
   @Get('active')
+  @ApiOperation({ summary: 'Get active (open) tickets' })
+  @ApiResponse({ status: 200, description: 'Active tickets list' })
   async getActiveTickets(
     @CurrentUser() user: UserPayload,
   ): Promise<TicketResponseDto[]> {
@@ -90,6 +100,8 @@ export class SupportController {
    * Get count of active tickets.
    */
   @Get('count')
+  @ApiOperation({ summary: 'Get count of active tickets' })
+  @ApiResponse({ status: 200, description: 'Active ticket count' })
   async getActiveTicketCount(
     @CurrentUser() user: UserPayload,
   ): Promise<{ count: number }> {
@@ -101,6 +113,10 @@ export class SupportController {
    * Get a specific ticket with all messages.
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Get ticket with messages' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Ticket with messages' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async getTicket(
     @Param('id', ParseUUIDPipe) ticketId: string,
     @CurrentUser() user: UserPayload,
@@ -112,6 +128,10 @@ export class SupportController {
    * Get messages for a ticket with pagination.
    */
   @Get(':id/messages')
+  @ApiOperation({ summary: 'Get ticket messages (paginated)' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Paginated message list' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async getMessages(
     @Param('id', ParseUUIDPipe) ticketId: string,
     @CurrentUser() user: UserPayload,
@@ -131,6 +151,10 @@ export class SupportController {
    */
   @Post(':id/messages')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a message to a ticket' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 201, description: 'Message added' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async addMessage(
     @Param('id', ParseUUIDPipe) ticketId: string,
     @Body() dto: AddMessageDto,
@@ -149,6 +173,10 @@ export class SupportController {
    */
   @Patch(':id/close')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Close a ticket' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Ticket closed' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async closeTicket(
     @Param('id', ParseUUIDPipe) ticketId: string,
     @CurrentUser() user: UserPayload,
@@ -161,6 +189,11 @@ export class SupportController {
    */
   @Patch(':id/reopen')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reopen a resolved ticket' })
+  @ApiParam({ name: 'id', description: 'Ticket UUID' })
+  @ApiResponse({ status: 200, description: 'Ticket reopened' })
+  @ApiResponse({ status: 400, description: 'Ticket is not in a closable state' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async reopenTicket(
     @Param('id', ParseUUIDPipe) ticketId: string,
     @Body() body: { reason?: string },

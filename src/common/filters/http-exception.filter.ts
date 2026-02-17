@@ -9,8 +9,44 @@ import {
 import { Request, Response } from 'express';
 
 /**
+ * Standard error code mapping for consistent API error identification.
+ * Mobile clients can switch on `errorCode` for localised messages.
+ */
+const STATUS_TO_ERROR_CODE: Record<number, string> = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  422: 'UNPROCESSABLE_ENTITY',
+  429: 'RATE_LIMITED',
+  500: 'INTERNAL_ERROR',
+  502: 'BAD_GATEWAY',
+  503: 'SERVICE_UNAVAILABLE',
+  504: 'GATEWAY_TIMEOUT',
+};
+
+/**
  * Global HTTP Exception Filter
- * Normalizes all error responses to a consistent format.
+ * Normalizes all error responses to a consistent envelope:
+ *
+ * ```json
+ * {
+ *   "success": false,
+ *   "error": {
+ *     "code": "BAD_REQUEST",
+ *     "message": "Human-readable summary",
+ *     "details": ["field-level messages from validation pipe"]
+ *   },
+ *   "meta": {
+ *     "timestamp": "...",
+ *     "path": "/api/v1/...",
+ *     "method": "POST",
+ *     "requestId": "uuid",
+ *     "correlationId": "uuid"
+ *   }
+ * }
+ * ```
  */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -23,7 +59,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let error = 'Internal Server Error';
+    let errorCode = 'INTERNAL_ERROR';
+    let details: string[] = [];
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -31,8 +68,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object') {
-        message = (exceptionResponse as any).message || message;
-        error = (exceptionResponse as any).error || error;
+        const resp = exceptionResponse as any;
+        // class-validator returns message as string[]
+        if (Array.isArray(resp.message)) {
+          message = resp.message[0] || resp.error || message;
+          details = resp.message;
+        } else {
+          message = resp.message || message;
+        }
+        // Allow custom error codes from application exceptions
+        errorCode = resp.code || resp.errorCode || STATUS_TO_ERROR_CODE[status] || errorCode;
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -42,19 +87,41 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     }
 
+    // Fallback error code from status
+    if (!errorCode || errorCode === 'INTERNAL_ERROR') {
+      errorCode = STATUS_TO_ERROR_CODE[status] || 'INTERNAL_ERROR';
+    }
+
+    const correlationId =
+      (request as any).requestId ||
+      (request as any).correlationId ||
+      request.headers['x-correlation-id'] ||
+      request.headers['x-request-id'] ||
+      null;
+
     const errorResponse = {
-      statusCode: status,
-      error,
-      message: Array.isArray(message) ? message : [message],
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
-      requestId: request.headers['x-request-id'] || null,
+      success: false,
+      error: {
+        code: errorCode,
+        message,
+        details: details.length > 0 ? details : undefined,
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        method: request.method,
+        requestId: correlationId,
+        correlationId,
+      },
     };
 
     // Don't log 4xx as errors (client issues)
     if (status >= 500) {
       this.logger.error(JSON.stringify(errorResponse));
+    } else if (status >= 400) {
+      this.logger.warn(
+        `[${correlationId}] ${status} ${request.method} ${request.url}: ${message}`,
+      );
     }
 
     response.status(status).json(errorResponse);

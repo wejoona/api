@@ -10,6 +10,8 @@ import {
   UseGuards,
   BadRequestException,
   ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -27,7 +29,14 @@ interface UserPayload {
   walletId?: string;
 }
 
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 @ApiTags('Beneficiaries')
 @Controller('beneficiaries')
 @UseGuards(JwtAuthGuard)
@@ -36,6 +45,12 @@ export class BeneficiaryController {
   constructor(private readonly beneficiaryService: BeneficiaryService) {}
 
   @Get()
+  @ApiOperation({ summary: 'List beneficiaries with optional filters' })
+  @ApiQuery({ name: 'type', required: false, enum: ['internal', 'external', 'bank', 'mobile_money'], description: 'Filter by account type' })
+  @ApiQuery({ name: 'favorites', required: false, type: String, description: 'Set to "true" to get favorites only' })
+  @ApiQuery({ name: 'recent', required: false, type: String, description: 'Set to "true" to get recently used' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Max results (used with recent)' })
+  @ApiResponse({ status: 200, description: 'List of beneficiaries' })
   async getBeneficiaries(
     @CurrentUser() user: UserPayload,
     @Query('type') accountType?: BeneficiaryAccountType,
@@ -71,6 +86,10 @@ export class BeneficiaryController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a specific beneficiary' })
+  @ApiParam({ name: 'id', description: 'Beneficiary UUID' })
+  @ApiResponse({ status: 200, description: 'Beneficiary details' })
+  @ApiResponse({ status: 404, description: 'Beneficiary not found' })
   async getBeneficiary(
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @CurrentUser() user: UserPayload,
@@ -106,6 +125,11 @@ export class BeneficiaryController {
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new beneficiary' })
+  @ApiResponse({ status: 201, description: 'Beneficiary created' })
+  @ApiResponse({ status: 400, description: 'Invalid data' })
+  @ApiResponse({ status: 409, description: 'Duplicate beneficiary' })
   async createBeneficiary(
     @Body() dto: CreateBeneficiaryDto,
     @CurrentUser() user: UserPayload,
@@ -141,6 +165,10 @@ export class BeneficiaryController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update a beneficiary' })
+  @ApiParam({ name: 'id', description: 'Beneficiary UUID' })
+  @ApiResponse({ status: 200, description: 'Beneficiary updated' })
+  @ApiResponse({ status: 404, description: 'Beneficiary not found' })
   async updateBeneficiary(
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @Body() dto: UpdateBeneficiaryDto,
@@ -160,6 +188,11 @@ export class BeneficiaryController {
   }
 
   @Post(':id/favorite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Toggle beneficiary favorite status' })
+  @ApiParam({ name: 'id', description: 'Beneficiary UUID' })
+  @ApiResponse({ status: 200, description: 'Favorite toggled' })
+  @ApiResponse({ status: 404, description: 'Beneficiary not found' })
   async toggleFavorite(
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @CurrentUser() user: UserPayload,
@@ -177,6 +210,11 @@ export class BeneficiaryController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a beneficiary' })
+  @ApiParam({ name: 'id', description: 'Beneficiary UUID' })
+  @ApiResponse({ status: 200, description: 'Beneficiary deleted' })
+  @ApiResponse({ status: 404, description: 'Beneficiary not found' })
   async deleteBeneficiary(
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @CurrentUser() user: UserPayload,

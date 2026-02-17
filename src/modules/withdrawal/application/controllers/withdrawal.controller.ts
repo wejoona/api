@@ -8,6 +8,8 @@ import {
   UseGuards,
   Request,
   ValidationPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -16,8 +18,11 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
+import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { Idempotent, IdempotencyGuard } from '../../../../common/middleware/idempotency';
 import { WithdrawalService } from '../services/withdrawal.service';
 import { InitiateWithdrawalDto } from '../dto/initiate-withdrawal.dto';
@@ -31,12 +36,23 @@ export class WithdrawalController {
   constructor(private readonly withdrawalService: WithdrawalService) {}
 
   @Post('initiate')
-  @UseGuards(IdempotencyGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(PinVerificationGuard, IdempotencyGuard)
   @Idempotent({ required: true })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
     summary: 'Initiate a withdrawal to MoMo',
-    description: 'Debits USDC from wallet and sends fiat payout via mobile money provider',
+    description: 'Debits USDC from wallet and sends fiat payout via mobile money provider. Requires PIN verification.',
+  })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token from POST /user/pin/verify',
+    required: true,
+  })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key to prevent duplicate withdrawal requests (UUID)',
+    required: true,
   })
   @ApiResponse({
     status: 201,
@@ -44,6 +60,10 @@ export class WithdrawalController {
     type: WithdrawalResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid request or insufficient balance' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'PIN verification required or expired' })
+  @ApiResponse({ status: 422, description: 'Withdrawal amount exceeds daily limit' })
+  @ApiResponse({ status: 429, description: 'Too many withdrawal attempts' })
   async initiateWithdrawal(
     @Request() req: AuthenticatedRequest,
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
@@ -70,19 +90,24 @@ export class WithdrawalController {
   @Get()
   @ApiOperation({
     summary: 'List user withdrawals',
-    description: 'Returns paginated list of user withdrawals',
+    description: 'Returns paginated list of user withdrawals with optional status filter',
   })
+  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'processing', 'completed', 'failed'], description: 'Filter by status' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Results per page (default: 20, max: 100)' })
+  @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Number of results to skip' })
+  @ApiResponse({ status: 200, description: 'Paginated list of withdrawals' })
   async listWithdrawals(
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ): Promise<{ withdrawals: WithdrawalResponseDto[]; total: number; hasMore: boolean }> {
+    const safeLimit = Math.min(Math.max(limit || 20, 1), 100);
     return this.withdrawalService.listWithdrawals({
       userId: req.user.id,
       status: status as any,
-      limit: limit || 20,
-      offset: offset || 0,
+      limit: safeLimit,
+      offset: Math.max(offset || 0, 0),
     });
   }
 }

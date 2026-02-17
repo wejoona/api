@@ -10,6 +10,8 @@ import {
   ValidationPipe,
   Inject,
   forwardRef,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -54,22 +56,23 @@ export class DepositController {
   }
 
   @Post('initiate')
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(IdempotencyGuard)
   @Idempotent({ required: true })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({
     summary: 'Start a deposit',
-    description: 'Initiates a mobile money deposit and returns payment instructions',
+    description: 'Initiates a mobile money deposit and returns payment instructions. Requires X-Idempotency-Key header.',
   })
   @ApiResponse({
     status: 201,
     description: 'Deposit initiated successfully',
     type: InitiateDepositResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid request data',
-  })
+  @ApiResponse({ status: 400, description: 'Invalid request data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 422, description: 'Amount exceeds deposit limit for current KYC tier' })
+  @ApiResponse({ status: 429, description: 'Too many deposit attempts' })
   async initiateDeposit(
     @Request() req: AuthenticatedRequest,
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })) 

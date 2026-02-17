@@ -145,6 +145,9 @@ async function bootstrap() {
       'X-Requested-With',
       'X-Idempotency-Key',
       'X-Request-ID',
+      'X-Correlation-ID',
+      'X-Pin-Token',
+      'X-Device-ID',
       'Accept',
       'Accept-Language',
       'Origin',
@@ -154,8 +157,11 @@ async function bootstrap() {
     exposedHeaders: [
       'X-Idempotency-Key',
       'X-Request-ID',
+      'X-Correlation-ID',
       'X-RateLimit-Limit',
       'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+      'Retry-After',
     ],
 
     // PERFORMANCE: Cache preflight requests for 24 hours

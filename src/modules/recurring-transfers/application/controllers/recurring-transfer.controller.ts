@@ -25,7 +25,7 @@ interface UserPayload {
   walletId?: string;
 }
 
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
 @ApiTags('Recurring Transfers')
 @Controller('recurring-transfers')
 @UseGuards(JwtAuthGuard)
@@ -105,6 +105,10 @@ export class RecurringTransferController {
   @Post()
   @UseGuards(PinVerificationGuard)
   @ApiOperation({ summary: 'Create a recurring transfer (requires PIN)' })
+  @ApiHeader({ name: 'X-Pin-Token', description: 'PIN verification token', required: true })
+  @ApiResponse({ status: 201, description: 'Recurring transfer created' })
+  @ApiResponse({ status: 400, description: 'Invalid request data' })
+  @ApiResponse({ status: 403, description: 'PIN verification required or expired' })
   async create(
     @Body() dto: CreateRecurringTransferDto,
     @CurrentUser() user: UserPayload,
