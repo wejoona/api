@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   Query,
   UseGuards,
@@ -18,8 +20,9 @@ import {
   GetTransactionsUseCase,
   GetTransactionUseCase,
   GetDepositStatusUseCase,
+  ReverseTransactionUseCase,
 } from '../usecases';
-import { GetTransactionsQueryDto } from '../dto/requests';
+import { GetTransactionsQueryDto, ReverseTransactionDto } from '../dto/requests';
 
 @ApiTags('Transactions')
 @Controller('wallet/transactions')
@@ -30,6 +33,7 @@ export class TransactionController {
     private readonly getTransactionsUseCase: GetTransactionsUseCase,
     private readonly getTransactionUseCase: GetTransactionUseCase,
     private readonly getDepositStatusUseCase: GetDepositStatusUseCase,
+    private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
   ) {}
 
   @Get()
@@ -163,6 +167,41 @@ export class TransactionController {
       firstTransactionAt: txs.length > 0 ? txs[txs.length - 1].createdAt : null,
       lastTransactionAt: txs.length > 0 ? txs[0].createdAt : null,
     };
+  }
+
+  @Post(':id/reverse')
+  @ApiOperation({
+    summary: 'Reverse a completed transaction',
+    description:
+      'Creates a reversal for a completed transaction. Must be within 30 days of completion.',
+  })
+  @ApiParam({ name: 'id', description: 'Transaction ID to reverse' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction reversed successfully',
+    schema: {
+      example: {
+        reversalTransactionId: 'rev-123e4567-e89b-12d3-a456-426614174000',
+        originalTransactionId: '123e4567-e89b-12d3-a456-426614174000',
+        amount: 16.45,
+        currency: 'USD',
+        reason: 'Customer dispute',
+        status: 'reversed',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Transaction cannot be reversed' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  async reverseTransaction(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: ReverseTransactionDto,
+  ) {
+    return this.reverseTransactionUseCase.execute({
+      transactionId: id,
+      reason: dto.reason,
+      requestedBy: req.user.id,
+    });
   }
 
   @Get('deposit/:id/status')
