@@ -16,6 +16,7 @@ import {
   GetTransactionsUseCase,
   GetTransactionUseCase,
   GetDepositStatusUseCase,
+  ReverseTransactionUseCase,
 } from './application/usecases';
 
 // Domain Services
@@ -53,6 +54,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     GetTransactionsUseCase,
     GetTransactionUseCase,
     GetDepositStatusUseCase,
+    ReverseTransactionUseCase,
     // Domain Services
     ReconciliationService,
     TransactionSearchService,

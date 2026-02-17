@@ -6,6 +6,7 @@ import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
 import { SmsFactory, createSmsGateway } from './infrastructure/gateways/sms';
 import { PushFactory, createPushGateway } from './infrastructure/gateways/push';
 import { CacheInvalidationService, KeyVaultService, NtmClientService } from './infrastructure/services';
+import { SentryService } from '../../common/services/sentry.service';
 
 /**
  * SharedModule provides global access to external service gateways.
@@ -55,6 +56,8 @@ import { CacheInvalidationService, KeyVaultService, NtmClientService } from './i
       useFactory: createPushGateway,
       inject: [PushFactory],
     },
+    // Error Tracking
+    SentryService,
   ],
   exports: [
     PAYMENT_GATEWAY,
@@ -65,6 +68,7 @@ import { CacheInvalidationService, KeyVaultService, NtmClientService } from './i
     CacheInvalidationService,
     KeyVaultService,
     NtmClientService,
+    SentryService,
   ],
 })
 export class SharedModule {}

@@ -9,6 +9,7 @@ import { AppModule } from './app.module';
 import { MetricsInterceptor, LoggingInterceptor } from './common/interceptors';
 import { MetricsService } from './modules/metrics/metrics.service';
 import { getSecurityHeadersConfig } from './config/security-headers.config';
+import { SentryService, SentryExceptionFilter } from './common/services/sentry.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -174,6 +175,17 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix(apiPrefix);
+
+  // Initialize Sentry error tracking
+  try {
+    const sentryService = app.get(SentryService);
+    SentryExceptionFilter.initialize(sentryService);
+    const httpAdapter = app.getHttpAdapter();
+    app.useGlobalFilters(new SentryExceptionFilter(httpAdapter));
+    logger.log('Sentry exception filter registered');
+  } catch (e) {
+    logger.warn('Sentry service not available — error tracking disabled');
+  }
 
   // Global interceptors for monitoring and logging
   const metricsService = app.get(MetricsService);
