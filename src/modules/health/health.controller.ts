@@ -13,6 +13,7 @@ import {
   RedisHealthIndicator,
   YellowCardHealthIndicator,
   TwilioHealthIndicator,
+  StellarHealthIndicator,
 } from './health-indicators';
 
 @ApiTags('Health')
@@ -27,6 +28,7 @@ export class HealthController {
     private readonly redisHealth: RedisHealthIndicator,
     private readonly yellowCardHealth: YellowCardHealthIndicator,
     private readonly twilioHealth: TwilioHealthIndicator,
+    private readonly stellarHealth: StellarHealthIndicator,
   ) {}
 
   @Get()
@@ -63,6 +65,8 @@ export class HealthController {
       () => this.redisHealth.isHealthy('redis'),
       () => this.blnkHealth.isHealthy('blnk'),
       () => this.circleHealth.isHealthy('circle'),
+      () => this.stellarHealth.isHealthy('stellar'),
+      // Note: Yellow Card is DEACTIVATED — not included in readiness
     ]);
   }
 
@@ -83,6 +87,8 @@ export class HealthController {
   @ApiOperation({ summary: 'Get current exchange rates' })
   @ApiResponse({ status: 200, description: 'Exchange rates' })
   exchangeRates() {
+    // TODO: Replace with ExchangeRateService.getRates() for live rates
+    // These are fallback/default rates only
     return {
       baseCurrency: 'USDC',
       rates: {
@@ -91,7 +97,8 @@ export class HealthController {
         EUR: { buy: 0.92, sell: 0.94, mid: 0.93 },
       },
       updatedAt: new Date().toISOString(),
-      source: 'internal',
+      source: 'fallback',
+      warning: 'These are fallback rates. Inject ExchangeRateService for live rates.',
     };
   }
 
@@ -130,17 +137,19 @@ export class HealthController {
   }
 
   @Get('detailed')
-  @ApiOperation({ summary: 'Detailed health check with all services' })
+  @ApiOperation({ summary: 'Detailed health check with all services (admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Detailed health status',
   })
+  // TODO: Add @UseGuards(JwtAuthGuard, RolesGuard) @Roles('admin') for production
   async detailed() {
     const services: Record<string, any> = {
       database: { status: 'unknown' },
       redis: { status: 'unknown' },
       blnk: { status: 'unknown' },
       circle: { status: 'unknown' },
+      stellar: { status: 'unknown' },
     };
 
     // Check database
@@ -186,6 +195,17 @@ export class HealthController {
       services.circle = { status: 'up', ...result.circle };
     } catch (error: any) {
       services.circle = {
+        status: 'down',
+        error: error.message || 'Unknown error',
+      };
+    }
+
+    // Check Stellar
+    try {
+      const result = await this.stellarHealth.isHealthy('stellar');
+      services.stellar = { status: 'up', ...result.stellar };
+    } catch (error: any) {
+      services.stellar = {
         status: 'down',
         error: error.message || 'Unknown error',
       };

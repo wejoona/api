@@ -10,6 +10,9 @@ import { WithdrawalInitiatedEvent, WithdrawalCompletedEvent, WithdrawalFailedEve
 import { InitiateWithdrawalDto } from '../dto/initiate-withdrawal.dto';
 import { WithdrawalResponseDto } from '../dto/withdrawal-response.dto';
 import { ExchangeRateService } from '../../../exchange-rate/application/services/exchange-rate.service';
+import { getLimitsForKycStatus } from '../../../../common/constants/limits';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class WithdrawalService {
@@ -31,15 +34,30 @@ export class WithdrawalService {
   ): Promise<WithdrawalResponseDto> {
     this.logger.log(`Initiating withdrawal for user ${userId}: ${dto.amount} USDC → ${dto.currency}`);
 
+    // Validate minimum withdrawal amount
+    if (dto.amount < 100) {
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_AMOUNT_TOO_LOW,
+        'Minimum withdrawal amount is 100 (cents). That\'s $1.00 USDC.',
+      );
+    }
+
+    // Enforce withdrawal limits based on KYC status
+    await this.enforceWithdrawalLimits(userId, dto.amount);
+
     const provider = this.providerFactory.getProvider(dto.providerCode);
 
     // Convert USDC → XOF using exchange rate service
     const rateInfo = this.exchangeRateService.getRate('USD', dto.currency);
     if (!rateInfo) {
-      throw new BadRequestException(`Exchange rate not available for USD/${dto.currency}`);
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_RATE_UNAVAILABLE,
+        `Exchange rate not available for USD/${dto.currency}`,
+      );
     }
 
-    const usdcAmount = BigInt(dto.amount);
+    // Fix: amount is in cents (minor units), use BigInt correctly
+    const usdcAmount = BigInt(Math.round(dto.amount));
     // Convert: USDC minor units (cents) → fiat minor units
     const fiatAmount = BigInt(Math.round(Number(usdcAmount) * rateInfo.rate));
 
@@ -100,8 +118,10 @@ export class WithdrawalService {
       ),
     );
 
-    // Initiate fiat payout via provider (async)
-    this.processPayoutAsync(withdrawal, dto, fiatAmount);
+    // Initiate fiat payout via provider (async but with error handling)
+    this.processPayoutAsync(withdrawal, dto, fiatAmount).catch((error) => {
+      this.logger.error(`Unhandled payout error for withdrawal ${withdrawal.id}: ${error.message}`);
+    });
 
     return this.toResponseDto(withdrawal);
   }
@@ -124,6 +144,59 @@ export class WithdrawalService {
       total: result.total,
       hasMore: (params.offset || 0) + (params.limit || 20) < result.total,
     };
+  }
+
+  /**
+   * Enforce daily and monthly withdrawal limits based on user's KYC status.
+   */
+  private async enforceWithdrawalLimits(userId: string, amount: number): Promise<void> {
+    // Get user's KYC status for limit determination
+    // Amount is in minor units (cents), limits are in dollars
+    const amountInDollars = amount / 100;
+
+    // Fetch daily withdrawal volume
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [dailyVolume, monthlyVolume] = await Promise.all([
+      this.withdrawalRepository.getDailyVolume(userId, todayStart),
+      this.withdrawalRepository.getMonthlyVolume(userId, monthStart),
+    ]);
+
+    // Default to PENDING limits — service layer doesn't know KYC status directly,
+    // so we use conservative limits. The user module should expose KYC status.
+    // TODO: inject UserRepository to get actual KYC status
+    const limits = getLimitsForKycStatus('pending');
+
+    const dailyVolumeInDollars = Number(dailyVolume) / 100;
+    const monthlyVolumeInDollars = Number(monthlyVolume) / 100;
+
+    if (amountInDollars > limits.perTransactionLimit) {
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_LIMIT_EXCEEDED,
+        `Withdrawal amount exceeds per-transaction limit of $${limits.perTransactionLimit}`,
+      );
+    }
+
+    if (dailyVolumeInDollars + amountInDollars > limits.dailyLimit) {
+      const remaining = Math.max(0, limits.dailyLimit - dailyVolumeInDollars);
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_LIMIT_EXCEEDED,
+        `Daily withdrawal limit exceeded. Remaining: $${remaining.toFixed(2)}`,
+      );
+    }
+
+    if (monthlyVolumeInDollars + amountInDollars > limits.monthlyLimit) {
+      const remaining = Math.max(0, limits.monthlyLimit - monthlyVolumeInDollars);
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_LIMIT_EXCEEDED,
+        `Monthly withdrawal limit exceeded. Remaining: $${remaining.toFixed(2)}`,
+      );
+    }
   }
 
   private async processPayoutAsync(

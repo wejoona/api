@@ -3,3 +3,4 @@ export * from './blnk.health';
 export * from './redis.health';
 export * from './yellowcard.health';
 export * from './twilio.health';
+export * from './stellar.health';

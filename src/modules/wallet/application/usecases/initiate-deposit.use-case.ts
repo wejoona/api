@@ -58,9 +58,9 @@ export class InitiateDepositUseCase {
       throw new BadRequestException('Wallet is not active');
     }
 
-    if (!wallet.yellowCardWalletId) {
-      throw new BadRequestException('Wallet not linked to payment provider');
-    }
+    // Note: Yellow Card is DEACTIVATED. Deposits flow through mobile money providers
+    // (MTN, Orange, Wave, Moov) which don't require a provider-specific wallet ID.
+    // The deposit module handles provider routing via PaymentProviderFactory.
 
     // Validate amount
     if (input.amount <= 0) {

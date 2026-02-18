@@ -9,6 +9,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import {
   ApiTags,

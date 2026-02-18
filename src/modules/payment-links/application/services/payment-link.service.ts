@@ -4,7 +4,9 @@ import {
   BadRequestException,
   ForbiddenException,
   Inject,
+  Logger,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentLinkRepository } from '../../domain/repositories/payment-link.repository';
 import { PaymentLink } from '../../domain/entities/payment-link.entity';
 import {
@@ -20,16 +22,27 @@ import {
   ITransferRepository,
   TRANSFER_REPOSITORY,
 } from '../../../transfer/domain/repositories/transfer.repository';
+import {
+  ILedgerProvider,
+  LEDGER_PROVIDER,
+} from '../../../providers/interfaces';
 import { TransferEntity } from '../../../transfer/application/domain/entities/transfer.entity';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class PaymentLinkService {
+  private readonly logger = new Logger(PaymentLinkService.name);
+
   constructor(
     private readonly paymentLinkRepository: PaymentLinkRepository,
     @Inject(WALLET_REPOSITORY)
     private readonly walletRepository: IWalletRepository,
     @Inject(TRANSFER_REPOSITORY)
     private readonly transferRepository: ITransferRepository,
+    @Inject(LEDGER_PROVIDER)
+    private readonly ledgerProvider: ILedgerProvider,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createPaymentLink(
@@ -69,6 +82,16 @@ export class PaymentLinkService {
     });
 
     const saved = await this.paymentLinkRepository.save(paymentLink);
+
+    this.eventEmitter.emit('payment-link.created', {
+      paymentLinkId: saved.id,
+      userId,
+      amount: dto.amount,
+      currency: dto.currency || 'USDC',
+      expiresAt,
+      timestamp: new Date(),
+    });
+
     return this.toResponseDto(saved);
   }
 
@@ -227,8 +250,29 @@ export class PaymentLinkService {
       throw new BadRequestException('Payer wallet is not active');
     }
 
-    if (payerWallet.balance < amount) {
-      throw new BadRequestException('Insufficient balance');
+    // Check balance via Blnk ledger (source of truth)
+    try {
+      const amountInMicro = BigInt(Math.round(amount * 1_000_000));
+      const availableBalance = await this.ledgerProvider.getAvailableBalance(
+        payerUserId,
+        'USDC',
+      );
+      if (availableBalance < amountInMicro) {
+        throw AppException.badRequest(
+          ERROR_CODES.PAYMENT_LINK_INSUFFICIENT_FUNDS,
+          'Insufficient balance',
+        );
+      }
+    } catch (error) {
+      if (error instanceof AppException) throw error;
+      // Fallback to local balance check
+      this.logger.warn(`Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`);
+      if (payerWallet.balance < amount) {
+        throw AppException.badRequest(
+          ERROR_CODES.PAYMENT_LINK_INSUFFICIENT_FUNDS,
+          'Insufficient balance',
+        );
+      }
     }
 
     // Get recipient's wallet
@@ -243,38 +287,63 @@ export class PaymentLinkService {
       throw new BadRequestException('Recipient wallet is not active');
     }
 
-    // Create transfer
+    // Record P2P transfer in Blnk ledger (source of truth — NO direct wallet.debit/credit)
+    const reference = `pl_${paymentLink.code}_${Date.now()}`;
+    try {
+      const amountInMicro = BigInt(Math.round(amount * 1_000_000));
+      await this.ledgerProvider.recordP2PTransfer({
+        senderId: payerUserId,
+        recipientId: paymentLink.userId,
+        amount: amountInMicro,
+        currency: 'USDC',
+        reference,
+        description: `Payment link: ${paymentLink.code}`,
+        metadata: {
+          paymentLinkId: paymentLink.id,
+          paymentLinkCode: paymentLink.code,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Blnk P2P transfer failed for payment link ${paymentLink.code}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      throw new BadRequestException('Payment failed. Please try again later.');
+    }
+
+    // Create transfer record
     const transfer = TransferEntity.createInternal({
       senderId: payerUserId,
       senderWalletId: payerWallet.id,
       recipientId: paymentLink.userId,
       recipientWalletId: recipientWallet.id,
-      recipientPhone: '', // Will be filled by the system if needed
+      recipientPhone: '',
       amount,
       currency: paymentLink.currency,
       note: `Payment link: ${paymentLink.code}`,
       metadata: {
         paymentLinkId: paymentLink.id,
         paymentLinkCode: paymentLink.code,
+        blnkReference: reference,
       },
     });
-
-    // Debit sender
-    payerWallet.debit(amount);
-
-    // Credit recipient
-    recipientWallet.credit(amount);
 
     // Mark payment link as paid
     paymentLink.markAsPaid(payerUserId);
 
-    // Save all entities
+    // Save transfer record and payment link (wallet balances updated via Blnk, not locally)
     await Promise.all([
-      this.walletRepository.save(payerWallet),
-      this.walletRepository.save(recipientWallet),
       this.transferRepository.save(transfer),
       this.paymentLinkRepository.save(paymentLink),
     ]);
+
+    // Emit events
+    this.eventEmitter.emit('payment-link.paid', {
+      paymentLinkId: paymentLink.id,
+      payerUserId,
+      recipientUserId: paymentLink.userId,
+      amount,
+      currency: paymentLink.currency,
+      transactionId: transfer.id,
+      timestamp: new Date(),
+    });
 
     return {
       transactionId: transfer.id,

@@ -18,6 +18,9 @@ import {
 } from '../../../providers/interfaces';
 import { CacheInvalidationService } from '../../../shared/infrastructure/services';
 import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
+import { getLimitsForKycStatus } from '../../../../common/constants/limits';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface InternalTransferInput {
@@ -37,14 +40,6 @@ export interface InternalTransferOutput {
   fee: number;
   status: string;
 }
-
-// SECURITY: KYC-based daily transfer limits
-const DAILY_TRANSFER_LIMITS = {
-  none: 100,
-  pending: 100,
-  verified: 10000,
-  rejected: 0,
-};
 
 /**
  * Internal Transfer Use Case (Omnibus Pattern)
@@ -114,8 +109,11 @@ export class InternalTransferUseCase {
     if (!toWallet) throw new NotFoundException('Recipient wallet not found');
     if (toWallet.status !== 'active')
       throw new BadRequestException('Recipient wallet is not active');
+    // Check at user level (not wallet level) to handle potential multi-wallet scenarios
+    if (input.fromUserId === recipient.id)
+      throw AppException.badRequest(ERROR_CODES.TRANSFER_SELF_TRANSFER, 'Cannot transfer to yourself');
     if (fromWallet.id === toWallet.id)
-      throw new BadRequestException('Cannot transfer to yourself');
+      throw AppException.badRequest(ERROR_CODES.TRANSFER_SELF_TRANSFER, 'Cannot transfer to yourself');
 
     // Step 5: Check balance via Blnk (source of truth)
     try {
@@ -295,16 +293,16 @@ export class InternalTransferUseCase {
 
   private validateTransferRequest(input: InternalTransferInput): void {
     if (input.amount <= 0) {
-      throw new BadRequestException('Amount must be greater than 0');
+      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Amount must be greater than 0');
     }
     if (input.amount < 0.01) {
-      throw new BadRequestException('Minimum transfer amount is 0.01');
+      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Minimum transfer amount is 0.01');
     }
     if (
       !Number.isFinite(input.amount) ||
       Math.round(input.amount * 100) / 100 !== input.amount
     ) {
-      throw new BadRequestException('Invalid amount precision');
+      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Invalid amount precision');
     }
   }
 
@@ -330,13 +328,21 @@ export class InternalTransferUseCase {
     }
 
     const kycStatus = user.kycStatus || 'none';
-    const dailyLimit =
-      DAILY_TRANSFER_LIMITS[kycStatus as keyof typeof DAILY_TRANSFER_LIMITS] ??
-      DAILY_TRANSFER_LIMITS.none;
+    // Use unified limits from common/constants/limits.ts (single source of truth)
+    const limits = getLimitsForKycStatus(kycStatus);
 
-    if (dailyLimit === 0) {
-      throw new BadRequestException(
+    if (limits.perTransactionLimit === 0 || limits.dailyLimit === 0) {
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_BLOCKED,
         'Transfers are disabled. Please contact support regarding your KYC status.',
+      );
+    }
+
+    // Check per-transaction limit
+    if (amount > limits.perTransactionLimit) {
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_AMOUNT_TOO_HIGH,
+        `Transfer amount exceeds per-transaction limit of $${limits.perTransactionLimit}`,
       );
     }
 
@@ -348,10 +354,11 @@ export class InternalTransferUseCase {
       todayStart,
     );
 
-    if (dailyVolume + amount > dailyLimit) {
-      const remaining = Math.max(0, dailyLimit - dailyVolume);
-      throw new BadRequestException(
-        `Daily transfer limit exceeded. Your limit is $${dailyLimit}/day (KYC: ${kycStatus}). ` +
+    if (dailyVolume + amount > limits.dailyLimit) {
+      const remaining = Math.max(0, limits.dailyLimit - dailyVolume);
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_LIMIT_EXCEEDED,
+        `Daily transfer limit exceeded. Your limit is $${limits.dailyLimit}/day (KYC: ${kycStatus}). ` +
           `You have $${remaining.toFixed(2)} remaining today.`,
       );
     }

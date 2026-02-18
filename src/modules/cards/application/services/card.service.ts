@@ -3,24 +3,28 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CardRepository } from '../../domain/repositories/card.repository';
 import { CardEntity } from '../../domain/entities/card.entity';
 import { CreateCardDto } from '../dto/create-card.dto';
 import { UpdateSpendingLimitDto } from '../dto/update-card.dto';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class CardService {
   constructor(
     private readonly cardRepository: CardRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createCard(userId: string, dto: CreateCardDto): Promise<CardEntity> {
     // Check if user already has a card (limit 1 per user for now)
     const existingCards = await this.cardRepository.findByUserId(userId);
     if (existingCards.length > 0) {
-      throw new BadRequestException('User already has a virtual card');
+      throw AppException.badRequest(ERROR_CODES.CARD_ALREADY_EXISTS, 'User already has a virtual card');
     }
 
     // Get user's wallet
@@ -46,7 +50,16 @@ export class CardService {
       cardType: dto.cardType || 'virtual',
     });
 
-    return this.cardRepository.save(card);
+    const saved = await this.cardRepository.save(card);
+
+    this.eventEmitter.emit('card.created', {
+      userId,
+      cardId: saved.id,
+      cardType: dto.cardType || 'virtual',
+      timestamp: new Date(),
+    });
+
+    return saved;
   }
 
   async getCards(userId: string): Promise<CardEntity[]> {
@@ -67,13 +80,17 @@ export class CardService {
   async freezeCard(cardId: string, userId: string): Promise<CardEntity> {
     const card = await this.getCard(cardId, userId);
     card.freeze();
-    return this.cardRepository.save(card);
+    const saved = await this.cardRepository.save(card);
+    this.eventEmitter.emit('card.frozen', { userId, cardId, timestamp: new Date() });
+    return saved;
   }
 
   async unfreezeCard(cardId: string, userId: string): Promise<CardEntity> {
     const card = await this.getCard(cardId, userId);
     card.unfreeze();
-    return this.cardRepository.save(card);
+    const saved = await this.cardRepository.save(card);
+    this.eventEmitter.emit('card.unfrozen', { userId, cardId, timestamp: new Date() });
+    return saved;
   }
 
   async updateSpendingLimit(
@@ -90,5 +107,6 @@ export class CardService {
     const card = await this.getCard(cardId, userId);
     card.cancel();
     await this.cardRepository.save(card);
+    this.eventEmitter.emit('card.cancelled', { userId, cardId, timestamp: new Date() });
   }
 }

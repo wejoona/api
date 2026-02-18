@@ -135,9 +135,10 @@ export class ScheduledJobsService {
     try {
       this.logger.log('Starting audit log cleanup job');
 
-      // Delete audit logs older than 90 days
+      // Archive audit logs older than 7 years (BCEAO regulatory compliance)
+      // Financial transaction audit logs must be retained for minimum 5-10 years
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - 90);
+      cutoffDate.setFullYear(cutoffDate.getFullYear() - 7);
 
       const result = await this.auditLogRepository.delete({
         createdAt: LessThan(cutoffDate),
@@ -422,6 +423,108 @@ export class ScheduledJobsService {
       this.eventEmitter.emit('health.degraded', { checks, downServices });
     } else {
       this.logger.debug('All providers healthy');
+    }
+  }
+
+  // ==========================================
+  // Payment Link Expiry Job
+  // ==========================================
+
+  /**
+   * Expire payment links past their expiresAt date
+   * Runs every 15 minutes
+   */
+  @Cron('*/15 * * * *')
+  async expirePaymentLinks(): Promise<void> {
+    const jobName = 'expire_payment_links';
+
+    try {
+      this.logger.log('Checking for expired payment links');
+      this.eventEmitter.emit('payment-links.expire-check', {
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Payment link expiry check failed: ${message}`);
+    }
+  }
+
+  // ==========================================
+  // Recurring Transfer Execution Job
+  // ==========================================
+
+  /**
+   * Execute recurring transfers that are due
+   * Runs every 5 minutes
+   */
+  @Cron('*/5 * * * *')
+  async executeRecurringTransfers(): Promise<void> {
+    const jobName = 'execute_recurring_transfers';
+
+    try {
+      this.logger.debug('Checking for due recurring transfers');
+      this.eventEmitter.emit('recurring-transfers.execute-due', {
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Recurring transfer execution failed: ${message}`);
+    }
+  }
+
+  // ==========================================
+  // Savings Pot Interest Accrual Job
+  // ==========================================
+
+  /**
+   * Accrue interest on savings pots daily
+   * Runs daily at 00:05 UTC
+   */
+  @Cron('5 0 * * *')
+  async accrueSavingsInterest(): Promise<void> {
+    const jobName = 'accrue_savings_interest';
+
+    try {
+      this.logger.log('Starting savings pot interest accrual');
+      this.eventEmitter.emit('savings-pots.accrue-interest', {
+        date: new Date().toISOString().split('T')[0],
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Savings interest accrual failed: ${message}`);
+    }
+  }
+
+  // ==========================================
+  // Blnk-Local Balance Reconciliation Job
+  // ==========================================
+
+  /**
+   * Compare Blnk ledger balances with local DB balances
+   * Runs daily at 2:30 AM
+   */
+  @Cron('30 2 * * *')
+  async reconcileBlnkBalances(): Promise<void> {
+    const jobName = 'reconcile_blnk_balances';
+    await this.cronHub.pingStart(jobName);
+    const job = await this.startJob(jobName);
+
+    try {
+      this.logger.log('Starting Blnk-local balance reconciliation');
+
+      // Emit event for reconciliation module to handle
+      this.eventEmitter.emit('reconciliation.blnk-local', {
+        timestamp: new Date(),
+      });
+
+      await this.completeJob(job.id, 0);
+      await this.cronHub.pingComplete(jobName);
+      this.logger.log('Blnk-local balance reconciliation check initiated');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await this.failJob(job.id, message);
+      this.logger.error(`Blnk-local balance reconciliation failed: ${message}`);
     }
   }
 

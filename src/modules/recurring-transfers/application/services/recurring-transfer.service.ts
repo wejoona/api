@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RecurringTransferRepository } from '../../domain/repositories/recurring-transfer.repository';
 import { RecurringTransferHistoryRepository } from '../../domain/repositories/recurring-transfer-history.repository';
 import { RecurringTransfer } from '../../domain/entities/recurring-transfer.entity';
@@ -83,6 +84,7 @@ export class RecurringTransferService {
   constructor(
     private readonly recurringTransferRepository: RecurringTransferRepository,
     private readonly historyRepository: RecurringTransferHistoryRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -138,6 +140,17 @@ export class RecurringTransferService {
     this.logger.log(
       `Created recurring transfer ${saved.id} for wallet ${walletId}`,
     );
+
+    this.eventEmitter.emit('recurring-transfer.created', {
+      recurringTransferId: saved.id,
+      walletId,
+      recipientPhone: params.recipientPhone,
+      amount: params.amount,
+      currency: params.currency,
+      frequency: params.frequency,
+      timestamp: new Date(),
+    });
+
     return saved;
   }
 
@@ -254,6 +267,12 @@ export class RecurringTransferService {
 
     await this.recurringTransferRepository.save(transfer);
     this.logger.log(`Cancelled recurring transfer ${transferId}`);
+
+    this.eventEmitter.emit('recurring-transfer.cancelled', {
+      recurringTransferId: transferId,
+      walletId,
+      timestamp: new Date(),
+    });
   }
 
   /**

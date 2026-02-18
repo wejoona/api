@@ -24,11 +24,25 @@ export class CardOrmEntity {
   @Index()
   walletId: string;
 
-  @Column({ name: 'card_number', type: 'varchar', length: 16 })
-  cardNumber: string;
+  /**
+   * Card number stored encrypted at rest.
+   * Only the last 4 digits should be returned to clients.
+   * TODO: Implement column-level encryption via TypeORM transformer or application-level AES-256-GCM.
+   */
+  @Column({ name: 'card_number_encrypted', type: 'varchar', length: 512 })
+  cardNumberEncrypted: string;
 
-  @Column({ type: 'varchar', length: 3 })
-  cvv: string;
+  /** Last 4 digits of card number for display purposes */
+  @Column({ name: 'card_last_four', type: 'varchar', length: 4 })
+  cardLastFour: string;
+
+  /**
+   * CVV stored encrypted at rest. Should NEVER be returned in API responses.
+   * PCI DSS requires CVV to not be stored post-authorization.
+   * TODO: Remove CVV storage entirely once card issuer integration is complete.
+   */
+  @Column({ name: 'cvv_encrypted', type: 'varchar', length: 512 })
+  cvvEncrypted: string;
 
   @Column({ name: 'expiry_month', type: 'varchar', length: 2 })
   expiryMonth: string;
