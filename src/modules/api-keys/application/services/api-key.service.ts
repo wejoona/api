@@ -66,6 +66,11 @@ export class ApiKeyService {
       throw new UnauthorizedException('Invalid API key format');
     }
 
+    // Minimum key length check to reject obviously bogus keys early
+    if (rawKey.length < ApiKeyService.KEY_PREFIX.length + 16) {
+      throw new UnauthorizedException('Invalid API key format');
+    }
+
     const keyHash = this.hashKey(rawKey);
     const apiKey = await this.apiKeyRepository.findByKeyHash(keyHash);
 
@@ -78,6 +83,9 @@ export class ApiKeyService {
     }
 
     if (apiKey.isExpired()) {
+      // Auto-deactivate expired keys
+      const deactivated = apiKey.withDeactivated();
+      await this.apiKeyRepository.save(deactivated);
       throw new UnauthorizedException('API key has expired');
     }
 

@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { SessionRepository } from '../../domain/repositories/session.repository';
@@ -34,6 +35,7 @@ export interface SessionResponse {
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
+  private readonly MAX_ACTIVE_SESSIONS = 10;
 
   constructor(private readonly sessionRepository: SessionRepository) {}
 
@@ -51,6 +53,21 @@ export class SessionService {
       location,
       expiresInSeconds,
     } = params;
+
+    // Enforce maximum concurrent sessions per user
+    const activeCount = await this.sessionRepository.countActiveByUserId(userId);
+    if (activeCount >= this.MAX_ACTIVE_SESSIONS) {
+      this.logger.warn(
+        `User ${userId} has ${activeCount} active sessions, revoking oldest`,
+      );
+      // Revoke oldest session to make room
+      const sessions = await this.sessionRepository.findActiveByUserId(userId);
+      if (sessions.length > 0) {
+        const oldest = sessions[sessions.length - 1]; // Assuming sorted by creation
+        oldest.revoke('max_sessions_exceeded');
+        await this.sessionRepository.save(oldest);
+      }
+    }
 
     const refreshTokenHash = this.hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);

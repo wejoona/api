@@ -95,6 +95,17 @@ export class RecurringTransferService {
   ): Promise<RecurringTransfer> {
     const { walletId } = params;
 
+    // Validate amount
+    if (params.amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+    if (params.amount < 0.01) {
+      throw new BadRequestException('Minimum recurring transfer amount is $0.01');
+    }
+    if (!Number.isFinite(params.amount) || Math.round(params.amount * 100) / 100 !== params.amount) {
+      throw new BadRequestException('Amount must have at most 2 decimal places');
+    }
+
     // Check limit
     const count =
       await this.recurringTransferRepository.countByWalletId(walletId);

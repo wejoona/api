@@ -315,6 +315,14 @@ export class InternalTransferUseCase {
         'Recipient not found. They must register first.',
       );
     }
+
+    // Check if recipient account is active (not suspended/banned)
+    if ((recipient as any).status && (recipient as any).status !== 'active') {
+      throw new BadRequestException(
+        'Recipient account is not active. Transfer cannot be completed.',
+      );
+    }
+
     return recipient;
   }
 

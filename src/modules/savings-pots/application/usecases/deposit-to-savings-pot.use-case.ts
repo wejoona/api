@@ -2,18 +2,27 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource } from 'typeorm';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
+import { SavingsPotOrmEntity } from '../../infrastructure/orm-entities/savings-pot.orm-entity';
+import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wallet.orm-entity';
+import { SavingsPotMapper } from '../../infrastructure/mappers/savings-pot.mapper';
 import { DepositToSavingsPotDto } from '../dtos/deposit-withdraw.dto';
 
 @Injectable()
 export class DepositToSavingsPotUseCase {
+  private readonly logger = new Logger(DepositToSavingsPotUseCase.name);
+
   constructor(
     private readonly savingsPotRepository: SavingsPotRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly dataSource: DataSource,
+    private readonly savingsPotMapper: SavingsPotMapper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -43,13 +52,25 @@ export class DepositToSavingsPotUseCase {
       throw new BadRequestException('Insufficient wallet balance');
     }
 
-    // Debit wallet and credit savings pot
+    // Apply domain mutations
     wallet.debit(dto.amount);
     savingsPot.deposit(dto.amount);
 
-    // Save both entities
-    await this.walletRepository.save(wallet);
-    const saved = await this.savingsPotRepository.save(savingsPot);
+    // Save both in a DB transaction to ensure atomicity
+    let saved: SavingsPotEntity;
+    await this.dataSource.transaction(async (manager) => {
+      const walletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { id: wallet.id },
+      });
+      if (walletOrm) {
+        walletOrm.balance = wallet.balance;
+        await manager.save(walletOrm);
+      }
+
+      const potOrm = this.savingsPotMapper.toOrmEntity(savingsPot);
+      const savedOrm = await manager.save(SavingsPotOrmEntity, potOrm);
+      saved = this.savingsPotMapper.toDomainEntity(savedOrm);
+    });
 
     this.eventEmitter.emit('savings.deposit.completed', {
       userId,
@@ -58,6 +79,6 @@ export class DepositToSavingsPotUseCase {
       timestamp: new Date(),
     });
 
-    return saved;
+    return saved!;
   }
 }

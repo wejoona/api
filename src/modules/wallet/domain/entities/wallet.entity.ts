@@ -138,6 +138,9 @@ export class WalletEntity implements IWallet {
     if (amount <= 0) {
       throw new Error('Credit amount must be positive');
     }
+    if (this.status === 'closed') {
+      throw new Error('Cannot credit a closed wallet');
+    }
     this.balance += amount;
     this.updatedAt = new Date();
   }
@@ -145,6 +148,9 @@ export class WalletEntity implements IWallet {
   debit(amount: number): void {
     if (amount <= 0) {
       throw new Error('Debit amount must be positive');
+    }
+    if (this.status !== 'active') {
+      throw new Error('Cannot debit from a non-active wallet');
     }
     if (this.balance < amount) {
       throw new Error('Insufficient balance');
@@ -169,6 +175,9 @@ export class WalletEntity implements IWallet {
   }
 
   close(): void {
+    if (this.balance > 0) {
+      throw new Error('Cannot close wallet with remaining balance');
+    }
     this.status = 'closed';
     this.updatedAt = new Date();
   }

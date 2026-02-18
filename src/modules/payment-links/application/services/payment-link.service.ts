@@ -308,6 +308,14 @@ export class PaymentLinkService {
       throw new BadRequestException('Payment failed. Please try again later.');
     }
 
+    // Update local wallet balances as mirror of Blnk
+    payerWallet.debit(amount);
+    recipientWallet.credit(amount);
+    await Promise.all([
+      this.walletRepository.save(payerWallet),
+      this.walletRepository.save(recipientWallet),
+    ]);
+
     // Create transfer record
     const transfer = TransferEntity.createInternal({
       senderId: payerUserId,

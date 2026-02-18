@@ -27,6 +27,14 @@ export class CreateSavingsPotUseCase {
       throw new NotFoundException('Wallet not found');
     }
 
+    // Limit number of savings pots per wallet
+    const existingPots = await this.savingsPotRepository.findActiveByWalletId(wallet.id);
+    if (existingPots.length >= 20) {
+      throw new BadRequestException(
+        'Maximum number of active savings pots (20) reached',
+      );
+    }
+
     // Validate auto deposit settings
     if (
       (dto.autoDepositAmount && !dto.autoDepositFrequency) ||

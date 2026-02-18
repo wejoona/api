@@ -10,6 +10,7 @@ import { WithdrawalInitiatedEvent, WithdrawalCompletedEvent, WithdrawalFailedEve
 import { InitiateWithdrawalDto } from '../dto/initiate-withdrawal.dto';
 import { WithdrawalResponseDto } from '../dto/withdrawal-response.dto';
 import { ExchangeRateService } from '../../../exchange-rate/application/services/exchange-rate.service';
+import { UserRepository } from '../../../user/infrastructure/repositories/user.repository';
 import { getLimitsForKycStatus } from '../../../../common/constants/limits';
 import { AppException } from '../../../../common/exceptions';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
@@ -24,6 +25,7 @@ export class WithdrawalService {
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly exchangeRateService: ExchangeRateService,
+    private readonly userRepository: UserRepository,
     @Inject(LEDGER_PROVIDER)
     private readonly ledgerProvider: ILedgerProvider,
   ) {}
@@ -150,9 +152,16 @@ export class WithdrawalService {
    * Enforce daily and monthly withdrawal limits based on user's KYC status.
    */
   private async enforceWithdrawalLimits(userId: string, amount: number): Promise<void> {
-    // Get user's KYC status for limit determination
     // Amount is in minor units (cents), limits are in dollars
     const amountInDollars = amount / 100;
+
+    // Fetch user's actual KYC status for accurate limit determination
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const kycStatus = user.kycStatus || 'none';
 
     // Fetch daily withdrawal volume
     const todayStart = new Date();
@@ -167,10 +176,7 @@ export class WithdrawalService {
       this.withdrawalRepository.getMonthlyVolume(userId, monthStart),
     ]);
 
-    // Default to PENDING limits — service layer doesn't know KYC status directly,
-    // so we use conservative limits. The user module should expose KYC status.
-    // TODO: inject UserRepository to get actual KYC status
-    const limits = getLimitsForKycStatus('pending');
+    const limits = getLimitsForKycStatus(kycStatus);
 
     const dailyVolumeInDollars = Number(dailyVolume) / 100;
     const monthlyVolumeInDollars = Number(monthlyVolume) / 100;

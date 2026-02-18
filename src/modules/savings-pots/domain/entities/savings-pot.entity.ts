@@ -129,12 +129,15 @@ export class SavingsPotEntity implements ISavingsPot {
   }
 
   withdrawAll(): number {
-    const amount = this.currentAmount;
+    if (this.status !== 'active' && this.status !== 'completed') {
+      throw new Error('Cannot withdraw from a cancelled savings pot');
+    }
     if (this.isLocked && this.lockUntil && new Date() < this.lockUntil) {
       throw new Error(
         'Savings pot is locked until ' + this.lockUntil.toISOString(),
       );
     }
+    const amount = this.currentAmount;
     this.currentAmount = 0;
     this.updatedAt = new Date();
     return amount;

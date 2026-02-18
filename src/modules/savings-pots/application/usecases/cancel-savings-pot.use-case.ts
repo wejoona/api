@@ -2,17 +2,26 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource } from 'typeorm';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
+import { SavingsPotOrmEntity } from '../../infrastructure/orm-entities/savings-pot.orm-entity';
+import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wallet.orm-entity';
+import { SavingsPotMapper } from '../../infrastructure/mappers/savings-pot.mapper';
 
 @Injectable()
 export class CancelSavingsPotUseCase {
+  private readonly logger = new Logger(CancelSavingsPotUseCase.name);
+
   constructor(
     private readonly savingsPotRepository: SavingsPotRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly dataSource: DataSource,
+    private readonly savingsPotMapper: SavingsPotMapper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -45,24 +54,38 @@ export class CancelSavingsPotUseCase {
       );
     }
 
-    // Return funds to wallet if any
-    if (savingsPot.currentAmount > 0) {
-      wallet.credit(savingsPot.currentAmount);
+    // Return funds to wallet and cancel - all in a DB transaction
+    const refundAmount = savingsPot.currentAmount;
+    if (refundAmount > 0) {
+      wallet.credit(refundAmount);
       savingsPot.withdrawAll();
-      await this.walletRepository.save(wallet);
     }
-
-    // Cancel the savings pot
     savingsPot.cancel();
 
-    const saved = await this.savingsPotRepository.save(savingsPot);
+    let saved: SavingsPotEntity;
+    await this.dataSource.transaction(async (manager) => {
+      if (refundAmount > 0) {
+        const walletOrm = await manager.findOne(WalletOrmEntity, {
+          where: { id: wallet.id },
+        });
+        if (walletOrm) {
+          walletOrm.balance = wallet.balance;
+          await manager.save(walletOrm);
+        }
+      }
+
+      const potOrm = this.savingsPotMapper.toOrmEntity(savingsPot);
+      const savedOrm = await manager.save(SavingsPotOrmEntity, potOrm);
+      saved = this.savingsPotMapper.toDomainEntity(savedOrm);
+    });
 
     this.eventEmitter.emit('savings.pot.cancelled', {
       userId,
       savingsPotId,
+      refundAmount,
       timestamp: new Date(),
     });
 
-    return saved;
+    return saved!;
   }
 }

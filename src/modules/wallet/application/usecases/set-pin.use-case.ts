@@ -11,6 +11,7 @@ export interface SetPinInput {
   userId: string;
   pin: string;
   confirmPin: string;
+  currentPin?: string;
 }
 
 export interface SetPinOutput {
@@ -34,6 +35,22 @@ export class SetPinUseCase {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // If user already has a PIN, require current PIN for security
+    if (user.hasPin) {
+      if (!input.currentPin) {
+        throw new BadRequestException(
+          'Current PIN is required to update your PIN',
+        );
+      }
+      const isCurrentValid = await bcrypt.compare(
+        input.currentPin,
+        user.pinHash,
+      );
+      if (!isCurrentValid) {
+        throw new BadRequestException('Current PIN is incorrect');
+      }
     }
 
     // Validate PINs match

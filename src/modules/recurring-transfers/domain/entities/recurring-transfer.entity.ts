@@ -176,6 +176,12 @@ export class RecurringTransfer {
     if (amount <= 0) {
       throw new Error('Amount must be positive');
     }
+    if (amount < 0.01) {
+      throw new Error('Minimum recurring transfer amount is 0.01');
+    }
+    if (!Number.isFinite(amount) || Math.round(amount * 100) / 100 !== amount) {
+      throw new Error('Amount must have at most 2 decimal places');
+    }
     this._amount = amount;
   }
 
@@ -329,6 +335,14 @@ export class RecurringTransfer {
     // Validate
     if (props.amount <= 0) {
       throw new Error('Amount must be positive');
+    }
+
+    if (props.amount < 0.01) {
+      throw new Error('Minimum recurring transfer amount is 0.01');
+    }
+
+    if (!Number.isFinite(props.amount) || Math.round(props.amount * 100) / 100 !== props.amount) {
+      throw new Error('Amount must have at most 2 decimal places');
     }
 
     if (props.startDate < new Date()) {

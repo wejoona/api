@@ -67,6 +67,18 @@ export class InitiateDepositUseCase {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
+    if (!Number.isFinite(input.amount)) {
+      throw new BadRequestException('Invalid amount');
+    }
+
+    // Maximum deposit amount (in source currency, e.g. XOF)
+    const MAX_DEPOSIT_AMOUNT = 10_000_000; // 10M XOF ≈ ~$16,600
+    if (input.amount > MAX_DEPOSIT_AMOUNT) {
+      throw new BadRequestException(
+        `Maximum deposit amount is ${MAX_DEPOSIT_AMOUNT.toLocaleString()} ${input.sourceCurrency}`,
+      );
+    }
+
     // Risk evaluation via Risk Manager
     const riskResult = await this.riskEvaluationService.evaluate({
       transactionId: uuidv4(),

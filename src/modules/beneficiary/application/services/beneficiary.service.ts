@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { BeneficiaryRepository } from '../../domain/repositories/beneficiary.repository';
 import {
@@ -63,6 +64,13 @@ export class BeneficiaryService {
     params: CreateBeneficiaryParams,
   ): Promise<Beneficiary> {
     const { walletId, phoneE164 } = params;
+
+    // Validate E.164 phone format if provided
+    if (phoneE164 && !/^\+[1-9]\d{1,14}$/.test(phoneE164)) {
+      throw new BadRequestException(
+        'Phone number must be in E.164 format (e.g., +2250701234567)',
+      );
+    }
 
     // Check if beneficiary with same phone already exists
     if (phoneE164) {

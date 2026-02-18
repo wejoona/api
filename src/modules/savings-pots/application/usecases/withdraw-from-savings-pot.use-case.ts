@@ -2,18 +2,27 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource } from 'typeorm';
 import { SavingsPotRepository } from '../../infrastructure/repositories/savings-pot.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { SavingsPotEntity } from '../../domain/entities/savings-pot.entity';
+import { SavingsPotOrmEntity } from '../../infrastructure/orm-entities/savings-pot.orm-entity';
+import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wallet.orm-entity';
+import { SavingsPotMapper } from '../../infrastructure/mappers/savings-pot.mapper';
 import { WithdrawFromSavingsPotDto } from '../dtos/deposit-withdraw.dto';
 
 @Injectable()
 export class WithdrawFromSavingsPotUseCase {
+  private readonly logger = new Logger(WithdrawFromSavingsPotUseCase.name);
+
   constructor(
     private readonly savingsPotRepository: SavingsPotRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly dataSource: DataSource,
+    private readonly savingsPotMapper: SavingsPotMapper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -49,13 +58,25 @@ export class WithdrawFromSavingsPotUseCase {
       throw new BadRequestException('Insufficient balance in savings pot');
     }
 
-    // Debit savings pot and credit wallet
+    // Apply domain mutations
     savingsPot.withdraw(dto.amount);
     wallet.credit(dto.amount);
 
-    // Save both entities
-    await this.walletRepository.save(wallet);
-    const saved = await this.savingsPotRepository.save(savingsPot);
+    // Save both in a DB transaction to ensure atomicity
+    let saved: SavingsPotEntity;
+    await this.dataSource.transaction(async (manager) => {
+      const walletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { id: wallet.id },
+      });
+      if (walletOrm) {
+        walletOrm.balance = wallet.balance;
+        await manager.save(walletOrm);
+      }
+
+      const potOrm = this.savingsPotMapper.toOrmEntity(savingsPot);
+      const savedOrm = await manager.save(SavingsPotOrmEntity, potOrm);
+      saved = this.savingsPotMapper.toDomainEntity(savedOrm);
+    });
 
     this.eventEmitter.emit('savings.withdrawal.completed', {
       userId,
@@ -64,7 +85,7 @@ export class WithdrawFromSavingsPotUseCase {
       timestamp: new Date(),
     });
 
-    return saved;
+    return saved!;
   }
 
   async executeAll(
@@ -94,13 +115,29 @@ export class WithdrawFromSavingsPotUseCase {
       throw new BadRequestException('Cannot withdraw from this savings pot');
     }
 
-    // Withdraw all and credit wallet
+    if (savingsPot.currentAmount <= 0) {
+      throw new BadRequestException('Savings pot has no funds to withdraw');
+    }
+
+    // Apply domain mutations
     const amount = savingsPot.withdrawAll();
     wallet.credit(amount);
 
-    // Save both entities
-    await this.walletRepository.save(wallet);
-    const saved = await this.savingsPotRepository.save(savingsPot);
+    // Save both in a DB transaction to ensure atomicity
+    let saved: SavingsPotEntity;
+    await this.dataSource.transaction(async (manager) => {
+      const walletOrm = await manager.findOne(WalletOrmEntity, {
+        where: { id: wallet.id },
+      });
+      if (walletOrm) {
+        walletOrm.balance = wallet.balance;
+        await manager.save(walletOrm);
+      }
+
+      const potOrm = this.savingsPotMapper.toOrmEntity(savingsPot);
+      const savedOrm = await manager.save(SavingsPotOrmEntity, potOrm);
+      saved = this.savingsPotMapper.toDomainEntity(savedOrm);
+    });
 
     this.eventEmitter.emit('savings.withdrawal.completed', {
       userId,
@@ -109,6 +146,6 @@ export class WithdrawFromSavingsPotUseCase {
       timestamp: new Date(),
     });
 
-    return saved;
+    return saved!;
   }
 }
