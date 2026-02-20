@@ -24,19 +24,4 @@ export class CreateCardDto {
   cardType?: CardType;
 }
 
-export class CreateCardResponseDto {
-  id: string;
-  userId: string;
-  walletId: string;
-  cardNumber: string;
-  cvv: string;
-  expiryMonth: string;
-  expiryYear: string;
-  cardholderName: string;
-  cardType: string;
-  status: string;
-  spendingLimit: number;
-  spentAmount: number;
-  currency: string;
-  createdAt: string;
-}
+/** @deprecated Use CardResponseDto instead — never expose CVV in responses */

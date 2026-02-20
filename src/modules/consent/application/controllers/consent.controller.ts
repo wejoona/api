@@ -25,9 +25,11 @@ import {
   ConsentHistoryResponseDto,
 } from '../dto/consent-status.dto';
 import { ConsentType } from '../../domain/enums/consent-type.enum';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 
 @ApiTags('Consent')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('consent')
 export class ConsentController {
   constructor(private readonly consentService: ConsentService) {}

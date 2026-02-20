@@ -1,8 +1,11 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ExchangeRateService } from '../services/exchange-rate.service';
+import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 
 @ApiTags('Exchange Rates')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('rates')
 export class ExchangeRateController {
   constructor(private readonly rateService: ExchangeRateService) {}

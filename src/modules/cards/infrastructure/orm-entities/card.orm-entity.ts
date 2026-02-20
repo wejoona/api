@@ -37,12 +37,13 @@ export class CardOrmEntity {
   cardLastFour: string;
 
   /**
-   * CVV stored encrypted at rest. Should NEVER be returned in API responses.
-   * PCI DSS requires CVV to not be stored post-authorization.
-   * TODO: Remove CVV storage entirely once card issuer integration is complete.
+   * CVV — PCI DSS prohibits storing CVV post-authorization.
+   * This column is DEPRECATED and should NOT be populated.
+   * Existing data should be purged via migration.
+   * @deprecated Do not store CVV. Will be removed in a future migration.
    */
-  @Column({ name: 'cvv_encrypted', type: 'varchar', length: 512 })
-  cvvEncrypted: string;
+  @Column({ name: 'cvv_encrypted', type: 'varchar', length: 512, nullable: true })
+  cvvEncrypted: string | null;
 
   @Column({ name: 'expiry_month', type: 'varchar', length: 2 })
   expiryMonth: string;

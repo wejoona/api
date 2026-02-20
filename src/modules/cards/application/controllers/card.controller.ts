@@ -55,8 +55,8 @@ export class CardController {
     @CurrentUser() user: User,
   ): Promise<CardResponseDto> {
     const card = await this.cardService.getCard(id, user.id);
-    // Include sensitive data for detail view
-    return CardResponseDto.fromEntity(card, true);
+    // Never return full card number on GET — only masked
+    return CardResponseDto.fromEntity(card, false);
   }
 
   @Put(':id/freeze')

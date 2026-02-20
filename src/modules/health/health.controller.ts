@@ -1,5 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import {
   HealthCheckService,
   HealthCheck,
@@ -137,12 +140,14 @@ export class HealthController {
   }
 
   @Get('detailed')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Detailed health check with all services (admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Detailed health status',
   })
-  // TODO: Add @UseGuards(JwtAuthGuard, RolesGuard) @Roles('admin') for production
   async detailed() {
     const services: Record<string, any> = {
       database: { status: 'unknown' },
