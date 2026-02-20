@@ -339,7 +339,7 @@ export class InternalTransferUseCase {
     // Use unified limits from common/constants/limits.ts (single source of truth)
     const limits = getLimitsForKycStatus(kycStatus);
 
-    if (limits.perTransactionLimit === 0 || limits.dailyLimit === 0) {
+    if (Number(limits.perTransactionLimit) === 0 || Number(limits.dailyLimit) === 0) {
       throw AppException.badRequest(
         ERROR_CODES.TRANSFER_BLOCKED,
         'Transfers are disabled. Please contact support regarding your KYC status.',

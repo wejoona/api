@@ -69,6 +69,32 @@ export class WithdrawalRepository {
     return updated;
   }
 
+  async getDailyVolume(userId: string, since: Date): Promise<bigint> {
+    const result = await this.repository
+      .createQueryBuilder('w')
+      .select('COALESCE(SUM(w.amount), 0)', 'total')
+      .where('w.userId = :userId', { userId })
+      .andWhere('w.createdAt >= :since', { since })
+      .andWhere('w.status NOT IN (:...excluded)', {
+        excluded: [WithdrawalStatus.FAILED, WithdrawalStatus.CANCELLED],
+      })
+      .getRawOne();
+    return BigInt(result?.total || '0');
+  }
+
+  async getMonthlyVolume(userId: string, since: Date): Promise<bigint> {
+    const result = await this.repository
+      .createQueryBuilder('w')
+      .select('COALESCE(SUM(w.amount), 0)', 'total')
+      .where('w.userId = :userId', { userId })
+      .andWhere('w.createdAt >= :since', { since })
+      .andWhere('w.status NOT IN (:...excluded)', {
+        excluded: [WithdrawalStatus.FAILED, WithdrawalStatus.CANCELLED],
+      })
+      .getRawOne();
+    return BigInt(result?.total || '0');
+  }
+
   async list(params: ListWithdrawalsParams): Promise<{ withdrawals: WithdrawalEntity[]; total: number }> {
     const where: any = { userId: params.userId };
     if (params.status) where.status = params.status;

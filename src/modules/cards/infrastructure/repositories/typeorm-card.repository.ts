@@ -66,8 +66,8 @@ export class TypeOrmCardRepository extends CardRepository {
       id: entity.id,
       userId: entity.userId,
       walletId: entity.walletId,
-      cardNumber: entity.cardNumber,
-      cvv: entity.cvv,
+      cardNumber: entity.cardNumberEncrypted,
+      cvv: entity.cvvEncrypted || '',
       expiryMonth: entity.expiryMonth,
       expiryYear: entity.expiryYear,
       cardholderName: entity.cardholderName,
@@ -87,8 +87,8 @@ export class TypeOrmCardRepository extends CardRepository {
     entity.id = card.id;
     entity.userId = card.userId;
     entity.walletId = card.walletId;
-    entity.cardNumber = card.cardNumber;
-    entity.cvv = card.cvv;
+    entity.cardNumberEncrypted = card.cardNumber;
+    entity.cvvEncrypted = null; // CVV must NOT be persisted (PCI DSS)
     entity.expiryMonth = card.expiryMonth;
     entity.expiryYear = card.expiryYear;
     entity.cardholderName = card.cardholderName;
