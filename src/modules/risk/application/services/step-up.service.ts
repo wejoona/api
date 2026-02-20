@@ -8,7 +8,7 @@
  * 🔴 RED (score 61+): High friction - Liveness required
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -219,13 +219,13 @@ export class StepUpService {
     const pending = this.pendingChallenges.get(validation.challengeToken);
 
     if (!pending) {
-      throw new Error('Invalid or expired challenge token');
+      throw new UnauthorizedException('Invalid or expired challenge token');
     }
 
     // Check expiry
     if (new Date() > pending.decision.expiresAt) {
       this.pendingChallenges.delete(validation.challengeToken);
-      throw new Error('Challenge has expired');
+      throw new UnauthorizedException('Challenge has expired');
     }
 
     // Validate based on step-up type
@@ -253,7 +253,7 @@ export class StepUpService {
     }
 
     if (!valid) {
-      throw new Error(`Step-up validation failed: ${stepUpType} not completed`);
+      throw new BadRequestException(`Step-up validation failed: ${stepUpType} not completed`);
     }
 
     // Create result
@@ -411,7 +411,7 @@ export class StepUpService {
   ): Promise<{ sent: boolean }> {
     const pending = this.pendingChallenges.get(challengeToken);
     if (!pending || pending.userId !== userId) {
-      throw new Error('Invalid or expired challenge token');
+      throw new UnauthorizedException('Invalid or expired challenge token');
     }
 
     // Generate 6-digit OTP
@@ -440,23 +440,23 @@ export class StepUpService {
   ): Promise<StepUpResult> {
     const otpEntry = this.otpStore.get(challengeToken);
     if (!otpEntry) {
-      throw new Error('No OTP found for this challenge');
+      throw new BadRequestException('No OTP found for this challenge');
     }
 
     if (new Date() > otpEntry.expiresAt) {
       this.otpStore.delete(challengeToken);
-      throw new Error('OTP has expired');
+      throw new UnauthorizedException('OTP has expired');
     }
 
     otpEntry.attempts += 1;
     if (otpEntry.attempts > 5) {
       this.otpStore.delete(challengeToken);
       this.pendingChallenges.delete(challengeToken);
-      throw new Error('Too many OTP attempts');
+      throw new UnauthorizedException('Too many OTP attempts');
     }
 
     if (otpEntry.code !== code) {
-      throw new Error('Invalid OTP code');
+      throw new UnauthorizedException('Invalid OTP code');
     }
 
     // OTP valid — complete step-up

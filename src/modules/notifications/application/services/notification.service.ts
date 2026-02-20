@@ -3,7 +3,7 @@
  * Core service for sending notifications across all channels
  */
 
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -273,7 +273,7 @@ export class NotificationService {
     // Validate token
     const isValid = await this.pushProvider.validateToken(token);
     if (!isValid) {
-      throw new Error('Invalid device token');
+      throw new BadRequestException('Invalid device token');
     }
 
     // Check if token already exists

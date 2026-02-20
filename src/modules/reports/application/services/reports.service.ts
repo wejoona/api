@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { TransactionOrmEntity } from '@modules/transaction/infrastructure/orm-entities';
@@ -274,7 +274,7 @@ export class ReportsService {
   }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error(`User ${userId} not found`);
+      throw new NotFoundException(`User ${userId} not found`);
     }
 
     const wallets = await this.walletRepository.find({

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -413,7 +413,7 @@ export class AMLCFTService {
     });
 
     if (!user) {
-      throw new Error(`User ${userId} not found`);
+      throw new NotFoundException(`User ${userId} not found`);
     }
 
     // PROVIDER_INTEGRATION: Wire to ComplyAdvantage/Refinitiv PEP API
@@ -678,7 +678,7 @@ export class AMLCFTService {
     });
 
     if (!alert) {
-      throw new Error(`Alert ${alertId} not found`);
+      throw new NotFoundException(`Alert ${alertId} not found`);
     }
 
     alert.acknowledgedAt = new Date();
@@ -701,7 +701,7 @@ export class AMLCFTService {
     });
 
     if (!alert) {
-      throw new Error(`Alert ${alertId} not found`);
+      throw new NotFoundException(`Alert ${alertId} not found`);
     }
 
     alert.resolved = true;

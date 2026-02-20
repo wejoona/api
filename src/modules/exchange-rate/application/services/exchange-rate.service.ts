@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -120,7 +120,7 @@ export class ExchangeRateService implements OnModuleInit {
 
     const rate = this.getRate(normalizedFrom, normalizedTo);
     if (!rate) {
-      throw new Error(`No exchange rate available for ${from}/${to}`);
+      throw new BadRequestException(`No exchange rate available for ${from}/${to}`);
     }
 
     const fee = amount * (this.feePercent / 100);

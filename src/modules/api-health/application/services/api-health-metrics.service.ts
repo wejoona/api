@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram, Gauge } from 'prom-client';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -187,7 +187,7 @@ export class ApiHealthMetricsService {
     const collector = this.collectors.find((c) => c.getProvider() === provider);
 
     if (!collector) {
-      throw new Error(`No health collector found for provider: ${provider}`);
+      throw new NotFoundException(`No health collector found for provider: ${provider}`);
     }
 
     await this.collectMetricsForProvider(collector);

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -76,7 +76,7 @@ export class SARGeneratorService {
     });
 
     if (!user) {
-      throw new Error(`User ${userId} not found`);
+      throw new NotFoundException(`User ${userId} not found`);
     }
 
     // Fetch transaction details
@@ -165,7 +165,7 @@ export class SARGeneratorService {
     });
 
     if (!user) {
-      throw new Error(`User ${userId} not found`);
+      throw new NotFoundException(`User ${userId} not found`);
     }
 
     const transactions = await this.transactionRepository.find({
@@ -225,7 +225,7 @@ export class SARGeneratorService {
     });
 
     if (!sar) {
-      throw new Error(`SAR ${sarId} not found`);
+      throw new NotFoundException(`SAR ${sarId} not found`);
     }
 
     return sar;

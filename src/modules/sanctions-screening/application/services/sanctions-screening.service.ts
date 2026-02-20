@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { SanctionsScreeningProvider } from '../../domain/interfaces/sanctions-screening-provider.interface';
@@ -358,11 +358,11 @@ export class SanctionsScreeningService {
     const match = await this.repository.findMatchById(matchId);
 
     if (!match) {
-      throw new Error(`Match ${matchId} not found`);
+      throw new NotFoundException(`Match ${matchId} not found`);
     }
 
     if (match.status !== 'pending') {
-      throw new Error(`Match ${matchId} has already been reviewed`);
+      throw new BadRequestException(`Match ${matchId} has already been reviewed`);
     }
 
     let updatedMatch: ScreeningMatch;

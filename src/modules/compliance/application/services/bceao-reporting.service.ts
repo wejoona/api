@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan, In } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
@@ -374,7 +374,7 @@ export class BCEAOReportingService {
     });
 
     if (!report) {
-      throw new Error(`Report ${reportId} not found`);
+      throw new NotFoundException(`Report ${reportId} not found`);
     }
 
     return report;

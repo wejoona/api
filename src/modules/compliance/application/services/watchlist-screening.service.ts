@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -98,7 +98,7 @@ export class WatchlistScreeningService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      throw new Error(`User ${userId} not found`);
+      throw new NotFoundException(`User ${userId} not found`);
     }
 
     this.logger.log(`Screening user ${userId}`);
@@ -432,11 +432,11 @@ export class WatchlistScreeningService {
     const match = await this.watchlistRepository.findMatchById(matchId);
 
     if (!match) {
-      throw new Error(`Match ${matchId} not found`);
+      throw new NotFoundException(`Match ${matchId} not found`);
     }
 
     if (match.status !== 'pending') {
-      throw new Error(`Match ${matchId} has already been reviewed`);
+      throw new BadRequestException(`Match ${matchId} has already been reviewed`);
     }
 
     let updatedMatch: WatchlistMatch;
