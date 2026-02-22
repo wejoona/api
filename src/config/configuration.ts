@@ -86,17 +86,29 @@ export default () => ({
       process.env.TWILIO_USE_MOCK === 'true' || !process.env.TWILIO_ACCOUNT_SID,
   },
 
-  // OTP Settings
+  // OTP Settings (legacy — prefer verification.* config)
   otp: {
     expiresIn: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300, // 5 minutes
     length: parseInt(process.env.OTP_LENGTH, 10) || 6,
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 3,
-    // Dev mode: use fixed OTP for testing (default: 123456)
-    useDevOtp:
-      process.env.OTP_USE_DEV === 'true' ||
-      process.env.NODE_ENV === 'development',
-    devOtp: process.env.OTP_DEV_CODE || '123456',
     enableDebugLogging: process.env.OTP_DEBUG_LOGGING === 'true',
+  },
+
+  // Verification Strategy
+  verification: {
+    // 'local' — generate OTP locally, store in Redis, deliver via SMS gateway
+    // 'verifyhq' — delegate to VerifyHQ API
+    strategy: process.env.VERIFICATION_STRATEGY || 'local',
+    verifyhq: {
+      baseUrl: process.env.VERIFYHQ_BASE_URL || 'https://api.verifyhq.com',
+      apiKey: process.env.VERIFYHQ_API_KEY || '',
+    },
+    local: {
+      otpLength: parseInt(process.env.OTP_LENGTH, 10) || 6,
+      expirySeconds: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300,
+      deliveryProvider: process.env.VERIFICATION_DELIVERY_PROVIDER || 'dispatch',
+      dispatchBaseUrl: process.env.DISPATCH_BASE_URL || '',
+    },
   },
 
   // Rate Limiting

@@ -12,7 +12,7 @@ import { Cache } from 'cache-manager';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { UserRepository } from '../../../infrastructure/repositories';
-import { OtpService } from '../services';
+import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
 
 // ============================================
 // SET PIN
@@ -291,7 +291,7 @@ export class ResetPinUsecase {
 
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly otpService: OtpService,
+    private readonly verificationFacade: VerificationFacadeService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -303,7 +303,7 @@ export class ResetPinUsecase {
     }
 
     // Verify OTP
-    const isOtpValid = await this.otpService.verifyOtp(user.phone, input.otp);
+    const isOtpValid = await this.verificationFacade.verifyOtp(user.phone, input.otp);
 
     if (!isOtpValid) {
       throw new UnauthorizedException('Invalid or expired OTP');

@@ -4,6 +4,7 @@ import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UploadModule } from '../upload/upload.module';
+import { VerificationModule } from '../verification/verification.module';
 
 // ORM Entities
 import { UserOrmEntity } from './infrastructure/orm-entities';
@@ -12,8 +13,7 @@ import { UserOrmEntity } from './infrastructure/orm-entities';
 import { UserRepository } from './infrastructure/repositories';
 import { USER_REPOSITORY } from './domain/repositories/user.repository';
 
-// Services
-import { OtpService } from './application/domain/services';
+// Services (OtpService replaced by VerificationFacadeService from VerificationModule)
 
 // Use Cases
 import {
@@ -74,6 +74,7 @@ import { SessionModule } from '../session/session.module';
     forwardRef(() => KycModule),
     forwardRef(() => TransactionModule),
     forwardRef(() => UploadModule),
+    VerificationModule,
     SessionModule,
   ],
   controllers: [
@@ -86,8 +87,7 @@ import { SessionModule } from '../session/session.module';
     // Repository
     UserRepository,
     { provide: USER_REPOSITORY, useExisting: UserRepository },
-    // Services
-    OtpService,
+    // Services (VerificationFacadeService provided by VerificationModule)
     // Use Cases
     RegisterUserUsecase,
     VerifyOtpUsecase,

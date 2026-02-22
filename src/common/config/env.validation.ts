@@ -17,8 +17,8 @@ const ENV_REQUIREMENTS: EnvRequirement[] = [
   { key: 'BLNK_API_URL', required: false, defaultValue: 'http://localhost:5001', description: 'Blnk ledger URL' },
   { key: 'CIRCLE_API_KEY', required: false, description: 'Circle API key (mainnet)' },
   { key: 'STELLAR_OMNIBUS_ADDRESS', required: false, description: 'Stellar omnibus public key' },
-  { key: 'OTP_USE_DEV', required: false, defaultValue: 'true', description: 'Use dev OTP (123456)' },
-  { key: 'VERIFYHQ_API_KEY', required: false, description: 'VerifyHQ API key' },
+  { key: 'VERIFICATION_STRATEGY', required: false, defaultValue: 'local', description: 'Verification strategy: local or verifyhq' },
+  { key: 'VERIFYHQ_API_KEY', required: false, description: 'VerifyHQ API key (required if VERIFICATION_STRATEGY=verifyhq)' },
   { key: 'NODE_ENV', required: false, defaultValue: 'development', description: 'Environment' },
 ];
 

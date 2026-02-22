@@ -15,13 +15,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { OtpService } from '../domain/services/otp.service';
+import { LocalVerificationStrategy } from '../../../verification/infrastructure/strategies/local-verification.strategy';
+import { VerificationFacadeService } from '../../../verification/application/services/verification-facade.service';
 
 @ApiTags('Dev (Development Only)')
 @Controller('dev')
 export class DevController {
   constructor(
-    private readonly otpService: OtpService,
+    private readonly localStrategy: LocalVerificationStrategy,
+    private readonly verificationFacade: VerificationFacadeService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -46,7 +48,7 @@ export class DevController {
   async getOtp(@Param('phone') phone: string) {
     this.ensureDevMode();
 
-    const debugInfo = await this.otpService.getOtpDebugInfo(phone);
+    const debugInfo = await this.localStrategy.getOtpDebugInfo(phone);
 
     return {
       success: true,
@@ -80,10 +82,10 @@ export class DevController {
       message: '⚠️ DEV ONLY',
       data: {
         nodeEnv: this.configService.get<string>('nodeEnv'),
-        devOtpEnabled: this.configService.get<boolean>('otp.useDevOtp', false),
-        devOtp: this.configService.get<string>('otp.devOtp', '123456'),
-        otpExpiry: this.configService.get<number>('otp.expiresIn', 300),
-        otpLength: this.configService.get<number>('otp.length', 6),
+        verificationStrategy: this.configService.get<string>('verification.strategy', 'local'),
+        activeStrategy: this.verificationFacade.strategyName,
+        otpExpiry: this.configService.get<number>('verification.local.expirySeconds', 300),
+        otpLength: this.configService.get<number>('verification.local.otpLength', 6),
         smsProvider: this.configService.get<string>('sms.provider', 'mock'),
       },
     };

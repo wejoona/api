@@ -2,12 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { LoginUserUsecase, LoginUserInput } from './login-user.usecase';
 import { UserRepository } from '../../../infrastructure/repositories';
-import { OtpService } from '../services';
+import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
 
 describe('LoginUserUsecase', () => {
   let usecase: LoginUserUsecase;
   let userRepository: jest.Mocked<UserRepository>;
-  let otpService: jest.Mocked<OtpService>;
+  let verificationFacade: jest.Mocked<VerificationFacadeService>;
 
   const mockUser = {
     id: 'user-123',
@@ -32,11 +32,13 @@ describe('LoginUserUsecase', () => {
           },
         },
         {
-          provide: OtpService,
+          provide: VerificationFacadeService,
           useValue: {
             sendOtp: jest.fn(),
             verifyOtp: jest.fn(),
-            generateOtp: jest.fn(),
+            resendOtp: jest.fn(),
+            createVerification: jest.fn(),
+            checkVerification: jest.fn(),
           },
         },
       ],
@@ -44,7 +46,7 @@ describe('LoginUserUsecase', () => {
 
     usecase = module.get<LoginUserUsecase>(LoginUserUsecase);
     userRepository = module.get(UserRepository);
-    otpService = module.get(OtpService);
+    verificationFacade = module.get(VerificationFacadeService);
   });
 
   afterEach(() => {
@@ -58,12 +60,12 @@ describe('LoginUserUsecase', () => {
       };
 
       userRepository.findByPhone.mockResolvedValue(mockUser as any);
-      otpService.sendOtp.mockResolvedValue(undefined);
+      verificationFacade.sendOtp.mockResolvedValue(undefined);
 
       const result = await usecase.execute(input);
 
       expect(userRepository.findByPhone).toHaveBeenCalledWith('+225123456789');
-      expect(otpService.sendOtp).toHaveBeenCalledWith('+225123456789');
+      expect(verificationFacade.sendOtp).toHaveBeenCalledWith('+225123456789');
       expect(result).toEqual({
         success: true,
         otpExpiresIn: 300,
@@ -81,7 +83,7 @@ describe('LoginUserUsecase', () => {
       await expect(usecase.execute(input)).rejects.toThrow(
         'User not found. Please register first.',
       );
-      expect(otpService.sendOtp).not.toHaveBeenCalled();
+      expect(verificationFacade.sendOtp).not.toHaveBeenCalled();
     });
 
     it('should handle different phone formats', async () => {
@@ -90,7 +92,7 @@ describe('LoginUserUsecase', () => {
       };
 
       userRepository.findByPhone.mockResolvedValue(mockUser as any);
-      otpService.sendOtp.mockResolvedValue(undefined);
+      verificationFacade.sendOtp.mockResolvedValue(undefined);
 
       await usecase.execute(input);
 
@@ -103,7 +105,7 @@ describe('LoginUserUsecase', () => {
       };
 
       userRepository.findByPhone.mockResolvedValue(mockUser as any);
-      otpService.sendOtp.mockRejectedValue(
+      verificationFacade.sendOtp.mockRejectedValue(
         new Error('SMS service unavailable'),
       );
 
@@ -124,7 +126,7 @@ describe('LoginUserUsecase', () => {
       await expect(usecase.execute(input)).rejects.toThrow(
         'Database connection failed',
       );
-      expect(otpService.sendOtp).not.toHaveBeenCalled();
+      expect(verificationFacade.sendOtp).not.toHaveBeenCalled();
     });
   });
 });

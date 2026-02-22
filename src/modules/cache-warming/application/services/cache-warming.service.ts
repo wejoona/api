@@ -445,7 +445,7 @@ export class CacheWarmingService {
         otp: {
           expiresIn: this.configService.get<number>('otp.expiresIn'),
           maxAttempts: this.configService.get<number>('otp.maxAttempts'),
-          useDevOtp: this.configService.get<boolean>('otp.useDevOtp'),
+          verificationStrategy: this.configService.get<string>('verification.strategy'),
         },
 
         cachedAt: new Date().toISOString(),

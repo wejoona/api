@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
-import { OtpService } from '../services';
+import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
 
 export interface RegisterUserInput {
   phone: string;
@@ -21,7 +21,7 @@ export class RegisterUserUsecase {
 
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly otpService: OtpService,
+    private readonly verificationFacade: VerificationFacadeService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -36,7 +36,7 @@ export class RegisterUserUsecase {
       this.logger.debug(
         `Phone ${input.phone} already registered, sending login OTP`,
       );
-      await this.otpService.sendOtp(input.phone);
+      await this.verificationFacade.sendOtp(input.phone);
 
       // SECURITY: Return same response to prevent enumeration
       return {
@@ -55,7 +55,7 @@ export class RegisterUserUsecase {
     await this.userRepository.save(user);
 
     // Send OTP for verification
-    await this.otpService.sendOtp(input.phone);
+    await this.verificationFacade.sendOtp(input.phone);
 
     this.logger.log(`New user registered: ${input.phone}`);
 

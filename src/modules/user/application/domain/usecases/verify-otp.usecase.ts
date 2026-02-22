@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
-import { OtpService } from '../services';
+import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
 import { KycService } from '../../../../kyc/application/services/kyc.service';
 import { SessionService } from '../../../../session/application/services/session.service';
 
@@ -38,7 +38,7 @@ export class VerifyOtpUsecase {
 
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly otpService: OtpService,
+    private readonly verificationFacade: VerificationFacadeService,
     private readonly jwtService: JwtService,
     private readonly kycService: KycService,
     private readonly configService: ConfigService,
@@ -86,7 +86,7 @@ export class VerifyOtpUsecase {
 
   async execute(input: VerifyOtpInput): Promise<VerifyOtpOutput> {
     // Verify OTP
-    const isValid = await this.otpService.verifyOtp(input.phone, input.otp);
+    const isValid = await this.verificationFacade.verifyOtp(input.phone, input.otp);
     if (!isValid) {
       throw new UnauthorizedException('Invalid or expired OTP');
     }

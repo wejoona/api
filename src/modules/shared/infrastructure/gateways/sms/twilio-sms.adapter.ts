@@ -77,7 +77,6 @@ export class TwilioSmsAdapter implements ISmsGateway {
 
     // Check if using dev mode (bypass Twilio)
     this.useDevMode =
-      this.configService.get<boolean>('otp.useDevOtp', false) ||
       this.configService.get<string>('nodeEnv') === 'development';
 
     this.redis.on('error', (error) => {
