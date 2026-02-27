@@ -28,6 +28,7 @@ import {
   createStellarOffRampProvider,
 } from './stellar.factory';
 import { StellarHorizonService } from './services/stellar-horizon.service';
+import { StellarRpcService } from './services/stellar-rpc.service';
 import { StellarSep10Service } from './services/stellar-sep10.service';
 import { StellarSep24Service } from './services/stellar-sep24.service';
 import stellarConfig from './stellar.config';
@@ -64,8 +65,9 @@ export const STELLAR_OFFRAMP_PROVIDER = Symbol('STELLAR_OFFRAMP_PROVIDER');
     ConfigModule.forFeature(stellarConfig),
   ],
   providers: [
-    // Core services
+    // Core services — both Stellar backends registered; factory selects active one
     StellarHorizonService,
+    StellarRpcService,
     StellarSep10Service,
     StellarSep24Service,
 
@@ -119,6 +121,7 @@ export const STELLAR_OFFRAMP_PROVIDER = Symbol('STELLAR_OFFRAMP_PROVIDER');
   exports: [
     // Services (for direct use)
     StellarHorizonService,
+    StellarRpcService,
     StellarSep10Service,
     StellarSep24Service,
     StellarProviderFactory,

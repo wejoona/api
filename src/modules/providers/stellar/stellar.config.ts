@@ -15,11 +15,24 @@ export default registerAs('stellar', () => ({
   network: process.env.STELLAR_NETWORK || 'testnet',
 
   /**
+   * Provider backend: 'rpc' (Soroban RPC, default) or 'horizon'
+   * RPC is the SDF-recommended default for SCF compliance.
+   */
+  provider: process.env.STELLAR_PROVIDER || 'rpc',
+
+  /**
    * Horizon server URL
    * Default: Stellar testnet Horizon
    */
   horizonUrl:
     process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org',
+
+  /**
+   * Soroban RPC server URL
+   * Default: Stellar testnet RPC
+   */
+  rpcUrl:
+    process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
 
   /**
    * USDC asset code

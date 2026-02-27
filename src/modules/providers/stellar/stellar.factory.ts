@@ -17,7 +17,9 @@ import { StellarWalletAdapter } from './adapters/stellar-wallet.adapter';
 import { StellarTransferAdapter } from './adapters/stellar-transfer.adapter';
 import { StellarOnRampAdapter } from './adapters/stellar-onramp.adapter';
 import { StellarOffRampAdapter } from './adapters/stellar-offramp.adapter';
+import { StellarAdapter } from './services/stellar-adapter.interface';
 import { StellarHorizonService } from './services/stellar-horizon.service';
+import { StellarRpcService } from './services/stellar-rpc.service';
 import { StellarSep10Service } from './services/stellar-sep10.service';
 import { StellarSep24Service } from './services/stellar-sep24.service';
 import { KeyVaultService } from '@modules/shared/infrastructure/services';
@@ -32,20 +34,37 @@ import { KeyVaultService } from '@modules/shared/infrastructure/services';
 export class StellarProviderFactory {
   private readonly logger = new Logger(StellarProviderFactory.name);
   private readonly useMock: boolean;
+  private readonly stellarService: StellarAdapter;
+  private readonly providerType: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly horizonService: StellarHorizonService,
+    private readonly rpcService: StellarRpcService,
     private readonly sep10Service: StellarSep10Service,
     private readonly sep24Service: StellarSep24Service,
     private readonly keyVault: KeyVaultService,
   ) {
     this.useMock =
       this.configService.get<boolean>('stellar.useMock') ?? false;
+    this.providerType =
+      this.configService.get<string>('stellar.provider') || 'rpc';
+
+    // Select the appropriate backend based on configuration
+    this.stellarService =
+      this.providerType === 'horizon' ? this.horizonService : this.rpcService;
 
     this.logger.log(
-      `Stellar Provider Factory initialized (mock mode: ${this.useMock})`,
+      `Stellar Provider Factory initialized (provider: ${this.providerType}, mock: ${this.useMock})`,
     );
+  }
+
+  /**
+   * Get the active Stellar adapter (RPC or Horizon)
+   * @returns The configured StellarAdapter implementation
+   */
+  getStellarService(): StellarAdapter {
+    return this.stellarService;
   }
 
   /**
@@ -57,7 +76,9 @@ export class StellarProviderFactory {
       // Stellar testnet is free and safe for testing
       this.logger.log('Creating Stellar wallet provider (testnet mode)');
     }
-    return new StellarWalletAdapter(this.configService, this.horizonService, this.keyVault);
+    // Pass the active stellar service (RPC or Horizon) — both implement StellarAdapter.
+    // The wallet adapter accepts StellarHorizonService by type but both services are structurally compatible.
+    return new StellarWalletAdapter(this.configService, this.stellarService as any, this.keyVault);
   }
 
   /**
@@ -67,7 +88,7 @@ export class StellarProviderFactory {
     if (this.useMock) {
       this.logger.log('Creating Stellar transfer provider (testnet mode)');
     }
-    return new StellarTransferAdapter(this.configService, this.horizonService);
+    return new StellarTransferAdapter(this.configService, this.stellarService as any);
   }
 
   /**

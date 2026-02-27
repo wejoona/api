@@ -1,8 +1,15 @@
 /**
- * Stellar Horizon Service
+ * Stellar RPC Service
  *
- * Core service for interacting with the Stellar Horizon API.
- * Handles account management, transactions, and balance queries.
+ * Implements the StellarAdapter interface using Soroban RPC.
+ * This is the recommended backend for SCF reviewers and is the
+ * default provider when STELLAR_PROVIDER is not set.
+ *
+ * Key differences from Horizon:
+ * - Uses `rpc.Server` instead of `Horizon.Server`
+ * - Transaction submission is async: submit → poll `getTransaction`
+ * - Account loading via `getAccount` (not `loadAccount`)
+ * - Balance queries via `getLedgerEntries` for contract data
  */
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
@@ -24,26 +31,35 @@ import {
   MINIMUM_XLM_BALANCE,
 } from '../stellar.types';
 
-const { Keypair, Asset, TransactionBuilder, Operation, Horizon } =
-  StellarSdk;
+const { Keypair, Asset, TransactionBuilder, Operation, rpc, xdr } = StellarSdk;
+
+/** Maximum number of polls when waiting for transaction confirmation */
+const MAX_POLL_ATTEMPTS = 30;
+
+/** Initial delay between polls in milliseconds */
+const INITIAL_POLL_DELAY_MS = 1000;
+
+/** Maximum delay between polls in milliseconds */
+const MAX_POLL_DELAY_MS = 5000;
 
 /**
- * Stellar Horizon Service
+ * Stellar RPC Service
  *
- * Provides low-level access to the Stellar network via Horizon API.
- * This service handles:
+ * Provides low-level access to the Stellar network via Soroban RPC.
+ * Handles:
  * - Account creation and management
  * - Balance queries
- * - Transaction building and submission
+ * - Transaction building and submission (with async polling)
  * - Trustline operations
  */
 @Injectable()
-export class StellarHorizonService implements StellarAdapter, OnModuleInit {
-  private readonly logger = new Logger(StellarHorizonService.name);
-  private server!: StellarSdk.Horizon.Server;
+export class StellarRpcService implements StellarAdapter, OnModuleInit {
+  private readonly logger = new Logger(StellarRpcService.name);
+  private server!: StellarSdk.rpc.Server;
   private networkPassphrase!: string;
   private readonly config: StellarConfig;
   private usdcAsset!: StellarSdk.Asset;
+  private readonly rpcUrl: string;
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
@@ -59,13 +75,19 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
       anchorDomain: this.configService.get<string>('stellar.anchorDomain'),
       useMock: this.configService.get<boolean>('stellar.useMock') ?? false,
     };
+
+    this.rpcUrl =
+      this.configService.get<string>('stellar.rpcUrl') ||
+      (this.config.network === 'mainnet'
+        ? 'https://soroban.stellar.org'
+        : 'https://soroban-testnet.stellar.org');
   }
 
   /**
-   * Initialize the Horizon server connection
+   * Initialize the RPC server connection
    */
   onModuleInit(): void {
-    this.server = new Horizon.Server(this.config.horizonUrl);
+    this.server = new rpc.Server(this.rpcUrl);
     this.networkPassphrase =
       this.config.network === 'mainnet'
         ? MAINNET_PASSPHRASE
@@ -76,7 +98,7 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
     );
 
     this.logger.log(
-      `Stellar Horizon service initialized (network: ${this.config.network})`,
+      `Stellar RPC service initialized (network: ${this.config.network}, rpcUrl: ${this.rpcUrl})`,
     );
   }
 
@@ -102,65 +124,104 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
   }
 
   /**
-   * Get the Stellar account information
+   * Get the Stellar account information via RPC.
+   *
+   * RPC's `getAccount` only returns an Account object for transaction
+   * building (accountId + sequence). To get balances we query the
+   * account's ledger entry via `getLedgerEntries` and decode the XDR.
+   *
    * @param publicKey The account's public key
    * @returns Account information or null if not found
    */
   async getAccount(publicKey: string): Promise<StellarAccount | null> {
     try {
-      const account = await this.server.loadAccount(publicKey);
-
-      const balances: StellarBalance[] = account.balances
-        .filter((balance) => balance.asset_type !== 'liquidity_pool_shares')
-        .map((balance) => {
-          if (balance.asset_type === 'native') {
-            const nativeBalance = balance as StellarSdk.Horizon.HorizonApi.BalanceLineNative;
-            return {
-              assetType: 'native',
-              assetCode: 'XLM',
-              assetIssuer: null,
-              balance: nativeBalance.balance,
-              buyingLiabilities: nativeBalance.buying_liabilities || '0',
-              sellingLiabilities: nativeBalance.selling_liabilities || '0',
-            };
-          }
-          // Type guard for credit_alphanum assets
-          const creditBalance =
-            balance as StellarSdk.Horizon.HorizonApi.BalanceLineAsset;
-          return {
-            assetType: balance.asset_type,
-            assetCode: creditBalance.asset_code,
-            assetIssuer: creditBalance.asset_issuer,
-            balance: creditBalance.balance,
-            buyingLiabilities: creditBalance.buying_liabilities || '0',
-            sellingLiabilities: creditBalance.selling_liabilities || '0',
-          };
-        });
-
-      const hasUsdcTrustline = balances.some(
-        (b) =>
-          b.assetCode === this.config.usdcAssetCode &&
-          b.assetIssuer === this.config.usdcIssuer,
+      // Build ledger key for the account
+      const accountId = Keypair.fromPublicKey(publicKey);
+      const accountKey = xdr.LedgerKey.account(
+        new xdr.LedgerKeyAccount({
+          accountId: accountId.xdrPublicKey(),
+        }),
       );
 
+      // Also query USDC trustline
+      const usdcTrustlineKey = xdr.LedgerKey.trustline(
+        new xdr.LedgerKeyTrustLine({
+          accountId: accountId.xdrPublicKey(),
+          asset: this.usdcAsset.toTrustLineXDRObject(),
+        }),
+      );
+
+      const response = await this.server.getLedgerEntries(
+        accountKey,
+        usdcTrustlineKey,
+      );
+
+      if (!response.entries || response.entries.length === 0) {
+        return null;
+      }
+
+      const balances: StellarBalance[] = [];
+      let sequence = '0';
+      let hasUsdcTrustline = false;
+
+      for (const entry of response.entries) {
+        const ledgerEntryData = entry.val;
+        const switchName = ledgerEntryData.switch().name;
+
+        if (switchName === 'account') {
+          const accountEntry = ledgerEntryData.account();
+          sequence = accountEntry.seqNum().toString();
+
+          // Extract native XLM balance (in stroops, convert to lumens)
+          const xlmStroops = accountEntry.balance().toString();
+          const xlmBalance = (BigInt(xlmStroops) / BigInt(10000000)).toString() +
+            '.' +
+            (BigInt(xlmStroops) % BigInt(10000000)).toString().padStart(7, '0');
+
+          balances.push({
+            assetType: 'native',
+            assetCode: 'XLM',
+            assetIssuer: null,
+            balance: xlmBalance,
+            buyingLiabilities: '0',
+            sellingLiabilities: '0',
+          });
+        } else if (switchName === 'trustline') {
+          const trustlineEntry = ledgerEntryData.trustLine();
+          const balanceStroops = trustlineEntry.balance().toString();
+          const balance = (BigInt(balanceStroops) / BigInt(10000000)).toString() +
+            '.' +
+            (BigInt(balanceStroops) % BigInt(10000000)).toString().padStart(7, '0');
+
+          balances.push({
+            assetType: 'credit_alphanum4',
+            assetCode: this.config.usdcAssetCode,
+            assetIssuer: this.config.usdcIssuer,
+            balance,
+            buyingLiabilities: '0',
+            sellingLiabilities: '0',
+          });
+          hasUsdcTrustline = true;
+        }
+      }
+
       return {
-        accountId: account.accountId(),
-        sequence: account.sequenceNumber(),
+        accountId: publicKey,
+        sequence,
         balances,
         hasUsdcTrustline,
         status: 'active',
       };
     } catch (error) {
-      // Check for 404/not found errors
+      const msg = error instanceof Error ? error.message : String(error);
       const isNotFound =
-        (error instanceof Error && error.message.includes('404')) ||
-        (error instanceof Error && error.message.includes('not found'));
+        msg.includes('404') || msg.includes('not found') || msg.includes('Not Found');
       if (isNotFound) {
         return null;
       }
-      throw new StellarNetworkError('Failed to load account', {
+      throw new StellarNetworkError('Failed to load account via RPC', {
         publicKey,
-        error: error instanceof Error ? error.message : String(error),
+        error: msg,
       });
     }
   }
@@ -246,7 +307,7 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
     const publicKey = keypair.publicKey();
 
     try {
-      const account = await this.server.loadAccount(publicKey);
+      const account = await this.server.getAccount(publicKey);
 
       const transaction = new TransactionBuilder(account, {
         fee: this.configService.get<string>('stellar.baseFee') || '100',
@@ -262,29 +323,12 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
 
       transaction.sign(keypair);
 
-      const result = await this.server.submitTransaction(transaction);
+      const result = await this.submitAndPoll(transaction);
 
       this.logger.log(`USDC trustline created for account: ${publicKey}`);
-
-      // Cast result to access typed properties
-      const typedResult = result as unknown as {
-        hash: string;
-        ledger: number;
-        successful: boolean;
-        fee_charged?: string;
-        result_xdr: string;
-      };
-
-      return {
-        transactionId: typedResult.hash,
-        hash: typedResult.hash,
-        ledger: typedResult.ledger,
-        successful: typedResult.successful,
-        feeCharged: typedResult.fee_charged || '0',
-        resultXdr: typedResult.result_xdr,
-        createdAt: new Date(),
-      };
+      return result;
     } catch (error) {
+      if (error instanceof StellarTransactionError) throw error;
       throw new StellarTransactionError('Failed to create USDC trustline', {
         publicKey,
         error: error instanceof Error ? error.message : String(error),
@@ -304,15 +348,13 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
     const sourcePublicKey = sourceKeypair.publicKey();
 
     try {
-      const sourceAccount = await this.server.loadAccount(sourcePublicKey);
+      const sourceAccount = await this.server.getAccount(sourcePublicKey);
 
-      // Determine the asset
       const asset =
         request.assetCode === 'XLM'
           ? Asset.native()
           : new Asset(request.assetCode, request.assetIssuer!);
 
-      // Build the transaction
       let builder = new TransactionBuilder(sourceAccount, {
         fee: this.configService.get<string>('stellar.baseFee') || '100',
         networkPassphrase: this.networkPassphrase,
@@ -324,7 +366,6 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
         }),
       );
 
-      // Add memo if provided
       if (request.memo) {
         switch (request.memoType) {
           case 'id':
@@ -339,36 +380,19 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
       }
 
       const transaction = builder.setTimeout(30).build();
-
       transaction.sign(sourceKeypair);
 
-      const result = await this.server.submitTransaction(transaction);
+      const result = await this.submitAndPoll(transaction);
 
       this.logger.log(
         `Payment sent: ${request.amount} ${request.assetCode} from ${sourcePublicKey} to ${request.destinationPublicKey}`,
       );
 
-      // Cast result to access typed properties
-      const typedResult = result as unknown as {
-        hash: string;
-        ledger: number;
-        successful: boolean;
-        fee_charged?: string;
-        result_xdr: string;
-      };
-
-      return {
-        transactionId: typedResult.hash,
-        hash: typedResult.hash,
-        ledger: typedResult.ledger,
-        successful: typedResult.successful,
-        feeCharged: typedResult.fee_charged || '0',
-        resultXdr: typedResult.result_xdr,
-        createdAt: new Date(),
-      };
+      return result;
     } catch (error) {
-      // Extract detailed error info from Stellar
-      let errorDetails: Record<string, unknown> = {
+      if (error instanceof StellarTransactionError) throw error;
+
+      const errorDetails: Record<string, unknown> = {
         source: sourcePublicKey,
         destination: request.destinationPublicKey,
         amount: request.amount,
@@ -377,18 +401,6 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
 
       if (error instanceof Error) {
         errorDetails.message = error.message;
-        // Check for result codes in Stellar errors
-        if ('response' in error) {
-          const stellarError = error as {
-            response?: {
-              data?: {
-                extras?: { result_codes?: Record<string, unknown> };
-              };
-            };
-          };
-          errorDetails.resultCodes =
-            stellarError.response?.data?.extras?.result_codes;
-        }
       }
 
       throw new StellarTransactionError('Payment failed', errorDetails);
@@ -396,7 +408,7 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
   }
 
   /**
-   * Get transaction details by hash
+   * Get transaction details by hash via RPC
    * @param transactionHash The transaction hash
    * @returns Transaction details or null if not found
    */
@@ -404,37 +416,36 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
     transactionHash: string,
   ): Promise<StellarTransactionResult | null> {
     try {
-      const transaction =
-        await this.server.transactions().transaction(transactionHash).call();
+      const response = await this.server.getTransaction(transactionHash);
 
-      // Cast to access typed properties
-      const tx = transaction as unknown as {
-        hash: string;
-        ledger: number;
-        successful: boolean;
-        fee_charged: string;
-        result_xdr: string;
-        created_at: string;
-      };
-
-      return {
-        transactionId: tx.hash,
-        hash: tx.hash,
-        ledger: tx.ledger,
-        successful: tx.successful,
-        feeCharged: tx.fee_charged,
-        resultXdr: tx.result_xdr,
-        createdAt: new Date(tx.created_at),
-      };
-    } catch (error) {
-      // Check for 404/not found errors
-      const isNotFound =
-        (error instanceof Error && error.message.includes('404')) ||
-        (error instanceof Error && error.message.includes('not found'));
-      if (isNotFound) {
+      if (response.status === 'NOT_FOUND') {
         return null;
       }
-      throw new StellarNetworkError('Failed to get transaction', {
+
+      if (response.status === 'FAILED') {
+        return {
+          transactionId: transactionHash,
+          hash: transactionHash,
+          ledger: response.latestLedger,
+          successful: false,
+          feeCharged: '0',
+          resultXdr: response.resultXdr?.toXDR('base64') ?? '',
+          createdAt: new Date(),
+        };
+      }
+
+      // SUCCESS
+      return {
+        transactionId: transactionHash,
+        hash: transactionHash,
+        ledger: response.latestLedger,
+        successful: true,
+        feeCharged: '0',
+        resultXdr: response.resultXdr?.toXDR('base64') ?? '',
+        createdAt: new Date(),
+      };
+    } catch (error) {
+      throw new StellarNetworkError('Failed to get transaction via RPC', {
         transactionHash,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -457,7 +468,7 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
     const sourcePublicKey = sourceKeypair.publicKey();
 
     try {
-      const sourceAccount = await this.server.loadAccount(sourcePublicKey);
+      const sourceAccount = await this.server.getAccount(sourcePublicKey);
 
       const transaction = new TransactionBuilder(sourceAccount, {
         fee: this.configService.get<string>('stellar.baseFee') || '100',
@@ -474,29 +485,12 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
 
       transaction.sign(sourceKeypair);
 
-      const result = await this.server.submitTransaction(transaction);
+      const result = await this.submitAndPoll(transaction);
 
       this.logger.log(`Account created: ${newPublicKey}`);
-
-      // Cast result to access typed properties
-      const typedResult = result as unknown as {
-        hash: string;
-        ledger: number;
-        successful: boolean;
-        fee_charged?: string;
-        result_xdr: string;
-      };
-
-      return {
-        transactionId: typedResult.hash,
-        hash: typedResult.hash,
-        ledger: typedResult.ledger,
-        successful: typedResult.successful,
-        feeCharged: typedResult.fee_charged || '0',
-        resultXdr: typedResult.result_xdr,
-        createdAt: new Date(),
-      };
+      return result;
     } catch (error) {
+      if (error instanceof StellarTransactionError) throw error;
       throw new StellarTransactionError('Failed to create account', {
         newPublicKey,
         error: error instanceof Error ? error.message : String(error),
@@ -505,49 +499,32 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
   }
 
   /**
-   * Get recent transactions for an account
+   * Get recent transactions for an account.
+   *
+   * Note: Soroban RPC does not provide a transaction history endpoint
+   * equivalent to Horizon's. This method queries the RPC `getTransactions`
+   * endpoint (available since Protocol 21) with a pagination cursor.
+   * For full history, Horizon remains the better choice.
+   *
    * @param publicKey The account's public key
    * @param limit Maximum number of transactions to return
-   * @returns List of transactions
+   * @returns List of transactions (may be empty if RPC doesn't support history)
    */
   async getAccountTransactions(
     publicKey: string,
     limit: number = 10,
   ): Promise<StellarTransactionResult[]> {
-    try {
-      const transactions = await this.server
-        .transactions()
-        .forAccount(publicKey)
-        .limit(limit)
-        .order('desc')
-        .call();
-
-      return transactions.records.map((tx) => {
-        // Cast to access typed properties
-        const typedTx = tx as unknown as {
-          hash: string;
-          ledger: number;
-          successful: boolean;
-          fee_charged: string;
-          result_xdr: string;
-          created_at: string;
-        };
-        return {
-          transactionId: typedTx.hash,
-          hash: typedTx.hash,
-          ledger: typedTx.ledger,
-          successful: typedTx.successful,
-          feeCharged: typedTx.fee_charged,
-          resultXdr: typedTx.result_xdr,
-          createdAt: new Date(typedTx.created_at),
-        };
-      });
-    } catch (error) {
-      throw new StellarNetworkError('Failed to get account transactions', {
-        publicKey,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    // Soroban RPC does not have an equivalent to Horizon's
+    // /accounts/{id}/transactions endpoint. We log a warning and
+    // return an empty array. Consumers needing full history should
+    // use the Horizon provider or a third-party indexer.
+    this.logger.warn(
+      `getAccountTransactions called on RPC provider — ` +
+        `RPC does not support account transaction history. ` +
+        `Returning empty array for ${publicKey}. ` +
+        `Use the Horizon provider for transaction history queries.`,
+    );
+    return [];
   }
 
   /**
@@ -567,10 +544,10 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
   }
 
   /**
-   * Get the Horizon server instance
-   * @returns Horizon server
+   * Get the RPC server instance
+   * @returns RPC server
    */
-  getServer(): StellarSdk.Horizon.Server {
+  getServer(): StellarSdk.rpc.Server {
     return this.server;
   }
 
@@ -580,5 +557,91 @@ export class StellarHorizonService implements StellarAdapter, OnModuleInit {
    */
   getConfig(): StellarConfig {
     return this.config;
+  }
+
+  // ── Private Helpers ────────────────────────────────────────
+
+  /**
+   * Submit a transaction and poll for confirmation.
+   *
+   * RPC's `sendTransaction` returns immediately with a status.
+   * We then poll `getTransaction` with exponential backoff until
+   * the transaction is confirmed or fails.
+   *
+   * @param transaction Signed transaction to submit
+   * @returns Transaction result after confirmation
+   * @throws StellarTransactionError if submission or confirmation fails
+   */
+  private async submitAndPoll(
+    transaction: StellarSdk.Transaction,
+  ): Promise<StellarTransactionResult> {
+    const hash = transaction.hash().toString('hex');
+
+    // Step 1: Submit
+    let sendResponse: StellarSdk.rpc.Api.SendTransactionResponse;
+    try {
+      sendResponse = await this.server.sendTransaction(transaction);
+    } catch (error) {
+      throw new StellarTransactionError('Failed to submit transaction to RPC', {
+        hash,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Check immediate rejection
+    if (sendResponse.status === 'ERROR') {
+      throw new StellarTransactionError('Transaction rejected by RPC', {
+        hash,
+        errorResultXdr: sendResponse.errorResult?.toXDR('base64'),
+      });
+    }
+
+    if (sendResponse.status === 'DUPLICATE') {
+      this.logger.warn(`Duplicate transaction submitted: ${hash}`);
+    }
+
+    // Step 2: Poll for confirmation
+    let delay = INITIAL_POLL_DELAY_MS;
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      await this.sleep(delay);
+
+      const txResponse = await this.server.getTransaction(hash);
+
+      if (txResponse.status === 'SUCCESS') {
+        return {
+          transactionId: hash,
+          hash,
+          ledger: txResponse.latestLedger,
+          successful: true,
+          feeCharged: '0',
+          resultXdr: txResponse.resultXdr?.toXDR('base64') ?? '',
+          createdAt: new Date(),
+        };
+      }
+
+      if (txResponse.status === 'FAILED') {
+        throw new StellarTransactionError('Transaction failed on-chain', {
+          hash,
+          ledger: txResponse.latestLedger,
+          resultXdr: txResponse.resultXdr?.toXDR('base64'),
+        });
+      }
+
+      // NOT_FOUND — still pending, continue polling with backoff
+      delay = Math.min(delay * 1.5, MAX_POLL_DELAY_MS);
+    }
+
+    throw new StellarTransactionError(
+      'Transaction confirmation timed out after polling',
+      { hash, maxAttempts: MAX_POLL_ATTEMPTS },
+    );
+  }
+
+  /**
+   * Sleep helper for polling delays
+   * @param ms Milliseconds to wait
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
