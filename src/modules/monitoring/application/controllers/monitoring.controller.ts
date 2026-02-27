@@ -18,6 +18,8 @@ import {
   ParseUUIDPipe,
   BadRequestException,
 } from '@nestjs/common';
+import { IsOptional, IsString } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import {
   ApiTags,
   ApiOperation,
@@ -48,13 +50,36 @@ import {
 
 // DTOs
 class GetAlertsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
   page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
   limit?: number = 20;
+
+  @IsOptional()
+  @IsString()
   alertTypes?: string;
+
+  @IsOptional()
+  @IsString()
   severities?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   isRead?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   isActionRequired?: boolean;
+
+  @IsOptional()
+  @IsString()
   fromDate?: string;
+
+  @IsOptional()
+  @IsString()
   toDate?: string;
 }
 
