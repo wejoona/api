@@ -1,24 +1,23 @@
-# Korido API CI/CD
-# Build → push to registry → update gitops → ArgoCD syncs
+# CI/CD: build -> push to Harbor -> bump gitops tag -> ArgoCD syncs.
+# Harbor creds (HARBOR_USER/HARBOR_PASS/HARBOR_REGISTRY) are group CI/CD vars.
+# GITOPS_TOKEN is a group/project CI/CD var with write access to the gitops repo.
+# Deploy is GitOps-only: no imperative kubectl here (ArgoCD owns the cluster).
 stages:
   - build
   - deploy
 
 variables:
-  REGISTRY: localhost:30500
-  IMAGE_NAME: usdc-wallet-api
-  FULL_IMAGE: "${REGISTRY}/${IMAGE_NAME}"
-  GITOPS_REPO: "https://BenOuttara:${CI_JOB_TOKEN}@gitlab.wejoona.com/korido/gitops.git"
+  IMAGE: "${HARBOR_REGISTRY}/korido/usdc-wallet-api"
 
 build:
   stage: build
   tags:
     - vps-prod
   script:
-    - DOCKER_BUILDKIT=1 docker build -t "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}" -t "${FULL_IMAGE}:latest" .
-    - docker push "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-    - docker push "${FULL_IMAGE}:latest"
-    - docker rmi "${FULL_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${FULL_IMAGE}:latest" || true
+    - echo "${HARBOR_PASS}" | docker login "${HARBOR_REGISTRY}" -u "${HARBOR_USER}" --password-stdin
+    - DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t "${IMAGE}:${CI_COMMIT_SHORT_SHA}" .
+    - docker push "${IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - docker rmi "${IMAGE}:${CI_COMMIT_SHORT_SHA}" || true
   only:
     - main
 
@@ -27,14 +26,14 @@ deploy:
   tags:
     - vps-prod
   script:
-    - git clone "https://BenOuttara:${GITOPS_TOKEN}@gitlab.wejoona.com/korido/gitops.git" /tmp/gitops-korido
-    - cd /tmp/gitops-korido
-    - "sed -i 's/tag: .*/tag: \"${CI_COMMIT_SHORT_SHA}\"/' envs/prod/api/values.yaml"
+    - git clone "https://oauth2:${GITOPS_TOKEN}@gitlab.wejoona.com/korido/gitops.git" /tmp/gitops-${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}
+    - cd /tmp/gitops-${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}
+    - sed -i "s/tag: .*/tag: \"${CI_COMMIT_SHORT_SHA}\"/" envs/prod/api/values.yaml
     - git config user.email "ci@wejoona.com"
     - git config user.name "GitLab CI"
     - git add -A
-    - "git commit -m 'deploy: korido-api ${CI_COMMIT_SHORT_SHA} [skip ci]' || true"
-    - git push origin main || true
-    - rm -rf /tmp/gitops-korido
+    - git commit -m "deploy: usdc-wallet-api ${CI_COMMIT_SHORT_SHA} [skip ci]" || true
+    - git push origin HEAD:main || true
+    - rm -rf /tmp/gitops-${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}
   only:
     - main
