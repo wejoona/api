@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SharedModule } from '../shared/shared.module';
 import { ExchangeRateModule } from '../exchange-rate/exchange-rate.module';
+import { UserModule } from '../user/user.module';
 
 // Entity
 import { WithdrawalEntity } from './domain/entities/withdrawal.entity';
@@ -30,6 +31,7 @@ import { WavePayoutMockProvider } from './infrastructure/providers/mock/wave-pay
     TypeOrmModule.forFeature([WithdrawalEntity]),
     SharedModule,
     ExchangeRateModule,
+    forwardRef(() => UserModule),
   ],
   providers: [
     WithdrawalRepository,
