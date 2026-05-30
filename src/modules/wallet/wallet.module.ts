@@ -43,6 +43,7 @@ import { OmnibusService } from './application/services/omnibus.service';
 // Other modules needed
 import { TransactionModule } from '../transaction/transaction.module';
 import { UserModule } from '../user/user.module';
+import { SavingsPotsModule } from '../savings-pots/savings-pots.module';
 import { UploadModule } from '../upload';
 import { CircleModule } from '../providers/circle/circle.module';
 import { BlnkModule } from '../providers/blnk/blnk.module';
@@ -65,6 +66,7 @@ import {
     BlnkModule,
     RiskModule, // Circle Compliance Engine for address screening
     StellarModule,
+    forwardRef(() => SavingsPotsModule),
   ],
   providers: [
     // Repositories
