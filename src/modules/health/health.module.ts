@@ -7,6 +7,7 @@ import {
   RedisHealthIndicator,
   YellowCardHealthIndicator,
   TwilioHealthIndicator,
+  StellarHealthIndicator,
 } from './health-indicators';
 
 @Module({
@@ -18,6 +19,7 @@ import {
     RedisHealthIndicator,
     YellowCardHealthIndicator,
     TwilioHealthIndicator,
+    StellarHealthIndicator,
   ],
 })
 export class HealthModule {}
