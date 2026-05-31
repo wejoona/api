@@ -2,9 +2,9 @@
  * Card Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import { TestData } from '../setup/mock-helpers';
+import { CardEntity } from '@modules/cards/domain/entities/card.entity';
 
 const mockCardService = {
   getCards: jest.fn(),
@@ -13,7 +13,8 @@ const mockCardService = {
   freezeCard: jest.fn(),
   unfreezeCard: jest.fn(),
   updateSpendingLimit: jest.fn(),
-  deleteCard: jest.fn(),
+  cancelCard: jest.fn(),
+  getCardTransactions: jest.fn(),
 };
 
 import { CardController } from '@modules/cards/application/controllers/card.controller';
@@ -21,6 +22,16 @@ import { CardService } from '@modules/cards/application/services/card.service';
 
 describe('CardController (e2e)', () => {
   let app: INestApplication;
+  const makeCard = (overrides: Partial<CardEntity> = {}) =>
+    Object.assign(
+      CardEntity.create({
+        userId: '550e8400-e29b-41d4-a716-446655440000',
+        walletId: '660e8400-e29b-41d4-a716-446655440000',
+        cardholderName: 'Test User',
+        spendingLimit: 5000,
+      }),
+      overrides,
+    );
 
   beforeAll(async () => {
     const result = await createTestApp({
@@ -37,7 +48,7 @@ describe('CardController (e2e)', () => {
 
   describe('GET /api/v1/cards', () => {
     it('should list cards (200)', async () => {
-      mockCardService.getCards.mockResolvedValue([TestData.card()]);
+      mockCardService.getCards.mockResolvedValue([makeCard()]);
       await request(app.getHttpServer())
         .get('/api/v1/cards')
         .expect(200);
@@ -46,17 +57,21 @@ describe('CardController (e2e)', () => {
 
   describe('POST /api/v1/cards', () => {
     it('should create card (201)', async () => {
-      mockCardService.createCard.mockResolvedValue(TestData.card());
+      mockCardService.createCard.mockResolvedValue(makeCard());
       await request(app.getHttpServer())
         .post('/api/v1/cards')
-        .send({ type: 'virtual', currency: 'USDC' })
+        .send({
+          cardholderName: 'Test User',
+          spendingLimit: 5000,
+          cardType: 'virtual',
+        })
         .expect(201);
     });
   });
 
   describe('GET /api/v1/cards/:id', () => {
     it('should get card details (200)', async () => {
-      mockCardService.getCard.mockResolvedValue(TestData.card());
+      mockCardService.getCard.mockResolvedValue(makeCard());
       await request(app.getHttpServer())
         .get('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000')
         .expect(200);
@@ -65,7 +80,9 @@ describe('CardController (e2e)', () => {
 
   describe('PUT /api/v1/cards/:id/freeze', () => {
     it('should freeze card (200)', async () => {
-      mockCardService.freezeCard.mockResolvedValue(TestData.card({ status: 'frozen' }));
+      const card = makeCard();
+      card.freeze();
+      mockCardService.freezeCard.mockResolvedValue(card);
       await request(app.getHttpServer())
         .put('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000/freeze')
         .expect(200);
@@ -74,7 +91,7 @@ describe('CardController (e2e)', () => {
 
   describe('PUT /api/v1/cards/:id/unfreeze', () => {
     it('should unfreeze card (200)', async () => {
-      mockCardService.unfreezeCard.mockResolvedValue(TestData.card({ status: 'active' }));
+      mockCardService.unfreezeCard.mockResolvedValue(makeCard());
       await request(app.getHttpServer())
         .put('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000/unfreeze')
         .expect(200);
@@ -83,20 +100,52 @@ describe('CardController (e2e)', () => {
 
   describe('PUT /api/v1/cards/:id/limit', () => {
     it('should update spending limit (200)', async () => {
-      mockCardService.updateSpendingLimit.mockResolvedValue(TestData.card({ spendingLimit: 10000 }));
+      mockCardService.updateSpendingLimit.mockResolvedValue(
+        makeCard({ spendingLimit: 10000 }),
+      );
       await request(app.getHttpServer())
         .put('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000/limit')
-        .send({ dailyLimit: 10000 })
+        .send({ spendingLimit: 10000 })
         .expect(200);
     });
   });
 
   describe('DELETE /api/v1/cards/:id', () => {
-    it('should delete card (200)', async () => {
-      mockCardService.deleteCard.mockResolvedValue(undefined);
+    it('should delete card (204)', async () => {
+      mockCardService.cancelCard.mockResolvedValue(undefined);
       await request(app.getHttpServer())
         .delete('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000')
+        .expect(204);
+    });
+  });
+
+  describe('GET /api/v1/cards/:id/transactions', () => {
+    it('should return empty paginated card transaction history (200)', async () => {
+      mockCardService.getCardTransactions.mockResolvedValue({
+        data: [],
+        transactions: [],
+        total: 0,
+        limit: 20,
+        offset: 0,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/cards/550e8400-e29b-41d4-a716-446655440000/transactions')
         .expect(200);
+
+      expect(response.body).toEqual({
+        data: [],
+        transactions: [],
+        total: 0,
+        limit: 20,
+        offset: 0,
+      });
+      expect(mockCardService.getCardTransactions).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+        expect.any(String),
+        20,
+        0,
+      );
     });
   });
 });

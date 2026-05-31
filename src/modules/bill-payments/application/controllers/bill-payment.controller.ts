@@ -122,7 +122,7 @@ export class BillPaymentController {
   })
   @ApiHeader({
     name: 'X-Pin-Token',
-    description: 'PIN verification token from POST /wallet/pin/verify',
+    description: 'PIN verification token from POST /user/pin/verify',
     required: true,
   })
   @ApiResponse({

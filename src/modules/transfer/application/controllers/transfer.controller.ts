@@ -61,7 +61,7 @@ export class TransferController {
   @ApiOperation({ summary: 'Transfer to another user by phone number (P2P)' })
   @ApiHeader({
     name: 'X-Pin-Token',
-    description: 'PIN verification token from POST /wallet/pin/verify',
+    description: 'PIN verification token from POST /user/pin/verify',
     required: true,
     example: 'abc123...',
   })
@@ -106,7 +106,7 @@ export class TransferController {
       example: {
         message: 'PIN verification required for this operation',
         code: 'PIN_REQUIRED',
-        hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+        hint: 'Call POST /user/pin/verify first, then include the returned token in X-Pin-Token header',
       },
     },
   })
@@ -163,7 +163,7 @@ export class TransferController {
   @ApiOperation({ summary: 'Send USDC to external blockchain address' })
   @ApiHeader({
     name: 'X-Pin-Token',
-    description: 'PIN verification token from POST /wallet/pin/verify',
+    description: 'PIN verification token from POST /user/pin/verify',
     required: true,
     example: 'abc123...',
   })
@@ -206,7 +206,7 @@ export class TransferController {
       example: {
         message: 'PIN verification required for this operation',
         code: 'PIN_REQUIRED',
-        hint: 'Call POST /wallet/pin/verify first, then include the returned token in X-Pin-Token header',
+        hint: 'Call POST /user/pin/verify first, then include the returned token in X-Pin-Token header',
       },
     },
   })

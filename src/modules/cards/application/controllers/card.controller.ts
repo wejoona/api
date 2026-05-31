@@ -6,9 +6,12 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -45,6 +48,17 @@ export class CardController {
     const card = await this.cardService.createCard(user.id, dto);
     // Include sensitive data on creation
     return CardResponseDto.fromEntity(card, true);
+  }
+
+  @Get(':id/transactions')
+  @ApiOperation({ summary: 'Get card transaction history' })
+  async getCardTransactions(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+  ) {
+    return this.cardService.getCardTransactions(id, user.id, limit, offset);
   }
 
   @Get(':id')

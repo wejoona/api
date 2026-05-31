@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CardService } from './card.service';
 import { CardRepository } from '../../domain/repositories/card.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { CardEntity } from '../../domain/entities/card.entity';
 import { WalletEntity } from '../../../wallet/domain/entities/wallet.entity';
+import { AppException } from '../../../../common/exceptions';
 
 describe('CardService', () => {
   let service: CardService;
@@ -28,6 +30,12 @@ describe('CardService', () => {
           provide: WalletRepository,
           useValue: {
             findByUserId: jest.fn(),
+          },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: {
+            emit: jest.fn(),
           },
         },
       ],
@@ -77,7 +85,7 @@ describe('CardService', () => {
       cardRepository.findByUserId.mockResolvedValue([existingCard]);
 
       await expect(service.createCard(userId, dto)).rejects.toThrow(
-        BadRequestException,
+        AppException,
       );
     });
 
@@ -232,6 +240,45 @@ describe('CardService', () => {
       expect(cardRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'cancelled' }),
       );
+    });
+  });
+
+  describe('getCardTransactions', () => {
+    it('should return an empty paginated response for owned cards', async () => {
+      const userId = 'user-123';
+      const card = CardEntity.create({
+        userId,
+        walletId: 'wallet-123',
+        cardholderName: 'John Doe',
+        spendingLimit: 1000,
+      });
+
+      cardRepository.findById.mockResolvedValue(card);
+
+      await expect(
+        service.getCardTransactions(card.id, userId, 10, 20),
+      ).resolves.toEqual({
+        data: [],
+        transactions: [],
+        total: 0,
+        limit: 10,
+        offset: 20,
+      });
+    });
+
+    it('should reject card transactions for cards owned by another user', async () => {
+      const card = CardEntity.create({
+        userId: 'user-456',
+        walletId: 'wallet-123',
+        cardholderName: 'John Doe',
+        spendingLimit: 1000,
+      });
+
+      cardRepository.findById.mockResolvedValue(card);
+
+      await expect(
+        service.getCardTransactions(card.id, 'user-123', 10, 0),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

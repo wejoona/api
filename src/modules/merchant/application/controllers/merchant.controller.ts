@@ -249,7 +249,7 @@ export class MerchantController {
   @ApiOperation({ summary: 'Pay a merchant (scan to pay)' })
   @ApiHeader({
     name: 'X-Pin-Token',
-    description: 'PIN verification token from POST /wallet/pin/verify',
+    description: 'PIN verification token from POST /user/pin/verify',
     required: true,
   })
   @ApiHeader({

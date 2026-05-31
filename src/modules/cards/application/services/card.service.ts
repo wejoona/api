@@ -77,6 +77,29 @@ export class CardService {
     return card;
   }
 
+  async getCardTransactions(
+    cardId: string,
+    userId: string,
+    limit = 20,
+    offset = 0,
+  ): Promise<{
+    data: unknown[];
+    transactions: unknown[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    await this.getCard(cardId, userId);
+
+    return {
+      data: [],
+      transactions: [],
+      total: 0,
+      limit,
+      offset,
+    };
+  }
+
   async freezeCard(cardId: string, userId: string): Promise<CardEntity> {
     const card = await this.getCard(cardId, userId);
     card.freeze();
