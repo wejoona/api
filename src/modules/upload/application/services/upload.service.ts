@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  PayloadTooLargeException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
@@ -94,6 +99,7 @@ export class UploadService {
   private mockStorage = new Map<string, Buffer>();
 
   private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
+  private readonly maxKycFileSize = 5 * 1024 * 1024; // 5MB
   private readonly maxAvatarSize = 5 * 1024 * 1024; // 5MB
 
   private readonly allowedImageTypes = [
@@ -159,7 +165,7 @@ export class UploadService {
    */
   async uploadDocument(params: UploadDocumentParams): Promise<UploadResult> {
     const { userId, type, file } = params;
-    this.validateFile(file, this.allowedImageTypes, this.maxFileSize);
+    this.validateFile(file, this.allowedImageTypes, this.maxKycFileSize);
 
     const date = this._dateStamp();
     const key = `${userId}/kyc/${type}-${date}.jpg`;
@@ -511,7 +517,7 @@ export class UploadService {
   ): void {
     if (!file) throw new BadRequestException('No file provided');
     if (file.size > maxSize) {
-      throw new BadRequestException(
+      throw new PayloadTooLargeException(
         `File too large. Maximum: ${Math.round(maxSize / (1024 * 1024))}MB`,
       );
     }

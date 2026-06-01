@@ -7,6 +7,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
@@ -135,6 +136,7 @@ export class VerifyOtpUsecase {
     const accessToken = this.jwtService.sign({
       sub: updatedUser.id,
       phone: updatedUser.phone,
+      jti: randomUUID(),
     });
 
     // Generate refresh token with separate secret
@@ -142,6 +144,7 @@ export class VerifyOtpUsecase {
       {
         sub: updatedUser.id,
         type: 'refresh',
+        jti: randomUUID(),
       },
       {
         secret: this.refreshSecret,

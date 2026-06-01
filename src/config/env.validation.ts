@@ -77,6 +77,10 @@ export const envValidationSchema = Joi.object({
   OTP_EXPIRES_IN: Joi.number().integer().positive().default(300),
   OTP_LENGTH: Joi.number().integer().min(4).max(8).default(6),
   OTP_MAX_ATTEMPTS: Joi.number().integer().positive().default(3),
+  OTP_USE_DEV_OTP: Joi.boolean().default(false),
+  OTP_DEV_CODE: Joi.string()
+    .pattern(/^\d{4,8}$/)
+    .default('123456'),
 
   // Rate Limiting
   RATE_LIMIT_TTL: Joi.number().integer().positive().default(60),

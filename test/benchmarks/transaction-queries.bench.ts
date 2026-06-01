@@ -6,6 +6,14 @@ import { TransactionOrmEntity } from '../../src/modules/transaction/infrastructu
 import { WalletOrmEntity } from '../../src/modules/wallet/infrastructure/orm-entities/wallet.orm-entity';
 import { UserOrmEntity } from '../../src/modules/user/infrastructure/orm-entities/user.orm-entity';
 import { DataSource } from 'typeorm';
+import {
+  deleteAll,
+  ensureBenchmarkDatabase,
+  getBenchmarkDbConfig,
+  testTransactionId,
+  testUserId,
+  testWalletId,
+} from './benchmark-db.helper';
 
 /**
  * Transaction Query Benchmarks
@@ -57,15 +65,18 @@ describe('Transaction Query Benchmarks', () => {
   };
 
   beforeAll(async () => {
+    await ensureBenchmarkDatabase();
+    const dbConfig = getBenchmarkDbConfig();
+
     module = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRoot({
           type: 'postgres',
-          host: process.env.DB_HOST || 'localhost',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          username: process.env.DB_USERNAME || 'postgres',
-          password: process.env.DB_PASSWORD || 'postgres',
-          database: process.env.DB_NAME || 'joonapay_test',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.database,
           entities: [TransactionOrmEntity, WalletOrmEntity, UserOrmEntity],
           synchronize: true,
           logging: false,
@@ -78,7 +89,7 @@ describe('Transaction Query Benchmarks', () => {
     repository = module.get<TransactionRepository>(TransactionRepository);
     dataSource = module.get<DataSource>(DataSource);
 
-    // Seed test data
+    await cleanupTestData(dataSource);
     await seedTestData(dataSource);
   });
 
@@ -153,24 +164,24 @@ describe('Transaction Query Benchmarks', () => {
       const metrics = startMetrics(dataSource);
 
       const startTime = performance.now();
-      const results = await repository.findByWalletId(walletId);
+      const transactions = await repository.findByWalletId(walletId);
       const endTime = performance.now();
 
       const executionTime = endTime - startTime;
       const queryMetrics = await endMetrics(dataSource, metrics);
 
-      this.results.push(
+      results.push(
         createBenchmarkResult(
           'findByWalletId',
           executionTime,
           queryMetrics.queryCount,
-          results.length,
+          transactions.length,
           queryMetrics.memoryUsedMB,
           THRESHOLDS.findByWalletId,
         ),
       );
 
-      expect(results).toBeDefined();
+      expect(transactions).toBeDefined();
       expect(executionTime).toBeLessThan(THRESHOLDS.findByWalletId);
     });
 
@@ -610,7 +621,7 @@ function printBenchmarkReport(results: BenchmarkResult[]): void {
 async function seedTestData(dataSource: DataSource): Promise<void> {
   // Create test user
   await dataSource.getRepository(UserOrmEntity).save({
-    id: 'test-user-1',
+    id: testUserId(1),
     phone: '+225XXXXXXXX',
     phoneVerified: true,
     countryCode: 'CI',
@@ -624,8 +635,8 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
 
   // Create test wallet
   await dataSource.getRepository(WalletOrmEntity).save({
-    id: 'test-wallet-1',
-    userId: 'test-user-1',
+    id: testWalletId(1),
+    userId: testUserId(1),
     currency: 'USDC',
     balance: 1000,
     kycStatus: 'verified',
@@ -644,8 +655,8 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
     createdAt.setDate(createdAt.getDate() - Math.floor(Math.random() * 90));
 
     transactions.push({
-      id: `test-tx-${i}`,
-      walletId: 'test-wallet-1',
+      id: testTransactionId(i + 1),
+      walletId: testWalletId(1),
       type: types[i % types.length],
       amount: Math.random() * 1000,
       currency: 'USDC',
@@ -659,9 +670,9 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
 }
 
 async function cleanupTestData(dataSource: DataSource): Promise<void> {
-  await dataSource.getRepository(TransactionOrmEntity).delete({});
-  await dataSource.getRepository(WalletOrmEntity).delete({});
-  await dataSource.getRepository(UserOrmEntity).delete({});
+  await deleteAll(dataSource, TransactionOrmEntity);
+  await deleteAll(dataSource, WalletOrmEntity);
+  await deleteAll(dataSource, UserOrmEntity);
 }
 
 async function getTestTransaction(
@@ -683,11 +694,11 @@ async function getTestTransactionWithProviderRef(
 }
 
 async function getTestWalletId(dataSource: DataSource): Promise<string> {
-  return 'test-wallet-1';
+  return testWalletId(1);
 }
 
 async function getTestUserId(dataSource: DataSource): Promise<string> {
-  return 'test-user-1';
+  return testUserId(1);
 }
 
 async function getTestTransactionIds(

@@ -45,6 +45,10 @@ export class ApiHealthMetricsService {
    */
   @Cron(CronExpression.EVERY_30_SECONDS)
   async runScheduledHealthChecks(): Promise<void> {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     this.logger.debug('Running scheduled API health checks');
     await this.collectAllMetrics();
   }

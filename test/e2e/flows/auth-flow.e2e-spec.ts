@@ -15,7 +15,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { E2ETestSetup } from '../setup';
-import { TestUserHelper, TestDataHelper, setupNock, teardownNock } from '../helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  setupNock,
+  teardownNock,
+} from '../helpers';
 
 describe('Auth Flow E2E', () => {
   let setup: E2ETestSetup;
@@ -126,7 +131,10 @@ describe('Auth Flow E2E', () => {
       // This test verifies the behavior, actual expiry would need time manipulation
       const response = await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjB9.invalid' })
+        .send({
+          refreshToken:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjB9.invalid',
+        })
         .expect(401);
 
       expect(response.body.message).toBeDefined();
@@ -146,9 +154,7 @@ describe('Auth Flow E2E', () => {
     });
 
     it('should reject access without token with 401', async () => {
-      await request(app.getHttpServer())
-        .get('/user/profile')
-        .expect(401);
+      await request(app.getHttpServer()).get('/user/profile').expect(401);
     });
 
     it('should reject access with malformed token with 401', async () => {
@@ -179,9 +185,7 @@ describe('Auth Flow E2E', () => {
       await userHelper.createUser(phone);
 
       // Request login OTP
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone });
+      await request(app.getHttpServer()).post('/auth/login').send({ phone });
 
       // Verify OTP
       const response = await request(app.getHttpServer())

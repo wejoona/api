@@ -58,45 +58,45 @@ npm run test:benchmark
 
 ### Transaction Queries
 
-| Operation | Threshold | Description |
-|-----------|-----------|-------------|
-| findById | 50ms | Single transaction lookup by ID |
-| findByWalletId | 100ms | Get all transactions for a wallet |
-| findByWalletIdPaginated | 150ms | Paginated transaction history |
-| findByWalletIdFiltered | 200ms | Advanced filtering with search |
-| getDailyTransferVolume | 100ms | Calculate daily transfer totals |
-| getTransactionStats | 300ms | Aggregate statistics |
-| getTransactionTimeSeries | 500ms | 30-day time series data |
-| findByDateRange | 250ms | Date range queries |
-| bulkInsert | 1000ms | Insert 100 transactions |
+| Operation                | Threshold | Description                       |
+| ------------------------ | --------- | --------------------------------- |
+| findById                 | 50ms      | Single transaction lookup by ID   |
+| findByWalletId           | 100ms     | Get all transactions for a wallet |
+| findByWalletIdPaginated  | 150ms     | Paginated transaction history     |
+| findByWalletIdFiltered   | 200ms     | Advanced filtering with search    |
+| getDailyTransferVolume   | 100ms     | Calculate daily transfer totals   |
+| getTransactionStats      | 300ms     | Aggregate statistics              |
+| getTransactionTimeSeries | 500ms     | 30-day time series data           |
+| findByDateRange          | 250ms     | Date range queries                |
+| bulkInsert               | 1000ms    | Insert 100 transactions           |
 
 ### User Queries
 
-| Operation | Threshold | Description |
-|-----------|-----------|-------------|
-| findById | 30ms | User lookup by ID (cache miss) |
-| findByIdCached | 5ms | User lookup by ID (cache hit) |
-| findByPhone | 40ms | User lookup by phone number |
-| findByUsername | 40ms | User lookup by username |
-| searchByUsername | 100ms | Username search with LIKE |
-| existsByPhone | 30ms | Check phone number existence |
-| existsByUsername | 30ms | Check username existence |
-| findAll | 200ms | Get all users |
-| concurrentReads | 150ms | 10 concurrent read operations |
+| Operation        | Threshold | Description                    |
+| ---------------- | --------- | ------------------------------ |
+| findById         | 30ms      | User lookup by ID (cache miss) |
+| findByIdCached   | 5ms       | User lookup by ID (cache hit)  |
+| findByPhone      | 40ms      | User lookup by phone number    |
+| findByUsername   | 40ms      | User lookup by username        |
+| searchByUsername | 100ms     | Username search with LIKE      |
+| existsByPhone    | 30ms      | Check phone number existence   |
+| existsByUsername | 30ms      | Check username existence       |
+| findAll          | 200ms     | Get all users                  |
+| concurrentReads  | 150ms     | 10 concurrent read operations  |
 
 ### Wallet Queries
 
-| Operation | Threshold | Description |
-|-----------|-----------|-------------|
-| findById | 30ms | Wallet lookup by ID |
-| findByUserId | 40ms | Wallet lookup by user ID |
-| findByCircleWalletId | 40ms | Circle wallet integration lookup |
-| findByYellowCardWalletId | 40ms | Yellow Card integration lookup |
-| findByProviderWalletId | 50ms | Generic provider lookup (tries both) |
-| findAll | 200ms | Get all wallets |
-| save | 50ms | Insert or update wallet |
-| bulkInsert | 500ms | Insert 50 wallets |
-| concurrentReads | 100ms | 20 concurrent read operations |
+| Operation                | Threshold | Description                          |
+| ------------------------ | --------- | ------------------------------------ |
+| findById                 | 30ms      | Wallet lookup by ID                  |
+| findByUserId             | 40ms      | Wallet lookup by user ID             |
+| findByCircleWalletId     | 40ms      | Circle wallet integration lookup     |
+| findByYellowCardWalletId | 40ms      | Yellow Card integration lookup       |
+| findByProviderWalletId   | 50ms      | Generic provider lookup (tries both) |
+| findAll                  | 200ms     | Get all wallets                      |
+| save                     | 50ms      | Insert or update wallet              |
+| bulkInsert               | 500ms     | Insert 50 wallets                    |
+| concurrentReads          | 100ms     | 20 concurrent read operations        |
 
 ## Benchmark Report Format
 
@@ -132,16 +132,19 @@ SLOW QUERIES DETECTED:
 ### Transaction Queries
 
 **Slow findByWalletId:**
+
 - Ensure composite index exists: `idx_transactions_wallet_date (walletId, createdAt DESC)`
 - Consider partitioning by date for large transaction volumes
 - Use pagination for large result sets
 
 **Slow aggregate queries:**
+
 - Add materialized views for frequently accessed statistics
 - Implement incremental aggregation with triggers
 - Use Redis caching for real-time stats
 
 **Slow search queries:**
+
 - Add GIN index for full-text search on text columns
 - Implement ElasticSearch for complex search requirements
 - Limit search to recent transactions with date filters
@@ -149,16 +152,19 @@ SLOW QUERIES DETECTED:
 ### User Queries
 
 **Slow findById (cache miss):**
+
 - Verify Redis connection and performance
 - Increase cache TTL for frequently accessed users
 - Add connection pooling for Redis
 
 **Slow searchByUsername:**
+
 - Add GIN index on username column: `CREATE INDEX idx_users_username_gin ON users USING GIN(username gin_trgm_ops)`
 - Limit search results with appropriate pagination
 - Implement autocomplete with dedicated search service
 
 **Slow findByPhone/findByUsername:**
+
 - Verify indexes exist on phone and username columns
 - Ensure UNIQUE constraints leverage index
 - Consider case-insensitive indexes for username
@@ -166,16 +172,19 @@ SLOW QUERIES DETECTED:
 ### Wallet Queries
 
 **Slow findByUserId:**
+
 - Add index: `CREATE INDEX idx_wallets_user_id ON wallets(userId)`
 - Ensure one-to-one relationship is enforced
 - Cache wallet lookups by user ID
 
 **Slow findByProviderWalletId:**
+
 - Add composite index: `CREATE INDEX idx_wallets_providers ON wallets(circleWalletId, yellowCardWalletId)`
 - Separate Circle and Yellow Card lookups into distinct queries
 - Cache provider wallet mappings
 
 **Slow concurrent operations:**
+
 - Increase database connection pool size
 - Enable connection pooling in TypeORM config
 - Consider read replicas for read-heavy workloads
@@ -267,16 +276,19 @@ jobs:
 ## Interpreting Results
 
 ### Query Count
+
 - **1 query:** Optimal - direct index lookup
 - **2-3 queries:** Acceptable - includes joins or fallback queries
 - **> 3 queries:** Review - may indicate N+1 problem
 
 ### Memory Usage
+
 - **< 1 MB:** Excellent - efficient memory usage
 - **1-10 MB:** Good - reasonable for collection queries
 - **> 10 MB:** High - consider pagination or optimization
 
 ### Queries Per Second (QPS)
+
 - **> 100 QPS:** Excellent throughput
 - **10-100 QPS:** Good performance
 - **< 10 QPS:** Needs optimization
@@ -286,6 +298,7 @@ jobs:
 ### Benchmark Timeout
 
 If benchmarks timeout (> 5 minutes):
+
 1. Reduce test data size
 2. Increase `testTimeout` in `jest-benchmark.json`
 3. Check database connection
@@ -293,6 +306,7 @@ If benchmarks timeout (> 5 minutes):
 ### Inconsistent Results
 
 Benchmarks may vary due to:
+
 - Database cache warming
 - System resource availability
 - Network latency
@@ -303,6 +317,7 @@ Run benchmarks multiple times and compare averages.
 ### Database Connection Errors
 
 Ensure PostgreSQL is running and accessible:
+
 ```bash
 psql -h localhost -U postgres -d joonapay_test
 ```

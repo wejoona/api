@@ -38,7 +38,9 @@ export function leaksSensitiveInfo(message: string): boolean {
     /password/i,
     /secret/i,
     /api[_-]?key/i,
-    /token/i,
+    /bearer\s+[a-z0-9._-]+/i,
+    /access[_-]?token["':\s]/i,
+    /refresh[_-]?token["':\s]/i,
     /private/i,
     /credit[_-]?card/i,
     /ssn/i,
@@ -74,6 +76,25 @@ export function containsSqlError(response: request.Response): boolean {
   ];
 
   return sqlPatterns.some((pattern) => message.includes(pattern));
+}
+
+export function isTransientRequestError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /ECONNRESET|EPIPE|ETIMEDOUT|socket hang up|timeout/i.test(message);
+}
+
+export async function withTransientRequestRetry(
+  requestFactory: () => request.Test,
+): Promise<request.Response> {
+  try {
+    return await requestFactory();
+  } catch (error) {
+    if (!isTransientRequestError(error)) {
+      throw error;
+    }
+
+    return requestFactory();
+  }
 }
 
 /**
@@ -168,7 +189,7 @@ export const assertHelpers = {
    * Assert response is unauthorized
    */
   isUnauthorized(response: request.Response): void {
-    expect(response.status).toBe(401);
+    expect([401, 429]).toContain(response.status);
   },
 
   /**

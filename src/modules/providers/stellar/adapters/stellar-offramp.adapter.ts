@@ -46,7 +46,15 @@ export class StellarOffRampAdapter implements IOffRampProvider {
   private readonly config: StellarConfig;
 
   readonly providerName = 'stellar';
-  readonly supportedCountries: string[] = ['US', 'CI', 'SN', 'ML', 'BF', 'GH', 'NG'];
+  readonly supportedCountries: string[] = [
+    'US',
+    'CI',
+    'SN',
+    'ML',
+    'BF',
+    'GH',
+    'NG',
+  ];
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,7 +63,8 @@ export class StellarOffRampAdapter implements IOffRampProvider {
     private readonly keyVault: KeyVaultService,
   ) {
     this.config = {
-      network: (this.configService.get<string>('stellar.network') || 'testnet') as StellarNetwork,
+      network: (this.configService.get<string>('stellar.network') ||
+        'testnet') as StellarNetwork,
       horizonUrl:
         this.configService.get<string>('stellar.horizonUrl') ||
         'https://horizon-testnet.stellar.org',
@@ -228,9 +237,7 @@ export class StellarOffRampAdapter implements IOffRampProvider {
   ): Promise<WithdrawalResult> {
     try {
       // Get the source secret key for SEP-10 authentication
-      const encryptedKey = data.metadata?.sourceSecretKey as
-        | string
-        | undefined;
+      const encryptedKey = data.metadata?.sourceSecretKey as string | undefined;
 
       if (!encryptedKey) {
         throw new StellarAuthError(
@@ -349,11 +356,14 @@ export class StellarOffRampAdapter implements IOffRampProvider {
 
     const hmac = crypto.createHmac('sha256', secret);
     const expectedSignature = hmac.update(payload).digest('hex');
+    const signatureBuffer = Buffer.from(signature);
+    const expectedSignatureBuffer = Buffer.from(expectedSignature);
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature),
-    );
+    if (signatureBuffer.length !== expectedSignatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer);
   }
 
   /**

@@ -77,16 +77,19 @@ cd /Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/test/benchmarks
 ### Transaction Queries (15 tests)
 
 **Single Record Queries:**
+
 - findById
 - findByProviderRef
 
 **Collection Queries:**
+
 - findByWalletId
 - findByWalletIdPaginated
 - findByWalletIdFiltered (with all filters)
 - findByDateRange
 
 **Aggregate Queries:**
+
 - getDailyTransferVolume
 - getTransactionStats
 - getTransactionTimeSeries (30 days)
@@ -94,67 +97,81 @@ cd /Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/test/benchmarks
 - getTransactionCountByType
 
 **Bulk Operations:**
+
 - bulkInsert (100 records)
 - findByIds (50 IDs)
 
 ### User Queries (13 tests)
 
 **Single Record Queries:**
+
 - findById (cache miss)
 - findById (cache hit)
 - findByPhone
 - findByUsername
 
 **Existence Checks:**
+
 - existsByPhone
 - existsByUsername
 
 **Search Queries:**
+
 - searchByUsername (prefix match)
 - searchByUsername (single character)
 
 **Collection Queries:**
+
 - findAll
 
 **Concurrent Operations:**
+
 - concurrent findById (10 queries)
 - concurrent mixed queries (20 queries)
 
 **Write Operations:**
+
 - save (insert)
 - bulk insert (50 users)
 
 ### Wallet Queries (17 tests)
 
 **Primary Key Lookups:**
+
 - findById
 - findById (not found)
 
 **Foreign Key Lookups:**
+
 - findByUserId
 - findByUserId (not found)
 
 **Provider Integration Queries:**
+
 - findByCircleWalletId
 - findByYellowCardWalletId
 - findByProviderWalletId (Circle)
 - findByProviderWalletId (Yellow Card fallback)
 
 **Collection Queries:**
+
 - findAll
 
 **Write Operations:**
+
 - save (insert)
 - save (update)
 - bulk insert (50 wallets)
 
 **Concurrent Operations:**
+
 - concurrent findById (20 queries)
 - concurrent findByUserId (20 queries)
 - concurrent mixed queries (30 queries)
 - concurrent updates (10 queries)
 
 **Index Performance:**
+
 - findByUserId (with index verification)
 - findByCircleWalletId (with index verification)
 
@@ -168,14 +185,14 @@ All benchmarks include predefined performance thresholds:
 
 ### Critical Thresholds
 
-| Query Type | Threshold | Description |
-|------------|-----------|-------------|
-| Single record lookup | 30-50ms | By ID or unique key |
-| Collection query | 100-200ms | Multiple records |
-| Aggregate query | 300-500ms | Statistics, grouping |
-| Search query | 100ms | LIKE/ILIKE searches |
-| Bulk operations | 500-1000ms | 50-100 records |
-| Concurrent operations | 100-200ms | 10-30 parallel queries |
+| Query Type            | Threshold  | Description            |
+| --------------------- | ---------- | ---------------------- |
+| Single record lookup  | 30-50ms    | By ID or unique key    |
+| Collection query      | 100-200ms  | Multiple records       |
+| Aggregate query       | 300-500ms  | Statistics, grouping   |
+| Search query          | 100ms      | LIKE/ILIKE searches    |
+| Bulk operations       | 500-1000ms | 50-100 records         |
+| Concurrent operations | 100-200ms  | 10-30 parallel queries |
 
 ## Metrics Tracked
 
@@ -197,6 +214,7 @@ psql -h localhost -U postgres -d joonapay_dev < /Users/macbook/JoonaPay/USDC-Wal
 ```
 
 This provides:
+
 - Index usage statistics
 - Missing index recommendations
 - Duplicate index detection
@@ -331,6 +349,7 @@ jobs:
 ### Benchmark Timeouts
 
 If benchmarks timeout:
+
 - Reduce test data volume in seed functions
 - Increase `testTimeout` in jest-benchmark.json
 - Check database connection and performance
@@ -338,6 +357,7 @@ If benchmarks timeout:
 ### Inconsistent Results
 
 Benchmarks may vary due to:
+
 - Database cache warming
 - System resource availability
 - Concurrent operations
@@ -347,6 +367,7 @@ Run multiple times and compare averages.
 ### Database Connection Errors
 
 Ensure PostgreSQL is running:
+
 ```bash
 psql -h localhost -U postgres -d joonapay_test
 ```
@@ -354,6 +375,7 @@ psql -h localhost -U postgres -d joonapay_test
 ## Support
 
 For questions or issues:
+
 - Review README.md for detailed documentation
 - Check benchmark logs for error details
 - Analyze database indexes with analyze-indexes.sql
@@ -362,6 +384,7 @@ For questions or issues:
 ## Summary
 
 This benchmark suite provides:
+
 - **45 comprehensive tests** across 3 modules
 - **Automated performance validation** with thresholds
 - **Detailed reporting** with color-coded status

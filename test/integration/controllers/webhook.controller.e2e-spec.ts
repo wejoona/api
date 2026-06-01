@@ -2,7 +2,7 @@
  * Webhook Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockProcessWebhook = { execute: jest.fn() };
@@ -16,13 +16,19 @@ describe('WebhookController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [WebhookController],
-      providers: [{ provide: ProcessWebhookUseCase, useValue: mockProcessWebhook }],
+      providers: [
+        { provide: ProcessWebhookUseCase, useValue: mockProcessWebhook },
+      ],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('POST /api/v1/webhooks/payment', () => {
     it('should process payment webhook (200)', async () => {

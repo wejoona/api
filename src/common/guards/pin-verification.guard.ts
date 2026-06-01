@@ -105,7 +105,8 @@ export class PinVerificationGuard implements CanActivate {
  */
 @Injectable()
 export class PinTokenService {
-  private readonly PIN_TOKEN_TTL = 5 * 60; // 5 minutes in seconds
+  private readonly PIN_TOKEN_TTL_SECONDS = 5 * 60;
+  private readonly PIN_TOKEN_TTL_MS = this.PIN_TOKEN_TTL_SECONDS * 1000;
 
   constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
@@ -119,7 +120,7 @@ export class PinTokenService {
     await this.cacheManager.set(
       cacheKey,
       { verified: true, timestamp: Date.now() },
-      this.PIN_TOKEN_TTL,
+      this.PIN_TOKEN_TTL_MS,
     );
 
     return token;

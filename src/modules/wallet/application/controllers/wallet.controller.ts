@@ -96,6 +96,12 @@ export class WalletController {
     return this.getBalanceUseCase.execute({ userId: req.user.id });
   }
 
+  @Get('balance')
+  @ApiOperation({ summary: 'Get wallet balance (mobile alias)' })
+  async getBalanceAlias(@Request() req: AuthenticatedRequest) {
+    return this.getBalanceUseCase.execute({ userId: req.user.id });
+  }
+
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create/activate wallet for current user' })
@@ -407,8 +413,10 @@ export class WalletController {
     return this.internalTransferUseCase.execute({
       fromUserId: req.user.id,
       toPhone: dto.toPhone,
+      recipientUsername: dto.recipientUsername,
       amount: dto.amount,
       currency: dto.currency,
+      note: dto.note,
     });
   }
 

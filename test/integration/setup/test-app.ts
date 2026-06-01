@@ -6,19 +6,34 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  CanActivate,
+  ExecutionContext,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '@/common/guards/pin-verification.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Reflector } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { IdempotencyInterceptor } from '@/common/interceptors/idempotency.interceptor';
+import { IdempotencyGuard } from '@/common/middleware/idempotency';
+import { WALLET_REPOSITORY } from '@/modules/wallet/domain/repositories/wallet.repository';
+import { UserRepository } from '@/modules/user/infrastructure/repositories';
+import { JweDecryptInterceptor } from '@/modules/security/application/interceptors/jwe-decrypt.interceptor';
+import { ServerKeyService } from '@/modules/security/application/services/server-key.service';
 
 /**
  * Default mock user for authenticated requests
  */
 export const TEST_USER = {
   id: '550e8400-e29b-41d4-a716-446655440000',
+  userId: '550e8400-e29b-41d4-a716-446655440000',
   phone: '+2250701234567',
   walletId: '660e8400-e29b-41d4-a716-446655440000',
   role: 'user',
@@ -34,6 +49,7 @@ export const TEST_USER = {
 export const TEST_ADMIN = {
   ...TEST_USER,
   id: '550e8400-e29b-41d4-a716-446655440001',
+  userId: '550e8400-e29b-41d4-a716-446655440001',
   role: 'admin',
   phone: '+2250701234568',
   username: 'testadmin',
@@ -42,6 +58,7 @@ export const TEST_ADMIN = {
 export const TEST_SUPER_ADMIN = {
   ...TEST_ADMIN,
   id: '550e8400-e29b-41d4-a716-446655440002',
+  userId: '550e8400-e29b-41d4-a716-446655440002',
   role: 'super_admin',
   phone: '+2250701234569',
   username: 'testsuperadmin',
@@ -86,7 +103,7 @@ export class MockPinGuard implements CanActivate {
  * Mock RolesGuard that checks req.user.role
  */
 export class MockRolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector = new Reflector()) {}
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
@@ -95,7 +112,9 @@ export class MockRolesGuard implements CanActivate {
     ]);
     if (!requiredRoles) return true;
     const { user } = context.switchToHttp().getRequest();
-    return requiredRoles.some((role) => user?.role === role || user?.role === 'super_admin');
+    return requiredRoles.some(
+      (role) => user?.role === role || user?.role === 'super_admin',
+    );
   }
 }
 
@@ -108,11 +127,190 @@ export class MockThrottlerGuard implements CanActivate {
   }
 }
 
+export class MockIdempotencyGuard implements CanActivate {
+  canActivate(): boolean {
+    return true;
+  }
+}
+
 export interface TestAppOptions {
   controllers: any[];
   providers: any[];
+  /** Authenticated user injected by the mock JwtAuthGuard */
+  authUser?: any;
   /** Override guards (defaults to mock all) */
   guardOverrides?: Record<string, any>;
+}
+
+type ProviderLike =
+  | any
+  | {
+      provide: any;
+      useValue?: Record<PropertyKey, any>;
+    };
+
+const mockConfigService = {
+  get: jest.fn((key: string, defaultValue?: unknown) => {
+    const values: Record<string, unknown> = {
+      'redis.host': 'localhost',
+      'redis.port': 6379,
+      'redis.password': undefined,
+      'redis.db': 15,
+      nodeEnv: 'test',
+    };
+    return values[key] ?? defaultValue;
+  }),
+};
+
+const mockRepository = {
+  findById: jest.fn(),
+  findByUserId: jest.fn(),
+  findByPhone: jest.fn(),
+  findByUsername: jest.fn(),
+  findAll: jest.fn(),
+  searchByUsername: jest.fn(),
+  existsByPhone: jest.fn(),
+  existsByUsername: jest.fn(),
+  save: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+
+const noopIdempotencyInterceptor = {
+  intercept: (_context: ExecutionContext, next: any) => next.handle(),
+  onModuleDestroy: jest.fn(),
+};
+
+const mockServerKeyService = {
+  getPublicKey: jest.fn(),
+  decryptJwe: jest.fn(),
+};
+
+function defaultTestProviders() {
+  return [
+    Reflector,
+    MockJwtAuthGuard,
+    MockPinGuard,
+    MockRolesGuard,
+    MockThrottlerGuard,
+    {
+      provide: ConfigService,
+      useValue: mockConfigService,
+    },
+    {
+      provide: IdempotencyInterceptor,
+      useValue: noopIdempotencyInterceptor,
+    },
+    {
+      provide: JweDecryptInterceptor,
+      useValue: noopIdempotencyInterceptor,
+    },
+    {
+      provide: ServerKeyService,
+      useValue: mockServerKeyService,
+    },
+    {
+      provide: UserRepository,
+      useValue: mockRepository,
+    },
+    {
+      provide: WALLET_REPOSITORY,
+      useValue: mockRepository,
+    },
+    {
+      provide: CACHE_MANAGER,
+      useValue: {
+        get: jest.fn().mockResolvedValue(null),
+        set: jest.fn().mockResolvedValue(undefined),
+        del: jest.fn().mockResolvedValue(undefined),
+      },
+    },
+  ];
+}
+
+function createLenientMock<T extends Record<PropertyKey, any>>(mock: T): T {
+  if (!mock || typeof mock !== 'object' || mock instanceof Date) {
+    return mock;
+  }
+
+  return new Proxy(mock, {
+    get(target, property, receiver) {
+      if (property === 'then') {
+        return undefined;
+      }
+
+      if (property in target) {
+        return Reflect.get(target, property, receiver);
+      }
+
+      if (typeof property === 'string') {
+        const fallback = jest.fn().mockImplementation((...args: unknown[]) => {
+          if (process.env.DEBUG_TEST_MOCKER === 'true') {
+            // eslint-disable-next-line no-console
+            console.log('Fallback mock method', property, args);
+          }
+
+          return Promise.resolve({});
+        });
+        Reflect.set(target, property, fallback, receiver);
+        return fallback;
+      }
+
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}
+
+function wrapProviderMocks(provider: ProviderLike): ProviderLike {
+  if (
+    provider &&
+    typeof provider === 'object' &&
+    'useValue' in provider &&
+    provider.useValue &&
+    typeof provider.useValue === 'object'
+  ) {
+    return {
+      ...provider,
+      useValue: createLenientMock(provider.useValue),
+    };
+  }
+
+  return provider;
+}
+
+function createJwtGuard(user: any): CanActivate {
+  return {
+    canActivate(context: ExecutionContext): boolean {
+      const req = context.switchToHttp().getRequest();
+      req.user = user;
+      return true;
+    },
+  };
+}
+
+function createFallbackMock(token?: unknown) {
+  if (token === Object) {
+    return {};
+  }
+
+  if (
+    process.env.DEBUG_TEST_MOCKER === 'true' &&
+    typeof token === 'function' &&
+    token.name.includes('Pipe')
+  ) {
+    // eslint-disable-next-line no-console
+    console.log('Mocking token', token.name);
+  }
+
+  if (token === ParseUUIDPipe) {
+    return new ParseUUIDPipe();
+  }
+
+  if (token === ParseIntPipe) {
+    return new ParseIntPipe();
+  }
+
+  return createLenientMock({});
 }
 
 /**
@@ -123,30 +321,26 @@ export async function createTestApp(options: TestAppOptions): Promise<{
   module: TestingModule;
 }> {
   const moduleBuilder = Test.createTestingModule({
-    imports: [
-      ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
-    ],
+    imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }])],
     controllers: options.controllers,
     providers: [
-      ...options.providers,
-      Reflector,
-      {
-        provide: CACHE_MANAGER,
-        useValue: {
-          get: jest.fn().mockResolvedValue(null),
-          set: jest.fn().mockResolvedValue(undefined),
-          del: jest.fn().mockResolvedValue(undefined),
-        },
-      },
+      ...defaultTestProviders().map(wrapProviderMocks),
+      ...options.providers.map(wrapProviderMocks),
     ],
-  });
+  }).useMocker(createFallbackMock);
 
   // Override guards
   moduleBuilder
-    .overrideGuard(JwtAuthGuard).useClass(MockJwtAuthGuard)
-    .overrideGuard(PinVerificationGuard).useClass(MockPinGuard)
-    .overrideGuard(RolesGuard).useClass(MockRolesGuard)
-    .overrideGuard(ThrottlerGuard).useClass(MockThrottlerGuard);
+    .overrideGuard(JwtAuthGuard)
+    .useValue(createJwtGuard(options.authUser ?? TEST_USER))
+    .overrideGuard(PinVerificationGuard)
+    .useClass(MockPinGuard)
+    .overrideGuard(RolesGuard)
+    .useClass(MockRolesGuard)
+    .overrideGuard(ThrottlerGuard)
+    .useClass(MockThrottlerGuard)
+    .overrideGuard(IdempotencyGuard)
+    .useClass(MockIdempotencyGuard);
 
   const module = await moduleBuilder.compile();
   const app = module.createNestApplication();
@@ -169,34 +363,32 @@ export async function createTestApp(options: TestAppOptions): Promise<{
 /**
  * Create a test app that rejects auth (for 401 tests)
  */
-export async function createUnauthTestApp(options: Omit<TestAppOptions, 'guardOverrides'>): Promise<{
+export async function createUnauthTestApp(
+  options: Omit<TestAppOptions, 'guardOverrides'>,
+): Promise<{
   app: INestApplication;
   module: TestingModule;
 }> {
   const moduleBuilder = Test.createTestingModule({
-    imports: [
-      ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
-    ],
+    imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }])],
     controllers: options.controllers,
     providers: [
-      ...options.providers,
-      Reflector,
-      {
-        provide: CACHE_MANAGER,
-        useValue: {
-          get: jest.fn().mockResolvedValue(null),
-          set: jest.fn().mockResolvedValue(undefined),
-          del: jest.fn().mockResolvedValue(undefined),
-        },
-      },
+      ...defaultTestProviders().map(wrapProviderMocks),
+      ...options.providers.map(wrapProviderMocks),
     ],
-  });
+  }).useMocker(createFallbackMock);
 
   moduleBuilder
-    .overrideGuard(JwtAuthGuard).useClass(RejectingJwtAuthGuard)
-    .overrideGuard(PinVerificationGuard).useClass(MockPinGuard)
-    .overrideGuard(RolesGuard).useClass(MockRolesGuard)
-    .overrideGuard(ThrottlerGuard).useClass(MockThrottlerGuard);
+    .overrideGuard(JwtAuthGuard)
+    .useClass(RejectingJwtAuthGuard)
+    .overrideGuard(PinVerificationGuard)
+    .useClass(MockPinGuard)
+    .overrideGuard(RolesGuard)
+    .useClass(MockRolesGuard)
+    .overrideGuard(ThrottlerGuard)
+    .useClass(MockThrottlerGuard)
+    .overrideGuard(IdempotencyGuard)
+    .useClass(MockIdempotencyGuard);
 
   const module = await moduleBuilder.compile();
   const app = module.createNestApplication();

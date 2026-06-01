@@ -2,14 +2,13 @@
  * Business Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockBusinessService = {
-  register: jest.fn(),
-  getProfile: jest.fn(),
-  update: jest.fn(),
-  getAnalytics: jest.fn(),
+  getBusinessByUserId: jest.fn(),
+  createBusiness: jest.fn(),
+  updateBusiness: jest.fn(),
 };
 
 import { BusinessController } from '@modules/business/application/controllers/business.controller';
@@ -26,23 +25,36 @@ describe('BusinessController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  describe('POST /api/v1/business/register', () => {
+  describe('POST /api/v1/business/profile', () => {
     it('should register business (201)', async () => {
-      mockBusinessService.register.mockResolvedValue({ id: 'biz_123', name: 'Test Biz' });
+      mockBusinessService.getBusinessByUserId.mockResolvedValue(null);
+      mockBusinessService.createBusiness.mockResolvedValue({
+        id: 'biz_123',
+        name: 'Test Biz',
+      });
       await request(app.getHttpServer())
-        .post('/api/v1/business/register')
-        .send({ name: 'Test Biz', type: 'retail' })
+        .post('/api/v1/business/profile')
+        .send({ name: 'Test Biz', registrationNumber: 'CI-123456' })
         .expect(201);
     });
   });
 
-  describe('GET /api/v1/business/me', () => {
+  describe('GET /api/v1/business/profile', () => {
     it('should get business profile (200)', async () => {
-      mockBusinessService.getProfile.mockResolvedValue({ id: 'biz_123', name: 'Test Biz' });
-      await request(app.getHttpServer()).get('/api/v1/business/me').expect(200);
+      mockBusinessService.getBusinessByUserId.mockResolvedValue({
+        id: 'biz_123',
+        name: 'Test Biz',
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/business/profile')
+        .expect(200);
     });
   });
 });

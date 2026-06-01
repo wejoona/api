@@ -2,24 +2,26 @@
 
 ## Quick Access
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [QUICK_START.md](./QUICK_START.md) | Get started in 5 minutes | All developers |
-| [README.md](./README.md) | Overview and basics | All developers |
-| [FUZZING_GUIDE.md](./FUZZING_GUIDE.md) | Comprehensive guide | Test writers |
-| [TEST_COVERAGE.md](./TEST_COVERAGE.md) | Detailed coverage map | QA, Security |
-| [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical details | Tech leads |
-| [INDEX.md](./INDEX.md) | This file | All |
+| Document                                                 | Purpose                  | Audience       |
+| -------------------------------------------------------- | ------------------------ | -------------- |
+| [QUICK_START.md](./QUICK_START.md)                       | Get started in 5 minutes | All developers |
+| [README.md](./README.md)                                 | Overview and basics      | All developers |
+| [FUZZING_GUIDE.md](./FUZZING_GUIDE.md)                   | Comprehensive guide      | Test writers   |
+| [TEST_COVERAGE.md](./TEST_COVERAGE.md)                   | Detailed coverage map    | QA, Security   |
+| [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) | Technical details        | Tech leads     |
+| [INDEX.md](./INDEX.md)                                   | This file                | All            |
 
 ## What You Get
 
 ### Comprehensive Testing
+
 - **161 test cases** covering all API endpoints
 - **16,100+ scenarios** tested per run (configurable)
 - **30+ security attack vectors** (SQL injection, XSS, etc.)
 - **25+ custom data generators** for realistic fuzzing
 
 ### Security Coverage
+
 ✓ SQL Injection detection and prevention
 ✓ XSS attack protection
 ✓ Path traversal prevention
@@ -30,6 +32,7 @@
 ✓ Brute force protection
 
 ### Validation Coverage
+
 ✓ Invalid data types
 ✓ Missing required fields
 ✓ Null/undefined handling
@@ -42,6 +45,7 @@
 ## Files Created (16 total)
 
 ### Documentation (6 files)
+
 ```
 ├── INDEX.md                      # This file - navigation hub
 ├── QUICK_START.md               # 5-minute getting started guide
@@ -52,12 +56,14 @@
 ```
 
 ### Configuration (2 files)
+
 ```
 ├── jest-fuzzing.json           # Jest test configuration
 └── .gitignore                  # Ignore coverage/temp files
 ```
 
 ### Test Files (8 files)
+
 ```
 ├── common/
 │   ├── arbitraries.ts          # 25+ data generators (500+ lines)
@@ -85,6 +91,7 @@
 ## Running Tests
 
 ### Basic Commands
+
 ```bash
 # Run all tests (2-3 minutes)
 npm run test:fuzzing
@@ -100,6 +107,7 @@ npm run test:fuzzing:cov
 ```
 
 ### Advanced Usage
+
 ```bash
 # Quick smoke test (10 runs per test)
 FUZZING_RUNS=10 npm run test:fuzzing
@@ -120,18 +128,22 @@ FUZZING_VERBOSE=true npm run test:fuzzing
 ## Test Modules
 
 ### 1. Authentication (`auth/`)
+
 **28 test cases** | **~2,800 scenarios**
 
 Tests login, registration, OTP verification
+
 - Phone number validation (international formats)
 - OTP format and brute force protection
 - Account enumeration prevention
 - Timing attack prevention
 
 ### 2. Wallet Operations (`wallet/`)
+
 **61 test cases** | **~19,000 scenarios**
 
 Tests transfers, deposits, withdrawals, PINs
+
 - Amount validation (boundaries, precision)
 - Currency validation
 - Address validation (crypto wallets)
@@ -139,27 +151,33 @@ Tests transfers, deposits, withdrawals, PINs
 - Idempotency handling
 
 ### 3. User Management (`user/`)
+
 **26 test cases** | **~8,400 scenarios**
 
 Tests profile updates, username management
+
 - Username validation (special chars, length)
 - Email validation
 - Unicode handling in names
 - Search functionality security
 
 ### 4. KYC Verification (`kyc/`)
+
 **18 test cases** | **~6,300 scenarios**
 
 Tests KYC document submission
+
 - Name validation (international)
 - Date of birth (age restrictions)
 - ID number validation
 - Document path traversal prevention
 
 ### 5. General/Cross-Cutting (`common/`)
+
 **28 test cases** | **~5,600 scenarios**
 
 Tests API-wide concerns
+
 - HTTP method security
 - Header validation
 - Query parameter injection
@@ -169,7 +187,9 @@ Tests API-wide concerns
 ## Key Features
 
 ### Property-Based Testing
+
 Instead of writing individual test cases:
+
 ```typescript
 // Traditional: 1 test case
 it('should reject negative amounts', () => {
@@ -178,24 +198,30 @@ it('should reject negative amounts', () => {
 
 // Fuzzing: 100+ test cases automatically
 it('should reject invalid amounts', () => {
-  fc.assert(fc.property(
-    amountArbitraries.invalid(), // Generates 100+ values
-    (amount) => {
-      expect(validate(amount)).toBe(false);
-    }
-  ));
+  fc.assert(
+    fc.property(
+      amountArbitraries.invalid(), // Generates 100+ values
+      (amount) => {
+        expect(validate(amount)).toBe(false);
+      },
+    ),
+  );
 });
 ```
 
 ### Automatic Shrinking
+
 When a test fails, fast-check finds the simplest failing case:
+
 ```
 Original failure: amount = -123456.789
 Shrunk to: amount = -1
 ```
 
 ### Comprehensive Security
+
 Every test checks for:
+
 - SQL injection prevention
 - XSS protection
 - Sensitive data leaks
@@ -204,28 +230,28 @@ Every test checks for:
 
 ## Statistics
 
-| Metric | Count |
-|--------|-------|
-| Total Files Created | 16 |
-| Test Files | 8 |
-| Documentation Files | 6 |
-| Total Lines of Code | 5,229 |
-| Test Cases | 161 |
-| Data Generators | 25+ |
-| Security Payloads | 30+ |
-| Default Scenarios per Run | 16,100+ |
-| Max Scenarios (10K runs) | 1,610,000+ |
+| Metric                    | Count      |
+| ------------------------- | ---------- |
+| Total Files Created       | 16         |
+| Test Files                | 8          |
+| Documentation Files       | 6          |
+| Total Lines of Code       | 5,229      |
+| Test Cases                | 161        |
+| Data Generators           | 25+        |
+| Security Payloads         | 30+        |
+| Default Scenarios per Run | 16,100+    |
+| Max Scenarios (10K runs)  | 1,610,000+ |
 
 ## Coverage Goals
 
 After running fuzzing tests, expect:
 
-| Component | Coverage |
-|-----------|----------|
-| Controllers | 95%+ |
-| DTOs | 100% |
-| Guards | 87%+ |
-| Validators | 100% |
+| Component   | Coverage |
+| ----------- | -------- |
+| Controllers | 95%+     |
+| DTOs        | 100%     |
+| Guards      | 87%+     |
+| Validators  | 100%     |
 
 ## Integration with Existing Tests
 
@@ -239,6 +265,7 @@ test/
 ```
 
 ### Test Strategy
+
 1. **Unit Tests**: Test individual functions
 2. **Integration Tests**: Test component interactions
 3. **Contract Tests**: Test API contracts
@@ -248,16 +275,19 @@ test/
 ## Maintenance
 
 ### Weekly
+
 - Review failed tests
 - Update security payloads
 - Check for new vulnerabilities
 
 ### Monthly
+
 - Run intensive tests (1000+ runs)
 - Review coverage reports
 - Update documentation
 
 ### Per Release
+
 - Run exhaustive tests (10000+ runs)
 - Generate coverage report
 - Document findings
@@ -314,18 +344,21 @@ jobs:
 ## Next Steps
 
 ### Immediate (Now)
+
 1. Read [QUICK_START.md](./QUICK_START.md)
 2. Run: `npm run test:fuzzing`
 3. Review any failures
 4. Fix validation issues
 
 ### Short-term (This Week)
+
 1. Add fuzzing to CI/CD pipeline
 2. Set up nightly runs
 3. Review and improve coverage
 4. Train team on property-based testing
 
 ### Long-term (This Month)
+
 1. Add fuzzing for remaining endpoints
 2. Create custom security payloads for your domain
 3. Integrate with security scanning tools
@@ -334,6 +367,7 @@ jobs:
 ## Dependencies
 
 ### Required
+
 - `fast-check@4.5.3` - Property-based testing framework
 - `@fast-check/jest@2.1.1` - Jest integration for fast-check
 - `@nestjs/testing` - NestJS testing utilities
@@ -341,6 +375,7 @@ jobs:
 - `jest` - Test runner
 
 ### Already Installed
+
 All dependencies are installed and configured.
 
 ## License

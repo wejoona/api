@@ -34,7 +34,6 @@ import {
 
 // Controllers
 import { WalletController } from './application/controllers/wallet.controller';
-import { KycUploadController } from './application/controllers/kyc-upload.controller';
 import { ExportController } from './application/controllers/export.controller';
 
 // Services
@@ -100,7 +99,7 @@ import {
     ExportTransactionsUseCase,
     GetWalletLimitsUseCase,
   ],
-  controllers: [WalletController, KycUploadController, ExportController],
+  controllers: [WalletController, ExportController],
   exports: [
     WalletRepository,
     WALLET_REPOSITORY, // Symbol token for IWalletRepository

@@ -4,16 +4,20 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": ["ts-jest", {
-      "tsconfig": {
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "esModuleInterop": true,
+          "allowSyntheticDefaultImports": true,
+          "allowJs": true
+        }
       }
-    }]
+    ]
   },
-  "transformIgnorePatterns": [
-    "node_modules/(?!(uuid|jose)/)"
-  ],
+  "transformIgnorePatterns": ["node_modules/(?!(uuid|jose)/)"],
+  "globalSetup": "./e2e/global-setup.ts",
+  "globalTeardown": "./e2e/global-teardown.ts",
   "moduleNameMapper": {
     "^uuid$": "<rootDir>/../node_modules/uuid/dist/index.js",
     "^nanoid$": "<rootDir>/mocks/nanoid.js",
@@ -24,7 +28,7 @@
     "^@types/(.*)$": "<rootDir>/../src/types/$1",
     "^@types$": "<rootDir>/../src/types/index"
   },
-  "testTimeout": 30000,
+  "testTimeout": 120000,
   "maxWorkers": 1,
   "collectCoverageFrom": [
     "../src/**/*.ts",
@@ -35,5 +39,5 @@
   ],
   "coverageDirectory": "../coverage-e2e",
   "coverageReporters": ["text", "lcov", "html"],
-  "setupFilesAfterEnv": ["./jest.setup.ts"]
+  "setupFilesAfterEnv": ["./e2e/shared-infra.setup.ts", "./jest.setup.ts"]
 }

@@ -7,6 +7,7 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 ## What Gets Tested
 
 ### Security Vulnerabilities
+
 - SQL Injection attempts
 - XSS (Cross-Site Scripting) attacks
 - Path traversal attacks
@@ -15,6 +16,7 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 - Unicode edge cases
 
 ### Input Validation
+
 - Invalid data types
 - Missing required fields
 - Null/undefined values
@@ -24,6 +26,7 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 - Malformed JSON
 
 ### Boundary Values
+
 - Minimum/maximum amounts
 - Date boundaries (past/future)
 - Numeric precision
@@ -31,6 +34,7 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 - Array size limits
 
 ### Business Logic
+
 - Negative amounts
 - Zero values
 - Currency mismatches
@@ -38,6 +42,7 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 - Duplicate requests (idempotency)
 
 ### Rate Limiting & Security
+
 - Brute force protection
 - Rate limit enforcement
 - Account lockout mechanisms
@@ -46,11 +51,13 @@ This fuzzing test suite uses property-based testing with fast-check to automatic
 ## Running Tests
 
 ### Run All Fuzzing Tests
+
 ```bash
 npm run test:fuzzing
 ```
 
 ### Run Specific Module
+
 ```bash
 # Auth fuzzing
 npm run test:fuzzing -- auth
@@ -66,6 +73,7 @@ npm run test:fuzzing -- kyc
 ```
 
 ### Adjust Test Intensity
+
 ```bash
 # Quick run (100 iterations per property test)
 npm run test:fuzzing
@@ -78,11 +86,13 @@ FUZZING_RUNS=10000 npm run test:fuzzing
 ```
 
 ### Verbose Output
+
 ```bash
 FUZZING_VERBOSE=true npm run test:fuzzing
 ```
 
 ### Run with Coverage
+
 ```bash
 npm run test:fuzzing -- --coverage
 ```
@@ -90,20 +100,22 @@ npm run test:fuzzing -- --coverage
 ## Test Structure
 
 ### Arbitraries (`common/arbitraries.ts`)
+
 Custom generators that create test data:
 
 ```typescript
 // Valid phone numbers
-phoneArbitraries.valid() // Generates +2250701234567, etc.
+phoneArbitraries.valid(); // Generates +2250701234567, etc.
 
 // Invalid phone numbers
-phoneArbitraries.invalid() // Generates malformed numbers
+phoneArbitraries.invalid(); // Generates malformed numbers
 
 // SQL injection payloads
-sqlInjectionStrings() // Generates "' OR '1'='1", etc.
+sqlInjectionStrings(); // Generates "' OR '1'='1", etc.
 ```
 
 ### Helpers (`common/helpers.ts`)
+
 Utility functions for assertions and setup:
 
 ```typescript
@@ -128,18 +140,15 @@ import { phoneArbitraries } from '../common/arbitraries';
 
 it('should reject invalid phone numbers', async () => {
   await fc.assert(
-    fc.asyncProperty(
-      phoneArbitraries.invalid(),
-      async (invalidPhone) => {
-        const response = await request(app.getHttpServer())
-          .post('/endpoint')
-          .send({ phone: invalidPhone });
+    fc.asyncProperty(phoneArbitraries.invalid(), async (invalidPhone) => {
+      const response = await request(app.getHttpServer())
+        .post('/endpoint')
+        .send({ phone: invalidPhone });
 
-        expect(response.status).toBe(400);
-        assertHelpers.noSensitiveDataLeak(response);
-      }
-    ),
-    { numRuns: fuzzConfig.numRuns }
+      expect(response.status).toBe(400);
+      assertHelpers.noSensitiveDataLeak(response);
+    }),
+    { numRuns: fuzzConfig.numRuns },
   );
 });
 ```
@@ -160,9 +169,9 @@ it('should validate transfer with multiple invalid inputs', async () => {
 
         expect(response.status).toBe(400);
         assertHelpers.noSensitiveDataLeak(response);
-      }
+      },
     ),
-    { numRuns: 100 }
+    { numRuns: 100 },
   );
 });
 ```
@@ -184,9 +193,9 @@ it('should reject mismatched PINs', async () => {
           .send({ pin: pin1, confirmPin: pin2 });
 
         expect(response.status).toBe(400);
-      }
+      },
     ),
-    { numRuns: 50 }
+    { numRuns: 50 },
   );
 });
 ```
@@ -199,12 +208,13 @@ it('should reject mismatched PINs', async () => {
 // In common/arbitraries.ts
 export const transactionIdArbitraries = {
   valid: () => fc.uuid(),
-  invalid: () => fc.oneof(
-    fc.constant(''),
-    fc.constant('not-a-uuid'),
-    fc.integer().map(String),
-    sqlInjectionStrings(),
-  ),
+  invalid: () =>
+    fc.oneof(
+      fc.constant(''),
+      fc.constant('not-a-uuid'),
+      fc.integer().map(String),
+      sqlInjectionStrings(),
+    ),
 };
 ```
 
@@ -221,49 +231,43 @@ const userArbitrary = fc.record({
 ## Common Patterns
 
 ### Test All Invalid Formats
+
 ```typescript
 it('should reject all invalid formats', async () => {
   await fc.assert(
-    fc.asyncProperty(
-      arbitraries.invalid(),
-      async (invalidValue) => {
-        // Test logic
-        expect(response.status).toBe(400);
-      }
-    ),
-    { numRuns: fuzzConfig.numRuns }
+    fc.asyncProperty(arbitraries.invalid(), async (invalidValue) => {
+      // Test logic
+      expect(response.status).toBe(400);
+    }),
+    { numRuns: fuzzConfig.numRuns },
   );
 });
 ```
 
 ### Test Security Payloads
+
 ```typescript
 it('should handle SQL injection', async () => {
   await fc.assert(
-    fc.asyncProperty(
-      sqlInjectionStrings(),
-      async (sqlPayload) => {
-        // Test logic
-        assertHelpers.noSqlErrors(response);
-      }
-    ),
-    { numRuns: 20 }
+    fc.asyncProperty(sqlInjectionStrings(), async (sqlPayload) => {
+      // Test logic
+      assertHelpers.noSqlErrors(response);
+    }),
+    { numRuns: 20 },
   );
 });
 ```
 
 ### Test Boundary Values
+
 ```typescript
 it('should handle boundary values', async () => {
   await fc.assert(
-    fc.asyncProperty(
-      amountArbitraries.boundary(),
-      async (boundaryAmount) => {
-        // Test logic
-        expect([200, 400]).toContain(response.status);
-      }
-    ),
-    { numRuns: 50 }
+    fc.asyncProperty(amountArbitraries.boundary(), async (boundaryAmount) => {
+      // Test logic
+      expect([200, 400]).toContain(response.status);
+    }),
+    { numRuns: 50 },
   );
 });
 ```
@@ -271,17 +275,20 @@ it('should handle boundary values', async () => {
 ## Interpreting Results
 
 ### Success
+
 ```
 ✓ should reject invalid phone numbers (125ms)
   Property passed after 100 successful runs
 ```
 
 ### Failure with Shrinking
+
 ```
 ✗ should reject invalid amounts
   Counterexample: [-0.5]
   Shrunk from: [-999999.123456789]
 ```
+
 The test failed with `-0.5` (simplest failing case), originally found with a more complex value.
 
 ### Common Failures
@@ -305,6 +312,7 @@ The test failed with `-0.5` (simplest failing case), originally found with a mor
 ## Best Practices
 
 ### 1. Start Small, Scale Up
+
 ```bash
 # Development: 100 runs
 npm run test:fuzzing
@@ -317,30 +325,40 @@ FUZZING_RUNS=1000 npm run test:fuzzing
 ```
 
 ### 2. Use Filters Wisely
+
 ```typescript
 // Filter out obviously invalid cases to save time
 fc.asyncProperty(
-  fc.integer().filter(n => n >= 0), // Only positive
+  fc.integer().filter((n) => n >= 0), // Only positive
   async (amount) => {
     // Test logic
-  }
-)
+  },
+);
 ```
 
 ### 3. Reduce Runs for Expensive Tests
+
 ```typescript
 // Expensive: API calls with external services
-{ numRuns: 10 }
+{
+  numRuns: 10;
+}
 
 // Cheap: Validation-only tests
-{ numRuns: 100 }
+{
+  numRuns: 100;
+}
 
 // Rate-limited: Auth attempts
-{ numRuns: 5 }
+{
+  numRuns: 5;
+}
 ```
 
 ### 4. Always Check Security
+
 Every test should include:
+
 ```typescript
 assertHelpers.noSensitiveDataLeak(response);
 assertHelpers.noSqlErrors(response);
@@ -348,6 +366,7 @@ assertHelpers.hasProperErrorStructure(response);
 ```
 
 ### 5. Test Both Valid and Invalid
+
 ```typescript
 // Invalid inputs should be rejected
 it('should reject invalid', async () => {
@@ -363,6 +382,7 @@ it('should accept valid', async () => {
 ## Continuous Integration
 
 ### GitHub Actions Example
+
 ```yaml
 - name: Run Fuzzing Tests
   run: FUZZING_RUNS=1000 npm run test:fuzzing
@@ -378,21 +398,25 @@ it('should accept valid', async () => {
 ## Troubleshooting
 
 ### Tests Timing Out
+
 - Reduce `numRuns` in test
 - Check for infinite loops
 - Optimize test setup/teardown
 
 ### Too Many Rate Limit Errors
+
 - Reduce `numRuns` for auth tests
 - Add delays between requests
 - Use separate test database
 
 ### Flaky Tests
+
 - Add preconditions with `fc.pre()`
 - Handle race conditions
 - Use deterministic test data when needed
 
 ### Memory Issues
+
 - Reduce `numRuns`
 - Run tests in batches
 - Increase Node.js memory: `NODE_OPTIONS=--max-old-space-size=4096`

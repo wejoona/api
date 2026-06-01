@@ -44,7 +44,15 @@ export class StellarOnRampAdapter implements IOnRampProvider {
   private readonly config: StellarConfig;
 
   readonly providerName = 'stellar';
-  readonly supportedCountries: string[] = ['US', 'CI', 'SN', 'ML', 'BF', 'GH', 'NG'];
+  readonly supportedCountries: string[] = [
+    'US',
+    'CI',
+    'SN',
+    'ML',
+    'BF',
+    'GH',
+    'NG',
+  ];
 
   constructor(
     private readonly configService: ConfigService,
@@ -53,7 +61,8 @@ export class StellarOnRampAdapter implements IOnRampProvider {
     private readonly keyVault: KeyVaultService,
   ) {
     this.config = {
-      network: (this.configService.get<string>('stellar.network') || 'testnet') as StellarNetwork,
+      network: (this.configService.get<string>('stellar.network') ||
+        'testnet') as StellarNetwork,
       horizonUrl:
         this.configService.get<string>('stellar.horizonUrl') ||
         'https://horizon-testnet.stellar.org',
@@ -228,9 +237,7 @@ export class StellarOnRampAdapter implements IOnRampProvider {
   async initiateDeposit(data: InitiateDepositData): Promise<DepositResult> {
     try {
       // Get the source secret key for SEP-10 authentication
-      const encryptedKey = data.metadata?.sourceSecretKey as
-        | string
-        | undefined;
+      const encryptedKey = data.metadata?.sourceSecretKey as string | undefined;
 
       if (!encryptedKey) {
         throw new StellarAuthError(
@@ -302,14 +309,30 @@ export class StellarOnRampAdapter implements IOnRampProvider {
       // We need an auth token to query status
       // In practice, this should be cached or passed in
       const sourceSecretKey = ''; // Would need to be provided or cached
+      // For now, return a pending status when auth material is not available.
+      // Full implementation would require caching auth tokens
       if (!sourceSecretKey) {
-        throw new StellarAuthError(
-          'Auth token required to query deposit status',
-        );
+        return {
+          providerId: providerDepositId,
+          status: 'pending',
+          amount: 0,
+          sourceCurrency: 'USD',
+          targetAmount: 0,
+          targetCurrency: 'USDC',
+          rate: 1,
+          fee: 0,
+          paymentInstructions: {
+            type: 'bank_transfer',
+            provider: 'stellar-anchor',
+            reference: providerDepositId,
+            instructions: 'Status check requires authentication',
+            expiresAt: new Date(),
+          },
+          createdAt: new Date(),
+          expiresAt: new Date(),
+        };
       }
 
-      // For now, return a pending status
-      // Full implementation would require caching auth tokens
       return {
         providerId: providerDepositId,
         status: 'pending',
@@ -384,11 +407,14 @@ export class StellarOnRampAdapter implements IOnRampProvider {
 
     const hmac = crypto.createHmac('sha256', secret);
     const expectedSignature = hmac.update(payload).digest('hex');
+    const signatureBuffer = Buffer.from(signature);
+    const expectedSignatureBuffer = Buffer.from(expectedSignature);
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature),
-    );
+    if (signatureBuffer.length !== expectedSignatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer);
   }
 
   /**

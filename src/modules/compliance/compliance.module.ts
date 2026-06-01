@@ -93,7 +93,7 @@ import { TransactionScreeningGuard } from './application/guards';
       KycVerificationOrmEntity,
     ]),
     ConfigModule,
-    ScheduleModule.forRoot(), // Enable cron jobs
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]), // Enable cron jobs
     EventEmitterModule.forRoot(), // Enable event emission
   ],
   controllers: [

@@ -5,8 +5,12 @@
  */
 
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { createTestApp, createUnauthTestApp, TEST_USER } from '../setup/test-app';
+import request from 'supertest';
+import {
+  createTestApp,
+  createUnauthTestApp,
+  TEST_USER,
+} from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
 // Mock use cases
@@ -84,11 +88,13 @@ describe('AuthController (e2e)', () => {
         .expect(400);
     });
 
-    it('should return 400 for missing countryCode', async () => {
+    it('should register with default country when countryCode is missing (201)', async () => {
+      mockRegisterUser.execute.mockResolvedValue({ otpExpiresIn: 300 });
+
       await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({ phone: '+2250701234567' })
-        .expect(400);
+        .expect(201);
     });
 
     it('should return 400 for empty body', async () => {
@@ -167,6 +173,8 @@ describe('AuthController (e2e)', () => {
       mockRefreshToken.execute.mockResolvedValue({
         accessToken: 'new.access.token',
         refreshToken: 'new.refresh.token',
+        expiresIn: 900,
+        user: TestData.user(),
       });
 
       const res = await request(app.getHttpServer())

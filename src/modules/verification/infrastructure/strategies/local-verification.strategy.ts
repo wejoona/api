@@ -80,12 +80,12 @@ export class LocalVerificationStrategy
       this.configService.get<number>('verification.local.otpLength') ||
       this.configService.get<number>('otp.length') ||
       6;
-    this.maxAttempts =
-      this.configService.get<number>('otp.maxAttempts') || 3;
+    this.maxAttempts = this.configService.get<number>('otp.maxAttempts') || 3;
 
-    const isDevMode =
-      this.configService.get<string>('nodeEnv') === 'development';
-    this.maxOtpRequestsPerHour = isDevMode ? 1000 : 5;
+    this.maxOtpRequestsPerHour =
+      this.configService.get<number>('verification.local.maxRequestsPerHour') ||
+      this.configService.get<number>('otp.maxRequestsPerHour') ||
+      5;
 
     this.logger.log(
       `LocalVerificationStrategy initialized (otpLength=${this.otpLength}, expiry=${this.otpExpiry}s)`,
@@ -300,6 +300,17 @@ export class LocalVerificationStrategy
   }
 
   private generateOtp(): string {
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    const useDevOtp = this.configService.get<boolean>('otp.useDevOtp', false);
+
+    if (
+      nodeEnv === 'development' ||
+      nodeEnv === 'test' ||
+      (nodeEnv !== 'production' && useDevOtp)
+    ) {
+      return this.configService.get<string>('otp.devOtp', '123456');
+    }
+
     const bytes = crypto.randomBytes(this.otpLength);
     let otp = '';
     for (let i = 0; i < this.otpLength; i++) {

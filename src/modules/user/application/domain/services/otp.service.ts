@@ -62,9 +62,12 @@ export class OtpService implements OnModuleDestroy {
     this.otpExpiry = this.configService.get<number>('otp.expiresIn') || 300;
     this.otpLength = this.configService.get<number>('otp.length') || 6;
     this.maxAttempts = this.configService.get<number>('otp.maxAttempts') || 3;
-    this.isDevMode = this.configService.get<string>('nodeEnv') === 'development';
-    // In dev mode, allow 1000 OTP requests/hour for E2E testing
-    this.maxOtpRequestsPerHour = this.isDevMode ? 1000 : 5;
+    const nodeEnv = this.configService.get<string>('nodeEnv');
+    this.isDevMode = nodeEnv === 'development';
+    this.maxOtpRequestsPerHour = this.configService.get<number>(
+      'otp.maxRequestsPerHour',
+      5,
+    );
 
     this.logger.log(
       `OtpService initialized with SMS provider: ${this.smsGateway.providerName}`,

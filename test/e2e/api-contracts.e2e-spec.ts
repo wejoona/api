@@ -96,7 +96,6 @@ describe('API Contracts E2E Tests', () => {
             id: expect.any(String),
             phone: expect.any(String),
           },
-          walletCreated: expect.any(Boolean),
         });
       });
     });
@@ -237,7 +236,7 @@ describe('API Contracts E2E Tests', () => {
         const response = await request(app.getHttpServer())
           .post('/wallet/pin/set')
           .set('Authorization', `Bearer ${user.accessToken}`)
-          .send({ pin: '1234', confirmPin: '1234' })
+          .send({ pin: '6829', confirmPin: '6829' })
           .expect(200);
 
         expect(response.body).toMatchObject({
@@ -250,12 +249,12 @@ describe('API Contracts E2E Tests', () => {
     describe('POST /wallet/pin/verify', () => {
       it('should return PIN token response', async () => {
         const user = await userHelper.createUser('+2250700000024');
-        await userHelper.setPin(user.accessToken, '1234');
+        await userHelper.setPin(user.accessToken, '6829');
 
         const response = await request(app.getHttpServer())
           .post('/wallet/pin/verify')
           .set('Authorization', `Bearer ${user.accessToken}`)
-          .send({ pin: '1234' })
+          .send({ pin: '6829' })
           .expect(200);
 
         expect(response.body).toMatchObject({
@@ -274,8 +273,8 @@ describe('API Contracts E2E Tests', () => {
         const sender = await userHelper.createUser('+2250700000030');
         const recipient = await userHelper.createUser('+2250700000031');
 
-        await userHelper.setPin(sender.accessToken, '1234');
-        const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+        await userHelper.setPin(sender.accessToken, '6829');
+        const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
         const response = await request(app.getHttpServer())
           .post('/wallet/transfer/internal')
@@ -356,7 +355,7 @@ describe('API Contracts E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/verify-otp')
         .send({ phone: '+2250700000041', otp: '000000' })
-        .expect(400);
+        .expect(401);
 
       const errorMessage = JSON.stringify(response.body).toLowerCase();
       expect(errorMessage).not.toContain('database');

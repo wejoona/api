@@ -114,6 +114,12 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
+        if (configService.get<string>('nodeEnv') === 'test') {
+          return {
+            ttl: 300_000, // Default TTL: 5 minutes (milliseconds)
+          };
+        }
+
         const store = await redisStore({
           socket: {
             host: configService.get<string>('redis.host'),
@@ -122,10 +128,32 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
           password: configService.get<string>('redis.password'),
           database: configService.get<number>('redis.db'),
         });
+        const client = store.client;
+        client.on('error', () => {
+          // Keep Redis socket errors observable through health checks/logging
+          // without crashing test and shutdown paths during controlled teardown.
+        });
+        const keyvRedisStore = {
+          get: (key: string) => store.get(key),
+          set: async (key: string, value: unknown, ttl?: number) => {
+            await store.set(key, value, ttl);
+            return true;
+          },
+          delete: async (key: string) => {
+            await store.del(key);
+            return true;
+          },
+          clear: () => store.reset(),
+          disconnect: async () => {
+            if (client?.isOpen) {
+              await client.quit();
+            }
+          },
+        };
 
         return {
-          store,
-          ttl: 300, // Default TTL: 5 minutes (in seconds)
+          stores: [keyvRedisStore],
+          ttl: 300_000, // Default TTL: 5 minutes (milliseconds)
         };
       },
     }),
@@ -176,7 +204,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     EventEmitterModule.forRoot(),
 
     // Scheduled tasks (reconciliation, cleanup jobs)
-    ScheduleModule.forRoot(),
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
 
     // Bull queue (Redis-backed job processing)
     BullModule.forRootAsync({

@@ -36,22 +36,22 @@ describe('CardController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [CardController],
-      providers: [
-        { provide: CardService, useValue: mockCardService },
-      ],
+      providers: [{ provide: CardService, useValue: mockCardService }],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/cards', () => {
     it('should list cards (200)', async () => {
       mockCardService.getCards.mockResolvedValue([makeCard()]);
-      await request(app.getHttpServer())
-        .get('/api/v1/cards')
-        .expect(200);
+      await request(app.getHttpServer()).get('/api/v1/cards').expect(200);
     });
   });
 

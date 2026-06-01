@@ -2,7 +2,7 @@
  * Deposits Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -23,15 +23,17 @@ describe('DepositsController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [DepositsController],
-      providers: [
-        { provide: DepositService, useValue: mockDepositService },
-      ],
+      providers: [{ provide: DepositService, useValue: mockDepositService }],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/deposits/providers', () => {
     it('should return providers (200)', async () => {
@@ -49,7 +51,11 @@ describe('DepositsController (e2e)', () => {
       mockDepositService.initiate.mockResolvedValue(TestData.deposit());
       await request(app.getHttpServer())
         .post('/api/v1/deposits/initiate')
-        .send({ amount: 100, providerId: 'mtn', sourceCurrency: 'XOF' })
+        .send({
+          provider: 'MTNCI',
+          amount: 1000,
+          phoneNumber: '+2250701234567',
+        })
         .expect(201);
     });
 
@@ -63,10 +69,15 @@ describe('DepositsController (e2e)', () => {
 
   describe('POST /api/v1/deposits/confirm', () => {
     it('should confirm deposit (200)', async () => {
-      mockDepositService.confirm.mockResolvedValue(TestData.deposit({ status: 'confirmed' }));
+      mockDepositService.confirm.mockResolvedValue(
+        TestData.deposit({ status: 'confirmed' }),
+      );
       await request(app.getHttpServer())
         .post('/api/v1/deposits/confirm')
-        .send({ depositId: '550e8400-e29b-41d4-a716-446655440000', otp: '123456' })
+        .send({
+          token: 'deposit-token',
+          otp: '123456',
+        })
         .expect(200);
     });
   });

@@ -67,7 +67,14 @@ describe('Security Headers (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app.close().catch((error) => {
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes('Connection is closed')
+      ) {
+        throw error;
+      }
+    });
   });
 
   describe('X-Frame-Options', () => {
@@ -382,7 +389,14 @@ describe('Cookie Security (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app.close().catch((error) => {
+      if (
+        !(error instanceof Error) ||
+        !error.message.includes('Connection is closed')
+      ) {
+        throw error;
+      }
+    });
   });
 
   describe('Cookie Flags', () => {

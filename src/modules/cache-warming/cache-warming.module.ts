@@ -29,7 +29,7 @@ import { SharedModule } from '../shared/shared.module';
     CacheModule.register({
       ttl: 300, // 5 minutes default TTL
     }),
-    ScheduleModule.forRoot(),
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     FeatureFlagModule,
     SharedModule,
   ],

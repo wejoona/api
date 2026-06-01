@@ -6,7 +6,7 @@
  */
 
 import { INestApplication, forwardRef } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, TEST_USER } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -69,8 +69,12 @@ describe('UserController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   // ==========================================
   // GET /user/profile
@@ -78,14 +82,19 @@ describe('UserController (e2e)', () => {
   describe('GET /api/v1/user/profile', () => {
     it('should return user profile (200)', async () => {
       const user = TestData.user();
-      mockGetProfile.execute.mockResolvedValue({ user, kycRejectionReason: null });
+      mockGetProfile.execute.mockResolvedValue({
+        user,
+        kycRejectionReason: null,
+      });
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/profile')
         .set('Authorization', 'Bearer mock.token')
         .expect(200);
 
-      expect(mockGetProfile.execute).toHaveBeenCalledWith({ userId: TEST_USER.id });
+      expect(mockGetProfile.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+      });
     });
   });
 
@@ -114,7 +123,10 @@ describe('UserController (e2e)', () => {
   // ==========================================
   describe('DELETE /api/v1/user/avatar', () => {
     it('should remove avatar (200)', async () => {
-      mockUserRepository.findById.mockResolvedValue({ avatarUrl: 'https://example.com/avatar.jpg', save: jest.fn() });
+      mockUserRepository.findById.mockResolvedValue({
+        avatarUrl: 'https://example.com/avatar.jpg',
+        updateAvatar: jest.fn(),
+      });
       mockUserRepository.save.mockResolvedValue({});
 
       await request(app.getHttpServer())
@@ -129,7 +141,9 @@ describe('UserController (e2e)', () => {
   // ==========================================
   describe('GET /api/v1/user/username/check/:username', () => {
     it('should check username availability (200)', async () => {
-      mockUsernameUsecase.checkAvailability.mockResolvedValue({ available: true });
+      mockUsernameUsecase.checkAvailability.mockResolvedValue({
+        available: true,
+      });
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/username/check/testname')

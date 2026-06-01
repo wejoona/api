@@ -5,6 +5,7 @@ Property-based testing suite using fast-check to discover edge cases, boundary v
 ## Overview
 
 This suite uses property-based testing (PBT) to automatically generate thousands of test cases with:
+
 - Malformed inputs
 - Boundary values
 - Edge cases
@@ -55,16 +56,16 @@ import * as fc from 'fast-check';
 it('should reject invalid phone numbers', async () => {
   await fc.assert(
     fc.asyncProperty(
-      fc.string().filter(s => !s.match(/^\+[1-9]\d{6,14}$/)),
+      fc.string().filter((s) => !s.match(/^\+[1-9]\d{6,14}$/)),
       async (invalidPhone) => {
         const response = await request(app.getHttpServer())
           .post('/auth/register')
           .send({ phone: invalidPhone });
 
         expect(response.status).toBe(400);
-      }
+      },
     ),
-    { numRuns: 100 }
+    { numRuns: 100 },
   );
 });
 ```
@@ -72,6 +73,7 @@ it('should reject invalid phone numbers', async () => {
 ## Security Testing
 
 These tests include:
+
 - SQL injection payloads
 - XSS attack vectors
 - Path traversal attempts

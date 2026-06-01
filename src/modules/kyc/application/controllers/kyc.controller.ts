@@ -6,6 +6,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -155,6 +156,8 @@ export class KycController {
     description: 'Invalid submission or status does not allow submission',
   })
   async submitKyc(@CurrentUser() user: JwtUser, @Body() dto: KycSubmissionDto) {
+    this.assertAdult(dto.dateOfBirth);
+
     const input: SubmitKycDocumentsInput = {
       userId: user.id,
       ...dto,
@@ -219,6 +222,26 @@ export class KycController {
         return 'KYC verification failed. Please check the rejection reason and resubmit.';
       default:
         return 'KYC status updated.';
+    }
+  }
+
+  private assertAdult(dateOfBirth: string): void {
+    const birthDate = new Date(dateOfBirth);
+    if (Number.isNaN(birthDate.getTime())) {
+      throw new BadRequestException('Invalid date of birth');
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDelta = today.getMonth() - birthDate.getMonth();
+    const dayDelta = today.getDate() - birthDate.getDate();
+
+    if (monthDelta < 0 || (monthDelta === 0 && dayDelta < 0)) {
+      age -= 1;
+    }
+
+    if (age < 18) {
+      throw new BadRequestException('User must be at least 18 years old');
     }
   }
 }

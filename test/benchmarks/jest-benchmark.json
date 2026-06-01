@@ -5,10 +5,13 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid|jose)/)"],
   "collectCoverageFrom": ["src/**/*.(t|j)s"],
   "coverageDirectory": "./coverage/benchmarks",
   "testEnvironment": "node",
   "moduleNameMapper": {
+    "^uuid$": "uuid",
+    "^nanoid$": "<rootDir>/test/mocks/nanoid.js",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@common/(.*)$": "<rootDir>/src/common/$1",
     "^@config/(.*)$": "<rootDir>/src/config/$1"

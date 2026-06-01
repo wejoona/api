@@ -1,14 +1,21 @@
 import { INestApplication } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DataSource, EntityMetadata } from 'typeorm';
+import Redis from 'ioredis';
+import type { Cache } from 'cache-manager';
 
 /**
  * Helper class for seeding and managing test data
  */
 export class TestDataHelper {
   private dataSource: DataSource;
+  private cacheManager: Cache | null = null;
 
   constructor(private readonly app: INestApplication) {
     this.dataSource = this.app.get(DataSource);
+    this.cacheManager = this.app.get<Cache>(CACHE_MANAGER, {
+      strict: false,
+    });
   }
 
   /**
@@ -16,17 +23,22 @@ export class TestDataHelper {
    * This would typically be done via deposit in production
    */
   async seedWalletBalance(userId: string, amount: number) {
-    // This is a helper for testing - in production, balances come from Blnk
-    // For E2E tests, we might need to mock the Blnk API or create test transactions
     await this.dataSource.query(
       `
-      INSERT INTO transactions (
-        id, user_id, type, status, amount, currency,
-        created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'deposit', 'completed', $2, 'USDC',
-        NOW(), NOW()
+      WITH wallet AS (
+        UPDATE wallets
+        SET balance = $2
+        WHERE user_id = $1
+        RETURNING id
       )
+      INSERT INTO transactions (
+        id, wallet_id, type, status, amount, currency,
+        metadata, created_at, completed_at
+      )
+      SELECT
+        gen_random_uuid(), id, 'deposit', 'completed', $2, 'USDC',
+        '{"source": "test_seed"}', NOW(), NOW()
+      FROM wallet
     `,
       [userId, amount],
     );
@@ -42,13 +54,17 @@ export class TestDataHelper {
   ) {
     const result = await this.dataSource.query(
       `
-      INSERT INTO transactions (
-        id, user_id, type, status, amount, currency,
-        metadata, created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'deposit', $2, $3, 'USDC',
-        '{"source": "test"}', NOW(), NOW()
+      WITH wallet AS (
+        SELECT id FROM wallets WHERE user_id = $1
       )
+      INSERT INTO transactions (
+        id, wallet_id, type, status, amount, currency,
+        metadata, created_at, completed_at
+      )
+      SELECT
+        gen_random_uuid(), id, 'deposit', $2::varchar, $3::numeric, 'USDC',
+        '{"source": "test"}', NOW(), CASE WHEN $2::varchar = 'completed' THEN NOW() ELSE NULL END
+      FROM wallet
       RETURNING *
     `,
       [userId, status, amount],
@@ -67,13 +83,17 @@ export class TestDataHelper {
   ) {
     const result = await this.dataSource.query(
       `
-      INSERT INTO transactions (
-        id, user_id, type, status, amount, currency,
-        metadata, created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'withdrawal', $2, $3, 'USDC',
-        '{"destination": "test"}', NOW(), NOW()
+      WITH wallet AS (
+        SELECT id FROM wallets WHERE user_id = $1
       )
+      INSERT INTO transactions (
+        id, wallet_id, type, status, amount, currency,
+        metadata, created_at, completed_at
+      )
+      SELECT
+        gen_random_uuid(), id, 'withdrawal', $2::varchar, $3::numeric, 'USDC',
+        '{"destination": "test"}', NOW(), CASE WHEN $2::varchar = 'completed' THEN NOW() ELSE NULL END
+      FROM wallet
       RETURNING *
     `,
       [userId, status, amount],
@@ -93,13 +113,23 @@ export class TestDataHelper {
   ) {
     const result = await this.dataSource.query(
       `
-      INSERT INTO transactions (
-        id, user_id, type, status, amount, currency,
-        metadata, created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'transfer', $2, $3, 'USDC',
-        jsonb_build_object('recipientId', $4), NOW(), NOW()
+      WITH wallets_for_transfer AS (
+        SELECT
+          sender.id AS sender_wallet_id,
+          recipient.id AS recipient_wallet_id
+        FROM wallets sender
+        CROSS JOIN wallets recipient
+        WHERE sender.user_id = $1 AND recipient.user_id = $4
       )
+      INSERT INTO transactions (
+        id, wallet_id, type, status, amount, currency,
+        recipient_wallet_id, metadata, created_at, completed_at
+      )
+      SELECT
+        gen_random_uuid(), sender_wallet_id, 'transfer', $2::varchar, $3::numeric, 'USDC',
+        recipient_wallet_id, jsonb_build_object('recipientId', $4),
+        NOW(), CASE WHEN $2::varchar = 'completed' THEN NOW() ELSE NULL END
+      FROM wallets_for_transfer
       RETURNING *
     `,
       [fromUserId, status, amount, toUserId],
@@ -114,9 +144,11 @@ export class TestDataHelper {
   async getUserTransactions(userId: string) {
     return this.dataSource.query(
       `
-      SELECT * FROM transactions
-      WHERE user_id = $1
-      ORDER BY created_at DESC
+      SELECT transactions.*
+      FROM transactions
+      INNER JOIN wallets ON wallets.id = transactions.wallet_id
+      WHERE wallets.user_id = $1
+      ORDER BY transactions.created_at DESC
     `,
       [userId],
     );
@@ -126,19 +158,74 @@ export class TestDataHelper {
    * Clear all test data
    */
   async clearAllData() {
+    await this.waitForAsyncEventHandlers();
+    await this.clearNestCache();
+
     const entities = this.dataSource.entityMetadatas;
 
     // Disable foreign key checks
     await this.dataSource.query('SET session_replication_role = replica;');
 
-    for (const entity of entities) {
-      await this.dataSource.query(
-        `TRUNCATE TABLE "${entity.tableName}" CASCADE;`,
-      );
+    try {
+      for (const entity of entities) {
+        await this.dataSource.query(
+          `TRUNCATE TABLE ${this.getTableIdentifier(entity)} CASCADE;`,
+        );
+      }
+    } finally {
+      // Re-enable foreign key checks
+      await this.dataSource.query('SET session_replication_role = DEFAULT;');
     }
 
-    // Re-enable foreign key checks
-    await this.dataSource.query('SET session_replication_role = DEFAULT;');
+    await this.clearRedis();
+  }
+
+  private async waitForAsyncEventHandlers() {
+    // EventEmitter2 emit() returns before async listeners settle; yield before destructive truncation.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  private async clearNestCache() {
+    const cache = this.cacheManager as any;
+    if (!cache) {
+      return;
+    }
+
+    if (typeof cache.clear === 'function') {
+      await cache.clear();
+    } else if (typeof cache.reset === 'function') {
+      await cache.reset();
+    } else if (typeof cache.store?.reset === 'function') {
+      await cache.store.reset();
+    }
+  }
+
+  private async clearRedis() {
+    const redis = new Redis({
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD || undefined,
+      db: parseInt(process.env.REDIS_DB || '0', 10),
+      maxRetriesPerRequest: 1,
+      retryStrategy: () => null,
+    });
+
+    try {
+      await redis.flushdb();
+    } finally {
+      redis.disconnect();
+    }
+  }
+
+  private quoteIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
+
+  private getTableIdentifier(entity: EntityMetadata): string {
+    const tableName = this.quoteIdentifier(entity.tableName);
+    return entity.schema
+      ? `${this.quoteIdentifier(entity.schema)}.${tableName}`
+      : tableName;
   }
 
   /**
@@ -182,8 +269,8 @@ export const TestFixtures = {
    * Sample PIN codes
    */
   pin: {
-    valid: '1234',
-    another: '5678',
+    valid: '6829',
+    another: '7391',
     invalid: '0000',
   },
 

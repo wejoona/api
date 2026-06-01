@@ -4,6 +4,12 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserRepository } from '../../src/modules/user/infrastructure/repositories/user.repository';
 import { UserOrmEntity } from '../../src/modules/user/infrastructure/orm-entities/user.orm-entity';
 import { DataSource } from 'typeorm';
+import {
+  deleteAll,
+  ensureBenchmarkDatabase,
+  getBenchmarkDbConfig,
+  testUserId,
+} from './benchmark-db.helper';
 
 /**
  * User Query Benchmarks
@@ -62,6 +68,9 @@ describe('User Query Benchmarks', () => {
   };
 
   beforeAll(async () => {
+    await ensureBenchmarkDatabase();
+    const dbConfig = getBenchmarkDbConfig();
+
     // Mock cache manager
     const mockCacheManager = {
       get: jest.fn(),
@@ -74,11 +83,11 @@ describe('User Query Benchmarks', () => {
       imports: [
         TypeOrmModule.forRoot({
           type: 'postgres',
-          host: process.env.DB_HOST || 'localhost',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          username: process.env.DB_USERNAME || 'postgres',
-          password: process.env.DB_PASSWORD || 'postgres',
-          database: process.env.DB_NAME || 'joonapay_test',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.database,
           entities: [UserOrmEntity],
           synchronize: true,
           logging: false,
@@ -98,7 +107,7 @@ describe('User Query Benchmarks', () => {
     dataSource = module.get<DataSource>(DataSource);
     cacheManager = module.get(CACHE_MANAGER);
 
-    // Seed test data
+    await cleanupTestData(dataSource);
     await seedTestData(dataSource);
   });
 
@@ -112,7 +121,7 @@ describe('User Query Benchmarks', () => {
 
   describe('Single Record Queries', () => {
     it('should benchmark findById query (cache miss)', async () => {
-      const userId = 'test-user-1';
+      const userId = testUserId(1);
       cacheManager.get.mockResolvedValue(null);
 
       const metrics = startMetrics();
@@ -141,7 +150,7 @@ describe('User Query Benchmarks', () => {
     });
 
     it('should benchmark findById query (cache hit)', async () => {
-      const userId = 'test-user-1';
+      const userId = testUserId(1);
       const cachedUser = await repository.findById(userId);
       cacheManager.get.mockResolvedValue(cachedUser);
 
@@ -362,11 +371,11 @@ describe('User Query Benchmarks', () => {
     it('should benchmark concurrent findById queries (10 concurrent)', async () => {
       cacheManager.get.mockResolvedValue(null);
       const userIds = [
-        'test-user-1',
-        'test-user-2',
-        'test-user-3',
-        'test-user-4',
-        'test-user-5',
+        testUserId(1),
+        testUserId(2),
+        testUserId(3),
+        testUserId(4),
+        testUserId(5),
       ];
 
       const metrics = startMetrics();
@@ -402,26 +411,26 @@ describe('User Query Benchmarks', () => {
 
       const startTime = performance.now();
       await Promise.all([
-        repository.findById('test-user-1'),
-        repository.findById('test-user-2'),
+        repository.findById(testUserId(1)),
+        repository.findById(testUserId(2)),
         repository.findByPhone('+225XXXXXXXX'),
         repository.findByUsername('testuser'),
         repository.existsByPhone('+225YYYYYYYY'),
         repository.existsByUsername('anotheruser'),
-        repository.findById('test-user-3'),
-        repository.findById('test-user-4'),
+        repository.findById(testUserId(3)),
+        repository.findById(testUserId(4)),
         repository.searchByUsername('test', 5),
-        repository.findById('test-user-5'),
+        repository.findById(testUserId(5)),
         repository.findByPhone('+225ZZZZZZZZ'),
         repository.findByUsername('user2'),
         repository.existsByPhone('+225XXXXXXXX'),
         repository.existsByUsername('testuser'),
-        repository.findById('test-user-1'),
+        repository.findById(testUserId(1)),
         repository.searchByUsername('u', 5),
-        repository.findById('test-user-2'),
+        repository.findById(testUserId(2)),
         repository.findByPhone('+225XXXXXXXX'),
         repository.findByUsername('testuser'),
-        repository.findById('test-user-3'),
+        repository.findById(testUserId(3)),
       ]);
       const endTime = performance.now();
 
@@ -449,7 +458,7 @@ describe('User Query Benchmarks', () => {
 
       const startTime = performance.now();
       const user = await repository.save({
-        id: 'bench-user-1',
+        id: testUserId(1001),
         phone: '+225BENCHMARK',
         phoneVerified: true,
         username: null,
@@ -500,7 +509,7 @@ describe('User Query Benchmarks', () => {
       const users = [];
       for (let i = 0; i < 50; i++) {
         users.push({
-          id: `bulk-user-${i}`,
+          id: testUserId(2000 + i),
           phone: `+225BULK${i.toString().padStart(4, '0')}`,
           phoneVerified: true,
           countryCode: 'CI',
@@ -685,7 +694,7 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
   // Create 100 test users
   for (let i = 1; i <= 100; i++) {
     users.push({
-      id: `test-user-${i}`,
+      id: testUserId(i),
       phone: `+225XXXX${i.toString().padStart(4, '0')}`,
       phoneVerified: true,
       username: i <= 50 ? `testuser${i}` : null,
@@ -714,5 +723,5 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
 }
 
 async function cleanupTestData(dataSource: DataSource): Promise<void> {
-  await dataSource.getRepository(UserOrmEntity).delete({});
+  await deleteAll(dataSource, UserOrmEntity);
 }

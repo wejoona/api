@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -29,6 +29,7 @@ export class DepositsController {
   }
 
   @Post('confirm')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm a deposit (submit OTP or acknowledge push)' })
   @ApiResponse({ status: 200, type: DepositResponseDto })
   async confirm(@CurrentUser() user: any, @Body() dto: ConfirmDepositDto): Promise<DepositResponseDto> {

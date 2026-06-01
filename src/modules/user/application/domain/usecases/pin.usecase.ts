@@ -192,7 +192,8 @@ export interface VerifyPinOutput {
 @Injectable()
 export class VerifyPinUsecase {
   // PIN token validity: 5 minutes
-  private readonly PIN_TOKEN_TTL = 5 * 60;
+  private readonly PIN_TOKEN_TTL_SECONDS = 5 * 60;
+  private readonly PIN_TOKEN_TTL_MS = this.PIN_TOKEN_TTL_SECONDS * 1000;
 
   constructor(
     private readonly userRepository: UserRepository,
@@ -254,7 +255,7 @@ export class VerifyPinUsecase {
     await this.cacheManager.set(
       cacheKey,
       { verified: true, timestamp: Date.now() },
-      this.PIN_TOKEN_TTL,
+      this.PIN_TOKEN_TTL_MS,
     );
 
     this.eventEmitter.emit('security.pin.verified', {
@@ -265,7 +266,7 @@ export class VerifyPinUsecase {
     return {
       verified: true,
       pinToken,
-      expiresIn: this.PIN_TOKEN_TTL,
+      expiresIn: this.PIN_TOKEN_TTL_SECONDS,
     };
   }
 }

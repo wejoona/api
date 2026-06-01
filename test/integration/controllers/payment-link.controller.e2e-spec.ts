@@ -2,7 +2,7 @@
  * Payment Link Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -33,8 +33,12 @@ describe('PaymentLinkController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('POST /api/v1/payment-links', () => {
     it('should create payment link (201)', async () => {
@@ -48,7 +52,9 @@ describe('PaymentLinkController (e2e)', () => {
 
   describe('GET /api/v1/payment-links', () => {
     it('should list payment links (200)', async () => {
-      mockPaymentLinkService.findAll.mockResolvedValue([TestData.paymentLink()]);
+      mockPaymentLinkService.findAll.mockResolvedValue([
+        TestData.paymentLink(),
+      ]);
       await request(app.getHttpServer())
         .get('/api/v1/payment-links')
         .expect(200);
@@ -66,7 +72,9 @@ describe('PaymentLinkController (e2e)', () => {
 
   describe('GET /api/v1/payment-links/code/:code', () => {
     it('should get payment link by code (200) - public endpoint', async () => {
-      mockPaymentLinkService.findByCode.mockResolvedValue(TestData.paymentLink());
+      mockPaymentLinkService.findByCode.mockResolvedValue(
+        TestData.paymentLink(),
+      );
       await request(app.getHttpServer())
         .get('/api/v1/payment-links/code/PAY123ABC')
         .expect(200);
@@ -75,16 +83,23 @@ describe('PaymentLinkController (e2e)', () => {
 
   describe('PATCH /api/v1/payment-links/:id/cancel', () => {
     it('should cancel payment link (200)', async () => {
-      mockPaymentLinkService.cancel.mockResolvedValue(TestData.paymentLink({ status: 'cancelled' }));
+      mockPaymentLinkService.cancel.mockResolvedValue(
+        TestData.paymentLink({ status: 'cancelled' }),
+      );
       await request(app.getHttpServer())
-        .patch('/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000/cancel')
+        .patch(
+          '/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000/cancel',
+        )
         .expect(200);
     });
   });
 
   describe('POST /api/v1/payment-links/code/:code/pay', () => {
     it('should pay payment link (200)', async () => {
-      mockPaymentLinkService.pay.mockResolvedValue({ success: true, transactionId: 'tx_123' });
+      mockPaymentLinkService.pay.mockResolvedValue({
+        success: true,
+        transactionId: 'tx_123',
+      });
       await request(app.getHttpServer())
         .post('/api/v1/payment-links/code/PAY123ABC/pay')
         .send({ amount: 25 })

@@ -3,12 +3,16 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import {
-  PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
-import { DataSource } from 'typeorm';
+import { StartedTestContainer } from 'testcontainers';
+import { DataSource, EntityMetadata } from 'typeorm';
 import nock from 'nock';
+import { ensureDatabaseSchemas } from '../e2e/database-schemas';
+import {
+  startPostgresTestContainer,
+  startRedisTestContainer,
+} from '../e2e/testcontainers';
 
 /**
  * Integration Test Setup
@@ -50,23 +54,18 @@ export class IntegrationTestSetup {
   async init(): Promise<INestApplication> {
     // Start PostgreSQL container
     console.log('Starting PostgreSQL container...');
-    this.postgresContainer = await new PostgreSqlContainer('postgres:15-alpine')
-      .withDatabase('test_db')
-      .withUsername('test_user')
-      .withPassword('test_password')
-      .start();
+    this.postgresContainer = await startPostgresTestContainer();
 
     // Start Redis container
     console.log('Starting Redis container...');
-    this.redisContainer = await new GenericContainer('redis:7-alpine')
-      .withExposedPorts(6379)
-      .start();
+    this.redisContainer = await startRedisTestContainer();
 
     // Configure environment
     this.configureEnvironment();
 
     // Setup nock for external API mocking
     this.setupNock();
+    await ensureDatabaseSchemas();
 
     // Create NestJS application
     console.log('Creating NestJS application...');
@@ -75,6 +74,7 @@ export class IntegrationTestSetup {
     }).compile();
 
     this.app = moduleFixture.createNestApplication();
+    this.app.getHttpAdapter().getInstance().disable('x-powered-by');
     this.app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -137,8 +137,7 @@ export class IntegrationTestSetup {
    */
   private setupNock() {
     nock.disableNetConnect();
-    nock.enableNetConnect('127.0.0.1');
-    nock.enableNetConnect('localhost');
+    nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
   }
 
   /**
@@ -150,12 +149,19 @@ export class IntegrationTestSetup {
     nock.cleanAll();
     nock.enableNetConnect();
 
-    if (this.dataSource) {
-      await this.dataSource.destroy();
+    if (this.app) {
+      await this.app.close().catch((error) => {
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes('Connection is closed')
+        ) {
+          throw error;
+        }
+      });
     }
 
-    if (this.app) {
-      await this.app.close();
+    if (this.dataSource?.isInitialized) {
+      await this.dataSource.destroy();
     }
 
     if (this.postgresContainer) {
@@ -178,13 +184,26 @@ export class IntegrationTestSetup {
     const entities = this.dataSource.entityMetadatas;
     await this.dataSource.query('SET session_replication_role = replica;');
 
-    for (const entity of entities) {
-      await this.dataSource.query(
-        `TRUNCATE TABLE "${entity.tableName}" CASCADE;`,
-      );
+    try {
+      for (const entity of entities) {
+        await this.dataSource.query(
+          `TRUNCATE TABLE ${this.getTableIdentifier(entity)} CASCADE;`,
+        );
+      }
+    } finally {
+      await this.dataSource.query('SET session_replication_role = DEFAULT;');
     }
+  }
 
-    await this.dataSource.query('SET session_replication_role = DEFAULT;');
+  private quoteIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
+
+  private getTableIdentifier(entity: EntityMetadata): string {
+    const tableName = this.quoteIdentifier(entity.tableName);
+    return entity.schema
+      ? `${this.quoteIdentifier(entity.schema)}.${tableName}`
+      : tableName;
   }
 
   /**
@@ -259,7 +278,7 @@ export class TestUserFactory {
    */
   async createUserWithPin(
     phone: string,
-    pin: string = '1234',
+    pin: string = '6829',
   ): Promise<TestUser> {
     const user = await this.createUser(phone);
 
@@ -519,7 +538,7 @@ export const TestFixtures = {
     invalid: 'invalid-phone',
   },
   pins: {
-    valid: '1234',
+    valid: '6829',
     invalid: '0000',
   },
   otps: {

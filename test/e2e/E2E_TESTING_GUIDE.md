@@ -24,9 +24,11 @@ npm run test:e2e:watch
 ## Test Structure
 
 ### 1. User Journey Tests
+
 **File**: `user-journey.e2e-spec.ts`
 **Purpose**: Test complete user workflows
 **Coverage**:
+
 - User onboarding (registration, OTP, profile)
 - Wallet operations (balance, deposits, rates)
 - Transfer flows (P2P, external)
@@ -35,18 +37,22 @@ npm run test:e2e:watch
 - Error handling
 
 ### 2. API Contract Tests
+
 **File**: `api-contracts.e2e-spec.ts`
 **Purpose**: Validate API response shapes
 **Coverage**:
+
 - Response shape validation
 - Error response consistency
 - Pagination contracts
 - Content-Type headers
 
 ### 3. Security Tests
+
 **File**: `security.e2e-spec.ts`
 **Purpose**: Test security controls
 **Coverage**:
+
 - Authentication & authorization
 - Rate limiting
 - PIN security
@@ -55,9 +61,11 @@ npm run test:e2e:watch
 - Idempotency
 
 ### 4. Performance Tests
+
 **File**: `performance.e2e-spec.ts`
 **Purpose**: Establish performance baselines
 **Coverage**:
+
 - Response time baselines
 - Concurrent request handling
 - Database query performance
@@ -65,9 +73,11 @@ npm run test:e2e:watch
 - Load testing scenarios
 
 ### 5. Webhook Tests
+
 **File**: `webhooks.e2e-spec.ts`
 **Purpose**: Test webhook processing
 **Coverage**:
+
 - Circle webhooks
 - YellowCard webhooks
 - Blnk webhooks
@@ -78,12 +88,14 @@ npm run test:e2e:watch
 ## Common Patterns
 
 ### Create Test User
+
 ```typescript
 const user = await userHelper.createUser('+2250700000001');
 // Returns: { id, phone, accessToken, refreshToken, walletId }
 ```
 
 ### Make Authenticated Request
+
 ```typescript
 const response = await request(app.getHttpServer())
   .get('/wallet')
@@ -92,12 +104,14 @@ const response = await request(app.getHttpServer())
 ```
 
 ### Set and Verify PIN
+
 ```typescript
 await userHelper.setPin(user.accessToken, '1234');
 const pinToken = await userHelper.verifyPin(user.accessToken, '1234');
 ```
 
 ### Create Transfer
+
 ```typescript
 const response = await request(app.getHttpServer())
   .post('/wallet/transfer/internal')
@@ -111,6 +125,7 @@ const response = await request(app.getHttpServer())
 ```
 
 ### Seed Test Data
+
 ```typescript
 await dataHelper.createTestDeposit(userId, 100);
 await dataHelper.createTestTransfer(fromUserId, toUserId, 50);
@@ -118,17 +133,18 @@ await dataHelper.createTestTransfer(fromUserId, toUserId, 50);
 
 ## Performance Baselines
 
-| Endpoint | Target | Test |
-|----------|--------|------|
-| GET /health | < 100ms | ✓ |
-| POST /auth/verify-otp | < 500ms | ✓ |
-| GET /wallet | < 300ms | ✓ |
-| POST /wallet/transfer/internal | < 1000ms | ✓ |
-| GET /transfers | < 500ms | ✓ |
+| Endpoint                       | Target   | Test |
+| ------------------------------ | -------- | ---- |
+| GET /health                    | < 100ms  | ✓    |
+| POST /auth/verify-otp          | < 500ms  | ✓    |
+| GET /wallet                    | < 300ms  | ✓    |
+| POST /wallet/transfer/internal | < 1000ms | ✓    |
+| GET /transfers                 | < 500ms  | ✓    |
 
 ## Environment Setup
 
 Tests automatically configure:
+
 - PostgreSQL (via testcontainer)
 - Redis (via testcontainer)
 - Mock external APIs (Circle, Blnk, YellowCard)
@@ -138,22 +154,26 @@ Tests automatically configure:
 ## Debugging Tests
 
 ### Enable Verbose Logging
+
 ```typescript
 // In test file
 process.env.LOG_LEVEL = 'debug';
 ```
 
 ### Check Container Logs
+
 ```bash
 docker logs <container-id>
 ```
 
 ### Run Single Test
+
 ```bash
 npm run test:e2e -- -t "should complete internal P2P transfer"
 ```
 
 ### Debug Mode
+
 ```bash
 node --inspect-brk node_modules/.bin/jest --config ./test/jest-e2e.json --runInBand
 ```
@@ -161,8 +181,10 @@ node --inspect-brk node_modules/.bin/jest --config ./test/jest-e2e.json --runInB
 ## Common Issues
 
 ### Container Startup Timeout
+
 **Problem**: Containers take too long to start
 **Solution**:
+
 ```bash
 docker system prune -a
 docker pull postgres:15-alpine
@@ -170,20 +192,25 @@ docker pull redis:7-alpine
 ```
 
 ### Port Conflicts
+
 **Problem**: Port already in use
 **Solution**: Testcontainers uses random ports automatically
 
 ### Database Migration Errors
+
 **Problem**: Migrations fail to run
 **Solution**:
+
 ```bash
 npm run migration:run
 npm run migration:show
 ```
 
 ### Memory Issues
+
 **Problem**: Tests run out of memory
 **Solution**: Increase Node memory
+
 ```bash
 NODE_OPTIONS=--max_old_space_size=4096 npm run test:e2e
 ```
@@ -191,6 +218,7 @@ NODE_OPTIONS=--max_old_space_size=4096 npm run test:e2e
 ## Best Practices
 
 ### ✅ DO
+
 - Use unique phone numbers for each test
 - Clean database between tests
 - Mock external APIs
@@ -200,6 +228,7 @@ NODE_OPTIONS=--max_old_space_size=4096 npm run test:e2e
 - Verify response shapes
 
 ### ❌ DON'T
+
 - Share data between tests
 - Depend on test execution order
 - Use production credentials
@@ -210,6 +239,7 @@ NODE_OPTIONS=--max_old_space_size=4096 npm run test:e2e
 ## Test Data Conventions
 
 ### Phone Numbers
+
 ```typescript
 // User journey tests: +22507000000XX
 const user = await userHelper.createUser('+2250700000001');
@@ -222,6 +252,7 @@ const user = await userHelper.createUser('+2250700000200');
 ```
 
 ### Test PINs
+
 ```typescript
 const DEFAULT_PIN = '1234';
 const ALTERNATIVE_PIN = '5678';
@@ -229,6 +260,7 @@ const INVALID_PIN = '0000';
 ```
 
 ### Test Amounts
+
 ```typescript
 const SMALL_AMOUNT = 10;
 const MEDIUM_AMOUNT = 100;
@@ -238,6 +270,7 @@ const LARGE_AMOUNT = 1000;
 ## CI/CD
 
 Tests run automatically on:
+
 - Push to `main` or `develop`
 - Pull requests
 - Manual workflow dispatch
@@ -245,7 +278,9 @@ Tests run automatically on:
 Workflow file: `.github/workflows/e2e-tests.yml`
 
 ### Matrix Strategy
+
 Tests run in parallel for:
+
 - user-journey
 - api-contracts
 - security
@@ -254,6 +289,7 @@ Tests run in parallel for:
 ## Coverage Reports
 
 After running tests with coverage:
+
 ```bash
 npm run test:e2e:cov
 
@@ -267,12 +303,14 @@ cat coverage-e2e/coverage-summary.txt
 ## Writing New Tests
 
 ### 1. Add Test File
+
 Create file in `test/e2e/my-feature.e2e-spec.ts`
 
 ### 2. Setup Boilerplate
+
 ```typescript
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { E2ETestSetup } from './setup';
 import { TestUserHelper, setupNock, teardownNock } from './helpers';
 
@@ -304,7 +342,9 @@ describe('My Feature E2E', () => {
 ```
 
 ### 3. Add Test Script (Optional)
+
 In `package.json`:
+
 ```json
 {
   "scripts": {
@@ -314,6 +354,7 @@ In `package.json`:
 ```
 
 ### 4. Update CI Workflow (Optional)
+
 Add to `.github/workflows/e2e-tests.yml` matrix if needed.
 
 ## Resources
@@ -336,6 +377,7 @@ Add to `.github/workflows/e2e-tests.yml` matrix if needed.
 ## Support
 
 For issues or questions:
+
 1. Check this guide
 2. Review test examples
 3. Check GitHub Issues

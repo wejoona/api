@@ -4,16 +4,33 @@
   "testEnvironment": "node",
   "testRegex": ".fuzz-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "esModuleInterop": true,
+          "allowSyntheticDefaultImports": true,
+          "allowJs": true
+        }
+      }
+    ]
   },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid|jose)/)"],
+  "globalSetup": "../e2e/global-setup.ts",
+  "globalTeardown": "../e2e/global-teardown.ts",
   "moduleNameMapper": {
     "^uuid$": "uuid",
+    "^nanoid$": "<rootDir>/../mocks/nanoid.js",
+    "^@/(.*)$": "<rootDir>/../../src/$1",
     "^@modules/(.*)$": "<rootDir>/../../src/modules/$1",
     "^@common/(.*)$": "<rootDir>/../../src/common/$1",
-    "^@config/(.*)$": "<rootDir>/../../src/config/$1"
+    "^@config/(.*)$": "<rootDir>/../../src/config/$1",
+    "^@types/(.*)$": "<rootDir>/../../src/types/$1",
+    "^@types$": "<rootDir>/../../src/types/index"
   },
   "testTimeout": 60000,
   "maxWorkers": 1,
+  "forceExit": true,
   "collectCoverageFrom": [
     "../../src/**/*.ts",
     "!../../src/**/*.spec.ts",
@@ -23,12 +40,5 @@
   ],
   "coverageDirectory": "../../coverage-fuzzing",
   "coverageReporters": ["text", "lcov", "html"],
-  "globals": {
-    "ts-jest": {
-      "tsconfig": {
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
-      }
-    }
-  }
+  "setupFilesAfterEnv": ["./setup.ts", "../jest.setup.ts"]
 }

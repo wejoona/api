@@ -5,6 +5,7 @@ Comprehensive End-to-End testing suite for the USDC Wallet API.
 ## Overview
 
 This E2E test suite provides comprehensive testing coverage for:
+
 - Complete user journeys from registration to transfers
 - API contract validation
 - Security testing (authentication, authorization, rate limiting)
@@ -15,6 +16,7 @@ This E2E test suite provides comprehensive testing coverage for:
 ### Test Infrastructure
 
 The E2E tests use **Testcontainers** to provide isolated test environments:
+
 - PostgreSQL container for database
 - Redis container for caching
 - Mock external APIs (Circle, Blnk, YellowCard)
@@ -37,11 +39,13 @@ test/e2e/
 ## Running Tests
 
 ### Run All E2E Tests
+
 ```bash
 npm run test:e2e
 ```
 
 ### Run Specific Test Suite
+
 ```bash
 # User journey tests
 npm run test:e2e:user-journey
@@ -54,11 +58,13 @@ npm run test:e2e:performance
 ```
 
 ### Run with Coverage
+
 ```bash
 npm run test:e2e:cov
 ```
 
 ### Watch Mode
+
 ```bash
 npm run test:e2e:watch
 ```
@@ -70,33 +76,39 @@ npm run test:e2e:watch
 Tests complete user workflows:
 
 **User Onboarding**
+
 - User registration with phone number
 - OTP verification
 - Profile updates
 - PIN setup
 
 **Wallet Operations**
+
 - Get wallet balance
 - Get deposit channels
 - Get exchange rates
 
 **Transfer Operations**
+
 - Internal P2P transfers
 - Transfer history
 - PIN verification flow
 
 **Username System**
+
 - Check username availability
 - Search users by username
 - Find user by username
 
 **Security Flows**
+
 - Logout
 - OTP validation
 - Authentication token validation
 - PIN locking after failed attempts
 
 **Error Handling**
+
 - Phone number validation
 - Transfer amount validation
 - Non-existent recipient handling
@@ -106,23 +118,27 @@ Tests complete user workflows:
 Validates API response shapes and consistency:
 
 **Response Shape Validation**
+
 - Authentication endpoints
 - User endpoints
 - Wallet endpoints
 - Transfer endpoints
 
 **Error Response Consistency**
+
 - 401 Unauthorized
 - 400 Bad Request
 - 404 Not Found
 - No sensitive data in errors
 
 **Pagination**
+
 - Limit parameter handling
 - Offset parameter handling
 - Default values
 
 **Headers**
+
 - Content-Type validation
 - CORS headers
 
@@ -131,22 +147,26 @@ Validates API response shapes and consistency:
 Tests security controls and protections:
 
 **Authentication Security**
+
 - Reject requests without tokens
 - Validate JWT signatures
 - Handle expired tokens
 
 **Rate Limiting**
+
 - Sensitive endpoints (OTP, registration)
 - Transfer endpoints
 - General API endpoints
 
 **PIN Security**
+
 - PIN locking mechanism
 - PIN requirement for transfers
 - PIN token expiration
 - PIN hashing in storage
 
 **Input Validation**
+
 - Phone number sanitization
 - Transfer amount validation
 - Blockchain address validation
@@ -154,16 +174,19 @@ Tests security controls and protections:
 - XSS prevention
 
 **Authorization**
+
 - User data access control
 - Transfer access control
 - Profile modification control
 
 **Data Exposure**
+
 - No sensitive data in errors
 - No PII in logs
 - No internal system information
 
 **Idempotency**
+
 - Duplicate transfer prevention
 
 ### 4. Performance Tests (`performance.e2e-spec.ts`)
@@ -171,6 +194,7 @@ Tests security controls and protections:
 Establishes performance baselines:
 
 **Response Time Baselines**
+
 - Health check: < 100ms
 - Authentication: < 500ms
 - Wallet balance: < 300ms
@@ -178,24 +202,29 @@ Establishes performance baselines:
 - Transaction history: < 500ms
 
 **Concurrent Requests**
+
 - 50 concurrent balance requests
 - Concurrent transfers from multiple users
 - Concurrent user registrations
 
 **Database Performance**
+
 - Pagination efficiency
 - Username search performance
 
 **Caching Performance**
+
 - Wallet balance caching
 - Exchange rate caching
 
 **Load Testing**
+
 - Sustained load (100 iterations)
 - Burst traffic handling
 - Memory leak detection
 
 **Resource Usage**
+
 - Database connection pooling
 - Memory efficiency with large datasets
 
@@ -262,6 +291,7 @@ mockProviders.clearMocks();
 ### Environment Variables
 
 The test setup automatically configures:
+
 - `NODE_ENV=test`
 - Database connection (from testcontainer)
 - Redis connection (from testcontainer)
@@ -287,9 +317,14 @@ The test setup automatically configures:
 
 ```typescript
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { E2ETestSetup } from './setup';
-import { TestUserHelper, MockProvidersHelper, setupNock, teardownNock } from './helpers';
+import {
+  TestUserHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from './helpers';
 
 describe('My New E2E Test', () => {
   let setup: E2ETestSetup;
@@ -336,6 +371,7 @@ describe('My New E2E Test', () => {
 ### Container Startup Issues
 
 If containers fail to start:
+
 ```bash
 # Check Docker is running
 docker ps
@@ -347,12 +383,14 @@ docker system prune -a
 ### Port Conflicts
 
 If you see port conflicts:
+
 - Testcontainers automatically assigns random ports
 - Check for other services using ports 5432 (Postgres) or 6379 (Redis)
 
 ### Timeout Errors
 
 If tests timeout:
+
 - Increase timeout in `jest-e2e.json`
 - Check container logs for startup issues
 - Verify Docker has sufficient resources
@@ -360,6 +398,7 @@ If tests timeout:
 ### Database Migration Errors
 
 If migrations fail:
+
 ```bash
 # Run migrations manually
 npm run migration:run
@@ -371,6 +410,7 @@ npm run migration:show
 ## CI/CD Integration
 
 E2E tests run automatically on:
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop`
 - Manual workflow dispatch
@@ -380,11 +420,13 @@ See `.github/workflows/e2e-tests.yml` for configuration.
 ## Coverage Reports
 
 Coverage reports are generated in `coverage-e2e/`:
+
 - `lcov.info`: LCOV format for CI tools
 - `html/`: HTML coverage report
 - `text`: Console output
 
 View HTML report:
+
 ```bash
 open coverage-e2e/html/index.html
 ```
@@ -392,6 +434,7 @@ open coverage-e2e/html/index.html
 ## Performance Baselines
 
 Current performance targets:
+
 - Health check: < 100ms
 - Authentication: < 500ms
 - Wallet balance: < 300ms
@@ -399,6 +442,7 @@ Current performance targets:
 - Transaction history: < 500ms
 
 If tests fail performance baselines:
+
 1. Check database indexes
 2. Review N+1 query issues
 3. Check caching configuration
@@ -409,6 +453,7 @@ If tests fail performance baselines:
 ### Updating Test Data
 
 When adding new features:
+
 1. Add test data to `TestFixtures` in `test-data.helper.ts`
 2. Update helpers if needed
 3. Add new test cases
@@ -417,6 +462,7 @@ When adding new features:
 ### Updating Mocks
 
 When external APIs change:
+
 1. Update mock responses in `mock-providers.helper.ts`
 2. Verify all tests still pass
 3. Update API contract tests if needed

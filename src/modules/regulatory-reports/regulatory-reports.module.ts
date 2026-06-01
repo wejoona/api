@@ -94,7 +94,7 @@ import { WalletOrmEntity } from '../wallet/infrastructure/orm-entities/wallet.or
       WalletOrmEntity,
     ]),
     ConfigModule,
-    ScheduleModule.forRoot(),
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     EventEmitterModule.forRoot(),
   ],
   controllers: [RegulatoryReportsController],

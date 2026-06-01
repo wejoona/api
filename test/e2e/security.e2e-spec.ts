@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import request from 'supertest';
 import { E2ETestSetup } from './setup';
 import {
@@ -34,6 +35,85 @@ describe('Security E2E Tests', () => {
     await dataHelper.clearAllData();
     mockProviders.resetMocks();
   });
+
+  async function withRateLimitingEnabled(
+    action: () => Promise<void>,
+  ): Promise<void> {
+    const previous = process.env.ENABLE_RATE_LIMITING_IN_TESTS;
+    process.env.ENABLE_RATE_LIMITING_IN_TESTS = 'true';
+
+    try {
+      await action();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.ENABLE_RATE_LIMITING_IN_TESTS;
+      } else {
+        process.env.ENABLE_RATE_LIMITING_IN_TESTS = previous;
+      }
+    }
+  }
+
+  async function prepareWallet(user: { id?: string; accessToken?: string }) {
+    await request(app.getHttpServer())
+      .post('/wallet/create')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .expect((response) => {
+        if (![200, 201, 409].includes(response.status)) {
+          throw new Error(`Expected wallet creation success, got ${response.status}`);
+        }
+      });
+
+    await dataHelper.executeQuery(
+      `UPDATE auth.users SET kyc_status = 'approved' WHERE id = $1`,
+      [user.id],
+    );
+    await dataHelper.executeQuery(
+      `UPDATE wallets SET status = 'active', kyc_status = 'approved', balance = 1000 WHERE user_id = $1`,
+      [user.id],
+    );
+  }
+
+  async function createTransferRecord(
+    sender: { id?: string; phone: string },
+    recipient: { id?: string; phone: string },
+    amount = 10,
+  ): Promise<string> {
+    const [senderWallet] = await dataHelper.executeQuery(
+      'SELECT id FROM wallets WHERE user_id = $1',
+      [sender.id],
+    );
+    const [recipientWallet] = await dataHelper.executeQuery(
+      'SELECT id FROM wallets WHERE user_id = $1',
+      [recipient.id],
+    );
+
+    const [transfer] = await dataHelper.executeQuery(
+      `
+        INSERT INTO transfers (
+          id, reference, type, status, sender_id, sender_wallet_id, sender_phone,
+          recipient_id, recipient_wallet_id, recipient_phone, amount, fee,
+          currency, created_at, updated_at, completed_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, 'internal', 'completed', $2, $3, $4,
+          $5, $6, $7, $8, 0, 'USDC', NOW(), NOW(), NOW()
+        )
+        RETURNING id
+      `,
+      [
+        `INT-${randomUUID()}`,
+        sender.id,
+        senderWallet.id,
+        sender.phone,
+        recipient.id,
+        recipientWallet.id,
+        recipient.phone,
+        amount,
+      ],
+    );
+
+    return transfer.id;
+  }
 
   describe('Authentication Security', () => {
     it('should reject requests without auth token', async () => {
@@ -81,83 +161,78 @@ describe('Security E2E Tests', () => {
 
   describe('Rate Limiting', () => {
     it('should enforce rate limits on sensitive endpoints', async () => {
-      const phone = '+2250700000100';
+      await withRateLimitingEnabled(async () => {
+        const phone = '+2250700000100';
+        let rateLimited = 0;
 
-      // Make requests up to the limit
-      const requests = [];
-      for (let i = 0; i < 10; i++) {
-        requests.push(
-          request(app.getHttpServer())
+        for (let i = 0; i < 7; i++) {
+          const response = await request(app.getHttpServer())
             .post('/auth/register')
-            .send({ phone, countryCode: 'CI' }),
-        );
-      }
+            .send({ phone, countryCode: 'CI' });
+          if (response.status === 429) {
+            rateLimited += 1;
+          }
+        }
 
-      const responses = await Promise.all(requests);
-
-      // Some requests should succeed, some should be rate limited
-      const rateLimited = responses.filter((r) => r.status === 429);
-      expect(rateLimited.length).toBeGreaterThan(0);
+        expect(rateLimited).toBeGreaterThan(0);
+      });
     });
 
     it('should enforce stricter rate limits on OTP verification', async () => {
-      const phone = '+2250700000101';
+      await withRateLimitingEnabled(async () => {
+        let rateLimited = 0;
 
-      // Register first
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({ phone, countryCode: 'CI' })
-        .expect(201);
-
-      // Make multiple OTP verification attempts
-      const requests = [];
-      for (let i = 0; i < 10; i++) {
-        requests.push(
-          request(app.getHttpServer())
+        for (let i = 0; i < 7; i++) {
+          const response = await request(app.getHttpServer())
             .post('/auth/verify-otp')
-            .send({ phone, otp: '000000' }),
-        );
-      }
+            .send({ phone: `+225070000010${i}`, otp: '000000' });
+          if (response.status === 429) {
+            rateLimited += 1;
+          }
+        }
 
-      const responses = await Promise.all(requests);
-      const rateLimited = responses.filter((r) => r.status === 429);
-      expect(rateLimited.length).toBeGreaterThan(0);
+        expect(rateLimited).toBeGreaterThan(0);
+      });
     });
 
     it('should enforce rate limits on transfer endpoints', async () => {
       const sender = await userHelper.createUser('+2250700000102');
       const recipient = await userHelper.createUser('+2250700000103');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await prepareWallet(sender);
+      await prepareWallet(recipient);
 
-      // Make multiple transfer requests rapidly
-      const requests = [];
-      for (let i = 0; i < 15; i++) {
-        requests.push(
-          request(app.getHttpServer())
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
+
+      await withRateLimitingEnabled(async () => {
+        let rateLimited = 0;
+
+        for (let i = 0; i < 12; i++) {
+          const response = await request(app.getHttpServer())
             .post('/wallet/transfer/internal')
             .set('Authorization', `Bearer ${sender.accessToken}`)
             .set('X-Pin-Token', pinToken)
-            .set('X-Idempotency-Key', `key-${i}`) // Different keys to avoid idempotency blocking
+            .set('X-Idempotency-Key', randomUUID())
             .send({
               toPhone: recipient.phone,
               amount: 1,
               currency: 'USDC',
-            }),
-        );
-      }
+            });
+          if (response.status === 429) {
+            rateLimited += 1;
+          }
+        }
 
-      const responses = await Promise.all(requests);
-      const rateLimited = responses.filter((r) => r.status === 429);
-      expect(rateLimited.length).toBeGreaterThan(0);
+        expect(rateLimited).toBeGreaterThan(0);
+      });
     });
   });
 
   describe('PIN Security', () => {
     it('should lock PIN after multiple failed attempts', async () => {
       const user = await userHelper.createUser('+2250700000110');
-      await userHelper.setPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
 
       // Make 5 failed attempts
       for (let i = 0; i < 5; i++) {
@@ -171,7 +246,7 @@ describe('Security E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/wallet/pin/verify')
         .set('Authorization', `Bearer ${user.accessToken}`)
-        .send({ pin: '1234' })
+        .send({ pin: '6829' })
         .expect(403);
 
       expect(response.body.message).toContain('locked');
@@ -181,7 +256,7 @@ describe('Security E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000111');
       const recipient = await userHelper.createUser('+2250700000112');
 
-      await userHelper.setPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
 
       // Try transfer without PIN token
       const response = await request(app.getHttpServer())
@@ -201,15 +276,15 @@ describe('Security E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000113');
       const _recipient = await userHelper.createUser('+2250700000114');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const _pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const _pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       // In a real test, we'd wait or manipulate time
       // For now, we verify the token has an expiry
       const verifyResponse = await request(app.getHttpServer())
         .post('/wallet/pin/verify')
         .set('Authorization', `Bearer ${sender.accessToken}`)
-        .send({ pin: '1234' })
+        .send({ pin: '6829' })
         .expect(200);
 
       expect(verifyResponse.body.expiresIn).toBeDefined();
@@ -218,16 +293,16 @@ describe('Security E2E Tests', () => {
 
     it('should hash PINs in storage', async () => {
       const user = await userHelper.createUser('+2250700000115');
-      await userHelper.setPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
 
       // Query database directly to verify PIN is hashed
       const result = await dataHelper.executeQuery(
-        'SELECT pin_hash FROM users WHERE id = $1',
+        'SELECT pin_hash FROM auth.users WHERE id = $1',
         [user.id],
       );
 
       expect(result[0].pin_hash).toBeDefined();
-      expect(result[0].pin_hash).not.toBe('1234');
+      expect(result[0].pin_hash).not.toBe('6829');
       expect(result[0].pin_hash.length).toBeGreaterThan(20); // Hashed value
     });
   });
@@ -253,8 +328,8 @@ describe('Security E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000120');
       const recipient = await userHelper.createUser('+2250700000121');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       // Test negative amount
       await request(app.getHttpServer())
@@ -283,8 +358,8 @@ describe('Security E2E Tests', () => {
 
     it('should validate blockchain addresses', async () => {
       const user = await userHelper.createUser('+2250700000122');
-      await userHelper.setPin(user.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(user.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/external')
@@ -325,22 +400,9 @@ describe('Security E2E Tests', () => {
       const user1 = await userHelper.createUser('+2250700000130');
       const user2 = await userHelper.createUser('+2250700000131');
 
-      // Create a transfer for user1
-      await userHelper.setPin(user1.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(user1.accessToken, '1234');
-
-      const transferResponse = await request(app.getHttpServer())
-        .post('/wallet/transfer/internal')
-        .set('Authorization', `Bearer ${user1.accessToken}`)
-        .set('X-Pin-Token', pinToken)
-        .send({
-          toPhone: user2.phone,
-          amount: 10,
-          currency: 'USDC',
-        })
-        .expect(200);
-
-      const transferId = transferResponse.body.transactionId;
+      await prepareWallet(user1);
+      await prepareWallet(user2);
+      const transferId = await createTransferRecord(user1, user2);
 
       // User1 should be able to access their transfer
       await request(app.getHttpServer())
@@ -384,7 +446,7 @@ describe('Security E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/verify-otp')
         .send({ phone: '+2250700000140', otp: '000000' })
-        .expect(400);
+        .expect(401);
 
       const errorText = JSON.stringify(response.body).toLowerCase();
       expect(errorText).not.toContain('database');
@@ -428,8 +490,11 @@ describe('Security E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000150');
       const recipient = await userHelper.createUser('+2250700000151');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await prepareWallet(sender);
+      await prepareWallet(recipient);
+
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       const idempotencyKey = 'test-idempotency-key-123';
 

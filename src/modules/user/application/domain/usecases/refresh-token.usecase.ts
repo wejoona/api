@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { randomUUID } from 'crypto';
 import { User } from '../entities';
 import { UserRepository } from '../../../infrastructure/repositories';
 
@@ -172,6 +173,7 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
       const accessToken = this.jwtService.sign({
         sub: user.id,
         phone: user.phone,
+        jti: randomUUID(),
       });
 
       // Generate new refresh token (rotation for security)
@@ -179,6 +181,7 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
         {
           sub: user.id,
           type: 'refresh',
+          jti: randomUUID(),
         },
         {
           secret: this.refreshSecret,
@@ -224,6 +227,7 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
       {
         sub: userId,
         type: 'refresh',
+        jti: randomUUID(),
       },
       {
         secret: this.refreshSecret,

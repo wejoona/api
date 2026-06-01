@@ -17,7 +17,12 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { E2ETestSetup } from '../setup';
-import { TestUserHelper, TestDataHelper, setupNock, teardownNock } from '../helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  setupNock,
+  teardownNock,
+} from '../helpers';
 
 describe('KYC Upload Flow E2E', () => {
   let setup: E2ETestSetup;
@@ -75,6 +80,22 @@ describe('KYC Upload Flow E2E', () => {
     await dataHelper.clearAllData();
   });
 
+  async function grantKycConsents(accessToken: string) {
+    for (const consentType of [
+      'kyc_data_processing',
+      'kyc_data_sharing',
+      'privacy_policy',
+      'terms_of_service',
+      'aml_screening',
+    ]) {
+      await request(app.getHttpServer())
+        .post('/consent/grant')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ consentType })
+        .expect(200);
+    }
+  }
+
   describe('Document Upload', () => {
     it('should upload all three documents successfully', async () => {
       const user = await userHelper.createUser('+2250700200001');
@@ -97,15 +118,19 @@ describe('KYC Upload Flow E2E', () => {
       expect(response.body.documents.selfie.key).toBeDefined();
     });
 
-    it('should reject upload without all required documents', async () => {
+    it('should upload a single document for partial KYC progress', async () => {
       const user = await userHelper.createUser('+2250700200002');
 
-      // Only upload idFront, missing idBack and selfie
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post('/kyc/documents')
         .set('Authorization', `Bearer ${user.accessToken}`)
         .attach('idFront', testImageBuffer, 'id_front.jpg')
-        .expect(400);
+        .expect(200);
+
+      expect(response.body.documents.idFront).toBeDefined();
+      expect(response.body.documents.idFront.key).toBeDefined();
+      expect(response.body.documents.idBack).toBeUndefined();
+      expect(response.body.documents.selfie).toBeUndefined();
     });
 
     it('should reject upload without authentication', async () => {
@@ -121,6 +146,7 @@ describe('KYC Upload Flow E2E', () => {
   describe('KYC Submission', () => {
     it('should submit KYC with personal info and document keys', async () => {
       const user = await userHelper.createUser('+2250700200003');
+      await grantKycConsents(user.accessToken);
 
       // Step 1: Upload documents
       const uploadResponse = await request(app.getHttpServer())
@@ -153,9 +179,12 @@ describe('KYC Upload Flow E2E', () => {
       expect(submitResponse.body.id).toBeDefined();
       expect(submitResponse.body.status).toBeDefined();
       // Status should be pending_verification or auto_approved
-      expect(['pending_verification', 'auto_approved', 'manual_review']).toContain(
-        submitResponse.body.status,
-      );
+      expect([
+        'pending_verification',
+        'auto_approved',
+        'approved',
+        'manual_review',
+      ]).toContain(submitResponse.body.status);
     });
 
     it('should reject KYC submission with missing fields', async () => {
@@ -230,6 +259,7 @@ describe('KYC Upload Flow E2E', () => {
     it('should complete full KYC flow: upload -> submit -> check status', async () => {
       // 1. Create user
       const user = await userHelper.createUser('+2250700200008');
+      await grantKycConsents(user.accessToken);
 
       // 2. Check initial status
       const initialStatus = await request(app.getHttpServer())
@@ -237,7 +267,9 @@ describe('KYC Upload Flow E2E', () => {
         .set('Authorization', `Bearer ${user.accessToken}`)
         .expect(200);
 
-      expect(['none', 'documents_pending']).toContain(initialStatus.body.status);
+      expect(['none', 'documents_pending']).toContain(
+        initialStatus.body.status,
+      );
 
       // 3. Upload documents
       const uploadResponse = await request(app.getHttpServer())
@@ -276,9 +308,12 @@ describe('KYC Upload Flow E2E', () => {
         .expect(200);
 
       // Status should have changed from initial
-      expect(['pending_verification', 'auto_approved', 'approved', 'manual_review']).toContain(
-        finalStatus.body.status,
-      );
+      expect([
+        'pending_verification',
+        'auto_approved',
+        'approved',
+        'manual_review',
+      ]).toContain(finalStatus.body.status);
     });
   });
 });

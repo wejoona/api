@@ -2,12 +2,12 @@
  * Step-Up Auth Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockStepUpService = {
-  initiateStepUp: jest.fn(),
-  verifyStepUp: jest.fn(),
+  evaluateTransaction: jest.fn(),
+  verifyOtp: jest.fn(),
   getStatus: jest.fn(),
 };
 
@@ -25,25 +25,42 @@ describe('StepUpController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  describe('POST /api/v1/step-up/initiate', () => {
-    it('should initiate step-up (200)', async () => {
-      mockStepUpService.initiateStepUp.mockResolvedValue({ challengeId: 'ch_123', method: 'otp' });
+  describe('POST /api/v1/step-up/transaction', () => {
+    it('should evaluate transaction step-up (200)', async () => {
+      mockStepUpService.evaluateTransaction.mockResolvedValue({
+        flow: 'green',
+        riskScore: 10,
+        riskLevel: 'low',
+        stepUpRequired: false,
+        stepUpType: 'none',
+        reason: 'low_risk',
+        factors: [],
+      });
       await request(app.getHttpServer())
-        .post('/api/v1/step-up/initiate')
-        .send({ action: 'large_transfer' })
+        .post('/api/v1/step-up/transaction')
+        .send({ type: 'transfer', amount: 100, currency: 'XOF' })
         .expect(200);
     });
   });
 
-  describe('POST /api/v1/step-up/verify', () => {
-    it('should verify step-up (200)', async () => {
-      mockStepUpService.verifyStepUp.mockResolvedValue({ verified: true, token: 'step_tok' });
+  describe('POST /api/v1/step-up/verify-otp', () => {
+    it('should verify step-up OTP (200)', async () => {
+      mockStepUpService.verifyOtp.mockResolvedValue({
+        valid: true,
+        stepUpType: 'otp',
+        completedAt: new Date(),
+        expiresAt: new Date(Date.now() + 300000),
+      });
       await request(app.getHttpServer())
-        .post('/api/v1/step-up/verify')
-        .send({ challengeId: 'ch_123', response: '123456' })
+        .post('/api/v1/step-up/verify-otp')
+        .send({ challengeToken: 'ch_123', code: '123456' })
         .expect(200);
     });
   });

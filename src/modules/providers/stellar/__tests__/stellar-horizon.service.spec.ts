@@ -13,20 +13,28 @@ jest.mock('@stellar/stellar-sdk', () => {
     publicKey: jest.fn(() => 'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345'),
     secret: jest.fn(() => 'SBSECRET1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ1234'),
   };
+  const MockAsset = jest.fn((code, issuer) => ({
+    code,
+    issuer,
+    isNative: () => code === 'XLM',
+  }));
+  (MockAsset as any).native = jest.fn(() => ({
+    code: 'XLM',
+    issuer: null,
+    isNative: () => true,
+  }));
 
   return {
     Keypair: {
       random: jest.fn(() => mockKeypair),
       fromSecret: jest.fn(() => ({
-        publicKey: jest.fn(() => 'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345'),
+        publicKey: jest.fn(
+          () => 'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345',
+        ),
         sign: jest.fn(),
       })),
     },
-    Asset: jest.fn((code, issuer) => ({
-      code,
-      issuer,
-      isNative: () => code === 'XLM',
-    })),
+    Asset: MockAsset,
     TransactionBuilder: jest.fn(() => ({
       addOperation: jest.fn().mockReturnThis(),
       addMemo: jest.fn().mockReturnThis(),
@@ -76,7 +84,8 @@ describe('StellarHorizonService', () => {
     'stellar.network': 'testnet',
     'stellar.horizonUrl': 'https://horizon-testnet.stellar.org',
     'stellar.usdcAssetCode': 'USDC',
-    'stellar.usdcIssuer': 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+    'stellar.usdcIssuer':
+      'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
     'stellar.anchorDomain': 'test-anchor.stellar.org',
     'stellar.useMock': false,
     'stellar.baseFee': '100',
@@ -150,7 +159,9 @@ describe('StellarHorizonService', () => {
   describe('getAccount', () => {
     it('should return account information when account exists', async () => {
       const mockAccountResponse = {
-        accountId: jest.fn(() => 'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345'),
+        accountId: jest.fn(
+          () => 'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345',
+        ),
         sequenceNumber: jest.fn(() => '12345'),
         balances: [
           {
@@ -162,7 +173,8 @@ describe('StellarHorizonService', () => {
           {
             asset_type: 'credit_alphanum4',
             asset_code: 'USDC',
-            asset_issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+            asset_issuer:
+              'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
             balance: '500.0000000',
             buying_liabilities: '0',
             selling_liabilities: '0',
@@ -172,16 +184,22 @@ describe('StellarHorizonService', () => {
 
       mockServer.loadAccount = jest.fn().mockResolvedValue(mockAccountResponse);
 
-      const account = await service.getAccount('GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345');
+      const account = await service.getAccount(
+        'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345',
+      );
 
       expect(account).not.toBeNull();
-      expect(account?.accountId).toBe('GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345');
+      expect(account?.accountId).toBe(
+        'GBTEST1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ12345',
+      );
       expect(account?.hasUsdcTrustline).toBe(true);
       expect(account?.balances).toHaveLength(2);
     });
 
     it('should return null when account does not exist', async () => {
-      mockServer.loadAccount = jest.fn().mockRejectedValue(new Error('404 not found'));
+      mockServer.loadAccount = jest
+        .fn()
+        .mockRejectedValue(new Error('404 not found'));
 
       const account = await service.getAccount('GBNONEXISTENT');
 
@@ -189,9 +207,13 @@ describe('StellarHorizonService', () => {
     });
 
     it('should throw StellarNetworkError for other errors', async () => {
-      mockServer.loadAccount = jest.fn().mockRejectedValue(new Error('Network timeout'));
+      mockServer.loadAccount = jest
+        .fn()
+        .mockRejectedValue(new Error('Network timeout'));
 
-      await expect(service.getAccount('GBTEST')).rejects.toThrow(StellarNetworkError);
+      await expect(service.getAccount('GBTEST')).rejects.toThrow(
+        StellarNetworkError,
+      );
     });
   });
 
@@ -208,7 +230,9 @@ describe('StellarHorizonService', () => {
     });
 
     it('should return false when account does not exist', async () => {
-      mockServer.loadAccount = jest.fn().mockRejectedValue(new Error('404 not found'));
+      mockServer.loadAccount = jest
+        .fn()
+        .mockRejectedValue(new Error('404 not found'));
 
       const exists = await service.accountExists('GBTEST');
       expect(exists).toBe(false);
@@ -224,7 +248,8 @@ describe('StellarHorizonService', () => {
           {
             asset_type: 'credit_alphanum4',
             asset_code: 'USDC',
-            asset_issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+            asset_issuer:
+              'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
             balance: '250.5000000',
             buying_liabilities: '0',
             selling_liabilities: '0',
@@ -255,7 +280,9 @@ describe('StellarHorizonService', () => {
     });
 
     it('should return 0 when account does not exist', async () => {
-      mockServer.loadAccount = jest.fn().mockRejectedValue(new Error('404 not found'));
+      mockServer.loadAccount = jest
+        .fn()
+        .mockRejectedValue(new Error('404 not found'));
 
       const balance = await service.getUsdcBalance('GBNONEXISTENT');
       expect(balance).toBe('0');
@@ -315,7 +342,10 @@ describe('StellarHorizonService', () => {
 
       // Re-initialize service
       const newService = new StellarHorizonService(configService);
-      (newService as any).config = { ...service.getConfig(), network: 'mainnet' };
+      (newService as any).config = {
+        ...service.getConfig(),
+        network: 'mainnet',
+      };
 
       await expect(newService.fundTestnetAccount('GBTEST')).rejects.toThrow(
         'Friendbot only available on testnet',
@@ -355,13 +385,13 @@ describe('StellarHorizonService', () => {
         balances: [],
       });
 
-      mockServer.submitTransaction = jest.fn().mockRejectedValue(
-        new Error('Transaction failed'),
-      );
+      mockServer.submitTransaction = jest
+        .fn()
+        .mockRejectedValue(new Error('Transaction failed'));
 
-      await expect(
-        service.createUsdcTrustline('SBSECRET'),
-      ).rejects.toThrow(StellarTransactionError);
+      await expect(service.createUsdcTrustline('SBSECRET')).rejects.toThrow(
+        StellarTransactionError,
+      );
     });
   });
 
@@ -451,9 +481,9 @@ describe('StellarHorizonService', () => {
         balances: [],
       });
 
-      mockServer.submitTransaction = jest.fn().mockRejectedValue(
-        new Error('Insufficient funds'),
-      );
+      mockServer.submitTransaction = jest
+        .fn()
+        .mockRejectedValue(new Error('Insufficient funds'));
 
       await expect(service.sendPayment(paymentRequest)).rejects.toThrow(
         StellarTransactionError,

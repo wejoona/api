@@ -3,7 +3,7 @@
  */
 
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp, TEST_USER } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -46,7 +46,10 @@ describe('WalletController (e2e)', () => {
       controllers: [WalletController],
       providers: [
         { provide: GetBalanceUseCase, useValue: mockGetBalance },
-        { provide: GetDepositChannelsUseCase, useValue: mockGetDepositChannels },
+        {
+          provide: GetDepositChannelsUseCase,
+          useValue: mockGetDepositChannels,
+        },
         { provide: InitiateDepositUseCase, useValue: mockInitiateDeposit },
         { provide: InternalTransferUseCase, useValue: mockInternalTransfer },
         { provide: ExternalTransferUseCase, useValue: mockExternalTransfer },
@@ -63,8 +66,12 @@ describe('WalletController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/wallet', () => {
     it('should return wallet balance (200)', async () => {
@@ -99,7 +106,7 @@ describe('WalletController (e2e)', () => {
       mockInitiateDeposit.execute.mockResolvedValue(TestData.deposit());
       await request(app.getHttpServer())
         .post('/api/v1/wallet/deposit')
-        .send({ amount: 100, sourceCurrency: 'XOF', channelId: 'mtn_momo' })
+        .send({ amount: 1000, sourceCurrency: 'XOF', channelId: 'mtn_momo' })
         .expect(201);
     });
 
@@ -113,7 +120,9 @@ describe('WalletController (e2e)', () => {
 
   describe('GET /api/v1/wallet/deposit/:id', () => {
     it('should return deposit status (200)', async () => {
-      mockGetDepositStatus.execute.mockResolvedValue(TestData.deposit({ status: 'completed' }));
+      mockGetDepositStatus.execute.mockResolvedValue(
+        TestData.deposit({ status: 'completed' }),
+      );
       await request(app.getHttpServer())
         .get('/api/v1/wallet/deposit/550e8400-e29b-41d4-a716-446655440000')
         .expect(200);
@@ -125,7 +134,11 @@ describe('WalletController (e2e)', () => {
       mockInternalTransfer.execute.mockResolvedValue(TestData.transfer());
       await request(app.getHttpServer())
         .post('/api/v1/wallet/transfer/internal')
-        .send({ recipientPhone: '+2250701234568', amount: 50, currency: 'USDC' })
+        .send({
+          toPhone: '+2250701234568',
+          amount: 50,
+          currency: 'USDC',
+        })
         .expect(200);
     });
 
@@ -142,7 +155,11 @@ describe('WalletController (e2e)', () => {
       mockExternalTransfer.execute.mockResolvedValue(TestData.transfer());
       await request(app.getHttpServer())
         .post('/api/v1/wallet/transfer/external')
-        .send({ toAddress: '0x' + 'a'.repeat(40), amount: 50, currency: 'USDC' })
+        .send({
+          toAddress: '0x' + 'a'.repeat(40),
+          amount: 50,
+          currency: 'USDC',
+        })
         .expect(200);
     });
   });
@@ -152,14 +169,21 @@ describe('WalletController (e2e)', () => {
       mockExternalTransfer.execute.mockResolvedValue(TestData.transfer());
       await request(app.getHttpServer())
         .post('/api/v1/wallet/withdraw')
-        .send({ toAddress: '0x' + 'a'.repeat(40), amount: 50, currency: 'USDC' })
+        .send({
+          destinationAddress: '0x' + 'a'.repeat(40),
+          amount: 50,
+        })
         .expect(200);
     });
   });
 
   describe('GET /api/v1/wallet/rate', () => {
     it('should return exchange rate (200)', async () => {
-      mockGetRate.execute.mockResolvedValue({ rate: 0.0016, sourceCurrency: 'XOF', targetCurrency: 'USDC' });
+      mockGetRate.execute.mockResolvedValue({
+        rate: 0.0016,
+        sourceCurrency: 'XOF',
+        targetCurrency: 'USDC',
+      });
       await request(app.getHttpServer())
         .get('/api/v1/wallet/rate')
         .query({ sourceCurrency: 'XOF', targetCurrency: 'USDC', amount: 100 })
@@ -178,7 +202,10 @@ describe('WalletController (e2e)', () => {
 
   describe('POST /api/v1/wallet/pin/verify', () => {
     it('should verify PIN (200)', async () => {
-      mockVerifyPin.execute.mockResolvedValue({ success: true, pinToken: 'tok' });
+      mockVerifyPin.execute.mockResolvedValue({
+        success: true,
+        pinToken: 'tok',
+      });
       await request(app.getHttpServer())
         .post('/api/v1/wallet/pin/verify')
         .send({ pin: '1234' })
@@ -188,7 +215,10 @@ describe('WalletController (e2e)', () => {
 
   describe('GET /api/v1/wallet/limits', () => {
     it('should return wallet limits (200)', async () => {
-      mockGetWalletLimits.execute.mockResolvedValue({ daily: 5000, monthly: 50000 });
+      mockGetWalletLimits.execute.mockResolvedValue({
+        daily: 5000,
+        monthly: 50000,
+      });
       await request(app.getHttpServer())
         .get('/api/v1/wallet/limits')
         .expect(200);

@@ -2,13 +2,13 @@
  * Liveness Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockLivenessService = {
-  createSession: jest.fn(),
+  startSession: jest.fn(),
   submitChallenge: jest.fn(),
-  getStatus: jest.fn(),
+  getSessionStatus: jest.fn(),
 };
 
 import { LivenessController } from '@modules/liveness/application/controllers/liveness.controller';
@@ -25,13 +25,24 @@ describe('LivenessController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  describe('POST /api/v1/liveness/session', () => {
-    it('should create liveness session (201)', async () => {
-      mockLivenessService.createSession.mockResolvedValue({ sessionId: 'ls_123', challengeUrl: 'https://...' });
-      await request(app.getHttpServer()).post('/api/v1/liveness/session').expect(201);
+  describe('POST /api/v1/liveness/start', () => {
+    it('should create liveness session (200)', async () => {
+      mockLivenessService.startSession.mockResolvedValue({
+        sessionId: '550e8400-e29b-41d4-a716-446655440010',
+        currentChallenge: {
+          challengeId: '550e8400-e29b-41d4-a716-446655440011',
+        },
+      });
+      await request(app.getHttpServer())
+        .post('/api/v1/liveness/start')
+        .expect(200);
     });
   });
 
@@ -40,15 +51,24 @@ describe('LivenessController (e2e)', () => {
       mockLivenessService.submitChallenge.mockResolvedValue({ success: true });
       await request(app.getHttpServer())
         .post('/api/v1/liveness/challenge')
-        .send({ sessionId: 'ls_123', response: 'data' })
+        .send({
+          sessionId: '550e8400-e29b-41d4-a716-446655440010',
+          challengeId: '550e8400-e29b-41d4-a716-446655440011',
+          videoFrameBase64: 'data:image/jpeg;base64,abc',
+        })
         .expect(200);
     });
   });
 
-  describe('GET /api/v1/liveness/status', () => {
+  describe('GET /api/v1/liveness/:sessionId', () => {
     it('should get liveness status (200)', async () => {
-      mockLivenessService.getStatus.mockResolvedValue({ verified: true });
-      await request(app.getHttpServer()).get('/api/v1/liveness/status').expect(200);
+      mockLivenessService.getSessionStatus.mockResolvedValue({
+        sessionId: '550e8400-e29b-41d4-a716-446655440010',
+        status: 'completed',
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/liveness/550e8400-e29b-41d4-a716-446655440010')
+        .expect(200);
     });
   });
 });

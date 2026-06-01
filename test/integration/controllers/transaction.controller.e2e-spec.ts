@@ -2,7 +2,7 @@
  * Transaction Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -30,8 +30,12 @@ describe('TransactionController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/wallet/transactions', () => {
     it('should return transactions (200)', async () => {

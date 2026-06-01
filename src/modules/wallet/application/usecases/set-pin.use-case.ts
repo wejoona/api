@@ -70,6 +70,8 @@ export class SetPinUseCase {
       );
     }
 
+    const hadPin = user.hasPin;
+
     // Hash the PIN
     const pinHash = await bcrypt.hash(input.pin, this.SALT_ROUNDS);
 
@@ -84,7 +86,7 @@ export class SetPinUseCase {
 
     return {
       success: true,
-      message: user.pinSetAt
+      message: hadPin
         ? 'PIN updated successfully'
         : 'PIN set successfully',
     };

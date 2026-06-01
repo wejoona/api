@@ -60,7 +60,10 @@ export default () => ({
 
   // Blnk Finance (Ledger/Accounting)
   blnk: {
-    url: process.env.BLNK_URL || 'http://localhost:5001',
+    url:
+      process.env.BLNK_API_URL ||
+      process.env.BLNK_URL ||
+      'http://localhost:5001',
     apiKey: process.env.BLNK_API_KEY || '',
     ledgerId: process.env.BLNK_LEDGER_ID || '',
     circleOmnibusBalanceId: process.env.BLNK_CIRCLE_OMNIBUS_BALANCE_ID || '',
@@ -91,7 +94,13 @@ export default () => ({
     expiresIn: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300, // 5 minutes
     length: parseInt(process.env.OTP_LENGTH, 10) || 6,
     maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 3,
+    maxRequestsPerHour: parseInt(process.env.OTP_RATE_LIMIT_MAX, 10) || 5,
     enableDebugLogging: process.env.OTP_DEBUG_LOGGING === 'true',
+    useDevOtp:
+      process.env.NODE_ENV !== 'production' &&
+      (process.env.NODE_ENV === 'test' ||
+        process.env.OTP_USE_DEV_OTP === 'true'),
+    devOtp: process.env.OTP_DEV_CODE || '123456',
   },
 
   // Verification Strategy
@@ -106,6 +115,7 @@ export default () => ({
     local: {
       otpLength: parseInt(process.env.OTP_LENGTH, 10) || 6,
       expirySeconds: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300,
+      maxRequestsPerHour: parseInt(process.env.OTP_RATE_LIMIT_MAX, 10) || 5,
       deliveryProvider: process.env.VERIFICATION_DELIVERY_PROVIDER || 'dispatch',
       dispatchBaseUrl: process.env.DISPATCH_BASE_URL || '',
     },

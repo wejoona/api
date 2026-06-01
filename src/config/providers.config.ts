@@ -102,7 +102,10 @@ export function getProvidersConfig(): ProvidersConfig {
       webhookSecret: process.env.YELLOW_CARD_WEBHOOK_SECRET || '',
     },
     blnk: {
-      url: process.env.BLNK_URL || 'http://localhost:5001',
+      url:
+        process.env.BLNK_API_URL ||
+        process.env.BLNK_URL ||
+        'http://localhost:5001',
       apiKey: process.env.BLNK_API_KEY || '',
     },
   };

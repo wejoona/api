@@ -6,8 +6,18 @@ import {
   Matches,
   IsOptional,
   ValidateIf,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+const SUPPORTED_EXTERNAL_TRANSFER_NETWORKS = [
+  'polygon',
+  'ethereum',
+  'base',
+  'arbitrum',
+  'avalanche',
+  'optimism',
+] as const;
 
 export class ExternalTransferDto {
   @ApiProperty({
@@ -67,9 +77,13 @@ export class ExternalTransferDto {
     description: 'Blockchain network (defaults to polygon)',
     example: 'polygon',
     required: false,
-    enum: ['polygon', 'ethereum', 'base'],
+    enum: SUPPORTED_EXTERNAL_TRANSFER_NETWORKS,
   })
   @IsOptional()
   @IsString()
+  @IsIn(SUPPORTED_EXTERNAL_TRANSFER_NETWORKS, {
+    message:
+      'network must be one of: polygon, ethereum, base, arbitrum, avalanche, optimism',
+  })
   network?: string;
 }

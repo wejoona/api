@@ -143,14 +143,41 @@ export class MockProvidersHelper {
       })
       .persist();
 
+    // Mock identity creation/linking
+    this.blnkScope
+      .post('/identities')
+      .reply(201, {
+        identity_id: 'mock-identity-id',
+        identity_type: 'individual',
+        first_name: 'Test',
+        last_name: 'User',
+        email: 'test@example.com',
+        phone_number: '+2250700000000',
+        created_at: new Date().toISOString(),
+      })
+      .persist();
+
+    // Mock reconciliation rule setup during app bootstrap
+    this.blnkScope
+      .post('/reconciliation/matching-rules')
+      .reply(201, {
+        rule_id: 'mock-matching-rule-id',
+        name: 'Mock Matching Rule',
+        status: 'active',
+        created_at: new Date().toISOString(),
+      })
+      .persist();
+
     // Mock balance query
     this.blnkScope
       .get(/\/balances\/.*/)
       .reply(200, {
         balance_id: 'mock-balance-id',
-        balance: 100000, // 1000.00 in cents
-        credit_balance: 100000,
+        balance: 1000000000,
+        credit_balance: 1000000000,
         debit_balance: 0,
+        inflight_balance: 0,
+        inflight_debit_balance: 0,
         currency: 'USD',
       })
       .persist();
@@ -158,13 +185,34 @@ export class MockProvidersHelper {
     // Mock transaction creation
     this.blnkScope
       .post('/transactions')
-      .reply(201, {
+      .reply(201, (_uri, body: any) => ({
+          transaction_id: 'mock-transaction-id',
+          reference: body?.reference || 'mock-reference',
+          source: body?.source || 'mock-source-balance',
+          destination: body?.destination || 'mock-destination-balance',
+          amount: body?.amount || 1000,
+          precise_amount: Math.round((body?.amount || 1000) * 1_000_000),
+          currency: body?.currency || 'USD',
+          status: 'APPLIED',
+          description: body?.description || 'Mock transaction',
+          meta_data: body?.meta_data || {},
+          created_at: new Date().toISOString(),
+        }))
+      .persist();
+
+    this.blnkScope
+      .put(/\/transactions\/inflight\/.*/)
+      .reply(200, {
         transaction_id: 'mock-transaction-id',
+        reference: 'mock-reference',
         source: 'mock-source-balance',
         destination: 'mock-destination-balance',
         amount: 1000,
+        precise_amount: 1000000000,
         currency: 'USD',
-        status: 'applied',
+        status: 'APPLIED',
+        description: 'Mock transaction status update',
+        meta_data: {},
         created_at: new Date().toISOString(),
       })
       .persist();
@@ -179,6 +227,16 @@ export class MockProvidersHelper {
         amount: 1000,
         currency: 'USD',
         status: 'applied',
+      })
+      .persist();
+
+    // Mock transaction search used by webhook idempotency/reconciliation listeners
+    this.blnkScope
+      .post('/search/transactions')
+      .reply(200, {
+        found: 0,
+        hits: [],
+        page: 1,
       })
       .persist();
   }
@@ -347,8 +405,8 @@ export function setupNock() {
   // Don't allow unmocked HTTP requests
   nock.disableNetConnect();
   // Allow localhost connections for supertest
-  nock.enableNetConnect('127.0.0.1');
-  nock.enableNetConnect('localhost');
+  nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
+  new MockProvidersHelper();
 }
 
 /**

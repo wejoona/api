@@ -77,7 +77,7 @@ describe('User Journey E2E Tests', () => {
       expect(response.body.refreshToken).toBeDefined();
       expect(response.body.user).toBeDefined();
       expect(response.body.user.phone).toBe('+2250700000001');
-      expect(response.body.walletCreated).toBe(true);
+      expect(response.body.kycStatus).toBeDefined();
 
       // Save for next tests
       _authToken = response.body.accessToken;
@@ -124,8 +124,8 @@ describe('User Journey E2E Tests', () => {
         .post('/wallet/pin/set')
         .set('Authorization', `Bearer ${user.accessToken}`)
         .send({
-          pin: '1234',
-          confirmPin: '1234',
+          pin: '6829',
+          confirmPin: '6829',
         })
         .expect(200);
 
@@ -205,10 +205,10 @@ describe('User Journey E2E Tests', () => {
       const recipient = await userHelper.createUser('+2250700000021');
 
       // Set PIN for sender
-      await userHelper.setPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
 
       // Get PIN token
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       // Create transfer
       const response = await request(app.getHttpServer())
@@ -232,7 +232,7 @@ describe('User Journey E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000022');
       const recipient = await userHelper.createUser('+2250700000023');
 
-      await userHelper.setPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
 
       // Try transfer without PIN token
       const response = await request(app.getHttpServer())
@@ -346,7 +346,7 @@ describe('User Journey E2E Tests', () => {
           phone: '+2250700000041',
           otp: '000000', // Invalid OTP
         })
-        .expect(400);
+        .expect(401);
 
       expect(response.body.message).toBeDefined();
     });
@@ -364,7 +364,7 @@ describe('User Journey E2E Tests', () => {
 
     it('should lock PIN after too many failed attempts', async () => {
       const user = await userHelper.createUser('+2250700000042');
-      await userHelper.setPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
 
       // Make multiple failed attempts
       for (let i = 0; i < 5; i++) {
@@ -379,7 +379,7 @@ describe('User Journey E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/wallet/pin/verify')
         .set('Authorization', `Bearer ${user.accessToken}`)
-        .send({ pin: '1234' })
+        .send({ pin: '6829' })
         .expect(403);
 
       expect(response.body.message).toContain('locked');
@@ -403,8 +403,8 @@ describe('User Journey E2E Tests', () => {
       const sender = await userHelper.createUser('+2250700000050');
       const recipient = await userHelper.createUser('+2250700000051');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       const response = await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
@@ -423,8 +423,8 @@ describe('User Journey E2E Tests', () => {
     it('should handle non-existent recipient', async () => {
       const sender = await userHelper.createUser('+2250700000052');
 
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       const response = await request(app.getHttpServer())
         .post('/wallet/transfer/internal')

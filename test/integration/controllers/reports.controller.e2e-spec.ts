@@ -2,12 +2,12 @@
  * Reports Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { createTestApp } from '../setup/test-app';
+import request from 'supertest';
+import { createTestApp, TEST_ADMIN } from '../setup/test-app';
 
 const mockReportsService = {
-  getTransactionReport: jest.fn(),
-  getRevenueReport: jest.fn(),
+  getTransactionSummary: jest.fn(),
+  getDailyTransactionReport: jest.fn(),
   exportReport: jest.fn(),
 };
 
@@ -21,24 +21,42 @@ describe('ReportsController (e2e)', () => {
     const result = await createTestApp({
       controllers: [ReportsController],
       providers: [{ provide: ReportsService, useValue: mockReportsService }],
+      authUser: TEST_ADMIN,
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  describe('GET /api/v1/reports/transactions', () => {
-    it('should return transaction report (200)', async () => {
-      mockReportsService.getTransactionReport.mockResolvedValue({ data: [], total: 0 });
-      await request(app.getHttpServer()).get('/api/v1/reports/transactions').expect(200);
+  describe('GET /api/v1/reports/transactions/summary', () => {
+    it('should return transaction summary (200)', async () => {
+      mockReportsService.getTransactionSummary.mockResolvedValue({
+        totalCount: 0,
+        totalVolume: 0,
+        avgTransactionSize: 0,
+        byStatus: [],
+        byType: [],
+        byCurrency: [],
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/reports/transactions/summary')
+        .expect(200);
     });
   });
 
-  describe('GET /api/v1/reports/revenue', () => {
-    it('should return revenue report (200)', async () => {
-      mockReportsService.getRevenueReport.mockResolvedValue({ total: 50000 });
-      await request(app.getHttpServer()).get('/api/v1/reports/revenue').expect(200);
+  describe('GET /api/v1/reports/transactions/daily', () => {
+    it('should return daily transaction report (200)', async () => {
+      mockReportsService.getDailyTransactionReport.mockResolvedValue([]);
+      await request(app.getHttpServer())
+        .get(
+          '/api/v1/reports/transactions/daily?startDate=2026-01-01&endDate=2026-01-31',
+        )
+        .expect(200);
     });
   });
 });

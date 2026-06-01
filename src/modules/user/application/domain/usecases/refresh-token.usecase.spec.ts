@@ -312,10 +312,11 @@ describe('RefreshTokenUsecase', () => {
 
       // Assert
       expect(jwtService.sign).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           sub: userId,
           type: 'refresh',
-        },
+          jti: expect.any(String),
+        }),
         expect.objectContaining({
           secret: 'test-refresh-secret',
           expiresIn: '7d',

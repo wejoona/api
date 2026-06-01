@@ -3,16 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { StellarWalletAdapter } from '../adapters/stellar-wallet.adapter';
 import { StellarHorizonService } from '../services/stellar-horizon.service';
 import { StellarError, StellarAccount, StellarBalance } from '../stellar.types';
+import { KeyVaultService } from '@modules/shared/infrastructure/services';
 
 describe('StellarWalletAdapter', () => {
   let adapter: StellarWalletAdapter;
   let horizonService: jest.Mocked<StellarHorizonService>;
+  let keyVault: jest.Mocked<KeyVaultService>;
 
   const mockConfigValues: Record<string, any> = {
     'stellar.network': 'testnet',
     'stellar.horizonUrl': 'https://horizon-testnet.stellar.org',
     'stellar.usdcAssetCode': 'USDC',
-    'stellar.usdcIssuer': 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+    'stellar.usdcIssuer':
+      'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
     'stellar.anchorDomain': 'test-anchor.stellar.org',
     'stellar.useMock': false,
   };
@@ -65,6 +68,11 @@ describe('StellarWalletAdapter', () => {
         publicKey: () => mockKeypair.publicKey,
       }),
     };
+    keyVault = {
+      encrypt: jest.fn((value: string) => `encrypted:${value}`),
+      decrypt: jest.fn((value: string) => value.replace(/^encrypted:/, '')),
+      isEnabled: jest.fn().mockReturnValue(true),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -78,6 +86,10 @@ describe('StellarWalletAdapter', () => {
         {
           provide: StellarHorizonService,
           useValue: mockHorizonService,
+        },
+        {
+          provide: KeyVaultService,
+          useValue: keyVault,
         },
       ],
     }).compile();
@@ -137,7 +149,11 @@ describe('StellarWalletAdapter', () => {
     it('should include secret key in metadata', async () => {
       const result = await adapter.createWallet(createWalletData);
 
-      expect((result as any).metadata?.secretKey).toBe(mockKeypair.secretKey);
+      expect(keyVault.encrypt).toHaveBeenCalledWith(mockKeypair.secretKey);
+      expect((result as any).metadata?.secretKey).toBe(
+        `encrypted:${mockKeypair.secretKey}`,
+      );
+      expect((result as any).metadata?.secretKeyEncrypted).toBe(true);
     });
 
     it('should handle funding failure gracefully', async () => {
@@ -272,9 +288,9 @@ describe('StellarWalletAdapter', () => {
     it('should throw error for non-existent account', async () => {
       horizonService.getAccount.mockResolvedValue(null);
 
-      await expect(
-        adapter.getDepositAddress('GBNONEXISTENT'),
-      ).rejects.toThrow(StellarError);
+      await expect(adapter.getDepositAddress('GBNONEXISTENT')).rejects.toThrow(
+        StellarError,
+      );
     });
 
     it('should warn when account lacks USDC trustline', async () => {

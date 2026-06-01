@@ -75,7 +75,7 @@ import { WalletModule } from '../wallet/wallet.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([ReconciliationReportOrmEntity]),
-    ScheduleModule.forRoot(),
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     EventEmitterModule.forRoot(),
     forwardRef(() => TransactionModule),
     forwardRef(() => WalletModule),

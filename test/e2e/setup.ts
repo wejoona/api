@@ -2,11 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 import {
-  PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
-import { DataSource } from 'typeorm';
+import { StartedTestContainer } from 'testcontainers';
+import { DataSource, EntityMetadata } from 'typeorm';
+import { ensureDatabaseSchemas } from './database-schemas';
+import {
+  startPostgresTestContainer,
+  startRedisTestContainer,
+} from './testcontainers';
 
 /**
  * E2E Test Setup
@@ -44,17 +48,11 @@ export class E2ETestSetup {
   async setup(): Promise<INestApplication> {
     // Start PostgreSQL container
     console.log('Starting PostgreSQL container...');
-    this.postgresContainer = await new PostgreSqlContainer('postgres:15-alpine')
-      .withDatabase('test_db')
-      .withUsername('test_user')
-      .withPassword('test_password')
-      .start();
+    this.postgresContainer = await startPostgresTestContainer();
 
     // Start Redis container
     console.log('Starting Redis container...');
-    this.redisContainer = await new GenericContainer('redis:7-alpine')
-      .withExposedPorts(6379)
-      .start();
+    this.redisContainer = await startRedisTestContainer();
 
     // Set environment variables for test
     process.env.NODE_ENV = 'test';
@@ -82,9 +80,17 @@ export class E2ETestSetup {
     process.env.CIRCLE_API_URL = 'http://localhost:3999/circle';
     process.env.YELLOWCARD_API_URL = 'http://localhost:3999/yellowcard';
     process.env.BLNK_API_URL = 'http://localhost:3999/blnk';
+    process.env.CIRCLE_WEBHOOK_SECRET = 'test-circle-webhook-secret';
+    process.env.YELLOW_CARD_WEBHOOK_SECRET = 'test-yellow-card-webhook-secret';
+    process.env.YELLOW_CARD_ENABLED = 'true';
+    process.env.YELLOW_CARD_USE_MOCK = 'true';
+    process.env.DEPOSIT_USE_MOCK = 'true';
+    process.env.CIRCLE_USE_MOCK = 'true';
 
     // Disable external notifications in tests
     process.env.NOTIFICATION_ENABLED = 'false';
+
+    await ensureDatabaseSchemas();
 
     console.log('Creating NestJS application...');
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -92,6 +98,7 @@ export class E2ETestSetup {
     }).compile();
 
     this.app = moduleFixture.createNestApplication();
+    this.app.getHttpAdapter().getInstance().disable('x-powered-by');
 
     // Apply global pipes (same as production)
     this.app.useGlobalPipes(
@@ -125,12 +132,19 @@ export class E2ETestSetup {
   async teardown() {
     console.log('Tearing down E2E setup...');
 
-    if (this.dataSource) {
-      await this.dataSource.destroy();
+    if (this.app) {
+      await this.app.close().catch((error) => {
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes('Connection is closed')
+        ) {
+          throw error;
+        }
+      });
     }
 
-    if (this.app) {
-      await this.app.close();
+    if (this.dataSource?.isInitialized) {
+      await this.dataSource.destroy();
     }
 
     if (this.postgresContainer) {
@@ -157,8 +171,21 @@ export class E2ETestSetup {
 
     for (const entity of entities) {
       const repository = this.dataSource.getRepository(entity.name);
-      await repository.query(`TRUNCATE TABLE "${entity.tableName}" CASCADE;`);
+      await repository.query(
+        `TRUNCATE TABLE ${this.getTableIdentifier(entity)} CASCADE;`,
+      );
     }
+  }
+
+  private quoteIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
+  }
+
+  private getTableIdentifier(entity: EntityMetadata): string {
+    const tableName = this.quoteIdentifier(entity.tableName);
+    return entity.schema
+      ? `${this.quoteIdentifier(entity.schema)}.${tableName}`
+      : tableName;
   }
 
   /**

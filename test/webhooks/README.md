@@ -47,18 +47,24 @@ await server.sendCircleWebhook('http://localhost:3000/webhooks/circle', {
   notification: { id: 'txn_123', state: 'COMPLETE' },
 });
 
-await server.sendYellowCardWebhook('http://localhost:3000/webhooks/payment/yellow-card', {
-  id: 'evt_123',
-  type: 'payment.complete',
-  data: { id: 'pay_456', status: 'complete' },
-});
+await server.sendYellowCardWebhook(
+  'http://localhost:3000/webhooks/payment/yellow-card',
+  {
+    id: 'evt_123',
+    type: 'payment.complete',
+    data: { id: 'pay_456', status: 'complete' },
+  },
+);
 
-await server.sendTwilioWebhook('http://localhost:3000/webhooks/twilio/sms-status', {
-  MessageSid: 'SM123',
-  MessageStatus: 'delivered',
-  To: '+2250701234567',
-  From: '+14155551234',
-});
+await server.sendTwilioWebhook(
+  'http://localhost:3000/webhooks/twilio/sms-status',
+  {
+    MessageSid: 'SM123',
+    MessageStatus: 'delivered',
+    To: '+2250701234567',
+    From: '+14155551234',
+  },
+);
 
 // Stop server
 await server.stop();
@@ -189,7 +195,7 @@ describe('Webhook Integration Tests', () => {
           state: 'COMPLETE',
           walletId: 'wallet_abc',
         },
-      }
+      },
     );
 
     expect(response.success).toBe(true);
@@ -209,7 +215,7 @@ describe('Webhook Integration Tests', () => {
         id: 'evt_123',
         type: 'payment.complete',
         data: { id: 'pay_456' },
-      }
+      },
     );
 
     expect(response.attempts).toBeGreaterThan(1);
@@ -311,11 +317,11 @@ describe('Deposit Flow E2E', () => {
     const results = await replay.replayScenario(
       'complete-deposit-flow',
       server,
-      'http://localhost:3000'
+      'http://localhost:3000',
     );
 
     expect(results).toHaveLength(4);
-    expect(results.every(r => r.success)).toBe(true);
+    expect(results.every((r) => r.success)).toBe(true);
   });
 });
 ```
@@ -329,6 +335,7 @@ npm test -- test/webhooks/utils/signature-verifier.spec.ts
 ```
 
 Tests cover:
+
 - Circle HMAC SHA256 signatures
 - Yellow Card HMAC SHA256 signatures
 - Twilio HMAC SHA1 signatures with URL
@@ -344,6 +351,7 @@ npm test -- test/webhooks/utils/payload-validator.spec.ts
 ```
 
 Tests cover:
+
 - Required field validation
 - Enum validation
 - Format validation (amounts, phone numbers, etc.)
@@ -363,7 +371,7 @@ const replay = new WebhookReplay();
 // Import from log file
 await replay.importFromLogs(
   '/path/to/production.log',
-  (log) => log.level === 'info' && log.message.includes('webhook')
+  (log) => log.level === 'info' && log.message.includes('webhook'),
 );
 
 // List imported webhooks

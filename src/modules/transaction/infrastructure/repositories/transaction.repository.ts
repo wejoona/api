@@ -130,7 +130,7 @@ export class TransactionRepository {
       .where('wallet.userId = :userId', { userId })
       .andWhere('transaction.createdAt >= :sinceDate', { sinceDate })
       .andWhere('transaction.type IN (:...types)', {
-        types: ['internal_transfer', 'external_transfer', 'withdrawal'],
+        types: ['transfer_internal', 'transfer_external', 'withdrawal'],
       })
       .andWhere('transaction.status IN (:...statuses)', {
         statuses: ['completed', 'pending', 'processing'],

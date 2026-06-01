@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LoginUserUsecase, LoginUserInput } from './login-user.usecase';
 import { UserRepository } from '../../../infrastructure/repositories';
 import { VerificationFacadeService } from '../../../../verification/application/services/verification-facade.service';
@@ -8,6 +9,7 @@ describe('LoginUserUsecase', () => {
   let usecase: LoginUserUsecase;
   let userRepository: jest.Mocked<UserRepository>;
   let verificationFacade: jest.Mocked<VerificationFacadeService>;
+  let eventEmitter: { emit: jest.Mock };
 
   const mockUser = {
     id: 'user-123',
@@ -20,6 +22,8 @@ describe('LoginUserUsecase', () => {
   };
 
   beforeEach(async () => {
+    eventEmitter = { emit: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoginUserUsecase,
@@ -41,6 +45,7 @@ describe('LoginUserUsecase', () => {
             checkVerification: jest.fn(),
           },
         },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -70,6 +75,13 @@ describe('LoginUserUsecase', () => {
         success: true,
         otpExpiresIn: 300,
       });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'user.login.requested',
+        expect.objectContaining({
+          userId: 'user-123',
+          phone: '+225123456789',
+        }),
+      );
     });
 
     it('should throw NotFoundException for non-existent user', async () => {

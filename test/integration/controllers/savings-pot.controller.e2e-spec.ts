@@ -2,15 +2,19 @@
  * Savings Pot Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
 const mockCreatePot = { execute: jest.fn() };
-const mockGetPots = { execute: jest.fn() };
+const mockGetPots = {
+  execute: jest.fn(),
+  executeActive: jest.fn(),
+  executeOne: jest.fn(),
+};
 const mockUpdatePot = { execute: jest.fn() };
 const mockDepositToPot = { execute: jest.fn() };
-const mockWithdrawFromPot = { execute: jest.fn() };
+const mockWithdrawFromPot = { execute: jest.fn(), executeAll: jest.fn() };
 const mockCancelPot = { execute: jest.fn() };
 
 import { SavingsPotController } from '@modules/savings-pots/application/controllers/savings-pot.controller';
@@ -34,15 +38,22 @@ describe('SavingsPotController (e2e)', () => {
         { provide: GetSavingsPotsUseCase, useValue: mockGetPots },
         { provide: UpdateSavingsPotUseCase, useValue: mockUpdatePot },
         { provide: DepositToSavingsPotUseCase, useValue: mockDepositToPot },
-        { provide: WithdrawFromSavingsPotUseCase, useValue: mockWithdrawFromPot },
+        {
+          provide: WithdrawFromSavingsPotUseCase,
+          useValue: mockWithdrawFromPot,
+        },
         { provide: CancelSavingsPotUseCase, useValue: mockCancelPot },
       ],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('POST /api/v1/savings-pots', () => {
     it('should create savings pot (201)', async () => {
@@ -72,7 +83,7 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('GET /api/v1/savings-pots/active', () => {
     it('should list active savings pots (200)', async () => {
-      mockGetPots.execute.mockResolvedValue([TestData.savingsPot()]);
+      mockGetPots.executeActive.mockResolvedValue([TestData.savingsPot()]);
       await request(app.getHttpServer())
         .get('/api/v1/savings-pots/active')
         .expect(200);
@@ -81,7 +92,7 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('GET /api/v1/savings-pots/:id', () => {
     it('should get savings pot (200)', async () => {
-      mockGetPots.execute.mockResolvedValue(TestData.savingsPot());
+      mockGetPots.executeOne.mockResolvedValue(TestData.savingsPot());
       await request(app.getHttpServer())
         .get('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000')
         .expect(200);
@@ -90,7 +101,9 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('PUT /api/v1/savings-pots/:id', () => {
     it('should update savings pot (200)', async () => {
-      mockUpdatePot.execute.mockResolvedValue(TestData.savingsPot({ name: 'Updated' }));
+      mockUpdatePot.execute.mockResolvedValue(
+        TestData.savingsPot({ name: 'Updated' }),
+      );
       await request(app.getHttpServer())
         .put('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' })
@@ -100,9 +113,13 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('POST /api/v1/savings-pots/:id/deposit', () => {
     it('should deposit to savings pot (200)', async () => {
-      mockDepositToPot.execute.mockResolvedValue(TestData.savingsPot({ currentAmount: 200 }));
+      mockDepositToPot.execute.mockResolvedValue(
+        TestData.savingsPot({ currentAmount: 200 }),
+      );
       await request(app.getHttpServer())
-        .post('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/deposit')
+        .post(
+          '/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/deposit',
+        )
         .send({ amount: 100 })
         .expect(200);
     });
@@ -110,9 +127,13 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('POST /api/v1/savings-pots/:id/withdraw', () => {
     it('should withdraw from savings pot (200)', async () => {
-      mockWithdrawFromPot.execute.mockResolvedValue(TestData.savingsPot({ currentAmount: 0 }));
+      mockWithdrawFromPot.execute.mockResolvedValue(
+        TestData.savingsPot({ currentAmount: 0 }),
+      );
       await request(app.getHttpServer())
-        .post('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/withdraw')
+        .post(
+          '/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/withdraw',
+        )
         .send({ amount: 100 })
         .expect(200);
     });
@@ -120,16 +141,22 @@ describe('SavingsPotController (e2e)', () => {
 
   describe('POST /api/v1/savings-pots/:id/withdraw-all', () => {
     it('should withdraw all from savings pot (200)', async () => {
-      mockWithdrawFromPot.execute.mockResolvedValue(TestData.savingsPot({ currentAmount: 0 }));
+      mockWithdrawFromPot.executeAll.mockResolvedValue(
+        TestData.savingsPot({ currentAmount: 0 }),
+      );
       await request(app.getHttpServer())
-        .post('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/withdraw-all')
+        .post(
+          '/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/withdraw-all',
+        )
         .expect(200);
     });
   });
 
   describe('DELETE /api/v1/savings-pots/:id', () => {
     it('should cancel savings pot (200)', async () => {
-      mockCancelPot.execute.mockResolvedValue(undefined);
+      mockCancelPot.execute.mockResolvedValue(
+        TestData.savingsPot({ status: 'cancelled' }),
+      );
       await request(app.getHttpServer())
         .delete('/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000')
         .expect(200);

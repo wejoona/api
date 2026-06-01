@@ -2,15 +2,12 @@
  * Feature Flag Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockFeatureFlagService = {
-  getFlags: jest.fn(),
-  getFlag: jest.fn(),
-  createFlag: jest.fn(),
-  updateFlag: jest.fn(),
-  deleteFlag: jest.fn(),
+  getEnabledFlagsForContext: jest.fn(),
+  isEnabled: jest.fn(),
 };
 
 import { FeatureFlagController } from '@modules/feature-flag/application/controllers/feature-flag.controller';
@@ -22,25 +19,37 @@ describe('FeatureFlagController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [FeatureFlagController],
-      providers: [{ provide: FeatureFlagService, useValue: mockFeatureFlagService }],
+      providers: [
+        { provide: FeatureFlagService, useValue: mockFeatureFlagService },
+      ],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  describe('GET /api/v1/feature-flags', () => {
+  describe('GET /api/v1/feature-flags/me', () => {
     it('should list feature flags (200)', async () => {
-      mockFeatureFlagService.getFlags.mockResolvedValue([{ name: 'new_ui', enabled: true }]);
-      await request(app.getHttpServer()).get('/api/v1/feature-flags').expect(200);
+      mockFeatureFlagService.getEnabledFlagsForContext.mockResolvedValue({
+        new_ui: true,
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/feature-flags/me')
+        .expect(200);
     });
   });
 
-  describe('GET /api/v1/feature-flags/:name', () => {
+  describe('GET /api/v1/feature-flags/check/:key', () => {
     it('should get specific flag (200)', async () => {
-      mockFeatureFlagService.getFlag.mockResolvedValue({ name: 'new_ui', enabled: true });
-      await request(app.getHttpServer()).get('/api/v1/feature-flags/new_ui').expect(200);
+      mockFeatureFlagService.isEnabled.mockResolvedValue(true);
+      await request(app.getHttpServer())
+        .get('/api/v1/feature-flags/check/new_ui')
+        .expect(200);
     });
   });
 });

@@ -25,9 +25,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface InternalTransferInput {
   fromUserId: string;
-  toPhone: string;
+  toPhone?: string;
+  recipientUsername?: string;
   amount: number;
   currency?: string;
+  note?: string;
 }
 
 export interface InternalTransferOutput {
@@ -77,7 +79,7 @@ export class InternalTransferUseCase {
     this.validateTransferRequest(input);
 
     // Step 2: Validate and find recipient
-    const recipient = await this.validateRecipient(input.toPhone);
+    const recipient = await this.validateRecipient(input);
 
     // Step 3: Check daily limits based on KYC status
     await this.checkDailyLimits(input.fromUserId, input.amount);
@@ -151,9 +153,10 @@ export class InternalTransferUseCase {
         metadata: {
           senderWalletId: fromWallet.id,
           recipientWalletId: toWallet.id,
-          recipientPhone: input.toPhone,
+          recipientPhone: recipient.phone,
           recipientName: recipient.fullName,
         },
+        note: input.note,
       });
       this.logger.log(`Blnk P2P transfer recorded: ${senderTxId}`);
     } catch (error) {
@@ -187,7 +190,7 @@ export class InternalTransferUseCase {
       walletId: fromWallet.id,
       amount: -input.amount,
       recipientWalletId: toWallet.id,
-      recipientPhone: input.toPhone,
+      recipientPhone: recipient.phone,
       currency,
       metadata: {
         direction: 'outbound',
@@ -202,7 +205,7 @@ export class InternalTransferUseCase {
       walletId: toWallet.id,
       amount: input.amount,
       recipientWalletId: fromWallet.id,
-      recipientPhone: input.toPhone,
+      recipientPhone: recipient.phone,
       currency,
       metadata: {
         direction: 'inbound',
@@ -283,7 +286,7 @@ export class InternalTransferUseCase {
       transactionId: senderTransaction.id,
       fromWalletId: fromWallet.id,
       toWalletId: toWallet.id,
-      toPhone: input.toPhone,
+      toPhone: recipient.phone,
       amount: input.amount,
       currency,
       fee: 0, // Internal transfers are free
@@ -292,6 +295,12 @@ export class InternalTransferUseCase {
   }
 
   private validateTransferRequest(input: InternalTransferInput): void {
+    if (!input.toPhone && !input.recipientUsername) {
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_RECIPIENT_NOT_FOUND,
+        'Recipient phone or username is required',
+      );
+    }
     if (input.amount <= 0) {
       throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Amount must be greater than 0');
     }
@@ -307,9 +316,11 @@ export class InternalTransferUseCase {
   }
 
   private async validateRecipient(
-    phone: string,
-  ): Promise<{ id: string; fullName: string }> {
-    const recipient = await this.userRepository.findByPhone(phone);
+    input: InternalTransferInput,
+  ): Promise<{ id: string; phone: string; fullName: string }> {
+    const recipient = input.recipientUsername
+      ? await this.userRepository.findByUsername(input.recipientUsername)
+      : await this.userRepository.findByPhone(input.toPhone!);
     if (!recipient) {
       throw new NotFoundException(
         'Recipient not found. They must register first.',

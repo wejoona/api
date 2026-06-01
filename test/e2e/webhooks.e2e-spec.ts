@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import request from 'supertest';
 import { E2ETestSetup } from './setup';
 import {
@@ -15,6 +16,20 @@ describe('Webhooks E2E Tests', () => {
   let userHelper: TestUserHelper;
   let dataHelper: TestDataHelper;
   let mockProviders: MockProvidersHelper;
+
+  const signCirclePayload = (payload: Record<string, unknown>) =>
+    createHmac(
+      'sha256',
+      process.env.CIRCLE_WEBHOOK_SECRET || 'test-circle-webhook-secret',
+    )
+      .update(JSON.stringify(payload))
+      .digest('hex');
+
+  const postCircleWebhook = (payload: Record<string, unknown>) =>
+    request(app.getHttpServer())
+      .post('/webhooks/circle')
+      .set('x-circle-signature', signCirclePayload(payload))
+      .send(payload);
 
   beforeAll(async () => {
     setupNock();
@@ -38,103 +53,82 @@ describe('Webhooks E2E Tests', () => {
   describe('Circle Webhook Events', () => {
     it('should process Circle transfer completion webhook', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'test-message-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'test-transfer-id',
-            source: {
-              type: 'wallet',
-              id: 'source-wallet-id',
-            },
-            destination: {
-              type: 'wallet',
-              id: 'destination-wallet-id',
-            },
-            amount: {
-              amount: '10.00',
-              currency: 'USD',
-            },
-            status: 'complete',
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'test-transfer-id',
+          source: {
+            type: 'wallet',
+            id: 'source-wallet-id',
           },
-        }),
+          destination: {
+            type: 'wallet',
+            id: 'destination-wallet-id',
+          },
+          amount: {
+            amount: '10.00',
+            currency: 'USD',
+          },
+          status: 'complete',
+        },
       };
 
-      const response = await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      const response = await postCircleWebhook(webhookPayload).expect(200);
 
       expect(response.body.success).toBe(true);
     });
 
     it('should process Circle blockchain transfer webhook', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'test-message-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'test-blockchain-transfer-id',
-            source: {
-              type: 'wallet',
-              id: 'source-wallet-id',
-            },
-            destination: {
-              type: 'blockchain',
-              address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-              chain: 'MATIC',
-            },
-            amount: {
-              amount: '50.00',
-              currency: 'USD',
-            },
-            transactionHash: '0xmockhash123',
-            status: 'complete',
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'test-blockchain-transfer-id',
+          source: {
+            type: 'wallet',
+            id: 'source-wallet-id',
           },
-        }),
+          destination: {
+            type: 'blockchain',
+            address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
+            chain: 'MATIC',
+          },
+          amount: {
+            amount: '50.00',
+            currency: 'USD',
+          },
+          transactionHash: '0xmockhash123',
+          status: 'complete',
+        },
       };
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      await postCircleWebhook(webhookPayload).expect(200);
     });
 
     it('should handle Circle transfer failure webhook', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'test-message-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'test-failed-transfer-id',
-            source: {
-              type: 'wallet',
-              id: 'source-wallet-id',
-            },
-            destination: {
-              type: 'wallet',
-              id: 'destination-wallet-id',
-            },
-            amount: {
-              amount: '10.00',
-              currency: 'USD',
-            },
-            status: 'failed',
-            errorCode: 'insufficient_funds',
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.failed',
+        transfer: {
+          id: 'test-failed-transfer-id',
+          source: {
+            type: 'wallet',
+            id: 'source-wallet-id',
           },
-        }),
+          destination: {
+            type: 'wallet',
+            id: 'destination-wallet-id',
+          },
+          amount: {
+            amount: '10.00',
+            currency: 'USD',
+          },
+          status: 'failed',
+          errorCode: 'insufficient_funds',
+        },
       };
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      await postCircleWebhook(webhookPayload).expect(200);
     });
   });
 
@@ -157,7 +151,7 @@ describe('Webhooks E2E Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/webhooks/yellowcard')
+        .post('/webhooks/payment/yellow-card')
         .send(webhookPayload)
         .expect(200);
     });
@@ -180,7 +174,7 @@ describe('Webhooks E2E Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/webhooks/yellowcard')
+        .post('/webhooks/payment/yellow-card')
         .send(webhookPayload)
         .expect(200);
     });
@@ -203,7 +197,7 @@ describe('Webhooks E2E Tests', () => {
       };
 
       await request(app.getHttpServer())
-        .post('/webhooks/yellowcard')
+        .post('/webhooks/payment/yellow-card')
         .send(webhookPayload)
         .expect(200);
     });
@@ -262,8 +256,8 @@ describe('Webhooks E2E Tests', () => {
       // Implementation depends on your webhook signature validation
       await request(app.getHttpServer())
         .post('/webhooks/circle')
-        .send(invalidPayload);
-      // Expect might be 401 or 400 depending on implementation
+        .send(invalidPayload)
+        .expect(401);
     });
 
     it('should reject webhooks with invalid format', async () => {
@@ -271,57 +265,38 @@ describe('Webhooks E2E Tests', () => {
         invalid: 'payload',
       };
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(invalidPayload)
-        .expect(400);
+      const response = await postCircleWebhook(invalidPayload).expect(200);
+      expect(response.body.processed).toBe(false);
     });
 
     it('should handle duplicate webhook events (idempotency)', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'duplicate-message-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'duplicate-transfer-id',
-            status: 'complete',
-          },
-        }),
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'duplicate-transfer-id',
+          status: 'complete',
+        },
       };
 
       // Send webhook twice
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      await postCircleWebhook(webhookPayload).expect(200);
 
       // Second identical webhook should be handled gracefully
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      await postCircleWebhook(webhookPayload).expect(200);
     });
   });
 
   describe('Webhook Retry Logic', () => {
     it('should handle webhook processing errors gracefully', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'error-test-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'unknown-type', // This should cause an error
-          transfer: {},
-        }),
+        notificationDate: new Date().toISOString(),
+        notificationType: 'unknown-type',
+        transfer: {},
       };
 
       // Should return success even if processing fails (for retry logic)
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload);
-      // Implementation might return 200 to prevent retries or specific error code
+      await postCircleWebhook(webhookPayload).expect(200);
     });
   });
 
@@ -329,131 +304,105 @@ describe('Webhooks E2E Tests', () => {
     it('should handle out-of-order webhook events', async () => {
       // Send "complete" event before "pending" event
       const completeWebhook = {
-        Type: 'Notification',
-        MessageId: 'complete-message',
-        Message: JSON.stringify({
-          notificationDate: new Date(Date.now() + 1000).toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'out-of-order-transfer',
-            status: 'complete',
-          },
-        }),
+        notificationDate: new Date(Date.now() + 1000).toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'out-of-order-transfer',
+          status: 'complete',
+        },
       };
 
       const pendingWebhook = {
-        Type: 'Notification',
-        MessageId: 'pending-message',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'out-of-order-transfer',
-            status: 'pending',
-          },
-        }),
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.pending',
+        transfer: {
+          id: 'out-of-order-transfer',
+          status: 'pending',
+        },
       };
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(completeWebhook)
-        .expect(200);
+      await postCircleWebhook(completeWebhook).expect(200);
 
       // Should handle older pending event gracefully
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(pendingWebhook)
-        .expect(200);
+      await postCircleWebhook(pendingWebhook).expect(200);
     });
   });
 
   describe('Webhook Admin Endpoints', () => {
     it('should list webhook events for admin', async () => {
-      // This would require admin authentication
-      // Skipping auth for test, but in production should be protected
-      const response = await request(app.getHttpServer())
-        .get('/admin/webhooks/events?limit=20&offset=0')
-        .expect(200);
-
-      expect(response.body.events).toBeDefined();
-      expect(Array.isArray(response.body.events)).toBe(true);
-      expect(response.body.total).toBeDefined();
+      await request(app.getHttpServer())
+        .get('/admin/webhooks/deadletters/pending')
+        .expect(401);
     });
 
     it('should retry failed webhook events', async () => {
       // Create a failed webhook event first
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'retry-test-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'retry-transfer-id',
-            status: 'complete',
-          },
-        }),
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'retry-transfer-id',
+          status: 'complete',
+        },
       };
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload);
+      await postCircleWebhook(webhookPayload);
 
-      // Admin retry endpoint
-      // Implementation specific - adjust endpoint as needed
       await request(app.getHttpServer())
-        .post('/admin/webhooks/retry/retry-test-id')
-        .expect(200);
+        .post('/admin/webhooks/deadletters/retry-test-id/retry')
+        .expect(401);
     });
   });
 
   describe('Webhook Performance', () => {
     it('should process webhooks quickly (< 500ms)', async () => {
       const webhookPayload = {
-        Type: 'Notification',
-        MessageId: 'perf-test-id',
-        Message: JSON.stringify({
-          notificationDate: new Date().toISOString(),
-          notificationType: 'transfers',
-          transfer: {
-            id: 'perf-transfer-id',
-            status: 'complete',
-          },
-        }),
+        notificationDate: new Date().toISOString(),
+        notificationType: 'transfers.complete',
+        transfer: {
+          id: 'perf-transfer-id',
+          status: 'complete',
+        },
       };
 
       const start = Date.now();
 
-      await request(app.getHttpServer())
-        .post('/webhooks/circle')
-        .send(webhookPayload)
-        .expect(200);
+      await postCircleWebhook(webhookPayload).expect(200);
 
       const duration = Date.now() - start;
       expect(duration).toBeLessThan(500);
     });
 
     it('should handle concurrent webhook events', async () => {
-      const webhooks = Array(10)
-        .fill(null)
-        .map((_, index) => ({
-          Type: 'Notification',
-          MessageId: `concurrent-${index}`,
-          Message: JSON.stringify({
-            notificationDate: new Date().toISOString(),
-            notificationType: 'transfers',
-            transfer: {
-              id: `concurrent-transfer-${index}`,
-              status: 'complete',
-            },
-          }),
-        }));
+      const sendBatch = (offset: number) =>
+        Promise.allSettled(
+          Array(5)
+            .fill(null)
+            .map((_, index) =>
+              postCircleWebhook({
+                notificationDate: new Date().toISOString(),
+                notificationType: 'transfers.complete',
+                transfer: {
+                  id: `concurrent-transfer-${offset + index}`,
+                  status: 'complete',
+                },
+              }),
+            ),
+        );
 
-      const requests = webhooks.map((webhook) =>
-        request(app.getHttpServer()).post('/webhooks/circle').send(webhook),
+      const settledResponses = [
+        ...(await sendBatch(0)),
+        ...(await sendBatch(5)),
+      ];
+      const rejected = settledResponses.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected',
       );
+      expect(rejected).toEqual([]);
 
-      const responses = await Promise.all(requests);
+      const responses = settledResponses.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
+      );
       const successCount = responses.filter((r) => r.status === 200).length;
 
       expect(successCount).toBe(10);

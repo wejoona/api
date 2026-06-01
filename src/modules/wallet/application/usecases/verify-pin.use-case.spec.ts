@@ -143,7 +143,7 @@ describe('VerifyPinUseCase', () => {
       expect(cacheManager.set).toHaveBeenCalledWith(
         `pin_token:${userId}:${result.pinToken}`,
         expect.objectContaining({ verified: true }),
-        300, // 5 minutes in seconds
+        300000, // 5 minutes in milliseconds
       );
     });
 

@@ -17,7 +17,13 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { E2ETestSetup } from '../setup';
-import { TestUserHelper, TestDataHelper, MockProvidersHelper, setupNock, teardownNock } from '../helpers';
+import {
+  TestUserHelper,
+  TestDataHelper,
+  MockProvidersHelper,
+  setupNock,
+  teardownNock,
+} from '../helpers';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Transfer Flow E2E', () => {
@@ -51,9 +57,9 @@ describe('Transfer Flow E2E', () => {
       const user = await userHelper.createUser('+2250700300001');
 
       const response = await request(app.getHttpServer())
-        .post('/user/pin')
+        .post('/wallet/pin/set')
         .set('Authorization', `Bearer ${user.accessToken}`)
-        .send({ pin: '1234' })
+        .send({ pin: '6829', confirmPin: '6829' })
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -61,12 +67,12 @@ describe('Transfer Flow E2E', () => {
 
     it('should verify PIN and return PIN token', async () => {
       const user = await userHelper.createUser('+2250700300002');
-      await userHelper.setPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
 
       const response = await request(app.getHttpServer())
-        .post('/user/pin/verify')
+        .post('/wallet/pin/verify')
         .set('Authorization', `Bearer ${user.accessToken}`)
-        .send({ pin: '1234' })
+        .send({ pin: '6829' })
         .expect(200);
 
       expect(response.body.pinToken).toBeDefined();
@@ -77,13 +83,13 @@ describe('Transfer Flow E2E', () => {
 
     it('should reject incorrect PIN', async () => {
       const user = await userHelper.createUser('+2250700300003');
-      await userHelper.setPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
 
       await request(app.getHttpServer())
-        .post('/user/pin/verify')
+        .post('/wallet/pin/verify')
         .set('Authorization', `Bearer ${user.accessToken}`)
         .send({ pin: '9999' })
-        .expect(401);
+        .expect(400);
     });
   });
 
@@ -94,8 +100,8 @@ describe('Transfer Flow E2E', () => {
       const recipient = await userHelper.createUser('+2250700300011');
 
       // Set up sender with PIN and balance
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       // Get idempotency key
       const idempotencyKey = uuidv4();
@@ -105,37 +111,36 @@ describe('Transfer Flow E2E', () => {
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', idempotencyKey)
+        .set('X-Pin-Token', pinToken)
         .send({
-          recipientPhone: recipient.phone,
-          amount: 1000,
-          currency: 'XOF',
-          pinToken,
-          description: 'Test transfer',
+          toPhone: recipient.phone,
+          amount: 10,
+          currency: 'USDC',
+          note: 'Test transfer',
         })
         .expect(200);
 
-      expect(response.body.id).toBeDefined();
-      expect(response.body.reference).toBeDefined();
+      expect(response.body.transactionId).toBeDefined();
       expect(response.body.status).toBeDefined();
-      expect(['completed', 'pending', 'processing']).toContain(response.body.status);
-      expect(response.body.amount).toBe(1000);
+      expect(['completed', 'pending', 'processing']).toContain(
+        response.body.status,
+      );
+      expect(response.body.amount).toBe(10);
     });
 
     it('should reject transfer without PIN token', async () => {
       const sender = await userHelper.createUser('+2250700300012');
       const recipient = await userHelper.createUser('+2250700300013');
-      await userHelper.setPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
         .send({
-          recipientPhone: recipient.phone,
-          amount: 1000,
-          currency: 'XOF',
-          // Missing pinToken
-          description: 'Test transfer',
+          toPhone: recipient.phone,
+          amount: 10,
+          currency: 'USDC',
         })
         .expect(400);
     });
@@ -143,35 +148,33 @@ describe('Transfer Flow E2E', () => {
     it('should reject transfer with invalid PIN token', async () => {
       const sender = await userHelper.createUser('+2250700300014');
       const recipient = await userHelper.createUser('+2250700300015');
-      await userHelper.setPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', 'invalid-pin-token')
         .send({
-          recipientPhone: recipient.phone,
-          amount: 1000,
-          currency: 'XOF',
-          pinToken: 'invalid-pin-token',
-          description: 'Test transfer',
+          toPhone: recipient.phone,
+          amount: 10,
+          currency: 'USDC',
         })
-        .expect(401);
+        .expect(403);
     });
 
     it('should handle idempotent transfer requests', async () => {
       const sender = await userHelper.createUser('+2250700300016');
       const recipient = await userHelper.createUser('+2250700300017');
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       const idempotencyKey = uuidv4();
       const transferData = {
-        recipientPhone: recipient.phone,
-        amount: 1000,
-        currency: 'XOF',
-        pinToken,
-        description: 'Idempotent test',
+        toPhone: recipient.phone,
+        amount: 10,
+        currency: 'USDC',
+        note: 'Idempotent test',
       };
 
       // First request
@@ -179,6 +182,7 @@ describe('Transfer Flow E2E', () => {
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', idempotencyKey)
+        .set('X-Pin-Token', pinToken)
         .send(transferData)
         .expect(200);
 
@@ -187,53 +191,58 @@ describe('Transfer Flow E2E', () => {
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', idempotencyKey)
+        .set('X-Pin-Token', pinToken)
         .send(transferData)
         .expect(200);
 
       // Should return the same transfer ID (not create a duplicate)
-      expect(secondResponse.body.id).toBe(firstResponse.body.id);
+      expect(secondResponse.body.transactionId).toBe(
+        firstResponse.body.transactionId,
+      );
     });
   });
 
   describe('External Transfer (Crypto)', () => {
     it('should initiate external transfer to wallet address', async () => {
       const sender = await userHelper.createUser('+2250700300020');
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       const response = await request(app.getHttpServer())
         .post('/wallet/transfer/external')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', pinToken)
         .send({
-          destinationAddress: '0x1234567890abcdef1234567890abcdef12345678',
+          toAddress: '0x1234567890abcdef1234567890abcdef12345678',
           amount: 10,
           currency: 'USDC',
-          network: 'MATIC',
-          pinToken,
+          network: 'polygon',
         })
         .expect(200);
 
-      expect(response.body.id).toBeDefined();
+      expect(response.body.transactionId).toBeDefined();
       expect(response.body.status).toBeDefined();
-      expect(['pending', 'processing', 'submitted']).toContain(response.body.status);
+      expect(['pending', 'processing', 'submitted']).toContain(
+        response.body.status,
+      );
     });
 
     it('should reject external transfer to invalid address', async () => {
       const sender = await userHelper.createUser('+2250700300021');
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/external')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', pinToken)
         .send({
-          destinationAddress: 'invalid-address',
+          toAddress: 'invalid-address',
           amount: 10,
           currency: 'USDC',
-          network: 'MATIC',
-          pinToken,
+          network: 'polygon',
         })
         .expect(400);
     });
@@ -243,36 +252,36 @@ describe('Transfer Flow E2E', () => {
     it('should reject transfer below minimum amount', async () => {
       const sender = await userHelper.createUser('+2250700300030');
       const recipient = await userHelper.createUser('+2250700300031');
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', pinToken)
         .send({
-          recipientPhone: recipient.phone,
+          toPhone: recipient.phone,
           amount: 0.001, // Below minimum
           currency: 'USDC',
-          pinToken,
         })
         .expect(400);
     });
 
     it('should reject transfer to self', async () => {
       const user = await userHelper.createUser('+2250700300032');
-      await userHelper.setPin(user.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(user.accessToken, '1234');
+      await userHelper.setPin(user.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(user.accessToken, '6829');
 
       await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${user.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', pinToken)
         .send({
-          recipientPhone: user.phone,
-          amount: 1000,
-          currency: 'XOF',
-          pinToken,
+          toPhone: user.phone,
+          amount: 10,
+          currency: 'USDC',
         })
         .expect(400);
     });
@@ -282,19 +291,19 @@ describe('Transfer Flow E2E', () => {
     it('should get transaction history after transfer', async () => {
       const sender = await userHelper.createUser('+2250700300040');
       const recipient = await userHelper.createUser('+2250700300041');
-      await userHelper.setPin(sender.accessToken, '1234');
-      const pinToken = await userHelper.verifyPin(sender.accessToken, '1234');
+      await userHelper.setPin(sender.accessToken, '6829');
+      const pinToken = await userHelper.verifyPin(sender.accessToken, '6829');
 
       // Perform transfer
       await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${sender.accessToken}`)
         .set('X-Idempotency-Key', uuidv4())
+        .set('X-Pin-Token', pinToken)
         .send({
-          recipientPhone: recipient.phone,
-          amount: 1000,
-          currency: 'XOF',
-          pinToken,
+          toPhone: recipient.phone,
+          amount: 10,
+          currency: 'USDC',
         })
         .expect(200);
 

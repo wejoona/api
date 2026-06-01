@@ -2,7 +2,7 @@
  * Bulk Payment Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
 const mockBulkPaymentService = {
@@ -28,25 +28,43 @@ describe('BulkPaymentController (e2e)', () => {
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/bulk-payments/batches', () => {
     it('should list batches (200)', async () => {
       mockBulkPaymentService.getBatches.mockResolvedValue([]);
-      await request(app.getHttpServer()).get('/api/v1/bulk-payments/batches').expect(200);
+      await request(app.getHttpServer())
+        .get('/api/v1/bulk-payments/batches')
+        .expect(200);
     });
   });
 
   describe('POST /api/v1/bulk-payments/batches', () => {
     it('should create batch (201)', async () => {
-      mockBulkPaymentService.createBatch.mockResolvedValue({ id: 'batch_123', status: 'processing' });
+      mockBulkPaymentService.createBatch.mockResolvedValue({
+        id: 'batch_123',
+        status: 'processing',
+      });
       await request(app.getHttpServer())
         .post('/api/v1/bulk-payments/batches')
         .send({
+          name: 'Payroll batch',
           payments: [
-            { recipientPhone: '+2250701234568', amount: 50 },
-            { recipientPhone: '+2250701234569', amount: 30 },
+            {
+              phone: '+2250701234568',
+              amount: 50,
+              description: 'Allowance',
+            },
+            {
+              phone: '+2250701234569',
+              amount: 30,
+              description: 'Allowance',
+            },
           ],
         })
         .expect(201);
@@ -55,15 +73,24 @@ describe('BulkPaymentController (e2e)', () => {
 
   describe('GET /api/v1/bulk-payments/batches/:id', () => {
     it('should get batch (200)', async () => {
-      mockBulkPaymentService.getBatch.mockResolvedValue({ id: 'batch_123', status: 'completed' });
-      await request(app.getHttpServer()).get('/api/v1/bulk-payments/batches/batch_123').expect(200);
+      mockBulkPaymentService.getBatch.mockResolvedValue({
+        id: 'batch_123',
+        status: 'completed',
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/bulk-payments/batches/batch_123')
+        .expect(200);
     });
   });
 
   describe('GET /api/v1/bulk-payments/batches/:id/failed-report', () => {
     it('should get failed report (200)', async () => {
-      mockBulkPaymentService.getFailedReport.mockResolvedValue({ failures: [] });
-      await request(app.getHttpServer()).get('/api/v1/bulk-payments/batches/batch_123/failed-report').expect(200);
+      mockBulkPaymentService.getFailedReport.mockResolvedValue({
+        failures: [],
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/bulk-payments/batches/batch_123/failed-report')
+        .expect(200);
     });
   });
 });

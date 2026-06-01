@@ -2,19 +2,27 @@
  * Notification Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 
-const mockNotificationService = {
-  getNotifications: jest.fn(),
-  markAsRead: jest.fn(),
-  markAllAsRead: jest.fn(),
-  getUnreadCount: jest.fn(),
-  deleteNotification: jest.fn(),
-};
+const mockGetUserNotifications = { execute: jest.fn() };
+const mockMarkNotificationRead = { execute: jest.fn() };
+const mockMarkAllNotificationsRead = { execute: jest.fn() };
+const mockRegisterDeviceToken = { execute: jest.fn() };
+const mockUnregisterDeviceToken = { execute: jest.fn() };
+const mockUnregisterAllDeviceTokens = { execute: jest.fn() };
+const mockGetUnreadCount = { execute: jest.fn() };
 
 import { NotificationController } from '@modules/notification/application/controllers/notification.controller';
-import { NotificationService } from '@modules/notification/application/services/notification.service';
+import {
+  GetUserNotificationsUseCase,
+  MarkNotificationReadUseCase,
+  MarkAllNotificationsReadUseCase,
+  RegisterDeviceTokenUseCase,
+  UnregisterDeviceTokenUseCase,
+  UnregisterAllDeviceTokensUseCase,
+  GetUnreadCountUseCase,
+} from '@modules/notification/application/domain/usecases';
 
 describe('NotificationController (e2e)', () => {
   let app: INestApplication;
@@ -22,39 +30,65 @@ describe('NotificationController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [NotificationController],
-      providers: [{ provide: NotificationService, useValue: mockNotificationService }],
+      providers: [
+        { provide: GetUserNotificationsUseCase, useValue: mockGetUserNotifications },
+        { provide: MarkNotificationReadUseCase, useValue: mockMarkNotificationRead },
+        { provide: MarkAllNotificationsReadUseCase, useValue: mockMarkAllNotificationsRead },
+        { provide: RegisterDeviceTokenUseCase, useValue: mockRegisterDeviceToken },
+        { provide: UnregisterDeviceTokenUseCase, useValue: mockUnregisterDeviceToken },
+        { provide: UnregisterAllDeviceTokensUseCase, useValue: mockUnregisterAllDeviceTokens },
+        { provide: GetUnreadCountUseCase, useValue: mockGetUnreadCount },
+      ],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('GET /api/v1/notifications', () => {
     it('should list notifications (200)', async () => {
-      mockNotificationService.getNotifications.mockResolvedValue({ notifications: [], total: 0 });
-      await request(app.getHttpServer()).get('/api/v1/notifications').expect(200);
+      mockGetUserNotifications.execute.mockResolvedValue({
+        notifications: [],
+        total: 0,
+        unreadCount: 0,
+        limit: 20,
+        offset: 0,
+      });
+      await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .expect(200);
     });
   });
 
   describe('PUT /api/v1/notifications/:id/read', () => {
     it('should mark as read (200)', async () => {
-      mockNotificationService.markAsRead.mockResolvedValue({ success: true });
-      await request(app.getHttpServer()).put('/api/v1/notifications/123/read').expect(200);
+      mockMarkNotificationRead.execute.mockResolvedValue(undefined);
+      await request(app.getHttpServer())
+        .put('/api/v1/notifications/123/read')
+        .expect(204);
     });
   });
 
   describe('PUT /api/v1/notifications/read-all', () => {
     it('should mark all as read (200)', async () => {
-      mockNotificationService.markAllAsRead.mockResolvedValue({ success: true });
-      await request(app.getHttpServer()).put('/api/v1/notifications/read-all').expect(200);
+      mockMarkAllNotificationsRead.execute.mockResolvedValue(undefined);
+      await request(app.getHttpServer())
+        .put('/api/v1/notifications/read-all')
+        .expect(204);
     });
   });
 
-  describe('GET /api/v1/notifications/unread-count', () => {
+  describe('GET /api/v1/notifications/unread/count', () => {
     it('should return unread count (200)', async () => {
-      mockNotificationService.getUnreadCount.mockResolvedValue({ count: 5 });
-      await request(app.getHttpServer()).get('/api/v1/notifications/unread-count').expect(200);
+      mockGetUnreadCount.execute.mockResolvedValue({ count: 5 });
+      await request(app.getHttpServer())
+        .get('/api/v1/notifications/unread/count')
+        .expect(200);
     });
   });
 });

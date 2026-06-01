@@ -5,6 +5,7 @@ Follow this checklist to run the E2E tests for the first time.
 ## Prerequisites
 
 ### 1. Docker
+
 - [ ] Docker Desktop is installed
 - [ ] Docker daemon is running
 - [ ] You have sufficient Docker resources (4GB RAM, 2 CPUs minimum)
@@ -16,6 +17,7 @@ docker ps
 ```
 
 ### 2. Node.js
+
 - [ ] Node.js 18+ is installed
 - [ ] npm or yarn is available
 
@@ -26,6 +28,7 @@ npm --version
 ```
 
 ### 3. Dependencies
+
 - [ ] All npm dependencies are installed
 
 ```bash
@@ -36,6 +39,7 @@ npm install
 ## First-Time Setup
 
 ### Step 1: Verify Database Migrations
+
 ```bash
 # Check migrations exist
 npm run migration:show
@@ -45,6 +49,7 @@ npm run migration:show
 ```
 
 ### Step 2: Pull Required Docker Images
+
 ```bash
 # This will save time during first test run
 docker pull postgres:15-alpine
@@ -52,6 +57,7 @@ docker pull redis:7-alpine
 ```
 
 ### Step 3: Verify Test Configuration
+
 - [ ] Check `test/jest-e2e.json` exists
 - [ ] Check `test/jest.setup.ts` exists
 - [ ] Check test helpers are in place
@@ -67,6 +73,7 @@ ls -la test/e2e/helpers/
 ## Running Tests
 
 ### Run Single Test Suite First
+
 Start with a single test suite to verify setup:
 
 ```bash
@@ -75,6 +82,7 @@ npm run test:e2e:user-journey
 ```
 
 **Expected Output**:
+
 ```
 Starting PostgreSQL container...
 Starting Redis container...
@@ -94,6 +102,7 @@ Tests:       25 passed, 25 total
 ```
 
 ### Run All Test Suites
+
 If first suite passes, run all tests:
 
 ```bash
@@ -101,6 +110,7 @@ npm run test:e2e
 ```
 
 ### Run with Coverage
+
 ```bash
 npm run test:e2e:cov
 ```
@@ -112,6 +122,7 @@ npm run test:e2e:cov
 **Error**: `TimeoutError: Container startup timed out after 120000ms`
 
 **Solution**:
+
 ```bash
 # Clean Docker
 docker system prune -a
@@ -128,6 +139,7 @@ docker pull redis:7-alpine
 **Error**: `Error: Port 5432 is already in use`
 
 **Solution**:
+
 ```bash
 # Find and stop conflicting containers
 docker ps
@@ -141,6 +153,7 @@ docker stop <container-id>
 **Error**: `QueryFailedError: relation "users" does not exist`
 
 **Solution**:
+
 ```bash
 # Check migrations
 npm run migration:show
@@ -157,6 +170,7 @@ docker volume prune
 **Error**: `Cannot find module 'testcontainers'`
 
 **Solution**:
+
 ```bash
 # Reinstall dependencies
 rm -rf node_modules package-lock.json
@@ -171,6 +185,7 @@ npm install --save-dev testcontainers @testcontainers/postgresql nock
 **Symptoms**: Tests start but never complete
 
 **Solution**:
+
 ```bash
 # Check if containers are running
 docker ps
@@ -188,6 +203,7 @@ npm run test:e2e
 **Error**: `JavaScript heap out of memory`
 
 **Solution**:
+
 ```bash
 # Increase Node memory
 NODE_OPTIONS=--max_old_space_size=4096 npm run test:e2e
@@ -209,17 +225,21 @@ After successful first run:
 ## Expected Results
 
 ### Timing
+
 - Container startup: 10-30 seconds
 - Database migrations: 1-5 seconds
 - User journey tests: 30-60 seconds
 - Full test suite: 2-5 minutes
 
 ### Coverage
+
 - Target: > 70% coverage
 - Generated in: `coverage-e2e/` directory
 
 ### Artifacts
+
 After running tests, you should have:
+
 ```
 coverage-e2e/
 ├── lcov.info
@@ -233,17 +253,20 @@ coverage-e2e/
 After successful first run:
 
 1. **Review Test Results**
+
    ```bash
    # View coverage report
    open coverage-e2e/html/index.html
    ```
 
 2. **Run Tests in Watch Mode**
+
    ```bash
    npm run test:e2e:watch
    ```
 
 3. **Run Specific Tests**
+
    ```bash
    # Run only security tests
    npm run test:e2e:security
@@ -304,6 +327,7 @@ TESTCONTAINERS_RYUK_DISABLED=true npm run test:e2e
 ## Success Indicators
 
 ✅ **First run successful if**:
+
 1. All test suites pass
 2. No timeout errors
 3. Containers start and stop cleanly
@@ -316,11 +340,13 @@ TESTCONTAINERS_RYUK_DISABLED=true npm run test:e2e
 If you encounter issues:
 
 1. **Check Logs**
+
    ```bash
    docker logs <container-id>
    ```
 
 2. **Check Docker**
+
    ```bash
    docker ps
    docker system info

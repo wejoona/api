@@ -58,6 +58,7 @@ npm run test:contracts -- --testPathPattern=auth
 ## Contract Format
 
 Each contract defines:
+
 1. **Request** - HTTP method, path, headers, body
 2. **Response** - Status code, body schema
 3. **Mobile Expectation** - What the Flutter app expects
@@ -71,6 +72,7 @@ Each contract defines:
 ## Mobile App Integration
 
 The mobile app (Flutter) should use the same contracts to:
+
 - Generate mock responses for testing
 - Validate API responses at runtime (debug mode)
 - Document expected API shapes

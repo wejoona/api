@@ -46,17 +46,23 @@ export class BlnkIdentityAdapter implements ILedgerIdentityProvider {
     // SDK requires all fields, so we provide defaults for optional ones
     const response = (await this.client.Identity.create({
       identity_type: params.type,
-      first_name: params.firstName,
-      last_name: params.lastName,
+      // Korido registration is phone-first; legal names arrive during KYC.
+      // Blnk requires non-empty individual names, so create a provisional
+      // ledger identity and update it once verified profile data is available.
+      first_name: params.firstName || 'Korido',
+      last_name: params.lastName || 'Customer',
+      dob: new Date('1970-01-01'),
+      gender: 'other',
       email_address: params.email,
       phone_number: params.phone,
-      country: params.country,
+      nationality: params.country || 'CI',
+      country: params.country || 'CI',
       // Required fields with defaults
       category: 'customer',
-      street: '',
-      state: '',
-      post_code: '',
-      city: '',
+      street: 'Not provided',
+      state: 'Not provided',
+      post_code: '00000',
+      city: 'Not provided',
       meta_data: params.metadata,
     })) as unknown as ApiResponse<
       IdentityDataResponse<Record<string, unknown>>
@@ -101,15 +107,18 @@ export class BlnkIdentityAdapter implements ILedgerIdentityProvider {
       identity_type: params.type ?? existing.type,
       first_name: params.firstName ?? existing.firstName,
       last_name: params.lastName ?? existing.lastName,
+      dob: new Date('1970-01-01'),
+      gender: 'other',
       email_address: params.email ?? existing.email,
       phone_number: params.phone ?? existing.phone,
-      country: params.country ?? existing.country,
+      nationality: params.country ?? existing.country ?? 'CI',
+      country: params.country ?? existing.country ?? 'CI',
       // Required fields
       category: 'customer',
-      street: '',
-      state: '',
-      post_code: '',
-      city: '',
+      street: 'Not provided',
+      state: 'Not provided',
+      post_code: '00000',
+      city: 'Not provided',
       meta_data: params.metadata ?? existing.metadata,
     })) as unknown as ApiResponse<
       IdentityDataResponse<Record<string, unknown>>

@@ -4,18 +4,25 @@ import * as crypto from 'crypto';
 import { StellarOffRampAdapter } from '../adapters/stellar-offramp.adapter';
 import { StellarSep10Service } from '../services/stellar-sep10.service';
 import { StellarSep24Service } from '../services/stellar-sep24.service';
-import { StellarAuthError, Sep24Info, Sep24Transaction } from '../stellar.types';
+import {
+  StellarAuthError,
+  Sep24Info,
+  Sep24Transaction,
+} from '../stellar.types';
+import { KeyVaultService } from '@modules/shared/infrastructure/services';
 
 describe('StellarOffRampAdapter', () => {
   let adapter: StellarOffRampAdapter;
   let sep10Service: jest.Mocked<StellarSep10Service>;
   let sep24Service: jest.Mocked<StellarSep24Service>;
+  let keyVault: jest.Mocked<KeyVaultService>;
 
   const mockConfigValues: Record<string, any> = {
     'stellar.network': 'testnet',
     'stellar.horizonUrl': 'https://horizon-testnet.stellar.org',
     'stellar.usdcAssetCode': 'USDC',
-    'stellar.usdcIssuer': 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+    'stellar.usdcIssuer':
+      'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
     'stellar.anchorDomain': 'test-anchor.stellar.org',
     'stellar.webhookSecret': 'test-webhook-secret',
     'stellar.useMock': false,
@@ -75,6 +82,11 @@ describe('StellarOffRampAdapter', () => {
       initiateWithdrawal: jest.fn().mockResolvedValue(mockInteractiveResponse),
       getTransaction: jest.fn(),
     };
+    keyVault = {
+      encrypt: jest.fn((value: string) => `encrypted:${value}`),
+      decrypt: jest.fn((value: string) => value.replace(/^encrypted:/, '')),
+      isEnabled: jest.fn().mockReturnValue(true),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -92,6 +104,10 @@ describe('StellarOffRampAdapter', () => {
         {
           provide: StellarSep24Service,
           useValue: mockSep24,
+        },
+        {
+          provide: KeyVaultService,
+          useValue: keyVault,
         },
       ],
     }).compile();
@@ -478,6 +494,7 @@ describe('StellarOffRampAdapter', () => {
         } as any,
         sep10Service as any,
         sep24Service as any,
+        keyVault as any,
       );
 
       const result = adapterWithoutSecret.verifyWebhookSignature(

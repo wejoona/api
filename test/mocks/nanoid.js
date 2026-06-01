@@ -2,7 +2,8 @@
 const { randomBytes } = require('crypto');
 
 function nanoid(size = 21) {
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
+  const chars =
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
   const bytes = randomBytes(size);
   let id = '';
   for (let i = 0; i < size; i++) {

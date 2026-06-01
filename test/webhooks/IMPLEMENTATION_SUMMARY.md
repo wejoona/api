@@ -44,6 +44,7 @@ Created comprehensive webhook testing utilities for Circle, Yellow Card, and Twi
 **Purpose**: Simulate external webhook providers for testing
 
 **Features**:
+
 - Start/stop HTTP server on any port
 - Send webhooks with correct signatures for all providers
 - Automatic retry logic with configurable delays
@@ -52,6 +53,7 @@ Created comprehensive webhook testing utilities for Circle, Yellow Card, and Twi
 - Support for custom secrets
 
 **Usage**:
+
 ```typescript
 const server = new MockWebhookServer();
 await server.start(3001);
@@ -64,16 +66,18 @@ server.setSecrets({
 
 const result = await server.sendCircleWebhook(
   'http://localhost:3000/webhooks/circle',
-  payload
+  payload,
 );
 ```
 
 **Signature Algorithms**:
+
 - **Circle**: HMAC SHA256 (hex)
 - **Yellow Card**: HMAC SHA256 (hex)
 - **Twilio**: HMAC SHA1 with URL + sorted params (base64)
 
 **Retry Configuration**:
+
 ```typescript
 server.setRetryConfig({
   maxRetries: 3,
@@ -87,6 +91,7 @@ server.setRetryConfig({
 **Purpose**: Record and replay webhook payloads for testing and debugging
 
 **Features**:
+
 - Record individual webhooks with metadata
 - Load and replay recorded webhooks
 - Create scenarios (sequences of webhooks)
@@ -95,6 +100,7 @@ server.setRetryConfig({
 - Import webhooks from production logs
 
 **Usage**:
+
 ```typescript
 const replay = new WebhookReplay();
 
@@ -118,6 +124,7 @@ await replay.replayScenario('deposit-flow', server, 'http://localhost:3000');
 ### 3. Webhook Fixtures
 
 **Circle Webhooks** (`fixtures/circle-webhooks.ts`):
+
 - Transfer complete (Ethereum, Polygon)
 - Transfer failed (insufficient funds, denied)
 - Inbound transfers
@@ -125,6 +132,7 @@ await replay.replayScenario('deposit-flow', server, 'http://localhost:3000');
 - Edge cases (minimum, large amounts, high precision)
 
 **Yellow Card Webhooks** (`fixtures/yellowcard-webhooks.ts`):
+
 - Payment events (Orange Money, MTN, Wave)
 - Payout events
 - Failed/expired events
@@ -132,6 +140,7 @@ await replay.replayScenario('deposit-flow', server, 'http://localhost:3000');
 - Edge cases (special characters, min/max amounts)
 
 **Twilio Webhooks** (`fixtures/twilio-webhooks.ts`):
+
 - Delivered messages (all carriers)
 - Failed messages (various error codes)
 - Intermediate states (queued, sending, sent)
@@ -140,6 +149,7 @@ await replay.replayScenario('deposit-flow', server, 'http://localhost:3000');
 - Real-world use cases (OTP, confirmations, alerts)
 
 **Helper Functions**:
+
 ```typescript
 // Get by type
 getCircleFixturesByType('complete');
@@ -155,6 +165,7 @@ getTwilioFixturesWithErrors();
 ### 4. Signature Verification Tests (`utils/signature-verifier.spec.ts`)
 
 **Coverage**:
+
 - Circle HMAC SHA256 signature generation/verification
 - Yellow Card HMAC SHA256 signature generation/verification
 - Twilio HMAC SHA1 signature generation/verification with URL
@@ -167,6 +178,7 @@ getTwilioFixturesWithErrors();
 ### 5. Payload Validation Tests (`utils/payload-validator.spec.ts`)
 
 **Coverage**:
+
 - Circle webhook payload validation
   - Transfer states enum
   - Amount validation (format, negative)
@@ -195,18 +207,21 @@ getTwilioFixturesWithErrors();
 ### Webhook Controllers
 
 The fixtures match the expected payload structure from:
+
 - `/Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/src/modules/webhook/application/controllers/webhook.controller.ts`
 - `/Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/src/modules/webhook/application/controllers/twilio-webhook.controller.ts`
 
 ### Type Definitions
 
 The fixtures align with types from:
+
 - `/Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/src/modules/providers/circle/circle.types.ts`
 - `/Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/src/modules/providers/yellowcard/yellowcard.types.ts`
 
 ### Webhook Processing
 
 The mock server can test:
+
 - `/Users/macbook/JoonaPay/USDC-Wallet/usdc-wallet/src/modules/webhook/application/usecases/process-webhook.use-case.ts`
 
 ## How to Use
@@ -293,6 +308,7 @@ npx ts-node test/webhooks/examples/replay-example.ts
 ## No Additional Dependencies Required
 
 All utilities use Node.js built-in modules:
+
 - `crypto` - for signature generation
 - `http` / `fetch` - for HTTP requests
 - `fs/promises` - for file operations
@@ -301,6 +317,7 @@ All utilities use Node.js built-in modules:
 ## West African Context
 
 Fixtures include West African specific data:
+
 - **Phone Numbers**: +225 (CI), +221 (SN), +223 (ML)
 - **Mobile Money**: Orange Money, MTN MoMo, Wave
 - **Currency**: XOF (CFA Franc) with integer validation
@@ -310,11 +327,13 @@ Fixtures include West African specific data:
 ## Security Features
 
 ### Signature Verification
+
 - Timing-safe comparison to prevent timing attacks
 - Support for all provider signature algorithms
 - Comprehensive test coverage
 
 ### Payload Validation
+
 - XSS sanitization
 - SQL injection prevention
 - Field length limits
@@ -322,6 +341,7 @@ Fixtures include West African specific data:
 - Currency validation
 
 ### Webhook Replay
+
 - Secure storage of recordings
 - Metadata tracking
 - Tamper detection
@@ -339,6 +359,7 @@ Fixtures include West African specific data:
 ## Next Steps
 
 ### Recommended Additions
+
 1. Add webhook tests to your CI/CD pipeline
 2. Create webhook monitoring dashboard using history data
 3. Add webhook analytics (success rate, latency, etc.)
@@ -346,6 +367,7 @@ Fixtures include West African specific data:
 5. Add webhook replay from production in staging environment
 
 ### Optional Enhancements
+
 1. Add webhook rate limiting tests
 2. Add webhook deduplication tests
 3. Add webhook ordering tests (for scenarios)
@@ -363,33 +385,40 @@ Fixtures include West African specific data:
 Total: 16 files
 
 **Server**: 2 files
+
 - mock-webhook-server.ts (550 lines)
 - mock-webhook-server.spec.ts (100 lines)
 
 **Replay**: 1 file
+
 - webhook-replay.ts (450 lines)
 
 **Fixtures**: 4 files
+
 - circle-webhooks.ts (350 lines)
 - yellowcard-webhooks.ts (400 lines)
 - twilio-webhooks.ts (300 lines)
 - index.ts (20 lines)
 
 **Utils**: 2 files
+
 - signature-verifier.spec.ts (450 lines)
 - payload-validator.spec.ts (600 lines)
 
 **Examples**: 2 files
+
 - integration-test.example.ts (250 lines)
 - replay-example.ts (200 lines)
 
 **Documentation**: 4 files
+
 - README.md (comprehensive guide)
 - QUICK_REFERENCE.md (one-liners and shortcuts)
 - IMPLEMENTATION_SUMMARY.md (this file)
 - index.ts (centralized exports)
 
 **Recordings Directory**: 1 directory
+
 - fixtures/recordings/ (created automatically)
 
 ## Summary

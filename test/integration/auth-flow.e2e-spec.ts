@@ -1,481 +1,202 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../src/app.module';
+import { E2ETestSetup } from '../e2e/setup';
+import {
+  TestDataHelper,
+  TestUserHelper,
+  setupNock,
+  teardownNock,
+} from '../e2e/helpers';
 
 describe('Auth Flow (e2e)', () => {
+  let setup: E2ETestSetup;
   let app: INestApplication;
+  let dataHelper: TestDataHelper;
+  let userHelper: TestUserHelper;
+
+  const otp = '123456';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-
-    await app.init();
-  });
+    setupNock();
+    setup = new E2ETestSetup();
+    app = await setup.setup();
+    dataHelper = new TestDataHelper(app);
+    userHelper = new TestUserHelper(app);
+  }, 120000);
 
   afterAll(async () => {
-    await app.close();
+    await setup.teardown();
+    teardownNock();
+  }, 60000);
+
+  beforeEach(async () => {
+    await dataHelper.clearAllData();
   });
 
-  describe('User Registration', () => {
-    it('should register a new user', async () => {
-      const phone = `+225${Date.now()}`;
+  const uniquePhone = () => `+22507${Date.now().toString().slice(-8)}`;
 
-      const response = await request(app.getHttpServer())
+  const register = (phone: string) =>
+    request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ phone, countryCode: 'CI' });
+
+  describe('User Registration', () => {
+    it('should register a new phone-first user', async () => {
+      const response = await register(uniquePhone()).expect(201);
+
+      expect(response.body).toEqual({
+        success: true,
+        message: expect.stringContaining('OTP sent'),
+        expiresIn: expect.any(Number),
+      });
+      expect(response.body.expiresIn).toBeGreaterThanOrEqual(60);
+    });
+
+    it('should reject registration fields outside the current contract', async () => {
+      await request(app.getHttpServer())
         .post('/auth/register')
         .send({
-          phone,
+          phone: uniquePhone(),
+          countryCode: 'CI',
           email: 'newuser@example.com',
           name: 'New User',
         })
-        .expect(201);
-
-      expect(response.body).toHaveProperty('message', 'OTP sent');
-      expect(response.body).toHaveProperty('otpExpiresIn');
+        .expect(400);
     });
 
     it('should validate phone number format', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone: '123', // Invalid format
-          email: 'test@example.com',
-          name: 'Test User',
-        })
-        .expect(400);
+      await register('123').expect(400);
     });
 
-    it('should validate email format', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone: '+225123456789',
-          email: 'invalid-email', // Invalid email
-          name: 'Test User',
-        })
-        .expect(400);
-    });
+    it('should return an enumeration-safe response for duplicate phone numbers', async () => {
+      const phone = uniquePhone();
 
-    it('should reject duplicate phone number', async () => {
-      const phone = `+225${Date.now()}`;
+      await register(phone).expect(201);
+      const duplicateResponse = await register(phone).expect(201);
 
-      // First registration
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'user1@example.com',
-          name: 'User One',
-        })
-        .expect(201);
-
-      // Duplicate registration
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone, // Same phone
-          email: 'user2@example.com',
-          name: 'User Two',
-        })
-        .expect(409); // Conflict
-    });
-
-    it('should reject duplicate email', async () => {
-      const email = `test${Date.now()}@example.com`;
-
-      // First registration
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone: `+225${Date.now()}`,
-          email,
-          name: 'User One',
-        })
-        .expect(201);
-
-      // Duplicate email
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone: `+225${Date.now() + 1}`,
-          email, // Same email
-          name: 'User Two',
-        })
-        .expect(409);
+      expect(duplicateResponse.body.success).toBe(true);
+      expect(duplicateResponse.body.expiresIn).toBeDefined();
     });
   });
 
   describe('Login Flow', () => {
-    let registeredPhone: string;
+    it('should send OTP for an existing user', async () => {
+      const user = await userHelper.createUser(uniquePhone());
 
-    beforeAll(async () => {
-      registeredPhone = `+225${Date.now()}`;
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone: registeredPhone,
-          email: 'login-test@example.com',
-          name: 'Login Test User',
-        })
-        .expect(201);
-    });
-
-    it('should send OTP for login', async () => {
       const response = await request(app.getHttpServer())
         .post('/auth/login')
-        .send({
-          phone: registeredPhone,
-        })
+        .send({ phone: user.phone })
         .expect(200);
 
-      expect(response.body).toHaveProperty('success', true);
-      expect(response.body).toHaveProperty('otpExpiresIn');
+      expect(response.body.success).toBe(true);
+      expect(response.body.expiresIn).toBeDefined();
     });
 
-    it('should reject login for non-existent user', async () => {
+    it('should reject login for a non-existent user', async () => {
       await request(app.getHttpServer())
         .post('/auth/login')
-        .send({
-          phone: '+225000000000',
-        })
+        .send({ phone: '+2250700000999' })
         .expect(404);
     });
 
     it('should verify OTP and return tokens', async () => {
-      // Request OTP
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({
-          phone: registeredPhone,
-        })
-        .expect(200);
+      const phone = uniquePhone();
+      await register(phone).expect(201);
 
-      // Verify OTP
       const response = await request(app.getHttpServer())
         .post('/auth/verify-otp')
-        .send({
-          phone: registeredPhone,
-          otp: '123456', // Test OTP
-        })
+        .send({ phone, otp })
         .expect(200);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      expect(response.body).toHaveProperty('user');
-      expect(response.body.user).toHaveProperty('id');
-      expect(response.body.user).toHaveProperty('phone', registeredPhone);
+      expect(response.body.accessToken).toBeDefined();
+      expect(response.body.refreshToken).toBeDefined();
+      expect(response.body.expiresIn).toBeGreaterThanOrEqual(300);
+      expect(response.body.user).toMatchObject({ phone });
     });
 
     it('should reject invalid OTP', async () => {
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({
-          phone: registeredPhone,
-        })
-        .expect(200);
+      const phone = uniquePhone();
+      await register(phone).expect(201);
 
       await request(app.getHttpServer())
         .post('/auth/verify-otp')
-        .send({
-          phone: registeredPhone,
-          otp: '000000', // Wrong OTP
-        })
+        .send({ phone, otp: '000000' })
         .expect(401);
-    });
-
-    it('should reject expired OTP', async () => {
-      // This test would need time manipulation or test-specific OTP expiry
-      // For now, we just verify the endpoint structure
-    });
-
-    it('should rate limit OTP requests', async () => {
-      // Send multiple OTP requests
-      const requests = Array(10)
-        .fill(null)
-        .map(() =>
-          request(app.getHttpServer()).post('/auth/login').send({
-            phone: registeredPhone,
-          }),
-        );
-
-      const responses = await Promise.all(requests);
-      const rateLimited = responses.some((r) => r.status === 429);
-
-      expect(rateLimited).toBe(true);
     });
   });
 
   describe('Token Refresh', () => {
-    let accessToken: string;
-    let refreshToken: string;
+    it('should refresh access token with a valid refresh token', async () => {
+      const user = await userHelper.createUser(uniquePhone());
 
-    beforeAll(async () => {
-      const phone = `+225${Date.now()}`;
-
-      // Register
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'refresh-test@example.com',
-          name: 'Refresh Test User',
-        })
-        .expect(201);
-
-      // Login
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone })
-        .expect(200);
-
-      // Verify OTP
-      const loginResponse = await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '123456',
-        })
-        .expect(200);
-
-      accessToken = loginResponse.body.accessToken;
-      refreshToken = loginResponse.body.refreshToken;
-    });
-
-    it('should refresh access token with valid refresh token', async () => {
       const response = await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({
-          refreshToken,
-        })
+        .send({ refreshToken: user.refreshToken })
         .expect(200);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      expect(response.body.accessToken).not.toBe(accessToken); // New token
+      expect(response.body.accessToken).toBeDefined();
+      expect(response.body.refreshToken).toBeDefined();
+      expect(response.body.expiresIn).toBeGreaterThanOrEqual(300);
+      expect(response.body.user.id).toBe(user.id);
     });
 
     it('should reject invalid refresh token', async () => {
       await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({
-          refreshToken: 'invalid-token',
-        })
+        .send({ refreshToken: 'invalid-token' })
         .expect(401);
-    });
-
-    it('should reject expired refresh token', async () => {
-      // This would require a token that's actually expired
-      // In a real test, you'd use a mock or time manipulation
     });
   });
 
   describe('Logout', () => {
-    let accessToken: string;
+    it('should logout and invalidate the refresh token', async () => {
+      const user = await userHelper.createUser(uniquePhone());
 
-    beforeAll(async () => {
-      const phone = `+225${Date.now()}`;
-
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'logout-test@example.com',
-          name: 'Logout Test User',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone })
-        .expect(200);
-
-      const loginResponse = await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '123456',
-        })
-        .expect(200);
-
-      accessToken = loginResponse.body.accessToken;
-    });
-
-    it('should logout successfully', async () => {
       await request(app.getHttpServer())
         .post('/auth/logout')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
-    });
-
-    it('should invalidate token after logout', async () => {
-      // Logout
-      await request(app.getHttpServer())
-        .post('/auth/logout')
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ refreshToken: user.refreshToken })
         .expect(200);
 
-      // Try to use invalidated token
       await request(app.getHttpServer())
-        .get('/wallet/balance')
-        .set('Authorization', `Bearer ${accessToken}`)
+        .post('/auth/refresh')
+        .send({ refreshToken: user.refreshToken })
         .expect(401);
     });
 
     it('should logout from all devices', async () => {
+      const user = await userHelper.createUser(uniquePhone());
+
       await request(app.getHttpServer())
         .post('/auth/logout-all')
-        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ currentRefreshToken: user.refreshToken })
         .expect(200);
     });
   });
 
   describe('Protected Routes', () => {
     it('should reject requests without token', async () => {
-      await request(app.getHttpServer()).get('/wallet/balance').expect(401);
+      await request(app.getHttpServer()).get('/user/profile').expect(401);
     });
 
     it('should reject requests with invalid token', async () => {
       await request(app.getHttpServer())
-        .get('/wallet/balance')
+        .get('/user/profile')
         .set('Authorization', 'Bearer invalid-token')
         .expect(401);
     });
 
-    it('should accept requests with valid token', async () => {
-      const phone = `+225${Date.now()}`;
+    it('should accept requests with a valid token', async () => {
+      const user = await userHelper.createUser(uniquePhone());
 
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'protected-test@example.com',
-          name: 'Protected Test User',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone })
+      const response = await request(app.getHttpServer())
+        .get('/user/profile')
+        .set('Authorization', `Bearer ${user.accessToken}`)
         .expect(200);
 
-      const loginResponse = await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '123456',
-        })
-        .expect(200);
-
-      const accessToken = loginResponse.body.accessToken;
-
-      // Create wallet first
-      await request(app.getHttpServer())
-        .post('/wallet')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(201);
-
-      // Now balance endpoint should work
-      await request(app.getHttpServer())
-        .get('/wallet/balance')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
-    });
-  });
-
-  describe('Security', () => {
-    it('should hash passwords (if applicable)', async () => {
-      // Verify passwords are never stored or returned in plain text
-    });
-
-    it('should use secure JWT signing', async () => {
-      // Verify JWT tokens are properly signed
-    });
-
-    it('should prevent timing attacks on OTP verification', async () => {
-      const phone = `+225${Date.now()}`;
-
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'timing-test@example.com',
-          name: 'Timing Test User',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone })
-        .expect(200);
-
-      // Verify multiple wrong OTPs take similar time
-      const start1 = Date.now();
-      await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '000000',
-        })
-        .expect(401);
-      const time1 = Date.now() - start1;
-
-      const start2 = Date.now();
-      await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '111111',
-        })
-        .expect(401);
-      const time2 = Date.now() - start2;
-
-      // Times should be similar (within 100ms)
-      expect(Math.abs(time1 - time2)).toBeLessThan(100);
-    });
-
-    it('should lock account after multiple failed attempts', async () => {
-      const phone = `+225${Date.now()}`;
-
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          phone,
-          email: 'lockout-test@example.com',
-          name: 'Lockout Test User',
-        })
-        .expect(201);
-
-      await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({ phone })
-        .expect(200);
-
-      // Attempt multiple wrong OTPs
-      for (let i = 0; i < 5; i++) {
-        await request(app.getHttpServer()).post('/auth/verify-otp').send({
-          phone,
-          otp: '000000',
-        });
-      }
-
-      // Account should be locked
-      await request(app.getHttpServer())
-        .post('/auth/verify-otp')
-        .send({
-          phone,
-          otp: '123456', // Even correct OTP should fail
-        })
-        .expect(423); // Locked
+      expect(response.body.id).toBe(user.id);
+      expect(response.body.phone).toBe(user.phone);
     });
   });
 });

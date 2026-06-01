@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LogoutAllUsecase } from './logout-all.usecase';
 import {
   createMockJwtService,
@@ -20,6 +21,7 @@ describe('LogoutAllUsecase', () => {
   let jwtService: ReturnType<typeof createMockJwtService>;
   let configService: ReturnType<typeof createMockConfigService>;
   let mockRedisClient: MockRedisClient;
+  let eventEmitter: { emit: jest.Mock };
 
   const mockUserId = 'user-123';
   const mockRefreshToken = 'valid.refresh.token';
@@ -31,6 +33,7 @@ describe('LogoutAllUsecase', () => {
       'jwt.refreshExpiresIn': '7d',
     });
     mockRedisClient = createMockRedisClient();
+    eventEmitter = { emit: jest.fn() };
 
     // Mock Redis constructor
     const Redis = require('ioredis').default;
@@ -51,6 +54,7 @@ describe('LogoutAllUsecase', () => {
         LogoutAllUsecase,
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -78,6 +82,10 @@ describe('LogoutAllUsecase', () => {
         expect.any(Number),
         expect.any(String),
       );
+      expect(eventEmitter.emit).toHaveBeenCalledWith('user.logged_out_all', {
+        userId: mockUserId,
+        timestamp: expect.any(Date),
+      });
     });
 
     it('should preserve current session when currentRefreshToken is provided', async () => {

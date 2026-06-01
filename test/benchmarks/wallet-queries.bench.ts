@@ -5,6 +5,13 @@ import { WalletMapper } from '../../src/modules/wallet/infrastructure/mappers/wa
 import { WalletOrmEntity } from '../../src/modules/wallet/infrastructure/orm-entities/wallet.orm-entity';
 import { UserOrmEntity } from '../../src/modules/user/infrastructure/orm-entities/user.orm-entity';
 import { DataSource } from 'typeorm';
+import {
+  deleteAll,
+  ensureBenchmarkDatabase,
+  getBenchmarkDbConfig,
+  testUserId,
+  testWalletId,
+} from './benchmark-db.helper';
 
 /**
  * Wallet Query Benchmarks
@@ -61,15 +68,18 @@ describe('Wallet Query Benchmarks', () => {
   };
 
   beforeAll(async () => {
+    await ensureBenchmarkDatabase();
+    const dbConfig = getBenchmarkDbConfig();
+
     module = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRoot({
           type: 'postgres',
-          host: process.env.DB_HOST || 'localhost',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          username: process.env.DB_USERNAME || 'postgres',
-          password: process.env.DB_PASSWORD || 'postgres',
-          database: process.env.DB_NAME || 'joonapay_test',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.database,
           entities: [WalletOrmEntity, UserOrmEntity],
           synchronize: true,
           logging: false,
@@ -82,7 +92,7 @@ describe('Wallet Query Benchmarks', () => {
     repository = module.get<WalletRepository>(WalletRepository);
     dataSource = module.get<DataSource>(DataSource);
 
-    // Seed test data
+    await cleanupTestData(dataSource);
     await seedTestData(dataSource);
   });
 
@@ -96,7 +106,7 @@ describe('Wallet Query Benchmarks', () => {
 
   describe('Primary Key Lookups', () => {
     it('should benchmark findById query', async () => {
-      const walletId = 'test-wallet-1';
+      const walletId = testWalletId(1);
       const metrics = startMetrics();
 
       const startTime = performance.now();
@@ -122,7 +132,7 @@ describe('Wallet Query Benchmarks', () => {
     });
 
     it('should benchmark findById with non-existent wallet', async () => {
-      const walletId = 'non-existent-wallet';
+      const walletId = testWalletId(9999);
       const metrics = startMetrics();
 
       const startTime = performance.now();
@@ -150,7 +160,7 @@ describe('Wallet Query Benchmarks', () => {
 
   describe('Foreign Key Lookups', () => {
     it('should benchmark findByUserId query', async () => {
-      const userId = 'test-user-1';
+      const userId = testUserId(1);
       const metrics = startMetrics();
 
       const startTime = performance.now();
@@ -176,7 +186,7 @@ describe('Wallet Query Benchmarks', () => {
     });
 
     it('should benchmark findByUserId with non-existent user', async () => {
-      const userId = 'non-existent-user';
+      const userId = testUserId(9999);
       const metrics = startMetrics();
 
       const startTime = performance.now();
@@ -344,8 +354,8 @@ describe('Wallet Query Benchmarks', () => {
 
       const startTime = performance.now();
       const wallet = await repository.save({
-        id: 'bench-wallet-1',
-        userId: 'test-user-1',
+        id: testWalletId(1001),
+        userId: testUserId(1),
         yellowCardWalletId: null,
         circleWalletId: 'circle-bench-1',
         circleWalletAddress: '0xBENCHMARK',
@@ -377,7 +387,7 @@ describe('Wallet Query Benchmarks', () => {
     });
 
     it('should benchmark wallet save (update)', async () => {
-      const wallet = await repository.findById('test-wallet-1');
+      const wallet = await repository.findById(testWalletId(1));
       wallet!.credit(100);
 
       const metrics = startMetrics();
@@ -412,8 +422,8 @@ describe('Wallet Query Benchmarks', () => {
       const wallets = [];
       for (let i = 200; i < 250; i++) {
         wallets.push({
-          id: `bulk-wallet-${i}`,
-          userId: `test-user-${(i % 100) + 1}`,
+          id: testWalletId(i),
+          userId: testUserId((i % 100) + 1),
           yellowCardWalletId: null,
           circleWalletId: `circle-bulk-${i}`,
           circleWalletAddress: `0xBULK${i}`,
@@ -452,7 +462,7 @@ describe('Wallet Query Benchmarks', () => {
     it('should benchmark concurrent findById queries (20 concurrent)', async () => {
       const walletIds = Array.from(
         { length: 20 },
-        (_, i) => `test-wallet-${(i % 100) + 1}`,
+        (_, i) => testWalletId((i % 100) + 1),
       );
 
       const metrics = startMetrics();
@@ -481,7 +491,7 @@ describe('Wallet Query Benchmarks', () => {
     it('should benchmark concurrent findByUserId queries (20 concurrent)', async () => {
       const userIds = Array.from(
         { length: 20 },
-        (_, i) => `test-user-${(i % 100) + 1}`,
+        (_, i) => testUserId((i % 100) + 1),
       );
 
       const metrics = startMetrics();
@@ -513,10 +523,10 @@ describe('Wallet Query Benchmarks', () => {
       const startTime = performance.now();
       await Promise.all([
         ...Array.from({ length: 10 }, (_, i) =>
-          repository.findById(`test-wallet-${i + 1}`),
+          repository.findById(testWalletId(i + 1)),
         ),
         ...Array.from({ length: 10 }, (_, i) =>
-          repository.findByUserId(`test-user-${i + 1}`),
+          repository.findByUserId(testUserId(i + 1)),
         ),
         ...Array.from({ length: 10 }, (_, i) =>
           repository.findByCircleWalletId(`circle-wallet-${i + 1}`),
@@ -544,7 +554,7 @@ describe('Wallet Query Benchmarks', () => {
     it('should benchmark concurrent wallet updates (10 concurrent)', async () => {
       const wallets = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          repository.findById(`test-wallet-${i + 1}`),
+          repository.findById(testWalletId(i + 1)),
         ),
       );
 
@@ -579,7 +589,7 @@ describe('Wallet Query Benchmarks', () => {
       const metrics = startMetrics();
 
       const startTime = performance.now();
-      await repository.findByUserId('test-user-50');
+      await repository.findByUserId(testUserId(50));
       const endTime = performance.now();
 
       const executionTime = endTime - startTime;
@@ -775,7 +785,7 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
   const users = [];
   for (let i = 1; i <= 100; i++) {
     users.push({
-      id: `test-user-${i}`,
+      id: testUserId(i),
       phone: `+225WALLET${i.toString().padStart(4, '0')}`,
       phoneVerified: true,
       countryCode: 'CI',
@@ -793,8 +803,8 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
   const wallets = [];
   for (let i = 1; i <= 100; i++) {
     wallets.push({
-      id: `test-wallet-${i}`,
-      userId: `test-user-${i}`,
+      id: testWalletId(i),
+      userId: testUserId(i),
       yellowCardWalletId: i <= 50 ? `yc-wallet-${i}` : null,
       circleWalletId: `circle-wallet-${i}`,
       circleWalletAddress: `0x${i.toString().padStart(40, '0')}`,
@@ -810,6 +820,6 @@ async function seedTestData(dataSource: DataSource): Promise<void> {
 }
 
 async function cleanupTestData(dataSource: DataSource): Promise<void> {
-  await dataSource.getRepository(WalletOrmEntity).delete({});
-  await dataSource.getRepository(UserOrmEntity).delete({});
+  await deleteAll(dataSource, WalletOrmEntity);
+  await deleteAll(dataSource, UserOrmEntity);
 }

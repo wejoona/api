@@ -136,6 +136,9 @@ describe('CacheWarmingService', () => {
 
   describe('warmExchangeRates', () => {
     it('should warm exchange rates cache', async () => {
+      configService.get.mockImplementation((key: string, defaultValue?: any) =>
+        key === 'YELLOW_CARD_ENABLED' ? 'true' : defaultValue,
+      );
       yellowCardRatesService.getRate.mockResolvedValue({
         rate: 600,
         sourceCurrency: 'XOF',
@@ -159,6 +162,9 @@ describe('CacheWarmingService', () => {
     });
 
     it('should handle rate fetch failures gracefully', async () => {
+      configService.get.mockImplementation((key: string, defaultValue?: any) =>
+        key === 'YELLOW_CARD_ENABLED' ? 'true' : defaultValue,
+      );
       yellowCardRatesService.getRate.mockRejectedValue(
         new Error('Rate not available'),
       );

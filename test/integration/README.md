@@ -4,13 +4,13 @@ End-to-end integration tests using testcontainers for isolated PostgreSQL and Re
 
 ## Test Files
 
-| File | Description |
-|------|-------------|
+| File                                 | Description                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------ |
 | `user-registration-flow.e2e-spec.ts` | Complete user registration journey (register, OTP, profile, wallet, PIN) |
-| `deposit-flow.e2e-spec.ts` | Deposit journey (channels, quote, initiate, webhook, balance) |
-| `transfer-flow.e2e-spec.ts` | Transfer journeys (P2P phone/username, external blockchain, limits) |
-| `auth-flow.e2e-spec.ts` | Authentication flows (login, token refresh, logout) |
-| `kyc-flow.e2e-spec.ts` | KYC verification flows |
+| `deposit-flow.e2e-spec.ts`           | Deposit journey (channels, quote, initiate, webhook, balance)            |
+| `transfer-flow.e2e-spec.ts`          | Transfer journeys (P2P phone/username, external blockchain, limits)      |
+| `auth-flow.e2e-spec.ts`              | Authentication flows (login, token refresh, logout)                      |
+| `kyc-flow.e2e-spec.ts`               | KYC verification flows                                                   |
 
 ## Setup
 
@@ -46,7 +46,11 @@ npm run test:e2e:cov -- --testPathPattern=integration
 Each test file follows this pattern:
 
 ```typescript
-import { IntegrationTestSetup, TestUserFactory, ExternalApiMocker } from './setup';
+import {
+  IntegrationTestSetup,
+  TestUserFactory,
+  ExternalApiMocker,
+} from './setup';
 
 describe('Feature Flow (Integration)', () => {
   let setup: IntegrationTestSetup;
@@ -88,9 +92,9 @@ Manages test infrastructure:
 
 ```typescript
 const setup = new IntegrationTestSetup();
-await setup.init();         // Start containers, create app
+await setup.init(); // Start containers, create app
 await setup.cleanDatabase(); // Truncate all tables
-await setup.teardown();      // Stop containers
+await setup.teardown(); // Stop containers
 ```
 
 ### TestUserFactory
@@ -116,11 +120,11 @@ Mocks external APIs (Blnk, Circle, YellowCard):
 
 ```typescript
 const mocker = new ExternalApiMocker();
-mocker.setupAllMocks();     // Setup all mocks
-mocker.mockBlnkApi();       // Mock only Blnk
-mocker.mockCircleApi();     // Mock only Circle
+mocker.setupAllMocks(); // Setup all mocks
+mocker.mockBlnkApi(); // Mock only Blnk
+mocker.mockCircleApi(); // Mock only Circle
 mocker.mockYellowCardApi(); // Mock only YellowCard
-mocker.resetMocks();        // Clear and re-setup
+mocker.resetMocks(); // Clear and re-setup
 ```
 
 ### TestFixtures
@@ -130,12 +134,12 @@ Common test data:
 ```typescript
 import { TestFixtures } from './setup';
 
-TestFixtures.phones.sender      // '+2250700000001'
-TestFixtures.pins.valid         // '1234'
-TestFixtures.otps.valid         // '123456'
-TestFixtures.amounts.medium     // 100
-TestFixtures.addresses.validPolygon
-TestFixtures.networks.polygon
+TestFixtures.phones.sender; // '+2250700000001'
+TestFixtures.pins.valid; // '1234'
+TestFixtures.otps.valid; // '123456'
+TestFixtures.amounts.medium; // 100
+TestFixtures.addresses.validPolygon;
+TestFixtures.networks.polygon;
 ```
 
 ## Test Coverage
@@ -143,6 +147,7 @@ TestFixtures.networks.polygon
 The integration tests cover:
 
 ### User Registration Flow
+
 - Phone registration with OTP
 - OTP verification (valid/invalid/expired)
 - Account lockout after failed attempts
@@ -153,6 +158,7 @@ The integration tests cover:
 - Token refresh and logout
 
 ### Deposit Flow
+
 - Deposit channel listing
 - Rate quote calculation
 - Deposit initiation
@@ -163,6 +169,7 @@ The integration tests cover:
 - Deposit cancellation
 
 ### Transfer Flow
+
 - Internal P2P transfers (phone)
 - Internal P2P transfers (username)
 - External blockchain transfers

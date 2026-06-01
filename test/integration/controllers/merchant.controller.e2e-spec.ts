@@ -2,7 +2,7 @@
  * Merchant Controller Integration Tests
  */
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
 
@@ -35,27 +35,40 @@ describe('MerchantController (e2e)', () => {
       controllers: [MerchantController],
       providers: [
         { provide: RegisterMerchantUseCase, useValue: mockRegisterMerchant },
-        { provide: CreatePaymentRequestUseCase, useValue: mockCreatePaymentRequest },
-        { provide: ProcessMerchantPaymentUseCase, useValue: mockProcessPayment },
+        {
+          provide: CreatePaymentRequestUseCase,
+          useValue: mockCreatePaymentRequest,
+        },
+        {
+          provide: ProcessMerchantPaymentUseCase,
+          useValue: mockProcessPayment,
+        },
         { provide: GetMerchantUseCase, useValue: mockGetMerchant },
         { provide: GetMerchantByQrUseCase, useValue: mockGetMerchantByQr },
         { provide: GetMerchantAnalyticsUseCase, useValue: mockGetAnalytics },
-        { provide: GetMerchantTransactionsUseCase, useValue: mockGetTransactions },
+        {
+          provide: GetMerchantTransactionsUseCase,
+          useValue: mockGetTransactions,
+        },
         { provide: QrCodeService, useValue: mockQrCodeService },
       ],
     });
     app = result.app;
   });
 
-  afterAll(async () => { await app?.close(); });
-  beforeEach(() => { jest.clearAllMocks(); });
+  afterAll(async () => {
+    await app?.close();
+  });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe('POST /api/v1/merchants/register', () => {
     it('should register merchant (201)', async () => {
       mockRegisterMerchant.execute.mockResolvedValue(TestData.merchant());
       await request(app.getHttpServer())
         .post('/api/v1/merchants/register')
-        .send({ businessName: 'Test Shop', category: 'retail' })
+        .send({ businessName: 'Test Shop', category: 'retail', country: 'CI' })
         .expect(201);
     });
   });
@@ -90,9 +103,14 @@ describe('MerchantController (e2e)', () => {
 
   describe('POST /api/v1/merchants/:id/payment-request', () => {
     it('should create payment request (201)', async () => {
-      mockCreatePaymentRequest.execute.mockResolvedValue({ id: 'pr_123', amount: 50 });
+      mockCreatePaymentRequest.execute.mockResolvedValue({
+        id: 'pr_123',
+        amount: 50,
+      });
       await request(app.getHttpServer())
-        .post('/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/payment-request')
+        .post(
+          '/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/payment-request',
+        )
         .send({ amount: 50, description: 'Coffee' })
         .expect(201);
     });
@@ -100,26 +118,41 @@ describe('MerchantController (e2e)', () => {
 
   describe('POST /api/v1/merchants/pay', () => {
     it('should process payment (200)', async () => {
-      mockProcessPayment.execute.mockResolvedValue({ success: true, transactionId: 'tx_123' });
+      mockProcessPayment.execute.mockResolvedValue({
+        success: true,
+        transactionId: 'tx_123',
+      });
       await request(app.getHttpServer())
         .post('/api/v1/merchants/pay')
-        .send({ merchantId: '550e8400-e29b-41d4-a716-446655440000', amount: 50 })
+        .send({
+          qrData:
+            'joonapay://pay?v=1&t=static&m=550e8400-e29b-41d4-a716-446655440000',
+          amount: 50,
+        })
         .expect(200);
     });
   });
 
   describe('GET /api/v1/merchants/:id/transactions', () => {
     it('should list merchant transactions (200)', async () => {
-      mockGetTransactions.execute.mockResolvedValue({ transactions: [], total: 0 });
+      mockGetTransactions.execute.mockResolvedValue({
+        transactions: [],
+        total: 0,
+      });
       await request(app.getHttpServer())
-        .get('/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/transactions')
+        .get(
+          '/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/transactions',
+        )
         .expect(200);
     });
   });
 
   describe('GET /api/v1/merchants/:id/analytics', () => {
     it('should get merchant analytics (200)', async () => {
-      mockGetAnalytics.execute.mockResolvedValue({ totalRevenue: 5000, totalTransactions: 100 });
+      mockGetAnalytics.execute.mockResolvedValue({
+        totalRevenue: 5000,
+        totalTransactions: 100,
+      });
       await request(app.getHttpServer())
         .get('/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/analytics')
         .expect(200);

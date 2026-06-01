@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { DataSource } from 'typeorm';
 
 export interface TestUser {
   id?: string;
@@ -34,13 +35,14 @@ export class TestUserHelper {
       .expect(200);
 
     const { accessToken, refreshToken, user } = verifyResponse.body;
+    const walletId = await this.ensureWallet(accessToken, user.id);
 
     return {
       id: user.id,
       phone,
       accessToken,
       refreshToken,
-      walletId: user.walletId,
+      walletId,
     };
   }
 
@@ -80,13 +82,14 @@ export class TestUserHelper {
       .expect(200);
 
     const { accessToken, refreshToken, user } = verifyResponse.body;
+    const walletId = await this.ensureWallet(accessToken, user.id);
 
     return {
       id: user.id,
       phone,
       accessToken,
       refreshToken,
-      walletId: user.walletId,
+      walletId,
     };
   }
 
@@ -170,5 +173,31 @@ export class TestUserHelper {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ refreshToken })
       .expect(200);
+  }
+
+  private async ensureWallet(accessToken: string, userId: string): Promise<string> {
+    await request(this.app.getHttpServer())
+      .post('/wallet/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect((response) => {
+        if (![200, 201, 409].includes(response.status)) {
+          throw new Error(`Expected wallet creation success, got ${response.status}`);
+        }
+      });
+
+    const dataSource = this.app.get(DataSource);
+    await dataSource.query(
+      `UPDATE auth.users SET kyc_status = 'approved' WHERE id = $1`,
+      [userId],
+    );
+    const result = await dataSource.query(
+      `UPDATE wallets
+       SET status = 'active', kyc_status = 'approved', balance = 1000
+       WHERE user_id = $1
+       RETURNING id`,
+      [userId],
+    );
+
+    return result[0]?.id;
   }
 }

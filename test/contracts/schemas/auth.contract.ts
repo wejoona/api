@@ -123,7 +123,8 @@ export const AuthResponseSchema: ContractSchema = {
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     }),
     expiresIn: required(FieldType.NUMBER, {
-      description: 'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule refresh.',
+      description:
+        'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule refresh.',
       example: 900,
       min: 300, // At least 5 minutes
       max: 3600, // At most 1 hour
@@ -165,7 +166,8 @@ export const RefreshResponseSchema: ContractSchema = {
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     }),
     expiresIn: required(FieldType.NUMBER, {
-      description: 'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule next refresh.',
+      description:
+        'Access token expiry in seconds. CRITICAL: Mobile uses this to schedule next refresh.',
       example: 900,
       min: 300, // At least 5 minutes
       max: 3600, // At most 1 hour

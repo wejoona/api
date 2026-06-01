@@ -18,7 +18,10 @@ import {
 const yellowCardEnabled = process.env.YELLOW_CARD_ENABLED === 'true';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), ConfigModule],
+  imports: [
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
+    ConfigModule,
+  ],
   controllers: [ApiHealthController],
   providers: [
     // Health Collectors

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Repository } from 'typeorm';
-import { User } from '../../application/domain/entities';
+import { IUser, User } from '../../application/domain/entities';
 import { UserOrmEntity } from '../orm-entities';
 import { UserMapper } from '../mappers';
 import { escapeLikePattern } from '../../../../common/utils/sql-utils';
@@ -36,7 +36,7 @@ export class UserRepository {
     // Try to get from cache first
     const cachedUser = await this.cacheManager.get<User>(cacheKey);
     if (cachedUser) {
-      return cachedUser;
+      return this.rehydrateCachedUser(cachedUser);
     }
 
     // Cache miss - fetch from database
@@ -138,5 +138,32 @@ export class UserRepository {
   private async invalidateUserCache(userId: string): Promise<void> {
     const cacheKey = `user:${userId}`;
     await this.cacheManager.del(cacheKey);
+  }
+
+  private rehydrateCachedUser(user: User | IUser): User {
+    if (user instanceof User) {
+      return user;
+    }
+
+    return User.reconstitute({
+      ...user,
+      suspendedAt: this.toNullableDate(user.suspendedAt),
+      pinSetAt: this.toNullableDate(user.pinSetAt),
+      pinLockedUntil: this.toNullableDate(user.pinLockedUntil),
+      emailVerificationExpiresAt: this.toNullableDate(
+        user.emailVerificationExpiresAt,
+      ),
+      createdAt: this.toDate(user.createdAt),
+      updatedAt: this.toDate(user.updatedAt),
+    });
+  }
+
+  private toDate(value: Date | string): Date {
+    return value instanceof Date ? value : new Date(value);
+  }
+
+  private toNullableDate(value: Date | string | null): Date | null {
+    if (!value) return null;
+    return this.toDate(value);
   }
 }

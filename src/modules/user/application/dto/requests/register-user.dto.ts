@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   Matches,
   IsOptional,
-  Length,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -27,6 +26,8 @@ export class RegisterUserDto {
   })
   @IsOptional()
   @IsString()
-  @Length(2, 3)
+  @Matches(/^[A-Z]{2}$/, {
+    message: 'Country code must be an uppercase ISO 3166-1 alpha-2 code',
+  })
   countryCode?: string;
 }

@@ -86,6 +86,7 @@ export class DepositController {
   }
 
   @Post('confirm')
+  @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({
     summary: 'Confirm deposit with OTP or trigger PUSH notification',

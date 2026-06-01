@@ -11,6 +11,8 @@ import {
   ParseUUIDPipe,
   ParseIntPipe,
   BadRequestException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
@@ -153,6 +155,7 @@ export class RecurringTransferController {
   }
 
   @Post(':id/pause')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Pause a recurring transfer' })
   async pause(
     @Param('id', ParseUUIDPipe) id: string,
@@ -176,6 +179,7 @@ export class RecurringTransferController {
   }
 
   @Post(':id/resume')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resume a paused recurring transfer' })
   async resume(
     @Param('id', ParseUUIDPipe) id: string,

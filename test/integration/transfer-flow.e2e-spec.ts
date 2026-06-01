@@ -3,12 +3,16 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import {
-  PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import { StartedTestContainer } from 'testcontainers';
 import { DataSource } from 'typeorm';
 import nock from 'nock';
+import { ensureDatabaseSchemas } from '../e2e/database-schemas';
+import {
+  startPostgresTestContainer,
+  startRedisTestContainer,
+} from '../e2e/testcontainers';
 
 /**
  * Transfer Flow Integration Tests
@@ -37,23 +41,18 @@ describe('Transfer Flow (Integration)', () => {
   let recipientUserId: string;
   let recipientPhone: string;
   let recipientUsername: string;
+  const ledgerBalances = new Map<string, number>();
 
   jest.setTimeout(120000);
 
   beforeAll(async () => {
     // Start PostgreSQL container
     console.log('Starting PostgreSQL container...');
-    postgresContainer = await new PostgreSqlContainer('postgres:15-alpine')
-      .withDatabase('test_db')
-      .withUsername('test_user')
-      .withPassword('test_password')
-      .start();
+    postgresContainer = await startPostgresTestContainer();
 
     // Start Redis container
     console.log('Starting Redis container...');
-    redisContainer = await new GenericContainer('redis:7-alpine')
-      .withExposedPorts(6379)
-      .start();
+    redisContainer = await startRedisTestContainer();
 
     // Configure environment
     process.env.NODE_ENV = 'test';
@@ -81,16 +80,19 @@ describe('Transfer Flow (Integration)', () => {
     // External API URLs
     process.env.BLNK_API_URL = 'http://localhost:3999/blnk';
     process.env.CIRCLE_API_URL = 'http://localhost:3999/circle';
+    process.env.YELLOW_CARD_ENABLED = 'true';
+    process.env.YELLOW_CARD_USE_MOCK = 'true';
 
     // Disable external notifications
     process.env.NOTIFICATION_ENABLED = 'false';
 
     // Setup nock
     nock.disableNetConnect();
-    nock.enableNetConnect('127.0.0.1');
-    nock.enableNetConnect('localhost');
+    nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
 
     setupExternalApiMocks();
+
+    await ensureDatabaseSchemas();
 
     // Create NestJS application
     console.log('Creating NestJS application...');
@@ -126,15 +128,24 @@ describe('Transfer Flow (Integration)', () => {
   afterAll(async () => {
     console.log('Tearing down integration tests...');
 
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
     nock.cleanAll();
     nock.enableNetConnect();
 
-    if (dataSource) {
-      await dataSource.destroy();
+    if (app) {
+      await app.close().catch((error) => {
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes('Connection is closed')
+        ) {
+          throw error;
+        }
+      });
     }
 
-    if (app) {
-      await app.close();
+    if (dataSource?.isInitialized) {
+      await dataSource.destroy();
     }
 
     if (postgresContainer) {
@@ -164,17 +175,27 @@ describe('Transfer Flow (Integration)', () => {
     senderToken = senderVerify.body.accessToken;
     senderUserId = senderVerify.body.user.id;
 
+    await dataSource.query(
+      `UPDATE auth.users SET kyc_status = 'approved' WHERE id = $1`,
+      [senderUserId],
+    );
+
+    await request(app.getHttpServer())
+      .post('/wallet/create')
+      .set('Authorization', `Bearer ${senderToken}`)
+      .expect(201);
+
     // Set sender PIN
     await request(app.getHttpServer())
       .post('/wallet/pin/set')
       .set('Authorization', `Bearer ${senderToken}`)
-      .send({ pin: '1234', confirmPin: '1234' })
+      .send({ pin: '6829', confirmPin: '6829' })
       .expect(200);
 
     const senderPinResponse = await request(app.getHttpServer())
       .post('/wallet/pin/verify')
       .set('Authorization', `Bearer ${senderToken}`)
-      .send({ pin: '1234' })
+      .send({ pin: '6829' })
       .expect(200);
 
     senderPinToken = senderPinResponse.body.pinToken;
@@ -199,6 +220,21 @@ describe('Transfer Flow (Integration)', () => {
     recipientToken = recipientVerify.body.accessToken;
     recipientUserId = recipientVerify.body.user.id;
 
+    await dataSource.query(
+      `UPDATE auth.users SET kyc_status = 'approved' WHERE id = $1`,
+      [recipientUserId],
+    );
+
+    await request(app.getHttpServer())
+      .post('/wallet/create')
+      .set('Authorization', `Bearer ${recipientToken}`)
+      .expect(201);
+
+    await dataSource.query(
+      `UPDATE wallets SET kyc_status = 'approved' WHERE user_id = ANY($1::uuid[])`,
+      [[senderUserId, recipientUserId]],
+    );
+
     // Set recipient username
     await request(app.getHttpServer())
       .put('/user/profile')
@@ -208,27 +244,66 @@ describe('Transfer Flow (Integration)', () => {
   }
 
   async function seedWalletBalance(userId: string, amount: number) {
-    // Insert mock deposit transaction to simulate funded wallet
+    ledgerBalances.set(userId, amount);
+
+    // Mirror a completed deposit into the local wallet/transaction tables.
     await dataSource.query(
       `
-      INSERT INTO transactions (
-        id, user_id, type, status, amount, currency,
-        metadata, created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, 'deposit', 'completed', $2, 'USDC',
-        '{"source": "test_seed"}', NOW(), NOW()
+      WITH wallet AS (
+        UPDATE wallets
+        SET balance = $2
+        WHERE user_id = $1
+        RETURNING id
       )
+      INSERT INTO transactions (
+        id, wallet_id, type, status, amount, currency,
+        metadata, created_at, completed_at
+      )
+      SELECT
+        gen_random_uuid(), id, 'deposit', 'completed', $2, 'USDC',
+        '{"source": "test_seed"}', NOW(), NOW()
+      FROM wallet
     `,
       [userId, amount],
     );
+  }
+
+  function getUsdcAvailable(responseBody: any): number {
+    const balance = responseBody.balances.find(
+      (item: any) => item.currency === 'USDC',
+    );
+    return balance?.available ?? 0;
   }
 
   function setupExternalApiMocks() {
     const blnkUrl = process.env.BLNK_API_URL;
     const circleUrl = process.env.CIRCLE_API_URL;
 
-    // Mock Blnk balance queries with dynamic balances
-    let senderBalance = 1000;
+    const getUserIdFromBalanceId = (balanceId: string) => {
+      const match = balanceId.match(/^user-(.+)-usdc$/i);
+      return match?.[1];
+    };
+
+    const blnkBalanceResponse = (uri: string) => {
+      const balanceId = uri.split('/').pop() ?? 'mock-balance-id';
+      const userId = getUserIdFromBalanceId(balanceId);
+      const balance = userId ? ledgerBalances.get(userId) ?? 0 : 0;
+      const microBalance = Math.round(balance * 1_000_000);
+
+      return {
+        balance_id: balanceId,
+        balance: microBalance,
+        credit_balance: microBalance,
+        debit_balance: 0,
+        inflight_balance: 0,
+        inflight_credit_balance: 0,
+        inflight_debit_balance: 0,
+        currency: 'USDC',
+        ledger_id: 'mock-ledger-id',
+        precision: 1_000_000,
+        created_at: new Date().toISOString(),
+      };
+    };
 
     nock(blnkUrl)
       .post('/ledgers')
@@ -241,43 +316,87 @@ describe('Transfer Flow (Integration)', () => {
       .persist();
 
     nock(blnkUrl)
-      .get(/\/balances\/sender.*/)
-      .reply(200, () => ({
-        balance_id: 'sender-balance-id',
-        balance: senderBalance * 100, // cents
-        currency: 'USD',
-      }))
+      .post('/identities')
+      .reply(201, {
+        identity_id: 'mock-identity-id',
+        identity_type: 'individual',
+        first_name: 'Korido',
+        last_name: 'Customer',
+        email_address: null,
+        phone_number: '+2250700000000',
+        country: 'CI',
+        created_at: new Date().toISOString(),
+        meta_data: {},
+      })
       .persist();
 
     nock(blnkUrl)
-      .get(/\/balances\/recipient.*/)
-      .reply(200, {
-        balance_id: 'recipient-balance-id',
-        balance: 0,
-        currency: 'USD',
+      .post('/reconciliation/matching-rules')
+      .reply(201, {
+        rule_id: 'mock-matching-rule-id',
+        created_at: new Date().toISOString(),
       })
       .persist();
 
     nock(blnkUrl)
       .get(/\/balances\/.*/)
-      .reply(200, {
-        balance_id: 'mock-balance-id',
-        balance: 100000,
-        currency: 'USD',
-      })
+      .reply(200, (uri) => blnkBalanceResponse(uri))
       .persist();
 
     // Mock Blnk transactions
     nock(blnkUrl)
       .post('/transactions')
-      .reply(201, (uri, body: any) => {
-        senderBalance -= body.amount / 100;
-        return {
+      .reply(function (_uri, body: any) {
+        const sourceUserId = getUserIdFromBalanceId(body.source);
+        const destinationUserId = getUserIdFromBalanceId(body.destination);
+        const amount = Number(body.amount) || 0;
+
+        if (sourceUserId) {
+          const sourceBalance = ledgerBalances.get(sourceUserId) ?? 0;
+          if (!body.allow_overdraft && sourceBalance < amount) {
+            return [
+              400,
+              {
+                error: 'insufficient_balance',
+                message: 'Insufficient balance',
+              },
+            ];
+          }
+          ledgerBalances.set(
+            sourceUserId,
+            sourceBalance - amount,
+          );
+        }
+        if (destinationUserId) {
+          ledgerBalances.set(
+            destinationUserId,
+            (ledgerBalances.get(destinationUserId) ?? 0) + amount,
+          );
+        }
+
+        return [201, {
           transaction_id: 'txn-' + Date.now(),
+          source: body.source,
+          destination: body.destination,
+          reference: body.reference,
           amount: body.amount,
-          status: 'applied',
-        };
+          precise_amount: Math.round(amount * 1_000_000),
+          precision: 1_000_000,
+          currency: body.currency || 'USDC',
+          description: body.description,
+          status: 'APPLIED',
+          created_at: new Date().toISOString(),
+          meta_data: body.meta_data,
+        }];
       })
+      .persist();
+
+    nock(blnkUrl)
+      .put(/\/transactions\/inflight\/.*/)
+      .reply(200, (uri, body: any) => ({
+        transaction_id: uri.split('/').pop(),
+        status: body.status === 'void' ? 'VOID' : 'COMMIT',
+      }))
       .persist();
 
     // Mock Circle wallet
@@ -331,16 +450,16 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
-          amount: 50,
+          toPhone: recipientPhone,
+          amount: 10,
           note: 'Test transfer',
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body).toHaveProperty('transactionId');
       expect(response.body).toHaveProperty('status', 'completed');
-      expect(response.body).toHaveProperty('amount', 50);
-      expect(response.body).toHaveProperty('recipientPhone', recipientPhone);
+      expect(response.body).toHaveProperty('amount', 10);
+      expect(response.body).toHaveProperty('toPhone', recipientPhone);
     });
 
     it('should require PIN token', async () => {
@@ -348,10 +467,10 @@ describe('Transfer Flow (Integration)', () => {
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${senderToken}`)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 10,
         })
-        .expect(401);
+        .expect(400);
     });
 
     it('should reject invalid PIN token', async () => {
@@ -360,10 +479,10 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', 'invalid-pin-token')
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 10,
         })
-        .expect(401);
+        .expect(403);
     });
 
     it('should reject transfer to non-existent phone', async () => {
@@ -372,7 +491,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone: '+2250799999999',
+          toPhone: '+2250799999999',
           amount: 10,
         });
 
@@ -385,7 +504,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone: '+2250700000001', // Sender's own phone
+          toPhone: '+2250700000001', // Sender's own phone
           amount: 10,
         });
 
@@ -398,7 +517,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 100000, // More than balance
         });
 
@@ -412,7 +531,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 0,
         })
         .expect(400);
@@ -423,7 +542,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: -10,
         })
         .expect(400);
@@ -438,14 +557,14 @@ describe('Transfer Flow (Integration)', () => {
         .set('X-Pin-Token', senderPinToken)
         .send({
           recipientUsername,
-          amount: 25,
+          amount: 10,
           note: 'Payment via username',
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body).toHaveProperty('transactionId');
       expect(response.body).toHaveProperty('status', 'completed');
-      expect(response.body).toHaveProperty('amount', 25);
+      expect(response.body).toHaveProperty('amount', 10);
     });
 
     it('should handle @username format', async () => {
@@ -457,7 +576,7 @@ describe('Transfer Flow (Integration)', () => {
           recipientUsername: `@${recipientUsername}`,
           amount: 15,
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body).toHaveProperty('status', 'completed');
     });
@@ -476,7 +595,7 @@ describe('Transfer Flow (Integration)', () => {
   });
 
   describe('External Blockchain Transfer', () => {
-    const validPolygonAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0';
+    const validPolygonAddress = '0x742d35cc6634c0532925a3b844bc9e7595f0beb0';
 
     it('should initiate external transfer to valid address', async () => {
       const response = await request(app.getHttpServer())
@@ -485,14 +604,14 @@ describe('Transfer Flow (Integration)', () => {
         .set('X-Pin-Token', senderPinToken)
         .send({
           address: validPolygonAddress,
-          amount: 100,
+          amount: 10,
           network: 'polygon',
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body).toHaveProperty('transactionId');
       expect(response.body).toHaveProperty('status');
-      expect(response.body).toHaveProperty('address', validPolygonAddress);
+      expect(response.body).toHaveProperty('recipientAddress', validPolygonAddress);
       expect(response.body).toHaveProperty('network', 'polygon');
     });
 
@@ -537,18 +656,16 @@ describe('Transfer Flow (Integration)', () => {
 
     it('should include network fee estimate', async () => {
       const response = await request(app.getHttpServer())
-        .post('/wallet/transfer/external/quote')
+        .get('/wallet/transfer/external/estimate-fee')
         .set('Authorization', `Bearer ${senderToken}`)
-        .send({
-          address: validPolygonAddress,
+        .query({
           amount: 100,
           network: 'polygon',
         })
         .expect(200);
 
-      expect(response.body).toHaveProperty('amount', 100);
-      expect(response.body).toHaveProperty('networkFee');
-      expect(response.body).toHaveProperty('totalAmount');
+      expect(response.body).toHaveProperty('network', 'polygon');
+      expect(response.body).toHaveProperty('estimatedFee');
       expect(response.body).toHaveProperty('estimatedTime');
     });
   });
@@ -560,7 +677,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 100000, // Exceeds per-transaction limit
         })
         .expect(400);
@@ -572,11 +689,10 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('daily');
-      expect(response.body).toHaveProperty('weekly');
-      expect(response.body).toHaveProperty('monthly');
-      expect(response.body).toHaveProperty('perTransaction');
-      expect(response.body).toHaveProperty('remaining');
+      expect(response.body).toHaveProperty('dailyLimit');
+      expect(response.body).toHaveProperty('monthlyLimit');
+      expect(response.body).toHaveProperty('singleTransactionLimit');
+      expect(response.body).toHaveProperty('dailyUsed');
     });
 
     it('should track daily limit usage', async () => {
@@ -592,10 +708,10 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 20,
         })
-        .expect(201);
+        .expect(200);
 
       // Check updated limits
       const updatedLimits = await request(app.getHttpServer())
@@ -603,8 +719,8 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
-      expect(updatedLimits.body.remaining.daily).toBeLessThan(
-        initialLimits.body.remaining.daily,
+      expect(updatedLimits.body.dailyUsed).toBeGreaterThan(
+        initialLimits.body.dailyUsed,
       );
     });
   });
@@ -618,7 +734,7 @@ describe('Transfer Flow (Integration)', () => {
           .set('Authorization', `Bearer ${senderToken}`)
           .set('X-Pin-Token', senderPinToken)
           .send({
-            recipientPhone,
+            toPhone: recipientPhone,
             amount: 5 + i,
             note: `Transfer ${i + 1}`,
           });
@@ -640,24 +756,25 @@ describe('Transfer Flow (Integration)', () => {
       const response = await request(app.getHttpServer())
         .get('/wallet/transactions')
         .set('Authorization', `Bearer ${senderToken}`)
-        .query({ page: 1, limit: 3 })
+        .query({ offset: 0, limit: 3 })
         .expect(200);
 
       expect(response.body.transactions.length).toBeLessThanOrEqual(3);
-      expect(response.body).toHaveProperty('pagination');
-      expect(response.body.pagination).toHaveProperty('page', 1);
-      expect(response.body.pagination).toHaveProperty('limit', 3);
+      expect(response.body).toHaveProperty('limit', 3);
+      expect(response.body).toHaveProperty('offset', 0);
     });
 
     it('should filter by transaction type', async () => {
       const response = await request(app.getHttpServer())
         .get('/wallet/transactions')
         .set('Authorization', `Bearer ${senderToken}`)
-        .query({ type: 'transfer' })
+        .query({ type: 'transfer_internal' })
         .expect(200);
 
       expect(
-        response.body.transactions.every((t: any) => t.type === 'transfer'),
+        response.body.transactions.every(
+          (t: any) => t.type === 'transfer_internal',
+        ),
       ).toBe(true);
     });
 
@@ -677,13 +794,18 @@ describe('Transfer Flow (Integration)', () => {
     });
 
     it('should return transaction details', async () => {
-      // Get transaction list first
-      const listResponse = await request(app.getHttpServer())
-        .get('/wallet/transactions')
+      const transferResponse = await request(app.getHttpServer())
+        .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${senderToken}`)
+        .set('X-Pin-Token', senderPinToken)
+        .send({
+          toPhone: recipientPhone,
+          amount: 8,
+          note: 'Transaction detail lookup',
+        })
         .expect(200);
 
-      const transactionId = listResponse.body.transactions[0].id;
+      const transactionId = transferResponse.body.transactionId;
 
       // Get transaction details
       const detailResponse = await request(app.getHttpServer())
@@ -711,7 +833,7 @@ describe('Transfer Flow (Integration)', () => {
       await request(app.getHttpServer())
         .get(`/wallet/transactions/${senderTxId}`)
         .set('Authorization', `Bearer ${recipientToken}`)
-        .expect(404);
+        .expect(403);
     });
   });
 
@@ -722,9 +844,8 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('balance');
-      expect(response.body).toHaveProperty('currency', 'USDC');
-      expect(typeof response.body.balance).toBe('number');
+      expect(response.body).toHaveProperty('balances');
+      expect(typeof getUsdcAvailable(response.body)).toBe('number');
     });
 
     it('should update balance after transfer', async () => {
@@ -740,10 +861,10 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 10,
         })
-        .expect(201);
+        .expect(200);
 
       // Check updated balance
       const updatedBalance = await request(app.getHttpServer())
@@ -751,8 +872,8 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
-      expect(updatedBalance.body.balance).toBeLessThan(
-        initialBalance.body.balance,
+      expect(getUsdcAvailable(updatedBalance.body)).toBeLessThan(
+        getUsdcAvailable(initialBalance.body),
       );
     });
 
@@ -769,10 +890,10 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 15,
         })
-        .expect(201);
+        .expect(200);
 
       // Check recipient's updated balance
       const updatedBalance = await request(app.getHttpServer())
@@ -780,8 +901,8 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${recipientToken}`)
         .expect(200);
 
-      expect(updatedBalance.body.balance).toBeGreaterThan(
-        initialBalance.body.balance,
+      expect(getUsdcAvailable(updatedBalance.body)).toBeGreaterThan(
+        getUsdcAvailable(initialBalance.body),
       );
     });
   });
@@ -800,7 +921,7 @@ describe('Transfer Flow (Integration)', () => {
             .set('Authorization', `Bearer ${senderToken}`)
             .set('X-Pin-Token', senderPinToken)
             .send({
-              recipientPhone,
+              toPhone: recipientPhone,
               amount: 10,
               note: `Concurrent transfer ${i + 1}`,
             }),
@@ -810,7 +931,7 @@ describe('Transfer Flow (Integration)', () => {
 
       // All should succeed
       const successful = results.filter(
-        (r) => r.status === 'fulfilled' && r.value.status === 201,
+        (r) => r.status === 'fulfilled' && r.value.status === 200,
       );
       expect(successful.length).toBe(5);
     });
@@ -822,7 +943,7 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
-      const currentBalance = balanceResponse.body.balance;
+      const currentBalance = getUsdcAvailable(balanceResponse.body);
 
       // Try to transfer more than balance with concurrent requests
       const transfers = Array(10)
@@ -833,7 +954,7 @@ describe('Transfer Flow (Integration)', () => {
             .set('Authorization', `Bearer ${senderToken}`)
             .set('X-Pin-Token', senderPinToken)
             .send({
-              recipientPhone,
+              toPhone: recipientPhone,
               amount: currentBalance / 2,
               note: `Double spend attempt ${i + 1}`,
             }),
@@ -843,7 +964,7 @@ describe('Transfer Flow (Integration)', () => {
 
       // Only some should succeed (not more than what balance allows)
       const successful = results.filter(
-        (r) => r.status === 'fulfilled' && r.value.status === 201,
+        (r) => r.status === 'fulfilled' && r.value.status === 200,
       );
 
       // At most 2 should succeed
@@ -853,15 +974,17 @@ describe('Transfer Flow (Integration)', () => {
 
   describe('Transfer Notifications', () => {
     it('should include notification preference check', async () => {
+      await seedWalletBalance(senderUserId, 1000);
+
       const response = await request(app.getHttpServer())
         .post('/wallet/transfer/internal')
         .set('Authorization', `Bearer ${senderToken}`)
         .set('X-Pin-Token', senderPinToken)
         .send({
-          recipientPhone,
+          toPhone: recipientPhone,
           amount: 5,
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body).toHaveProperty('transactionId');
       // In test env, notifications are disabled but the flow should complete

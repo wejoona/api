@@ -30,8 +30,10 @@ export class OrangeMockProvider implements IPaymentProvider {
       throw new Error('Provider server error');
     }
 
-    // Generate mock provider transaction ID
-    const providerTransactionId = `om_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate mock provider transaction ID. Keep failure cases explicit so
+    // timestamps/random suffixes do not accidentally trigger failure paths.
+    const failureMarker = params.phoneNumber === '+2250700000005' ? '_fail' : '';
+    const providerTransactionId = `om${failureMarker}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Set expiration to 15 minutes from now
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
@@ -62,7 +64,7 @@ export class OrangeMockProvider implements IPaymentProvider {
     const txId = params.providerTransactionId;
     
     // Mock failure for insufficient funds
-    if (txId.includes('_1')) { // Simulating +2250700000005 pattern
+    if (txId.includes('_fail_')) {
       return {
         status: 'failed',
         failureReason: 'Solde insuffisant',

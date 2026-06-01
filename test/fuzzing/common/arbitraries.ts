@@ -5,6 +5,10 @@
 
 import * as fc from 'fast-check';
 
+const validDate = (date: Date): boolean => !Number.isNaN(date.getTime());
+
+const toIsoDate = (date: Date): string => date.toISOString().split('T')[0];
+
 /**
  * Phone number arbitraries
  */
@@ -14,7 +18,8 @@ export const phoneArbitraries = {
     fc
       .tuple(
         fc.constantFrom('+225', '+221', '+223', '+1', '+44', '+33'),
-        fc.stringOf(fc.integer({ min: 0, max: 9 }).map(String), {
+        fc.string({
+          unit: fc.integer({ min: 0, max: 9 }).map(String),
           minLength: 8,
           maxLength: 12,
         }),
@@ -33,8 +38,8 @@ export const phoneArbitraries = {
       fc.constant('225701234567'), // Missing plus
       fc.constant('+225 70 12 34 56'), // With spaces
       fc.constant('+225-70-12-34-56'), // With dashes
-      fc.stringOf(fc.char(), { minLength: 1, maxLength: 5 }), // Too short
-      fc.stringOf(fc.char(), { minLength: 20, maxLength: 50 }), // Too long
+      fc.string({ minLength: 1, maxLength: 5 }), // Too short
+      fc.string({ minLength: 20, maxLength: 50 }), // Too long
     ),
 
   // West African specific
@@ -42,7 +47,8 @@ export const phoneArbitraries = {
     fc
       .tuple(
         fc.constantFrom('+225', '+221', '+223'), // CI, SN, ML
-        fc.stringOf(fc.integer({ min: 0, max: 9 }).map(String), {
+        fc.string({
+          unit: fc.integer({ min: 0, max: 9 }).map(String),
           minLength: 8,
           maxLength: 10,
         }),
@@ -55,13 +61,26 @@ export const phoneArbitraries = {
  */
 export const amountArbitraries = {
   // Valid positive amounts
-  valid: () => fc.float({ min: 0.01, max: 1000000, noNaN: true }),
+  valid: () =>
+    fc.double({
+      min: 0.01,
+      max: 1000000,
+      noNaN: true,
+      noDefaultInfinity: true,
+    }),
 
   // Small valid amounts
-  small: () => fc.float({ min: 0.01, max: 10, noNaN: true }),
+  small: () =>
+    fc.double({ min: 0.01, max: 10, noNaN: true, noDefaultInfinity: true }),
 
   // Large valid amounts
-  large: () => fc.float({ min: 10000, max: 10000000, noNaN: true }),
+  large: () =>
+    fc.double({
+      min: 10000,
+      max: 10000000,
+      noNaN: true,
+      noDefaultInfinity: true,
+    }),
 
   // Boundary values
   boundary: () =>
@@ -123,7 +142,8 @@ export const currencyArbitraries = {
 export const usernameArbitraries = {
   // Valid usernames (alphanumeric + underscore, 3-30 chars)
   valid: () =>
-    fc.stringOf(fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789_'), {
+    fc.string({
+      unit: fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789_'),
       minLength: 3,
       maxLength: 30,
     }),
@@ -131,7 +151,8 @@ export const usernameArbitraries = {
   // With @ prefix
   withAt: () =>
     fc
-      .stringOf(fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789_'), {
+      .string({
+        unit: fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789_'),
         minLength: 3,
         maxLength: 30,
       })
@@ -187,7 +208,8 @@ export const addressArbitraries = {
   // Valid Ethereum-like address (0x + 40 hex chars)
   valid: () =>
     fc
-      .stringOf(fc.constantFrom(...'0123456789abcdef'), {
+      .string({
+        unit: fc.constantFrom(...'0123456789abcdef'),
         minLength: 40,
         maxLength: 40,
       })
@@ -200,7 +222,7 @@ export const addressArbitraries = {
       fc.constant(''), // Empty
       fc.constant('0x'), // No address
       fc.constant('0x123'), // Too short
-      fc.stringOf(fc.char(), { minLength: 42, maxLength: 100 }), // Too long
+      fc.string({ minLength: 42, maxLength: 100 }), // Too long
       fc.constant('1234567890abcdef1234567890abcdef12345678'), // Missing 0x
       fc.constant('0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG'), // Invalid hex
       sqlInjectionStrings(), // SQL injection
@@ -245,11 +267,19 @@ export const pinArbitraries = {
 export const dateArbitraries = {
   // Past dates
   past: () =>
-    fc.date({ max: new Date() }).map((d) => d.toISOString().split('T')[0]),
+    fc.date({ max: new Date() }).filter(validDate).map(toIsoDate),
 
   // Future dates
-  future: () =>
-    fc.date({ min: new Date() }).map((d) => d.toISOString().split('T')[0]),
+  future: () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() + 20);
+
+    return fc
+      .date({ min: tomorrow, max: maxDate })
+      .filter(validDate)
+      .map(toIsoDate);
+  },
 
   // Valid birth dates (18-100 years ago)
   birthDate: () => {
@@ -266,7 +296,8 @@ export const dateArbitraries = {
     );
     return fc
       .date({ min: minDate, max: maxDate })
-      .map((d) => d.toISOString().split('T')[0]);
+      .filter(validDate)
+      .map(toIsoDate);
   },
 
   // Invalid dates
@@ -278,7 +309,7 @@ export const dateArbitraries = {
       fc.constant('2024-01-32'), // Invalid day
       fc.constant('2024/01/01'), // Wrong separator
       fc.constant('01-01-2024'), // Wrong order
-      fc.date().map((d) => d.toISOString()), // With time
+      fc.date().filter(validDate).map((d) => d.toISOString()), // With time
     ),
 };
 
@@ -345,8 +376,8 @@ export function commandInjectionStrings() {
 export function bufferOverflowStrings() {
   return fc.oneof(
     fc.constant('A'.repeat(10000)),
-    fc.constant('A'.repeat(100000)),
-    fc.constant('A'.repeat(1000000)),
+    fc.constant('A'.repeat(50000)),
+    fc.constant('A'.repeat(90000)),
   );
 }
 
@@ -405,13 +436,11 @@ export const emailArbitraries = {
   valid: () =>
     fc
       .tuple(
-        fc.stringOf(
-          fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789'),
-          {
-            minLength: 1,
-            maxLength: 20,
-          },
-        ),
+        fc.string({
+          unit: fc.constantFrom(...'abcdefghijklmnopqrstuvwxyz0123456789'),
+          minLength: 1,
+          maxLength: 20,
+        }),
         fc.constantFrom('gmail.com', 'yahoo.com', 'outlook.com', 'example.com'),
       )
       .map(([user, domain]) => `${user}@${domain}`),

@@ -20,6 +20,7 @@ npm run test:fuzzing:kyc      # KYC verification
 ## What Gets Tested?
 
 ### Security
+
 - SQL Injection
 - XSS (Cross-Site Scripting)
 - Path Traversal
@@ -27,6 +28,7 @@ npm run test:fuzzing:kyc      # KYC verification
 - Buffer Overflow
 
 ### Validation
+
 - Invalid data types
 - Missing fields
 - Null values
@@ -34,6 +36,7 @@ npm run test:fuzzing:kyc      # KYC verification
 - Very long strings
 
 ### Business Logic
+
 - Negative amounts
 - Invalid currencies
 - Malformed phone numbers
@@ -43,16 +46,19 @@ npm run test:fuzzing:kyc      # KYC verification
 ## Understanding Results
 
 ### Success
+
 ```
 ✓ should reject invalid phone numbers (125ms)
   100/100 passed
 ```
 
 ### Failure
+
 ```
 ✗ should reject invalid amounts
   Counterexample: [-0.5]
 ```
+
 Fix the validation to handle `-0.5`
 
 ## Common Commands
@@ -73,17 +79,17 @@ FUZZING_VERBOSE=true npm run test:fuzzing
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Overview |
-| `FUZZING_GUIDE.md` | Detailed guide |
-| `QUICK_START.md` | This file |
-| `auth/*.ts` | Auth endpoint tests |
-| `wallet/*.ts` | Wallet endpoint tests |
-| `user/*.ts` | User endpoint tests |
-| `kyc/*.ts` | KYC endpoint tests |
-| `common/arbitraries.ts` | Test data generators |
-| `common/helpers.ts` | Test utilities |
+| File                    | Purpose               |
+| ----------------------- | --------------------- |
+| `README.md`             | Overview              |
+| `FUZZING_GUIDE.md`      | Detailed guide        |
+| `QUICK_START.md`        | This file             |
+| `auth/*.ts`             | Auth endpoint tests   |
+| `wallet/*.ts`           | Wallet endpoint tests |
+| `user/*.ts`             | User endpoint tests   |
+| `kyc/*.ts`              | KYC endpoint tests    |
+| `common/arbitraries.ts` | Test data generators  |
+| `common/helpers.ts`     | Test utilities        |
 
 ## Adding Tests
 
@@ -103,9 +109,9 @@ it('should reject invalid phone numbers', async () => {
           .send({ phone: invalidPhone });
 
         expect(response.status).toBe(400);
-      }
+      },
     ),
-    { numRuns: 100 } // Run 100 times
+    { numRuns: 100 }, // Run 100 times
   );
 });
 ```
@@ -113,16 +119,19 @@ it('should reject invalid phone numbers', async () => {
 ## Troubleshooting
 
 ### Tests failing
+
 1. Check validation in DTOs
 2. Check error handling in controllers
 3. Review error messages for leaks
 
 ### Tests timing out
+
 - Reduce `FUZZING_RUNS`
 - Check for infinite loops
 - Optimize database queries
 
 ### Rate limit errors
+
 - Reduce runs for auth tests
 - Add delays between requests
 
@@ -145,6 +154,7 @@ Add to GitHub Actions:
 ## Coverage
 
 Run with coverage:
+
 ```bash
 npm run test:fuzzing:cov
 open coverage-fuzzing/index.html

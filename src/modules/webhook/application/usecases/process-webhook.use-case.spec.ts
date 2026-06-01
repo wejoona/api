@@ -251,7 +251,7 @@ describe('ProcessWebhookUseCase', () => {
         expect(result.success).toBe(true);
         expect(mockTransaction.fail).toHaveBeenCalledWith('Payment declined');
         expect(eventEmitter.emit).toHaveBeenCalledWith(
-          'deposit.failed',
+          'transaction.deposit.failed',
           expect.objectContaining({
             userId: 'user-123',
             error: 'Payment declined',

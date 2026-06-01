@@ -14,6 +14,7 @@ import { SentryService, SentryExceptionFilter } from './common/services/sentry.s
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 3000;

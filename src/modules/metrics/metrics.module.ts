@@ -13,7 +13,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {

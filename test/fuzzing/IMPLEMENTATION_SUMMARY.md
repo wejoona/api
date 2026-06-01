@@ -9,6 +9,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 ### 1. Test Infrastructure (`/test/fuzzing/`)
 
 #### Common Utilities (`common/`)
+
 - **arbitraries.ts**: 20+ custom generators for test data
   - Phone numbers (valid/invalid, West African specific)
   - Amounts (valid/invalid, boundaries, precision edge cases)
@@ -26,6 +27,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 #### Test Suites
 
 **Auth Tests** (`auth/`)
+
 - `register.fuzz-spec.ts`: Registration endpoint fuzzing
   - Phone validation (100+ test cases)
   - Country code validation
@@ -40,6 +42,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
   - Account enumeration protection
 
 **Wallet Tests** (`wallet/`)
+
 - `transfer.fuzz-spec.ts`: Transfer endpoint fuzzing
   - Amount validation (negative, zero, boundaries)
   - Phone and address validation
@@ -63,6 +66,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
   - PIN leak prevention in responses
 
 **User Tests** (`user/`)
+
 - `profile.fuzz-spec.ts`: User profile fuzzing
   - Username validation
   - Email validation
@@ -71,6 +75,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
   - Buffer overflow attempts
 
 **KYC Tests** (`kyc/`)
+
 - `kyc.fuzz-spec.ts`: KYC submission fuzzing
   - Name validation
   - Date of birth (minors, future dates, ancient dates)
@@ -80,6 +85,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
   - Document key validation (path traversal)
 
 **General Tests** (`common/`)
+
 - `general.fuzz-spec.ts`: Cross-cutting concerns
   - HTTP method fuzzing
   - Header fuzzing (malformed, long, security payloads)
@@ -131,6 +137,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 ### Endpoints Covered
 
 #### Authentication (3 endpoints)
+
 - POST /auth/register
 - POST /auth/verify-otp
 - POST /auth/login
@@ -139,6 +146,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 - POST /auth/logout-all
 
 #### User (5 endpoints)
+
 - GET /user/profile
 - PUT /user/profile
 - GET /user/username/check/:username
@@ -147,6 +155,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 - GET /user/limits
 
 #### Wallet (11 endpoints)
+
 - GET /wallet (balance)
 - POST /wallet/create
 - GET /wallet/deposit/channels
@@ -216,6 +225,7 @@ Comprehensive property-based testing suite using fast-check to automatically tes
 ## Running the Tests
 
 ### Quick Start
+
 ```bash
 # Install dependencies (already done)
 npm install
@@ -231,6 +241,7 @@ npm run test:fuzzing:kyc
 ```
 
 ### Advanced Usage
+
 ```bash
 # Intensive testing (1000 runs)
 FUZZING_RUNS=1000 npm run test:fuzzing
@@ -251,6 +262,7 @@ npm run test:fuzzing -- --testNamePattern="SQL injection"
 ## Integration with CI/CD
 
 ### Recommended GitHub Actions
+
 ```yaml
 name: Fuzzing Tests
 
@@ -274,6 +286,7 @@ jobs:
 ```
 
 ### Recommended Schedule
+
 - **Pre-commit**: Quick run (10-50 runs)
 - **Pull Request**: Standard run (100 runs)
 - **Nightly**: Intensive run (1000 runs)
@@ -282,6 +295,7 @@ jobs:
 ## Expected Results
 
 ### Successful Run
+
 ```
 PASS test/fuzzing/auth/register.fuzz-spec.ts
   ✓ should reject all invalid phone number formats (2547ms)
@@ -295,6 +309,7 @@ Time:        125.342s
 ```
 
 ### Coverage Report
+
 ```
 File                     | % Stmts | % Branch | % Funcs | % Lines
 -------------------------|---------|----------|---------|--------
@@ -317,17 +332,20 @@ guards/                  |   87.50 |    75.00 |   85.71 |   88.24
 ## Maintenance
 
 ### Adding New Endpoints
+
 1. Create arbitrary for new data types
 2. Add test file in appropriate module folder
 3. Copy patterns from existing tests
 4. Update FUZZING_GUIDE.md
 
 ### Adding New Security Payloads
+
 1. Add to `common/arbitraries.ts`
 2. Export new arbitrary function
 3. Use in relevant test files
 
 ### Adjusting Test Intensity
+
 - Development: `FUZZING_RUNS=10`
 - CI/CD: `FUZZING_RUNS=100`
 - Nightly: `FUZZING_RUNS=1000`
@@ -385,6 +403,7 @@ test/fuzzing/
 ## Support
 
 For questions or issues:
+
 1. Read FUZZING_GUIDE.md
 2. Check fast-check documentation
 3. Review existing test patterns

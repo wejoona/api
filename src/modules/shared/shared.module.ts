@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { PAYMENT_GATEWAY, SMS_GATEWAY, PUSH_GATEWAY } from './domain/gateways';
 import { YellowCardPaymentAdapter } from './infrastructure/gateways/payment';
@@ -39,7 +39,11 @@ import { SentryService } from '../../common/services/sentry.service';
     // Payment Gateway (Yellow Card or no-op based on YELLOW_CARD_ENABLED env var)
     {
       provide: PAYMENT_GATEWAY,
-      useClass: process.env.YELLOW_CARD_ENABLED === 'true' ? YellowCardPaymentAdapter : NoopPaymentAdapter,
+      useFactory: (configService: ConfigService) =>
+        process.env.YELLOW_CARD_ENABLED === 'true'
+          ? new YellowCardPaymentAdapter(configService)
+          : new NoopPaymentAdapter(),
+      inject: [ConfigService],
     },
     // SMS Factory
     SmsFactory,

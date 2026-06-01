@@ -6,7 +6,7 @@ import { JwtUser } from '../../../../common/guards';
 
 describe('KycUploadController', () => {
   let controller: KycUploadController;
-  let uploadService: jest.Mocked<UploadService>;
+  let uploadService: jest.Mocked<Pick<UploadService, 'uploadDocument'>>;
 
   const mockUser: JwtUser = {
     id: 'test-user-id',
@@ -18,7 +18,7 @@ describe('KycUploadController', () => {
     originalname: 'id_front.jpg',
     encoding: '7bit',
     mimetype: 'image/jpeg',
-    size: 1024 * 500, // 500KB
+    size: 1024 * 500,
     buffer: Buffer.from('mock-file-content'),
     stream: null as any,
     destination: '',
@@ -28,22 +28,21 @@ describe('KycUploadController', () => {
 
   const mockUploadResult = {
     key: 'kyc/test-user-id/id_front-1706198400000.jpg',
+    bucket: 'korido-test-uploads',
     url: 'https://s3.amazonaws.com/bucket/kyc/test-user-id/id_front-1706198400000.jpg',
     contentType: 'image/jpeg',
     size: 245678,
   };
 
   beforeEach(async () => {
-    const mockUploadService = {
-      uploadDocument: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KycUploadController],
       providers: [
         {
           provide: UploadService,
-          useValue: mockUploadService,
+          useValue: {
+            uploadDocument: jest.fn().mockResolvedValue(mockUploadResult),
+          },
         },
       ],
     }).compile();
@@ -56,201 +55,131 @@ describe('KycUploadController', () => {
     jest.clearAllMocks();
   });
 
-  describe('uploadDocuments', () => {
-    it('should successfully upload all three documents', async () => {
-      const idFrontFile = { ...mockFile, fieldname: 'idFront' };
-      const idBackFile = { ...mockFile, fieldname: 'idBack' };
-      const selfieFile = { ...mockFile, fieldname: 'selfie' };
+  it('uploads all provided KYC documents in one request', async () => {
+    const idFrontFile = { ...mockFile, fieldname: 'idFront' };
+    const idBackFile = { ...mockFile, fieldname: 'idBack' };
+    const selfieFile = { ...mockFile, fieldname: 'selfie' };
 
-      const files = {
-        idFront: [idFrontFile],
-        idBack: [idBackFile],
-        selfie: [selfieFile],
-      };
-
-      const idFrontResult = {
+    uploadService.uploadDocument
+      .mockResolvedValueOnce({
         ...mockUploadResult,
         key: 'kyc/test-user-id/id_front-1706198400000.jpg',
-      };
-      const idBackResult = {
+      })
+      .mockResolvedValueOnce({
         ...mockUploadResult,
         key: 'kyc/test-user-id/id_back-1706198400000.jpg',
-      };
-      const selfieResult = {
+      })
+      .mockResolvedValueOnce({
         ...mockUploadResult,
         key: 'kyc/test-user-id/selfie-1706198400000.jpg',
-      };
-
-      uploadService.uploadDocument
-        .mockResolvedValueOnce(idFrontResult)
-        .mockResolvedValueOnce(idBackResult)
-        .mockResolvedValueOnce(selfieResult);
-
-      const result = await controller.uploadDocuments(mockUser, files);
-
-      expect(result).toEqual({
-        message: 'Documents uploaded successfully',
-        documents: {
-          idFront: {
-            key: idFrontResult.key,
-            url: idFrontResult.url,
-            size: idFrontResult.size,
-          },
-          idBack: {
-            key: idBackResult.key,
-            url: idBackResult.url,
-            size: idBackResult.size,
-          },
-          selfie: {
-            key: selfieResult.key,
-            url: selfieResult.url,
-            size: selfieResult.size,
-          },
-        },
       });
 
-      expect(uploadService.uploadDocument).toHaveBeenCalledTimes(3);
-      expect(uploadService.uploadDocument).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        type: 'id_front',
-        file: idFrontFile,
-      });
-      expect(uploadService.uploadDocument).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        type: 'id_back',
-        file: idBackFile,
-      });
-      expect(uploadService.uploadDocument).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        type: 'selfie',
-        file: selfieFile,
-      });
+    const result = await controller.uploadDocuments(mockUser, {
+      idFront: [idFrontFile],
+      idBack: [idBackFile],
+      selfie: [selfieFile],
     });
 
-    it('should throw BadRequestException when idFront is missing', async () => {
-      const files = {
-        idBack: [mockFile],
-        selfie: [mockFile],
-      };
+    expect(result.message).toBe('Documents uploaded successfully');
+    expect(result.documents).toEqual({
+      idFront: expect.objectContaining({
+        key: 'kyc/test-user-id/id_front-1706198400000.jpg',
+      }),
+      idBack: expect.objectContaining({
+        key: 'kyc/test-user-id/id_back-1706198400000.jpg',
+      }),
+      selfie: expect.objectContaining({
+        key: 'kyc/test-user-id/selfie-1706198400000.jpg',
+      }),
+    });
+    expect(uploadService.uploadDocument).toHaveBeenCalledWith({
+      userId: mockUser.id,
+      type: 'id_front',
+      file: idFrontFile,
+    });
+    expect(uploadService.uploadDocument).toHaveBeenCalledWith({
+      userId: mockUser.id,
+      type: 'id_back',
+      file: idBackFile,
+    });
+    expect(uploadService.uploadDocument).toHaveBeenCalledWith({
+      userId: mockUser.id,
+      type: 'selfie',
+      file: selfieFile,
+    });
+  });
 
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        BadRequestException,
-      );
-
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        'All documents required: idFront, idBack, selfie',
-      );
-
-      expect(uploadService.uploadDocument).not.toHaveBeenCalled();
+  it('allows incremental single-document upload', async () => {
+    const result = await controller.uploadDocuments(mockUser, {
+      idFront: [mockFile],
     });
 
-    it('should throw BadRequestException when idBack is missing', async () => {
-      const files = {
-        idFront: [mockFile],
-        selfie: [mockFile],
-      };
+    expect(result.documents).toEqual({
+      idFront: {
+        key: mockUploadResult.key,
+        url: mockUploadResult.url,
+        size: mockUploadResult.size,
+      },
+    });
+    expect(uploadService.uploadDocument).toHaveBeenCalledTimes(1);
+  });
 
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        BadRequestException,
-      );
+  it('supports optional liveness video upload', async () => {
+    const videoFile = {
+      ...mockFile,
+      fieldname: 'video',
+      originalname: 'liveness.mp4',
+      mimetype: 'video/mp4',
+    };
 
-      expect(uploadService.uploadDocument).not.toHaveBeenCalled();
+    const result = await controller.uploadDocuments(mockUser, {
+      video: [videoFile],
     });
 
-    it('should throw BadRequestException when selfie is missing', async () => {
-      const files = {
-        idFront: [mockFile],
-        idBack: [mockFile],
-      };
-
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        BadRequestException,
-      );
-
-      expect(uploadService.uploadDocument).not.toHaveBeenCalled();
+    expect(result.documents).toHaveProperty('video');
+    expect(uploadService.uploadDocument).toHaveBeenCalledWith({
+      userId: mockUser.id,
+      type: 'video',
+      file: videoFile,
     });
+  });
 
-    it('should throw BadRequestException when all files are missing', async () => {
-      const files = {};
+  it('throws when no supported files are present', async () => {
+    await expect(controller.uploadDocuments(mockUser, {})).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(uploadService.uploadDocument).not.toHaveBeenCalled();
+  });
 
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        BadRequestException,
-      );
-
-      expect(uploadService.uploadDocument).not.toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException when files array is empty', async () => {
-      const files = {
-        idFront: [],
-        idBack: [mockFile],
-        selfie: [mockFile],
-      };
-
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        BadRequestException,
-      );
-
-      expect(uploadService.uploadDocument).not.toHaveBeenCalled();
-    });
-
-    it('should upload documents in parallel for better performance', async () => {
-      const files = {
-        idFront: [mockFile],
-        idBack: [mockFile],
-        selfie: [mockFile],
-      };
-
-      const uploadPromises: Array<Promise<any>> = [];
-      uploadService.uploadDocument.mockImplementation((): Promise<any> => {
-        const promise = new Promise((resolve) => {
+  it('uploads documents in parallel', async () => {
+    uploadService.uploadDocument.mockImplementation(
+      () =>
+        new Promise((resolve) => {
           setTimeout(() => resolve(mockUploadResult), 100);
-        });
-        uploadPromises.push(promise);
-        return promise;
-      });
+        }),
+    );
 
-      const startTime = Date.now();
-      await controller.uploadDocuments(mockUser, files);
-      const endTime = Date.now();
-
-      // If executed sequentially, would take ~300ms (3 * 100ms)
-      // If executed in parallel, should take ~100ms
-      // Allow some margin for test execution overhead
-      expect(endTime - startTime).toBeLessThan(250);
-      expect(uploadService.uploadDocument).toHaveBeenCalledTimes(3);
+    const startTime = Date.now();
+    await controller.uploadDocuments(mockUser, {
+      idFront: [mockFile],
+      idBack: [mockFile],
+      selfie: [mockFile],
     });
+    const endTime = Date.now();
 
-    it('should propagate upload service errors', async () => {
-      const files = {
+    expect(endTime - startTime).toBeLessThan(250);
+    expect(uploadService.uploadDocument).toHaveBeenCalledTimes(3);
+  });
+
+  it('propagates upload service errors', async () => {
+    uploadService.uploadDocument.mockRejectedValue(
+      new BadRequestException('File too large'),
+    );
+
+    await expect(
+      controller.uploadDocuments(mockUser, {
         idFront: [mockFile],
-        idBack: [mockFile],
-        selfie: [mockFile],
-      };
-
-      const error = new BadRequestException('File too large');
-      uploadService.uploadDocument.mockRejectedValueOnce(error);
-
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        error,
-      );
-    });
-
-    it('should handle upload service failure for any document', async () => {
-      const files = {
-        idFront: [mockFile],
-        idBack: [mockFile],
-        selfie: [mockFile],
-      };
-
-      uploadService.uploadDocument
-        .mockResolvedValueOnce(mockUploadResult)
-        .mockRejectedValueOnce(new Error('S3 upload failed'))
-        .mockResolvedValueOnce(mockUploadResult);
-
-      await expect(controller.uploadDocuments(mockUser, files)).rejects.toThrow(
-        'S3 upload failed',
-      );
-    });
+      }),
+    ).rejects.toThrow('File too large');
   });
 });
