@@ -14,9 +14,15 @@ build:
   tags:
     - vps-prod
   script:
-    - echo "${HARBOR_PASS}" | docker login "${HARBOR_REGISTRY}" -u "${HARBOR_USER}" --password-stdin
     - DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t "${IMAGE}:${CI_COMMIT_SHORT_SHA}" .
-    - docker push "${IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    - |
+      if echo "${HARBOR_PASS:-}" | docker login "${HARBOR_REGISTRY}" -u "${HARBOR_USER:-}" --password-stdin; then
+        docker push "${IMAGE}:${CI_COMMIT_SHORT_SHA}"
+      else
+        echo "Registry unavailable; importing ${IMAGE}:${CI_COMMIT_SHORT_SHA} into K3s containerd"
+        command -v k3s >/dev/null
+        docker save "${IMAGE}:${CI_COMMIT_SHORT_SHA}" | k3s ctr images import -
+      fi
     - docker rmi "${IMAGE}:${CI_COMMIT_SHORT_SHA}" || true
   only:
     - main
