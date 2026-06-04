@@ -114,6 +114,25 @@ export const SessionActionResponseSchema: ContractSchema = {
   },
 };
 
+export const SessionListResponseSchema: ContractSchema = {
+  name: 'SessionListResponse',
+  description: 'Active sessions list response',
+  fields: {
+    sessions: required(FieldType.ARRAY, {
+      description: 'Canonical mobile session list',
+      itemType: SessionSchema,
+    }),
+    items: required(FieldType.ARRAY, {
+      description: 'Generic list alias for API client compatibility',
+      itemType: SessionSchema,
+    }),
+    total: required(FieldType.NUMBER, {
+      description: 'Total sessions in this response',
+      example: 1,
+    }),
+  },
+};
+
 export const DeviceSessionEndpoints: EndpointContract[] = [
   {
     method: 'GET',
@@ -142,7 +161,7 @@ export const DeviceSessionEndpoints: EndpointContract[] = [
     path: '/sessions',
     description: 'List active sessions',
     auth: 'bearer',
-    responses: { 200: { ...SessionSchema, name: 'SessionList', fields: { items: required(FieldType.ARRAY, { itemType: SessionSchema }) } } },
+    responses: { 200: SessionListResponseSchema },
   },
   {
     method: 'DELETE',

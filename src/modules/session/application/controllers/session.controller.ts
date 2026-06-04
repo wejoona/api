@@ -19,6 +19,12 @@ interface UserPayload {
   phone: string;
 }
 
+interface SessionListResponseDto {
+  sessions: SessionResponseDto[];
+  items: SessionResponseDto[];
+  total: number;
+}
+
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @ApiTags('Sessions')
 @Controller('sessions')
@@ -30,15 +36,25 @@ export class SessionController {
   @Get()
   async getActiveSessions(
     @CurrentUser() user: UserPayload,
-  ): Promise<SessionResponseDto[]> {
-    return this.sessionService.getActiveSessions(user.id);
+  ): Promise<SessionListResponseDto> {
+    const sessions = await this.sessionService.getActiveSessions(user.id);
+    return {
+      sessions,
+      items: sessions,
+      total: sessions.length,
+    };
   }
 
   @Get('all')
   async getAllSessions(
     @CurrentUser() user: UserPayload,
-  ): Promise<SessionResponseDto[]> {
-    return this.sessionService.getAllSessions(user.id);
+  ): Promise<SessionListResponseDto> {
+    const sessions = await this.sessionService.getAllSessions(user.id);
+    return {
+      sessions,
+      items: sessions,
+      total: sessions.length,
+    };
   }
 
   @Delete(':id')

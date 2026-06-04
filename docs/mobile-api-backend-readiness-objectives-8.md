@@ -5,7 +5,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 ## Auth, VerifyHQ, And Sessions
 
 - [x] Confirm login/register/OTP contracts support the VerifyHQ-backed dev path with `123456` OTP while keeping SMS delivery mockable only at the sender boundary.
-- [ ] Confirm active-session list/revoke endpoints are mobile-safe for authenticated users and return stable 401/403 envelopes for expired or unauthorized requests.
+- [x] Confirm active-session list/revoke endpoints are mobile-safe for authenticated users and return stable 401/403 envelopes for expired or unauthorized requests.
 - [ ] Confirm refresh/logout/logout-all responses remain stable when the session store or refresh-token path is unavailable.
 
 ## Mobile Data Truthfulness
@@ -84,3 +84,20 @@ Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="transaction.controller"`
+
+### Active Session Contract Alignment - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `GET /sessions` now returns an explicit list envelope with `sessions`, `items`, and `total`.
+- `GET /sessions/all` uses the same envelope for inactive/revoked-inclusive history.
+- Mobile compatibility is preserved because the current sessions repository reads the `sessions` key.
+- Contract coverage now validates the session list envelope.
+- Controller e2e verifies list 401, revoke 401, and revoke 403 error envelopes.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="device-session.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="session.controller"`

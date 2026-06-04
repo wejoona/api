@@ -66,18 +66,27 @@ describe('SessionController (e2e)', () => {
         .get('/api/v1/sessions')
         .expect(200);
 
-      expect(res.body).toEqual([
-        expect.objectContaining({
-          id: SESSION_ID,
-          userId: USER_ID,
-          deviceId: '550e8400-e29b-41d4-a716-446655440321',
-          ipAddress: '127.0.0.1',
-          userAgent: 'Korido iOS',
-          isActive: true,
-          lastActivityAt: '2026-06-04T10:00:00.000Z',
-          expiresAt: '2026-06-11T10:00:00.000Z',
-        }),
-      ]);
+      expect(res.body).toEqual({
+        sessions: [
+          expect.objectContaining({
+            id: SESSION_ID,
+            userId: USER_ID,
+            deviceId: '550e8400-e29b-41d4-a716-446655440321',
+            ipAddress: '127.0.0.1',
+            userAgent: 'Korido iOS',
+            isActive: true,
+            lastActivityAt: '2026-06-04T10:00:00.000Z',
+            expiresAt: '2026-06-11T10:00:00.000Z',
+          }),
+        ],
+        items: [
+          expect.objectContaining({
+            id: SESSION_ID,
+            userId: USER_ID,
+          }),
+        ],
+        total: 1,
+      });
     });
 
     it('should return a mobile-safe 401 envelope for expired access tokens', async () => {
@@ -128,6 +137,24 @@ describe('SessionController (e2e)', () => {
           error: expect.objectContaining({
             code: 'FORBIDDEN',
             message: 'Session does not belong to user',
+          }),
+        }),
+      );
+    });
+
+    it('should return a mobile-safe 401 envelope for expired access tokens', async () => {
+      const res = await request(unauthApp.getHttpServer())
+        .delete(`/api/v1/sessions/${SESSION_ID}`)
+        .set('Authorization', 'Bearer expired.token')
+        .send({ reason: 'user_revoke_device' })
+        .expect(401);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'UNAUTHORIZED',
+            message: 'Invalid or expired token',
           }),
         }),
       );

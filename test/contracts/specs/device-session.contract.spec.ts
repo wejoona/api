@@ -8,6 +8,7 @@ import {
   RegisterDeviceRequestSchema,
   RevokeSessionRequestSchema,
   SessionActionResponseSchema,
+  SessionListResponseSchema,
   SessionSchema,
 } from '../schemas/device-session.contract';
 import { validateSchema } from '../validators/schema-validator';
@@ -80,6 +81,33 @@ describe('Device and Session Contracts', () => {
     };
 
     const result = validateSchema(session, SessionSchema);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should validate mobile-compatible session list response', () => {
+    const session = {
+      id: '550e8400-e29b-41d4-a716-446655440010',
+      userId: '550e8400-e29b-41d4-a716-446655440000',
+      deviceId: '550e8400-e29b-41d4-a716-446655440321',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Korido iOS',
+      location: null,
+      isActive: true,
+      lastActivityAt: '2026-06-04T10:00:00.000Z',
+      expiresAt: '2026-06-11T10:00:00.000Z',
+      createdAt: '2026-06-04T09:00:00.000Z',
+    };
+
+    const result = validateSchema(
+      {
+        sessions: [session],
+        items: [session],
+        total: 1,
+      },
+      SessionListResponseSchema,
+    );
+
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
