@@ -13,6 +13,8 @@ import { SavingsPotOrmEntity } from '../../infrastructure/orm-entities/savings-p
 import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wallet.orm-entity';
 import { SavingsPotMapper } from '../../infrastructure/mappers/savings-pot.mapper';
 import { DepositToSavingsPotDto } from '../dtos/deposit-withdraw.dto';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class DepositToSavingsPotUseCase {
@@ -38,7 +40,10 @@ export class DepositToSavingsPotUseCase {
 
     const savingsPot = await this.savingsPotRepository.findById(savingsPotId);
     if (!savingsPot || savingsPot.walletId !== wallet.id) {
-      throw new NotFoundException('Savings pot not found');
+      throw AppException.notFound(
+        ERROR_CODES.SAVINGS_POT_NOT_FOUND,
+        'Savings pot not found',
+      );
     }
 
     if (!savingsPot.isActive) {
@@ -49,7 +54,10 @@ export class DepositToSavingsPotUseCase {
 
     // Check wallet balance
     if (wallet.balance < dto.amount) {
-      throw new BadRequestException('Insufficient wallet balance');
+      throw AppException.badRequest(
+        ERROR_CODES.SAVINGS_POT_INSUFFICIENT_FUNDS,
+        'Insufficient wallet balance',
+      );
     }
 
     // Apply domain mutations

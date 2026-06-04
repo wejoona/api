@@ -116,9 +116,15 @@ export class InternalTransferUseCase {
       throw new BadRequestException('Recipient wallet is not active');
     // Check at user level (not wallet level) to handle potential multi-wallet scenarios
     if (input.fromUserId === recipient.id)
-      throw AppException.badRequest(ERROR_CODES.TRANSFER_SELF_TRANSFER, 'Cannot transfer to yourself');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_SELF_TRANSFER,
+        'Cannot transfer to yourself',
+      );
     if (fromWallet.id === toWallet.id)
-      throw AppException.badRequest(ERROR_CODES.TRANSFER_SELF_TRANSFER, 'Cannot transfer to yourself');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_SELF_TRANSFER,
+        'Cannot transfer to yourself',
+      );
 
     // Step 5: Check balance via Blnk (source of truth)
     try {
@@ -128,16 +134,23 @@ export class InternalTransferUseCase {
       );
       const amountInMicro = BigInt(Math.round(input.amount * 1_000_000));
       if (availableBalance < amountInMicro) {
-        throw new BadRequestException('Insufficient balance');
+        throw AppException.badRequest(
+          ERROR_CODES.TRANSFER_INSUFFICIENT_FUNDS,
+          'Insufficient balance',
+        );
       }
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
+      if (error instanceof AppException || error instanceof BadRequestException)
+        throw error;
       // Fallback: check local balance if Blnk is unavailable
       this.logger.warn(
         `Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
       if (fromWallet.balance < input.amount) {
-        throw new BadRequestException('Insufficient balance');
+        throw AppException.badRequest(
+          ERROR_CODES.TRANSFER_INSUFFICIENT_FUNDS,
+          'Insufficient balance',
+        );
       }
     }
 
@@ -166,9 +179,7 @@ export class InternalTransferUseCase {
       this.logger.error(
         `Failed to record P2P transfer in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new BadRequestException(
-        'Transfer failed. Please try again later.',
-      );
+      throw new BadRequestException('Transfer failed. Please try again later.');
     }
 
     // Step 7: Update local DB balances (mirror of Blnk)
@@ -307,16 +318,25 @@ export class InternalTransferUseCase {
       );
     }
     if (input.amount <= 0) {
-      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Amount must be greater than 0');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW,
+        'Amount must be greater than 0',
+      );
     }
     if (input.amount < 0.01) {
-      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Minimum transfer amount is 0.01');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW,
+        'Minimum transfer amount is 0.01',
+      );
     }
     if (
       !Number.isFinite(input.amount) ||
       Math.round(input.amount * 100) / 100 !== input.amount
     ) {
-      throw AppException.badRequest(ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW, 'Invalid amount precision');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_AMOUNT_TOO_LOW,
+        'Invalid amount precision',
+      );
     }
   }
 
@@ -359,7 +379,10 @@ export class InternalTransferUseCase {
     // Use unified limits from common/constants/limits.ts (single source of truth)
     const limits = getLimitsForKycStatus(kycStatus);
 
-    if (Number(limits.perTransactionLimit) === 0 || Number(limits.dailyLimit) === 0) {
+    if (
+      Number(limits.perTransactionLimit) === 0 ||
+      Number(limits.dailyLimit) === 0
+    ) {
       throw AppException.badRequest(
         ERROR_CODES.TRANSFER_BLOCKED,
         'Transfers are disabled. Please contact support regarding your KYC status.',

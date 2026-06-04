@@ -13,6 +13,8 @@ import { SavingsPotOrmEntity } from '../../infrastructure/orm-entities/savings-p
 import { WalletOrmEntity } from '../../../wallet/infrastructure/orm-entities/wallet.orm-entity';
 import { SavingsPotMapper } from '../../infrastructure/mappers/savings-pot.mapper';
 import { WithdrawFromSavingsPotDto } from '../dtos/deposit-withdraw.dto';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class WithdrawFromSavingsPotUseCase {
@@ -38,7 +40,10 @@ export class WithdrawFromSavingsPotUseCase {
 
     const savingsPot = await this.savingsPotRepository.findById(savingsPotId);
     if (!savingsPot || savingsPot.walletId !== wallet.id) {
-      throw new NotFoundException('Savings pot not found');
+      throw AppException.notFound(
+        ERROR_CODES.SAVINGS_POT_NOT_FOUND,
+        'Savings pot not found',
+      );
     }
 
     if (!savingsPot.canWithdraw) {
@@ -47,7 +52,8 @@ export class WithdrawFromSavingsPotUseCase {
         savingsPot.lockUntil &&
         new Date() < savingsPot.lockUntil
       ) {
-        throw new BadRequestException(
+        throw AppException.badRequest(
+          ERROR_CODES.SAVINGS_POT_LOCKED,
           `Savings pot is locked until ${savingsPot.lockUntil.toISOString()}`,
         );
       }
@@ -55,7 +61,10 @@ export class WithdrawFromSavingsPotUseCase {
     }
 
     if (savingsPot.currentAmount < dto.amount) {
-      throw new BadRequestException('Insufficient balance in savings pot');
+      throw AppException.badRequest(
+        ERROR_CODES.SAVINGS_POT_INSUFFICIENT_FUNDS,
+        'Insufficient balance in savings pot',
+      );
     }
 
     // Apply domain mutations
@@ -99,7 +108,10 @@ export class WithdrawFromSavingsPotUseCase {
 
     const savingsPot = await this.savingsPotRepository.findById(savingsPotId);
     if (!savingsPot || savingsPot.walletId !== wallet.id) {
-      throw new NotFoundException('Savings pot not found');
+      throw AppException.notFound(
+        ERROR_CODES.SAVINGS_POT_NOT_FOUND,
+        'Savings pot not found',
+      );
     }
 
     if (!savingsPot.canWithdraw) {
@@ -108,7 +120,8 @@ export class WithdrawFromSavingsPotUseCase {
         savingsPot.lockUntil &&
         new Date() < savingsPot.lockUntil
       ) {
-        throw new BadRequestException(
+        throw AppException.badRequest(
+          ERROR_CODES.SAVINGS_POT_LOCKED,
           `Savings pot is locked until ${savingsPot.lockUntil.toISOString()}`,
         );
       }
@@ -116,7 +129,10 @@ export class WithdrawFromSavingsPotUseCase {
     }
 
     if (savingsPot.currentAmount <= 0) {
-      throw new BadRequestException('Savings pot has no funds to withdraw');
+      throw AppException.badRequest(
+        ERROR_CODES.SAVINGS_POT_INSUFFICIENT_FUNDS,
+        'Savings pot has no funds to withdraw',
+      );
     }
 
     // Apply domain mutations

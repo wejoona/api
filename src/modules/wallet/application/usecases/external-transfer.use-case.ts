@@ -152,17 +152,20 @@ export class ExternalTransferUseCase {
         'USDC',
       );
       if (availableBalance < amountInMicro) {
-        throw new BadRequestException(
+        throw AppException.badRequest(
+          ERROR_CODES.WITHDRAWAL_INSUFFICIENT_FUNDS,
           `Insufficient balance. Required: $${totalAmount.toFixed(2)} (including $${fee.toFixed(2)} fee)`,
         );
       }
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
+      if (error instanceof AppException || error instanceof BadRequestException)
+        throw error;
       this.logger.warn(
         `Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
       if (wallet.balance < totalAmount) {
-        throw new BadRequestException(
+        throw AppException.badRequest(
+          ERROR_CODES.WITHDRAWAL_INSUFFICIENT_FUNDS,
           `Insufficient balance. Required: $${totalAmount.toFixed(2)} (including $${fee.toFixed(2)} fee)`,
         );
       }
@@ -193,9 +196,7 @@ export class ExternalTransferUseCase {
       this.logger.error(
         `Failed to record withdrawal in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new BadRequestException(
-        'Transfer failed. Please try again later.',
-      );
+      throw new BadRequestException('Transfer failed. Please try again later.');
     }
 
     // Step 3: Route through omnibus and execute on-chain transfer
@@ -342,7 +343,10 @@ export class ExternalTransferUseCase {
     const kycStatus = user.kycStatus || 'none';
     const limits = getLimitsForKycStatus(kycStatus);
 
-    if (Number(limits.perTransactionLimit) === 0 || Number(limits.dailyLimit) === 0) {
+    if (
+      Number(limits.perTransactionLimit) === 0 ||
+      Number(limits.dailyLimit) === 0
+    ) {
       throw AppException.badRequest(
         ERROR_CODES.TRANSFER_BLOCKED,
         'Transfers are disabled. Please contact support regarding your KYC status.',

@@ -134,11 +134,14 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findById(id);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     if (paymentLink.userId !== userId) {
-      throw new ForbiddenException('Access denied');
+      throw AppException.forbidden('PAYMENT_LINK_FORBIDDEN', 'Access denied');
     }
 
     return this.toResponseDto(paymentLink);
@@ -148,7 +151,10 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findByCode(code);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     // Increment view count
@@ -165,11 +171,14 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findById(id);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     if (paymentLink.userId !== userId) {
-      throw new ForbiddenException('Access denied');
+      throw AppException.forbidden('PAYMENT_LINK_FORBIDDEN', 'Access denied');
     }
 
     // Check if expired and update status
@@ -188,11 +197,14 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findById(id);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     if (paymentLink.userId !== userId) {
-      throw new ForbiddenException('Access denied');
+      throw AppException.forbidden('PAYMENT_LINK_FORBIDDEN', 'Access denied');
     }
 
     paymentLink.cancel();
@@ -209,22 +221,34 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findByCode(code);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     if (!paymentLink.isActive) {
-      throw new BadRequestException('Payment link is not active');
+      throw AppException.badRequest(
+        ERROR_CODES.PAYMENT_LINK_INACTIVE,
+        'Payment link is not active',
+      );
     }
 
     if (paymentLink.isExpired) {
       paymentLink.expire();
       await this.paymentLinkRepository.save(paymentLink);
-      throw new BadRequestException('Payment link has expired');
+      throw AppException.badRequest(
+        ERROR_CODES.PAYMENT_LINK_EXPIRED,
+        'Payment link has expired',
+      );
     }
 
     // Cannot pay your own link
     if (paymentLink.userId === payerUserId) {
-      throw new BadRequestException('Cannot pay your own payment link');
+      throw AppException.badRequest(
+        ERROR_CODES.PAYMENT_LINK_SELF_PAY,
+        'Cannot pay your own payment link',
+      );
     }
 
     // Determine amount
@@ -266,7 +290,9 @@ export class PaymentLinkService {
     } catch (error) {
       if (error instanceof AppException) throw error;
       // Fallback to local balance check
-      this.logger.warn(`Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.warn(
+        `Blnk balance check failed, falling back to local: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       if (payerWallet.balance < amount) {
         throw AppException.badRequest(
           ERROR_CODES.PAYMENT_LINK_INSUFFICIENT_FUNDS,
@@ -304,7 +330,9 @@ export class PaymentLinkService {
         },
       });
     } catch (error) {
-      this.logger.error(`Blnk P2P transfer failed for payment link ${paymentLink.code}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Blnk P2P transfer failed for payment link ${paymentLink.code}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       throw new BadRequestException('Payment failed. Please try again later.');
     }
 
@@ -367,11 +395,14 @@ export class PaymentLinkService {
     const paymentLink = await this.paymentLinkRepository.findById(id);
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found');
+      throw AppException.notFound(
+        ERROR_CODES.PAYMENT_LINK_NOT_FOUND,
+        'Payment link not found',
+      );
     }
 
     if (paymentLink.userId !== userId) {
-      throw new ForbiddenException('Access denied');
+      throw AppException.forbidden('PAYMENT_LINK_FORBIDDEN', 'Access denied');
     }
 
     paymentLink.cancel();
