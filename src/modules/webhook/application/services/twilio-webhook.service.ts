@@ -2,6 +2,10 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 export interface SmsStatusUpdate {
   messageSid: string;
@@ -24,24 +28,14 @@ export class TwilioWebhookService implements OnModuleDestroy {
   private readonly logger = new Logger(TwilioWebhookService.name);
   private readonly redis: Redis;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
-    // Initialize Redis for status tracking
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
+      retryLogContext: 'Twilio webhook',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     this.redis.on('error', (error) => {
@@ -214,25 +208,6 @@ export class TwilioWebhookService implements OnModuleDestroy {
   async onModuleDestroy() {
     this.isShuttingDown = true;
 
-    if (this.redis && this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-      this.logger.log('Redis connection closed for Twilio webhook service');
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis Twilio webhook');
   }
 }

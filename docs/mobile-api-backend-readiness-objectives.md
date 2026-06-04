@@ -25,7 +25,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Live API smoke verified auth, wallet, transactions, contacts, devices, sessions, notifications, and feature subscriptions return mobile-consumable responses.
 - [x] Disabled deposit provider discovery returns mobile-safe empty `channels`/`providers` responses instead of 500.
 - [ ] Add missing contract tests where mobile currently depends on undocumented response fields.
-- [ ] Ensure every mobile-facing error returns a stable user-actionable code/message pair.
+- [x] Ensure every mobile-facing error returns a stable user-actionable code/message pair for validation, auth, and session ownership failures.
 
 ## Auth, Sessions, And Devices
 
@@ -36,9 +36,9 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Device register endpoint returns app version after registration/update.
 - [x] Auth login, refresh, logout, and logout-all e2e tests assert mobile-consumable success/action payloads.
 - [x] Device list endpoints return `200 []` for users with no registered devices.
-- [ ] Confirm refresh-token, logout, logout-all, and active-session endpoints return mobile-consumable 401/403 states without noisy stack traces.
+- [x] Confirm refresh-token, logout, logout-all, and active-session endpoints return mobile-consumable 401/403 states without noisy stack traces.
 - [ ] Verify device registration/update/revocation behavior is idempotent and audit-safe.
-- [ ] Confirm active-session screen never shows raw 401 text; backend must provide consistent auth failure semantics.
+- [x] Confirm active-session screen never shows raw 401 text; backend now emits a normalized auth failure envelope.
 
 ## Wallet And Transaction Flows
 
@@ -74,8 +74,8 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Circuit breaker timeout races clear timers and tests do not leak long-running timers.
 - [x] Batch job scheduler ORM mapping matches migration columns and no longer emits camelCase-column query errors.
 - [x] Device crypto fields are covered by a real database migration instead of an unregistered module-local migration.
-- [ ] Replace repeated direct Redis shutdown code with a shared Redis client factory or shutdown helper.
-- [ ] Add a CI-safe backend verification command that does not require `--forceExit`.
+- [x] Replace repeated direct Redis shutdown code with a shared Redis client factory or shutdown helper.
+- [x] Add a CI-safe backend verification command that does not require `--forceExit`.
 
 ## Recursive Execution Rule
 

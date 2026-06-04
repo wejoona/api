@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { DataSource, EntityMetadata } from 'typeorm';
 import Redis from 'ioredis';
 import type { Cache } from 'cache-manager';
+import { closeRedisClient } from '@/common/redis/redis-client.helper';
 
 /**
  * Helper class for seeding and managing test data
@@ -213,7 +214,7 @@ export class TestDataHelper {
     try {
       await redis.flushdb();
     } finally {
-      await closeRedisTestClient(redis);
+      await closeRedisClient(redis, undefined, 'Redis test client');
     }
   }
 
@@ -240,25 +241,6 @@ export class TestDataHelper {
    */
   getRepository<T>(entity: any) {
     return this.dataSource.getRepository<T>(entity);
-  }
-}
-
-async function closeRedisTestClient(redis: Redis): Promise<void> {
-  let timeoutId: NodeJS.Timeout;
-  const shutdownTimeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(
-      () => reject(new Error('Redis test client shutdown timed out')),
-      500,
-    );
-    timeoutId.unref();
-  });
-
-  try {
-    await Promise.race([redis.quit(), shutdownTimeout]);
-  } catch {
-    redis.disconnect(false);
-  } finally {
-    clearTimeout(timeoutId!);
   }
 }
 

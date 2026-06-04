@@ -19,6 +19,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { generateKeyPair, exportJWK, importJWK, compactDecrypt } from 'jose';
 import Redis from 'ioredis';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 interface ServerKeyPair {
   publicJwk: Record<string, unknown>;
@@ -35,7 +39,6 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
   private readonly KEY_TTL_DAYS: number;
   private currentKey: ServerKeyPair | null = null;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(private readonly configService: ConfigService) {
     this.KEY_TTL_DAYS = parseInt(
@@ -43,20 +46,11 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
       10,
     );
 
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host', 'localhost'),
-      port: this.configService.get<number>('redis.port', 6379),
-      password: this.configService.get<string>('redis.password'),
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
       db: this.configService.get<number>('redis.db', 0),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        this.logger.warn(`Redis retry attempt ${times}, waiting ${delay}ms`);
-        return delay;
-      },
       maxRetriesPerRequest: 3,
+      retryLogContext: 'server key',
+      isShuttingDown: () => this.isShuttingDown,
     });
   }
 
@@ -67,25 +61,7 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     this.isShuttingDown = true;
 
-    if (this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis server key');
   }
 
   /**

@@ -6,6 +6,10 @@ import {
   SendSmsRequest,
   SmsResponse,
 } from '../../../domain/gateways/sms.gateway';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 // Use require for Twilio to avoid esModule issues
 const twilio = require('twilio');
@@ -55,7 +59,6 @@ export class TwilioSmsAdapter implements ISmsGateway, OnModuleDestroy {
   private readonly redis: Redis;
   private readonly useDevMode: boolean;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   readonly providerName = 'twilio';
 
@@ -66,18 +69,9 @@ export class TwilioSmsAdapter implements ISmsGateway, OnModuleDestroy {
     // Initialize Twilio client
     this.twilioClient = twilio(this.config.accountSid, this.config.authToken);
 
-    // Initialize Redis for rate limiting
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
+      retryLogContext: 'Twilio SMS',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     // Check if using dev mode (bypass Twilio)
@@ -442,25 +436,6 @@ export class TwilioSmsAdapter implements ISmsGateway, OnModuleDestroy {
   async onModuleDestroy() {
     this.isShuttingDown = true;
 
-    if (this.redis && this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-      this.logger.log('Redis connection closed for Twilio adapter');
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis Twilio SMS');
   }
 }

@@ -1,7 +1,14 @@
-import { Injectable, Logger, OnModuleInit, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BaseExceptionFilter } from '@nestjs/core';
 import * as Sentry from '@sentry/node';
+import { GlobalExceptionFilter } from '../filters/http-exception.filter';
 
 @Injectable()
 export class SentryService implements OnModuleInit {
@@ -54,12 +61,16 @@ export class SentryService implements OnModuleInit {
 }
 
 /**
- * Global exception filter that reports all unhandled exceptions to Sentry.
- * Register in main.ts: app.useGlobalFilters(new SentryExceptionFilter(sentryService));
+ * Global exception filter that reports unhandled exceptions to Sentry while
+ * preserving the normalized mobile/API error envelope.
  */
 @Catch()
-export class SentryExceptionFilter extends BaseExceptionFilter {
+export class SentryExceptionFilter extends GlobalExceptionFilter {
   private static sentryService: SentryService;
+
+  constructor(..._args: unknown[]) {
+    super();
+  }
 
   static initialize(sentryService: SentryService): void {
     SentryExceptionFilter.sentryService = sentryService;

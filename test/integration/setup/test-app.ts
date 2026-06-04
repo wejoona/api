@@ -13,6 +13,7 @@ import {
   ParseUUIDPipe,
   CanActivate,
   ExecutionContext,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '@/common/guards/pin-verification.guard';
@@ -27,6 +28,7 @@ import { WALLET_REPOSITORY } from '@/modules/wallet/domain/repositories/wallet.r
 import { UserRepository } from '@/modules/user/infrastructure/repositories';
 import { JweDecryptInterceptor } from '@/modules/security/application/interceptors/jwe-decrypt.interceptor';
 import { ServerKeyService } from '@/modules/security/application/services/server-key.service';
+import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
 
 /**
  * Default mock user for authenticated requests
@@ -86,7 +88,7 @@ export class MockJwtAuthGuard implements CanActivate {
  */
 export class RejectingJwtAuthGuard implements CanActivate {
   canActivate(): boolean {
-    return false;
+    throw new UnauthorizedException('Invalid or expired token');
   }
 }
 
@@ -347,6 +349,7 @@ export async function createTestApp(options: TestAppOptions): Promise<{
 
   // Apply global prefix and validation pipe like production
   app.setGlobalPrefix('api/v1');
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -393,6 +396,7 @@ export async function createUnauthTestApp(
   const module = await moduleBuilder.compile();
   const app = module.createNestApplication();
   app.setGlobalPrefix('api/v1');
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

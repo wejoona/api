@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import {
   HealthIndicator,
   HealthIndicatorResult,
@@ -6,28 +6,34 @@ import {
 } from '@nestjs/terminus';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 @Injectable()
 export class RedisHealthIndicator
   extends HealthIndicator
   implements OnModuleDestroy
 {
+  private readonly logger = new Logger(RedisHealthIndicator.name);
   private redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
     super();
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host', 'localhost'),
-      port: this.configService.get<number>('redis.port', 6379),
-      password: this.configService.get<string>('redis.password'),
-      maxRetriesPerRequest: 1,
-      connectTimeout: 5000,
-      lazyConnect: true,
-    });
+    this.redis = createConfiguredRedisClient(
+      this.configService,
+      this.logger,
+      {
+        maxRetriesPerRequest: 1,
+        connectTimeout: 5000,
+        lazyConnect: true,
+      },
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.redis.disconnect(false);
+    await closeRedisClient(this.redis, this.logger, 'Redis health');
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {

@@ -12,6 +12,10 @@ import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import Redis from 'ioredis';
 import { Request, Response } from 'express';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '../redis/redis-client.helper';
 
 /**
  * Idempotency Interceptor
@@ -38,27 +42,14 @@ export class IdempotencyInterceptor
   private readonly redis: Redis;
   private isRedisConnected = false;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
   private readonly CACHE_TTL = 86400; // 24 hours in seconds
 
   constructor(private readonly configService: ConfigService) {
-    // Initialize Redis client
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
       db: this.configService.get<number>('redis.db'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        this.logger.warn(
-          `Redis connection retry attempt ${times}, waiting ${delay}ms`,
-        );
-        return delay;
-      },
       maxRetriesPerRequest: 3,
+      retryLogContext: 'idempotency',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     // Redis connection event handlers
@@ -88,26 +79,7 @@ export class IdempotencyInterceptor
     this.isShuttingDown = true;
     this.isRedisConnected = false;
 
-    if (this.redis && this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-      this.logger.log('Redis connection closed gracefully');
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis idempotency');
   }
 
   async intercept(

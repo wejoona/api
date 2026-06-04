@@ -20,6 +20,10 @@ import {
   ISmsGateway,
   SMS_GATEWAY,
 } from '../../../shared/domain/gateways/sms.gateway';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 /**
  * Local Verification Strategy
@@ -45,24 +49,15 @@ export class LocalVerificationStrategy
   private readonly maxOtpRequestsPerHour: number;
   private isRedisConnected = false;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(
     private readonly configService: ConfigService,
     @Inject(SMS_GATEWAY) private readonly smsGateway: ISmsGateway,
   ) {
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
       maxRetriesPerRequest: 3,
+      retryLogContext: 'local verification',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     this.redis.on('connect', () => {
@@ -104,25 +99,7 @@ export class LocalVerificationStrategy
     this.isShuttingDown = true;
     this.isRedisConnected = false;
 
-    if (this.redis && this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis local verification');
   }
 
   private ensureConnection(): void {

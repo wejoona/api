@@ -23,6 +23,10 @@ import {
 } from '@modules/providers/interfaces';
 import { WebhookDeadletterService } from '../domain/services/webhook-deadletter.service';
 import { CacheInvalidationService } from '@modules/shared/infrastructure/services';
+import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
 
 export interface ProcessWebhookInput {
   payload: Record<string, unknown>;
@@ -53,7 +57,6 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
   private readonly redis: Redis;
   private isRedisConnected = false;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(
     @Inject(PAYMENT_GATEWAY)
@@ -73,22 +76,10 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
       '',
     );
 
-    // Initialize Redis for idempotency checks
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        const delay = Math.min(times * 50, 2000);
-        this.logger.warn(
-          `Redis connection retry attempt ${times}, waiting ${delay}ms`,
-        );
-        return delay;
-      },
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
       maxRetriesPerRequest: 3,
+      retryLogContext: 'webhook processing',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     // Redis connection event handlers
@@ -118,26 +109,7 @@ export class ProcessWebhookUseCase implements OnModuleDestroy {
     this.isShuttingDown = true;
     this.isRedisConnected = false;
 
-    if (this.redis && this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-      this.logger.log('Redis connection closed gracefully');
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis webhook');
   }
 
   /**

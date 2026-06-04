@@ -8,6 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import {
+  closeRedisClient,
+  createConfiguredRedisClient,
+} from '@/common/redis/redis-client.helper';
+import {
   IVerificationStrategy,
   CreateVerificationRequest,
   CreateVerificationResult,
@@ -38,7 +42,6 @@ export class VerifyHqVerificationStrategy
   private readonly redis: Redis;
   private readonly mappingTtlSeconds: number;
   private isShuttingDown = false;
-  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl =
@@ -51,17 +54,10 @@ export class VerifyHqVerificationStrategy
       this.configService.get<number>('otp.expiresIn') ||
       300;
 
-    this.redis = new Redis({
-      host: this.configService.get<string>('redis.host'),
-      port: this.configService.get<number>('redis.port'),
-      password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => {
-        if (this.isShuttingDown || this.disableRedisRetries) {
-          return null;
-        }
-        return Math.min(times * 50, 2000);
-      },
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
       maxRetriesPerRequest: 3,
+      retryLogContext: 'VerifyHQ verification',
+      isShuttingDown: () => this.isShuttingDown,
     });
 
     if (!this.apiKey) {
@@ -78,25 +74,7 @@ export class VerifyHqVerificationStrategy
   async onModuleDestroy() {
     this.isShuttingDown = true;
 
-    if (this.redis.status !== 'end') {
-      this.redis.removeAllListeners?.();
-      let timeoutId: NodeJS.Timeout;
-      const shutdownTimeout = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('Redis graceful shutdown timed out')),
-          500,
-        );
-        timeoutId.unref();
-      });
-
-      try {
-        await Promise.race([this.redis.quit(), shutdownTimeout]);
-      } catch {
-        this.redis.disconnect(false);
-      } finally {
-        clearTimeout(timeoutId!);
-      }
-    }
+    await closeRedisClient(this.redis, this.logger, 'Redis VerifyHQ');
   }
 
   async createVerification(

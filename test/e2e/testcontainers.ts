@@ -6,6 +6,7 @@ import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import Redis from 'ioredis';
+import { closeRedisClient } from '@/common/redis/redis-client.helper';
 
 const RETRYABLE_TESTCONTAINERS_ERRORS = ['FinishedAt'];
 
@@ -110,25 +111,6 @@ async function flushSharedRedis(sharedInfra: SharedInfraInfo): Promise<void> {
   try {
     await redis.flushdb();
   } finally {
-    await closeRedisTestClient(redis);
-  }
-}
-
-async function closeRedisTestClient(redis: Redis): Promise<void> {
-  let timeoutId: NodeJS.Timeout;
-  const shutdownTimeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(
-      () => reject(new Error('Redis test client shutdown timed out')),
-      500,
-    );
-    timeoutId.unref();
-  });
-
-  try {
-    await Promise.race([redis.quit(), shutdownTimeout]);
-  } catch {
-    redis.disconnect(false);
-  } finally {
-    clearTimeout(timeoutId!);
+    await closeRedisClient(redis, undefined, 'Redis test client');
   }
 }

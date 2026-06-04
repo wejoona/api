@@ -34,6 +34,7 @@ import {
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
+  let unauthApp: INestApplication;
 
   beforeAll(async () => {
     const result = await createTestApp({
@@ -48,10 +49,24 @@ describe('AuthController (e2e)', () => {
       ],
     });
     app = result.app;
+
+    const unauthResult = await createUnauthTestApp({
+      controllers: [AuthController],
+      providers: [
+        { provide: RegisterUserUsecase, useValue: mockRegisterUser },
+        { provide: VerifyOtpUsecase, useValue: mockVerifyOtp },
+        { provide: LoginUserUsecase, useValue: mockLoginUser },
+        { provide: RefreshTokenUsecase, useValue: mockRefreshToken },
+        { provide: LogoutUsecase, useValue: mockLogout },
+        { provide: LogoutAllUsecase, useValue: mockLogoutAll },
+      ],
+    });
+    unauthApp = unauthResult.app;
   });
 
   afterAll(async () => {
     await app?.close();
+    await unauthApp?.close();
   });
 
   beforeEach(() => {
@@ -82,10 +97,21 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 400 for missing phone', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({ countryCode: 'CI' })
         .expect(400);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'BAD_REQUEST',
+            message: expect.any(String),
+            details: expect.arrayContaining([expect.stringContaining('phone')]),
+          }),
+        }),
+      );
     });
 
     it('should register with default country when countryCode is missing (201)', async () => {
@@ -205,10 +231,20 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should return 400 for missing refreshToken', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({})
         .expect(400);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'BAD_REQUEST',
+            message: expect.any(String),
+          }),
+        }),
+      );
     });
   });
 
@@ -236,6 +272,24 @@ describe('AuthController (e2e)', () => {
         success: true,
         message: 'Logged out successfully',
       });
+    });
+
+    it('should return a mobile-safe 401 envelope for expired access tokens', async () => {
+      const res = await request(unauthApp.getHttpServer())
+        .post('/api/v1/auth/logout')
+        .set('Authorization', 'Bearer expired.token')
+        .send({ refreshToken: 'mock.refresh.token' })
+        .expect(401);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'UNAUTHORIZED',
+            message: 'Invalid or expired token',
+          }),
+        }),
+      );
     });
   });
 

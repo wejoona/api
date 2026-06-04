@@ -1,9 +1,9 @@
 /**
  * Session Controller Integration Tests
  */
-import { INestApplication } from '@nestjs/common';
+import { ForbiddenException, INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../setup/test-app';
+import { createTestApp, createUnauthTestApp } from '../setup/test-app';
 
 const mockSessionService = {
   getActiveSessions: jest.fn(),
@@ -35,6 +35,7 @@ function createSession() {
 
 describe('SessionController (e2e)', () => {
   let app: INestApplication;
+  let unauthApp: INestApplication;
 
   beforeAll(async () => {
     const result = await createTestApp({
@@ -42,10 +43,17 @@ describe('SessionController (e2e)', () => {
       providers: [{ provide: SessionService, useValue: mockSessionService }],
     });
     app = result.app;
+
+    const unauthResult = await createUnauthTestApp({
+      controllers: [SessionController],
+      providers: [{ provide: SessionService, useValue: mockSessionService }],
+    });
+    unauthApp = unauthResult.app;
   });
 
   afterAll(async () => {
     await app?.close();
+    await unauthApp?.close();
   });
   beforeEach(() => {
     jest.clearAllMocks();
@@ -71,6 +79,23 @@ describe('SessionController (e2e)', () => {
         }),
       ]);
     });
+
+    it('should return a mobile-safe 401 envelope for expired access tokens', async () => {
+      const res = await request(unauthApp.getHttpServer())
+        .get('/api/v1/sessions')
+        .set('Authorization', 'Bearer expired.token')
+        .expect(401);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'UNAUTHORIZED',
+            message: 'Invalid or expired token',
+          }),
+        }),
+      );
+    });
   });
 
   describe('DELETE /api/v1/sessions/:id', () => {
@@ -84,6 +109,27 @@ describe('SessionController (e2e)', () => {
         USER_ID,
         SESSION_ID,
         'user_revoke_device',
+      );
+    });
+
+    it('should return a mobile-safe 403 envelope for another user session', async () => {
+      mockSessionService.revokeSession.mockRejectedValueOnce(
+        new ForbiddenException('Session does not belong to user'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .delete(`/api/v1/sessions/${SESSION_ID}`)
+        .send({ reason: 'user_revoke_device' })
+        .expect(403);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'FORBIDDEN',
+            message: 'Session does not belong to user',
+          }),
+        }),
       );
     });
   });
