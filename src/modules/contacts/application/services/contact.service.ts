@@ -222,10 +222,9 @@ export class ContactService {
     totalChecked: number;
     matchesFound: number;
   }> {
-    // Get all users
-    const users = await this.userRepository.findAll();
+    const uniqueHashes = [...new Set(phoneHashes)];
+    const users = await this.userRepository.findByPhoneHashes(uniqueHashes);
 
-    // Match hashes against user phone numbers
     const matches: Array<{
       phoneHash: string;
       userId: string;
@@ -235,7 +234,7 @@ export class ContactService {
     for (const user of users) {
       const userPhoneHash = this.hashPhone(user.phone);
 
-      if (phoneHashes.includes(userPhoneHash)) {
+      if (uniqueHashes.includes(userPhoneHash)) {
         matches.push({
           phoneHash: userPhoneHash,
           userId: user.id,

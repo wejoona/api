@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { createHash } from 'crypto';
 import { Repository } from 'typeorm';
 import { IUser, User } from '../../application/domain/entities';
 import { UserOrmEntity } from '../orm-entities';
@@ -21,6 +22,7 @@ export class UserRepository {
 
   async save(user: User): Promise<User> {
     const ormEntity = UserMapper.toOrm(user);
+    ormEntity.phoneHash = this.hashPhone(user.phone);
     const saved = await this.ormRepository.save(ormEntity);
     const domainUser = UserMapper.toDomain(saved);
 
@@ -119,6 +121,19 @@ export class UserRepository {
     return orms.map((orm) => UserMapper.toDomain(orm));
   }
 
+  async findByPhoneHashes(phoneHashes: string[]): Promise<User[]> {
+    const uniqueHashes = [...new Set(phoneHashes)];
+    if (uniqueHashes.length === 0) return [];
+
+    const orms = await this.ormRepository
+      .createQueryBuilder('user')
+      .where('user.phoneHash IN (:...phoneHashes)', {
+        phoneHashes: uniqueHashes,
+      })
+      .getMany();
+    return orms.map((orm) => UserMapper.toDomain(orm));
+  }
+
   async findAll(): Promise<User[]> {
     const orms = await this.ormRepository.find({
       order: { createdAt: 'DESC' },
@@ -165,5 +180,9 @@ export class UserRepository {
   private toNullableDate(value: Date | string | null): Date | null {
     if (!value) return null;
     return this.toDate(value);
+  }
+
+  private hashPhone(phone: string): string {
+    return createHash('sha256').update(phone).digest('hex');
   }
 }
