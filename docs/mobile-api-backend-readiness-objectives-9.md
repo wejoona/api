@@ -6,7 +6,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 
 - [x] Confirm `/feature-flags/me` and `/feature-flags/check/:key` have explicit contracts matching mobile's flat `Map<String, bool>` parser.
 - [x] Confirm feature-flag bootstrap failures return stable mobile-safe envelopes without breaking cached mobile startup.
-- [ ] Confirm backend/mobile docs describe the same feature-flag response shape.
+- [x] Confirm backend/mobile docs describe the same feature-flag response shape.
 
 ## User Profile And Identity Surfaces
 
@@ -45,6 +45,20 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="feature-flag.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="feature-flag.controller"`
+
+### Feature Flag Documentation Shape - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Backend feature-flag docs already described `/feature-flags/me` as a flat feature map.
+- Mobile feature-flag docs now describe the same flat `{ feature_key: boolean }` response.
+- Removed stale wrapped `{ "flags": { ... } }` examples from mobile feature-flag README, implementation, summary, and quick reference docs.
+
+Verification:
+
+- `rg -n '"flags"\\s*:' src/modules/feature-flag /Users/macbook/JoonaPay/USDC-Wallet/mobile/lib/services/feature_flags -g '*.md'`
 
 ### Feature Flag Dependency Failure Envelope - 2026-06-04
 
