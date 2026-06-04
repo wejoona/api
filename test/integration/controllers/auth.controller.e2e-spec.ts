@@ -146,15 +146,24 @@ describe('AuthController (e2e)', () => {
   // ==========================================
   describe('POST /api/v1/auth/login', () => {
     it('should login successfully (200)', async () => {
-      mockLoginUser.execute.mockResolvedValue({ otpExpiresIn: 300 });
+      mockLoginUser.execute.mockResolvedValue({
+        success: true,
+        otpExpiresIn: 300,
+      });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ phone: '+2250701234567' })
         .expect(200);
 
-      expect(res.body).toBeDefined();
-      expect(mockLoginUser.execute).toHaveBeenCalled();
+      expect(res.body).toEqual({
+        success: true,
+        message: 'OTP sent successfully',
+        expiresIn: 300,
+      });
+      expect(mockLoginUser.execute).toHaveBeenCalledWith({
+        phone: '+2250701234567',
+      });
     });
 
     it('should return 400 for missing phone', async () => {
@@ -182,7 +191,17 @@ describe('AuthController (e2e)', () => {
         .send({ refreshToken: 'mock.refresh.token' })
         .expect(200);
 
-      expect(res.body).toBeDefined();
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          accessToken: 'new.access.token',
+          refreshToken: 'new.refresh.token',
+          expiresIn: 900,
+          user: expect.any(Object),
+        }),
+      );
+      expect(mockRefreshToken.execute).toHaveBeenCalledWith({
+        refreshToken: 'mock.refresh.token',
+      });
     });
 
     it('should return 400 for missing refreshToken', async () => {
@@ -198,13 +217,25 @@ describe('AuthController (e2e)', () => {
   // ==========================================
   describe('POST /api/v1/auth/logout', () => {
     it('should logout successfully (200)', async () => {
-      mockLogout.execute.mockResolvedValue({ success: true });
+      mockLogout.execute.mockResolvedValue({
+        success: true,
+        message: 'Logged out successfully',
+      });
 
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/logout')
         .set('Authorization', 'Bearer mock.token')
         .send({ refreshToken: 'mock.refresh.token' })
         .expect(200);
+
+      expect(mockLogout.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        refreshToken: 'mock.refresh.token',
+      });
+      expect(res.body).toEqual({
+        success: true,
+        message: 'Logged out successfully',
+      });
     });
   });
 
@@ -213,13 +244,27 @@ describe('AuthController (e2e)', () => {
   // ==========================================
   describe('POST /api/v1/auth/logout-all', () => {
     it('should logout all sessions (200)', async () => {
-      mockLogoutAll.execute.mockResolvedValue({ success: true, count: 3 });
+      mockLogoutAll.execute.mockResolvedValue({
+        success: true,
+        message: 'All devices logged out successfully',
+        sessionsInvalidated: 3,
+      });
 
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/logout-all')
         .set('Authorization', 'Bearer mock.token')
-        .send({})
+        .send({ currentRefreshToken: 'mock.refresh.token' })
         .expect(200);
+
+      expect(mockLogoutAll.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        currentRefreshToken: 'mock.refresh.token',
+      });
+      expect(res.body).toEqual({
+        success: true,
+        message: 'All devices logged out successfully',
+        sessionsInvalidated: 3,
+      });
     });
   });
 });

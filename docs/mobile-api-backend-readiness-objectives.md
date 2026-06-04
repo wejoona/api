@@ -31,6 +31,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Session revoke and revoke-all endpoints accept/pass mobile reason payloads.
 - [x] Device list endpoint returns mobile-parsable device fields used by the settings screen.
 - [x] Device register endpoint returns app version after registration/update.
+- [x] Auth login, refresh, logout, and logout-all e2e tests assert mobile-consumable success/action payloads.
 - [ ] Confirm refresh-token, logout, logout-all, and active-session endpoints return mobile-consumable 401/403 states without noisy stack traces.
 - [ ] Verify device registration/update/revocation behavior is idempotent and audit-safe.
 - [ ] Confirm active-session screen never shows raw 401 text; backend must provide consistent auth failure semantics.
