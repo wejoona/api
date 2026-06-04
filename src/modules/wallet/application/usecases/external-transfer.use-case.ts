@@ -31,6 +31,7 @@ import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
 import { getLimitsForKycStatus } from '../../../../common/constants/limits';
 import { AppException } from '../../../../common/exceptions';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
+import { formatDecimalAmount } from '../../../../common/utils/money-response.util';
 
 export interface ExternalTransferInput {
   userId: string;
@@ -45,8 +46,10 @@ export interface ExternalTransferOutput {
   walletId: string;
   toAddress: string;
   amount: number;
+  amountDecimal: string;
   currency: string;
   fee: number;
+  feeDecimal: string;
   status: string;
   txHash?: string;
   estimatedArrival?: string;
@@ -277,8 +280,10 @@ export class ExternalTransferUseCase {
         walletId: wallet.id,
         toAddress: input.toAddress,
         amount: input.amount,
+        amountDecimal: formatDecimalAmount(input.amount, currency),
         currency,
         fee,
+        feeDecimal: formatDecimalAmount(fee, currency),
         status: transferResponse.status,
         txHash: transferResponse.txHash,
         estimatedArrival: '5-30 minutes',

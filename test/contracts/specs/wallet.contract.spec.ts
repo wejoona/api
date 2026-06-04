@@ -25,7 +25,15 @@ describe('Wallet Contracts', () => {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
         currency: 'USD',
         balances: [
-          { currency: 'USD', available: 100.0, pending: 0, total: 100.0 },
+          {
+            currency: 'USD',
+            available: 100.0,
+            availableDecimal: '100.00',
+            pending: 0,
+            pendingDecimal: '0.00',
+            total: 100.0,
+            totalDecimal: '100.00',
+          },
         ],
       };
 
@@ -39,8 +47,24 @@ describe('Wallet Contracts', () => {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
         currency: 'USD',
         balances: [
-          { currency: 'USD', available: 100.0, pending: 10, total: 110.0 },
-          { currency: 'USDC', available: 50.0, pending: 0, total: 50.0 },
+          {
+            currency: 'USD',
+            available: 100.0,
+            availableDecimal: '100.00',
+            pending: 10,
+            pendingDecimal: '10.00',
+            total: 110.0,
+            totalDecimal: '110.00',
+          },
+          {
+            currency: 'USDC',
+            available: 50.0,
+            availableDecimal: '50.000000',
+            pending: 0,
+            pendingDecimal: '0.000000',
+            total: 50.0,
+            totalDecimal: '50.000000',
+          },
         ],
       };
 
@@ -87,6 +111,7 @@ describe('Wallet Contracts', () => {
         circleWalletAddress: '0x3ca7a6241ee8490dc847b3ee9635b4ecfe9f9bc5',
         currency: 'USDC',
         balance: 0,
+        balanceDecimal: '0.000000',
         status: 'active',
       };
 
@@ -100,6 +125,7 @@ describe('Wallet Contracts', () => {
         userId: '123e4567-e89b-12d3-a456-426614174001',
         currency: 'USDC',
         balance: 0,
+        balanceDecimal: '0.000000',
         status: 'pending',
       };
 
@@ -113,6 +139,7 @@ describe('Wallet Contracts', () => {
         userId: '123e4567-e89b-12d3-a456-426614174001',
         currency: 'USDC',
         balance: 0,
+        balanceDecimal: '0.000000',
         status: 'invalid',
       };
 
@@ -188,11 +215,15 @@ describe('Wallet Contracts', () => {
         transactionId: '123e4567-e89b-12d3-a456-426614174000',
         depositId: 'dep_1234567890',
         amount: 10000,
+        amountDecimal: '10000',
         sourceCurrency: 'XOF',
         targetCurrency: 'USD',
         rate: 0.00166,
+        rateDecimal: '0.00166000',
         fee: 150,
+        feeDecimal: '150',
         estimatedAmount: 16.45,
+        estimatedAmountDecimal: '16.45',
         paymentInstructions: {
           type: 'mobile_money',
           provider: 'orange',
@@ -212,11 +243,15 @@ describe('Wallet Contracts', () => {
         transactionId: '123e4567-e89b-12d3-a456-426614174000',
         depositId: 'dep_1234567890',
         amount: 10000,
+        amountDecimal: '10000',
         sourceCurrency: 'XOF',
         targetCurrency: 'USD',
         rate: 0.00166,
+        rateDecimal: '0.00166000',
         fee: 150,
+        feeDecimal: '150',
         estimatedAmount: 16.45,
+        estimatedAmountDecimal: '16.45',
         expiresAt: '2026-01-18T13:00:00.000Z',
       };
 
@@ -233,8 +268,10 @@ describe('Wallet Contracts', () => {
         toWalletId: 'wallet-2',
         toPhone: '+2250701234567',
         amount: 50,
+        amountDecimal: '50.00',
         currency: 'USD',
         fee: 0,
+        feeDecimal: '0.00',
         status: 'completed',
       };
 
@@ -249,8 +286,10 @@ describe('Wallet Contracts', () => {
         toWalletId: 'wallet-2',
         toPhone: '+2250701234567',
         amount: 50,
+        amountDecimal: '50.00',
         currency: 'USD',
         fee: 0,
+        feeDecimal: '0.00',
         status: 'processing', // Invalid for internal transfer
       };
 
@@ -265,8 +304,10 @@ describe('Wallet Contracts', () => {
         toWalletId: 'wallet-2',
         toPhone: '0701234567', // Invalid
         amount: 50,
+        amountDecimal: '50.00',
         currency: 'USD',
         fee: 0,
+        feeDecimal: '0.00',
         status: 'completed',
       };
 
@@ -282,8 +323,10 @@ describe('Wallet Contracts', () => {
         walletId: 'wallet-1',
         toAddress: '0x1234567890abcdef1234567890abcdef12345678',
         amount: 50,
+        amountDecimal: '50.00',
         currency: 'USD',
         fee: 1.0,
+        feeDecimal: '1.00',
         status: 'pending',
         estimatedArrival: '5-30 minutes',
       };
@@ -298,8 +341,10 @@ describe('Wallet Contracts', () => {
         walletId: 'wallet-1',
         toAddress: '0x1234567890abcdef1234567890abcdef12345678',
         amount: 50,
+        amountDecimal: '50.00',
         currency: 'USD',
         fee: 1.0,
+        feeDecimal: '1.00',
         status: 'pending',
       };
 
@@ -313,9 +358,11 @@ describe('Wallet Contracts', () => {
       const response = {
         transactionId: '123e4567-e89b-12d3-a456-426614174000',
         amount: 50.0,
+        amountDecimal: '50.00',
         destinationAddress: '0x1234567890abcdef1234567890abcdef12345678',
         network: 'polygon',
         fee: 0.25,
+        feeDecimal: '0.25',
         status: 'pending',
       };
 
@@ -344,9 +391,13 @@ describe('Wallet Contracts', () => {
         sourceCurrency: 'XOF',
         targetCurrency: 'USD',
         rate: 0.00166,
+        rateDecimal: '0.00166000',
         sourceAmount: 10000,
+        sourceAmountDecimal: '10000',
         targetAmount: 16.6,
+        targetAmountDecimal: '16.60',
         fee: 150,
+        feeDecimal: '150',
         expiresAt: '2026-01-18T12:05:00.000Z',
       };
 
@@ -359,9 +410,13 @@ describe('Wallet Contracts', () => {
         sourceCurrency: 'XOF',
         targetCurrency: 'USD',
         rate: 0.00166,
+        rateDecimal: '0.00166000',
         sourceAmount: 10000,
+        sourceAmountDecimal: '10000',
         targetAmount: 16.6,
+        targetAmountDecimal: '16.60',
         fee: 150,
+        feeDecimal: '150',
         expiresAt: '2026-01-18', // Not ISO format
       };
 

@@ -32,13 +32,25 @@ export const BalanceItemSchema: ContractSchema = {
       description: 'Available balance',
       example: 100.0,
     }),
+    availableDecimal: required(FieldType.STRING, {
+      description: 'Available balance as decimal-safe string',
+      example: '100.000000',
+    }),
     pending: required(FieldType.NUMBER, {
       description: 'Pending balance',
       example: 0,
     }),
+    pendingDecimal: required(FieldType.STRING, {
+      description: 'Pending balance as decimal-safe string',
+      example: '0.000000',
+    }),
     total: required(FieldType.NUMBER, {
       description: 'Total balance (available + pending)',
       example: 100.0,
+    }),
+    totalDecimal: required(FieldType.STRING, {
+      description: 'Total balance as decimal-safe string',
+      example: '100.000000',
     }),
   },
 };
@@ -95,6 +107,10 @@ export const WalletCreateResponseSchema: ContractSchema = {
     balance: required(FieldType.NUMBER, {
       description: 'Current balance',
       example: 0,
+    }),
+    balanceDecimal: required(FieldType.STRING, {
+      description: 'Current balance as decimal-safe string',
+      example: '0.000000',
     }),
     status: required(FieldType.STRING, {
       description: 'Wallet status',
@@ -220,6 +236,10 @@ export const DepositResponseSchema: ContractSchema = {
       description: 'Amount in source currency',
       example: 10000,
     }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Amount in source currency as decimal-safe string',
+      example: '10000',
+    }),
     sourceCurrency: required(FieldType.STRING, {
       description: 'Source currency',
       example: 'XOF',
@@ -232,13 +252,25 @@ export const DepositResponseSchema: ContractSchema = {
       description: 'Exchange rate applied',
       example: 0.00166,
     }),
+    rateDecimal: required(FieldType.STRING, {
+      description: 'Exchange rate as decimal-safe string',
+      example: '0.00166000',
+    }),
     fee: required(FieldType.NUMBER, {
       description: 'Fee in source currency',
       example: 150,
     }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Fee in source currency as decimal-safe string',
+      example: '150',
+    }),
     estimatedAmount: required(FieldType.NUMBER, {
       description: 'Estimated amount in target currency',
       example: 16.45,
+    }),
+    estimatedAmountDecimal: required(FieldType.STRING, {
+      description: 'Estimated amount in target currency as decimal-safe string',
+      example: '16.45',
     }),
     paymentInstructions: required(FieldType.OBJECT, {
       description: 'Payment instructions',
@@ -278,6 +310,10 @@ export const InternalTransferResponseSchema: ContractSchema = {
       description: 'Transfer amount',
       example: 50,
     }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Transfer amount as decimal-safe string',
+      example: '50.000000',
+    }),
     currency: required(FieldType.STRING, {
       description: 'Currency',
       example: 'USD',
@@ -285,6 +321,10 @@ export const InternalTransferResponseSchema: ContractSchema = {
     fee: required(FieldType.NUMBER, {
       description: 'Transfer fee',
       example: 0,
+    }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Transfer fee as decimal-safe string',
+      example: '0.000000',
     }),
     status: required(FieldType.STRING, {
       description: 'Transfer status',
@@ -317,6 +357,10 @@ export const ExternalTransferResponseSchema: ContractSchema = {
       description: 'Transfer amount',
       example: 50,
     }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Transfer amount as decimal-safe string',
+      example: '50.000000',
+    }),
     currency: required(FieldType.STRING, {
       description: 'Currency',
       example: 'USD',
@@ -324,6 +368,10 @@ export const ExternalTransferResponseSchema: ContractSchema = {
     fee: required(FieldType.NUMBER, {
       description: 'Network fee',
       example: 1.0,
+    }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Network fee as decimal-safe string',
+      example: '1.000000',
     }),
     status: required(FieldType.STRING, {
       description: 'Transfer status',
@@ -352,6 +400,10 @@ export const WithdrawResponseSchema: ContractSchema = {
       description: 'Withdrawal amount',
       example: 50.0,
     }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Withdrawal amount as decimal-safe string',
+      example: '50.000000',
+    }),
     destinationAddress: required(FieldType.STRING, {
       description: 'Destination wallet address',
       example: '0x1234567890abcdef1234567890abcdef12345678',
@@ -364,6 +416,10 @@ export const WithdrawResponseSchema: ContractSchema = {
     fee: required(FieldType.NUMBER, {
       description: 'Withdrawal fee',
       example: 0.25,
+    }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Withdrawal fee as decimal-safe string',
+      example: '0.250000',
     }),
     status: required(FieldType.STRING, {
       description: 'Withdrawal status',
@@ -392,17 +448,33 @@ export const RateResponseSchema: ContractSchema = {
       description: 'Exchange rate',
       example: 0.00166,
     }),
+    rateDecimal: required(FieldType.STRING, {
+      description: 'Exchange rate as decimal-safe string',
+      example: '0.00166000',
+    }),
     sourceAmount: required(FieldType.NUMBER, {
       description: 'Amount in source currency',
       example: 10000,
+    }),
+    sourceAmountDecimal: required(FieldType.STRING, {
+      description: 'Amount in source currency as decimal-safe string',
+      example: '10000',
     }),
     targetAmount: required(FieldType.NUMBER, {
       description: 'Amount in target currency',
       example: 16.6,
     }),
+    targetAmountDecimal: required(FieldType.STRING, {
+      description: 'Amount in target currency as decimal-safe string',
+      example: '16.60',
+    }),
     fee: required(FieldType.NUMBER, {
       description: 'Fee in source currency',
       example: 150,
+    }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Fee in source currency as decimal-safe string',
+      example: '150',
     }),
     expiresAt: required(FieldType.DATE, {
       description: 'Rate expiry time',

@@ -17,6 +17,10 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import {
+  formatDecimalAmount,
+  formatRateDecimal,
+} from '../../../../common/utils/money-response.util';
+import {
   GetTransactionsUseCase,
   GetTransactionUseCase,
   GetDepositStatusUseCase,
@@ -70,7 +74,7 @@ export class TransactionController {
     @Request() req: AuthenticatedRequest,
     @Query() query: GetTransactionsQueryDto,
   ) {
-    return this.getTransactionsUseCase.execute({
+    const result = await this.getTransactionsUseCase.execute({
       userId: req.user.id,
       type: query.type,
       status: query.status,
@@ -84,6 +88,13 @@ export class TransactionController {
       limit: query.limit,
       offset: query.offset,
     });
+
+    return {
+      ...result,
+      transactions: result.transactions.map((transaction) =>
+        this.withTransactionMoneyDecimals(transaction),
+      ),
+    };
   }
 
   // NOTE: /stats MUST be declared before /:id to avoid NestJS matching "stats" as a UUID param
@@ -131,7 +142,7 @@ export class TransactionController {
     const sum = (arr: any[]) =>
       arr.reduce((s: number, t: any) => s + (parseFloat(t.amount) || 0), 0);
 
-    return {
+    const totals = {
       totalTransactions: txs.length,
       totalDeposits: deposits.length,
       totalWithdrawals: withdrawals.length,
@@ -142,6 +153,22 @@ export class TransactionController {
       currency: 'USDC',
       firstTransactionAt: txs.length > 0 ? txs[txs.length - 1].createdAt : null,
       lastTransactionAt: txs.length > 0 ? txs[0].createdAt : null,
+    };
+
+    return {
+      ...totals,
+      totalDepositedDecimal: formatDecimalAmount(
+        totals.totalDeposited,
+        totals.currency,
+      ),
+      totalWithdrawnDecimal: formatDecimalAmount(
+        totals.totalWithdrawn,
+        totals.currency,
+      ),
+      totalTransferredDecimal: formatDecimalAmount(
+        totals.totalTransferred,
+        totals.currency,
+      ),
     };
   }
 
@@ -207,10 +234,12 @@ export class TransactionController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.getTransactionUseCase.execute({
+    const transaction = await this.getTransactionUseCase.execute({
       userId: req.user.id,
       transactionId: id,
     });
+
+    return this.withTransactionMoneyDecimals(transaction);
   }
 
   @Post(':id/reverse')
@@ -246,5 +275,37 @@ export class TransactionController {
       reason: dto.reason,
       requestedBy: req.user.id,
     });
+  }
+
+  private withTransactionMoneyDecimals(transaction: any) {
+    const metadata = transaction.metadata || {};
+    const currency = transaction.currency;
+    const sourceCurrency = metadata.sourceCurrency as string | undefined;
+
+    return {
+      ...transaction,
+      amountDecimal: formatDecimalAmount(transaction.amount, currency),
+      metadata: {
+        ...metadata,
+        ...(metadata.sourceAmount !== undefined && {
+          sourceAmountDecimal: formatDecimalAmount(
+            metadata.sourceAmount,
+            sourceCurrency,
+          ),
+        }),
+        ...(metadata.rate !== undefined && {
+          rateDecimal: formatRateDecimal(metadata.rate),
+        }),
+        ...(metadata.fee !== undefined && {
+          feeDecimal: formatDecimalAmount(metadata.fee, sourceCurrency),
+        }),
+        ...(metadata.grossAmount !== undefined && {
+          grossAmountDecimal: formatDecimalAmount(
+            metadata.grossAmount,
+            currency,
+          ),
+        }),
+      },
+    };
   }
 }

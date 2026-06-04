@@ -16,7 +16,7 @@ import { GetTransactionUseCase } from '@modules/transaction/application/usecases
 import { GetDepositStatusUseCase } from '@modules/transaction/application/usecases';
 import { TEST_USER } from '../setup/test-app';
 
-const transactionResponse = TestData.transaction({
+const transactionResponse: Record<string, any> = TestData.transaction({
   id: '770e8400-e29b-41d4-a716-446655440000',
   type: 'deposit',
   amount: 16.45,
@@ -33,15 +33,29 @@ const transactionResponse = TestData.transaction({
   yellowCardRef: 'yc_dep_123',
 });
 
+const transactionResponseWithDecimals = {
+  ...transactionResponse,
+  amountDecimal: '16.450000',
+  metadata: {
+    ...transactionResponse.metadata,
+    sourceAmountDecimal: '10000',
+    rateDecimal: '0.00166000',
+    feeDecimal: '150',
+  },
+};
+
 const depositStatusResponse = {
   transactionId: '770e8400-e29b-41d4-a716-446655440000',
   depositId: 'dep_mobile_123',
   status: 'completed',
   amount: 16.45,
+  amountDecimal: '16.450000',
   sourceCurrency: 'XOF',
   targetCurrency: 'USDC',
   rate: 0.00166,
+  rateDecimal: '0.00166000',
   fee: 150,
+  feeDecimal: '150',
   createdAt: '2026-06-04T12:00:00.000Z',
   completedAt: '2026-06-04T12:05:00.000Z',
 };
@@ -103,7 +117,7 @@ describe('TransactionController (e2e)', () => {
         offset: 0,
       });
       expect(res.body).toEqual({
-        transactions: [transactionResponse],
+        transactions: [transactionResponseWithDecimals],
         total: 1,
         limit: 20,
         offset: 0,
@@ -123,11 +137,14 @@ describe('TransactionController (e2e)', () => {
         userId: TEST_USER.id,
         transactionId: '770e8400-e29b-41d4-a716-446655440000',
       });
-      expect(res.body).toEqual(transactionResponse);
+      expect(res.body).toEqual(transactionResponseWithDecimals);
       expect(res.body.metadata).toEqual(
         expect.objectContaining({
           sourceCurrency: 'XOF',
           sourceAmount: 10000,
+          sourceAmountDecimal: '10000',
+          rateDecimal: '0.00166000',
+          feeDecimal: '150',
           provider: 'mtn',
         }),
       );
@@ -153,6 +170,9 @@ describe('TransactionController (e2e)', () => {
         totalDeposited: 0,
         totalWithdrawn: 0,
         totalTransferred: 0,
+        totalDepositedDecimal: '0.000000',
+        totalWithdrawnDecimal: '0.000000',
+        totalTransferredDecimal: '0.000000',
         currency: 'USDC',
         firstTransactionAt: null,
         lastTransactionAt: null,

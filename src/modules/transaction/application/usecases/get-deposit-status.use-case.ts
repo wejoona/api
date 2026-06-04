@@ -11,6 +11,10 @@ import {
   IPaymentGateway,
 } from '../../../shared/domain/gateways';
 import { TransactionStatus } from '../../domain/entities/transaction.entity';
+import {
+  formatDecimalAmount,
+  formatRateDecimal,
+} from '../../../../common/utils/money-response.util';
 
 export interface GetDepositStatusInput {
   userId: string;
@@ -22,10 +26,13 @@ export interface GetDepositStatusOutput {
   depositId: string;
   status: string;
   amount: number;
+  amountDecimal: string;
   sourceCurrency: string;
   targetCurrency: string;
   rate: number;
+  rateDecimal: string;
   fee: number;
+  feeDecimal: string;
   createdAt: Date;
   completedAt: Date | null;
 }
@@ -85,6 +92,10 @@ export class GetDepositStatusUseCase {
     }
 
     const metadata = transaction.metadata || {};
+    const sourceCurrency = (metadata.sourceCurrency as string) || 'XOF';
+    const targetCurrency = transaction.currency;
+    const rate = (metadata.rate as number) || 0;
+    const fee = (metadata.fee as number) || 0;
 
     return {
       transactionId: transaction.id,
@@ -92,10 +103,13 @@ export class GetDepositStatusUseCase {
         (metadata.depositId as string) || transaction.yellowCardRef || '',
       status,
       amount: transaction.amount,
-      sourceCurrency: (metadata.sourceCurrency as string) || 'XOF',
-      targetCurrency: transaction.currency,
-      rate: (metadata.rate as number) || 0,
-      fee: (metadata.fee as number) || 0,
+      amountDecimal: formatDecimalAmount(transaction.amount, targetCurrency),
+      sourceCurrency,
+      targetCurrency,
+      rate,
+      rateDecimal: formatRateDecimal(rate),
+      fee,
+      feeDecimal: formatDecimalAmount(fee, sourceCurrency),
       createdAt: transaction.createdAt,
       completedAt: transaction.completedAt,
     };

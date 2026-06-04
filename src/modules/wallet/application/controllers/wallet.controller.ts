@@ -51,6 +51,7 @@ import {
 } from '../usecases';
 import { WalletLimitsResponse } from '../dto/responses';
 import { GetDepositStatusUseCase } from '../../../transaction/application/usecases';
+import { formatDecimalAmount } from '../../../../common/utils/money-response.util';
 
 @ApiTags('Wallet')
 @Controller('wallet')
@@ -136,6 +137,7 @@ export class WalletController {
       circleWalletAddress: wallet.circleWalletAddress,
       currency: wallet.currency,
       balance: wallet.balance,
+      balanceDecimal: formatDecimalAmount(wallet.balance, wallet.currency),
       status: wallet.status,
     };
   }
@@ -494,8 +496,10 @@ export class WalletController {
       toAddress: result.toAddress,
       recipientAddress: result.toAddress,
       amount: result.amount,
+      amountDecimal: result.amountDecimal,
       currency: result.currency,
       fee: result.fee,
+      feeDecimal: result.feeDecimal,
       status: result.status,
       network: dto.network || 'polygon',
       txHash: result.txHash,
@@ -620,9 +624,11 @@ export class WalletController {
     return {
       transactionId: result.transactionId,
       amount: result.amount,
+      amountDecimal: result.amountDecimal,
       destinationAddress: result.toAddress,
       network: dto.network || 'polygon',
       fee: result.fee,
+      feeDecimal: result.feeDecimal,
       status: result.status,
     };
   }

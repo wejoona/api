@@ -22,6 +22,7 @@ import { getLimitsForKycStatus } from '../../../../common/constants/limits';
 import { AppException } from '../../../../common/exceptions';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
 import { v4 as uuidv4 } from 'uuid';
+import { formatDecimalAmount } from '../../../../common/utils/money-response.util';
 
 export interface InternalTransferInput {
   fromUserId: string;
@@ -38,8 +39,10 @@ export interface InternalTransferOutput {
   toWalletId: string;
   toPhone: string;
   amount: number;
+  amountDecimal: string;
   currency: string;
   fee: number;
+  feeDecimal: string;
   status: string;
 }
 
@@ -288,8 +291,10 @@ export class InternalTransferUseCase {
       toWalletId: toWallet.id,
       toPhone: recipient.phone,
       amount: input.amount,
+      amountDecimal: formatDecimalAmount(input.amount, currency),
       currency,
       fee: 0, // Internal transfers are free
+      feeDecimal: formatDecimalAmount(0, currency),
       status: 'completed',
     };
   }

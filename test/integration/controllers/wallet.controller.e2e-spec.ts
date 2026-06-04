@@ -45,8 +45,11 @@ const walletResponse = {
     {
       currency: 'USDC',
       available: 1000,
+      availableDecimal: '1000.000000',
       pending: 25,
+      pendingDecimal: '25.000000',
       total: 1025,
+      totalDecimal: '1025.000000',
     },
   ],
 };
@@ -55,11 +58,15 @@ const depositResponse = {
   transactionId: '770e8400-e29b-41d4-a716-446655440000',
   depositId: 'dep_mobile_123',
   amount: 1000,
+  amountDecimal: '1000',
   sourceCurrency: 'XOF',
   targetCurrency: 'USDC',
   rate: 0.00166,
+  rateDecimal: '0.00166000',
   fee: 15,
+  feeDecimal: '15',
   estimatedAmount: 1.64,
+  estimatedAmountDecimal: '1.64',
   paymentInstructions: {
     type: 'mobile_money',
     provider: 'mtn',
@@ -76,9 +83,11 @@ const transferResponse = {
   toWalletId: '660e8400-e29b-41d4-a716-446655440001',
   toPhone: '+2250701234568',
   amount: 50,
+  amountDecimal: '50.000000',
   currency: 'USDC',
   status: 'completed',
   fee: 0,
+  feeDecimal: '0.000000',
   createdAt: '2026-06-04T12:00:00.000Z',
 };
 
@@ -87,9 +96,11 @@ const externalTransferUseCaseResponse = {
   walletId: '660e8400-e29b-41d4-a716-446655440000',
   toAddress: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   amount: 50,
+  amountDecimal: '50.000000',
   currency: 'USDC',
   status: 'pending',
   fee: 0.01,
+  feeDecimal: '0.010000',
   txHash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   estimatedArrival: '1-2 minutes',
 };
@@ -144,8 +155,11 @@ describe('WalletController (e2e)', () => {
         expect.objectContaining({
           currency: 'USDC',
           available: 1000,
+          availableDecimal: '1000.000000',
           pending: 25,
+          pendingDecimal: '25.000000',
           total: 1025,
+          totalDecimal: '1025.000000',
         }),
       );
     });
@@ -174,6 +188,7 @@ describe('WalletController (e2e)', () => {
         circleWalletAddress: wallet.circleWalletAddress,
         currency: wallet.currency,
         balance: wallet.balance,
+        balanceDecimal: '1000.000000',
         status: wallet.status,
       });
     });
@@ -301,8 +316,10 @@ describe('WalletController (e2e)', () => {
         toAddress: externalTransferUseCaseResponse.toAddress,
         recipientAddress: externalTransferUseCaseResponse.toAddress,
         amount: externalTransferUseCaseResponse.amount,
+        amountDecimal: externalTransferUseCaseResponse.amountDecimal,
         currency: externalTransferUseCaseResponse.currency,
         fee: externalTransferUseCaseResponse.fee,
+        feeDecimal: externalTransferUseCaseResponse.feeDecimal,
         status: externalTransferUseCaseResponse.status,
         network: 'polygon',
         txHash: externalTransferUseCaseResponse.txHash,
@@ -336,9 +353,11 @@ describe('WalletController (e2e)', () => {
       expect(res.body).toEqual({
         transactionId: externalTransferUseCaseResponse.transactionId,
         amount: externalTransferUseCaseResponse.amount,
+        amountDecimal: externalTransferUseCaseResponse.amountDecimal,
         destinationAddress: externalTransferUseCaseResponse.toAddress,
         network: 'polygon',
         fee: externalTransferUseCaseResponse.fee,
+        feeDecimal: externalTransferUseCaseResponse.feeDecimal,
         status: externalTransferUseCaseResponse.status,
       });
     });

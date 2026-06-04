@@ -48,7 +48,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Fix transaction deposit-status route ordering so `/wallet/transactions/deposit/:id/status` is not swallowed by the generic transaction detail route.
 - [ ] Verify transaction detail, deposit initiation, transfer, and success payloads against real database state.
 - [ ] Replace any mobile fake transaction/balance fields with API-backed fields or explicit unavailable states.
-- [ ] Ensure money fields are returned as decimal-safe strings or minor units consistently.
+- [x] Ensure money fields are returned with additive decimal-safe string companions on mobile-facing wallet and transaction endpoints.
 - [ ] Add e2e coverage for empty wallet, funded wallet, pending transfer, failed transfer, and completed transfer states.
 
 ## Notifications

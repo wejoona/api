@@ -7,6 +7,7 @@ import {
   ILedgerProvider,
 } from '../../../providers/interfaces';
 import { Balance } from '../../../shared/domain/gateways';
+import { formatDecimalAmount } from '../../../../common/utils/money-response.util';
 
 export interface GetBalanceInput {
   userId: string;
@@ -15,7 +16,13 @@ export interface GetBalanceInput {
 export interface GetBalanceOutput {
   walletId: string;
   currency: string;
-  balances: Balance[];
+  balances: Array<
+    Balance & {
+      availableDecimal: string;
+      pendingDecimal: string;
+      totalDecimal: string;
+    }
+  >;
 }
 
 /**
@@ -73,18 +80,8 @@ export class GetBalanceUseCase {
           walletId: wallet.id,
           currency: wallet.currency,
           balances: [
-            {
-              currency: 'USDC',
-              available,
-              pending,
-              total,
-            },
-            {
-              currency: 'USD',
-              available,
-              pending,
-              total,
-            },
+            this.withBalanceDecimals('USDC', available, pending, total),
+            this.withBalanceDecimals('USD', available, pending, total),
           ],
         };
 
@@ -102,23 +99,34 @@ export class GetBalanceUseCase {
       walletId: wallet.id,
       currency: wallet.currency,
       balances: [
-        {
-          currency: 'USD',
-          available: wallet.balance,
-          pending: 0,
-          total: wallet.balance,
-        },
-        {
-          currency: 'USDC',
-          available: wallet.balance,
-          pending: 0,
-          total: wallet.balance,
-        },
+        this.withBalanceDecimals('USD', wallet.balance, 0, wallet.balance),
+        this.withBalanceDecimals('USDC', wallet.balance, 0, wallet.balance),
       ],
     };
 
     // Cache for shorter time since it's fallback balance
     await this.cacheManager.set(cacheKey, result, 10);
     return result;
+  }
+
+  private withBalanceDecimals(
+    currency: string,
+    available: number,
+    pending: number,
+    total: number,
+  ): Balance & {
+    availableDecimal: string;
+    pendingDecimal: string;
+    totalDecimal: string;
+  } {
+    return {
+      currency,
+      available,
+      pending,
+      total,
+      availableDecimal: formatDecimalAmount(available, currency),
+      pendingDecimal: formatDecimalAmount(pending, currency),
+      totalDecimal: formatDecimalAmount(total, currency),
+    };
   }
 }

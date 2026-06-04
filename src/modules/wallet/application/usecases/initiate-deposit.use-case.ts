@@ -15,6 +15,10 @@ import {
 } from '../../../shared/domain/gateways';
 import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  formatDecimalAmount,
+  formatRateDecimal,
+} from '../../../../common/utils/money-response.util';
 
 export interface InitiateDepositInput {
   userId: string;
@@ -27,11 +31,15 @@ export interface InitiateDepositOutput {
   transactionId: string;
   depositId: string;
   amount: number;
+  amountDecimal: string;
   sourceCurrency: string;
   targetCurrency: string;
   rate: number;
+  rateDecimal: string;
   fee: number;
+  feeDecimal: string;
   estimatedAmount: number;
+  estimatedAmountDecimal: string;
   paymentInstructions: PaymentInstructions;
   expiresAt: Date;
 }
@@ -145,11 +153,18 @@ export class InitiateDepositUseCase {
       transactionId: transaction.id,
       depositId: depositResponse.id,
       amount: input.amount,
+      amountDecimal: formatDecimalAmount(input.amount, input.sourceCurrency),
       sourceCurrency: input.sourceCurrency,
       targetCurrency: 'USD',
       rate: depositResponse.rate,
+      rateDecimal: formatRateDecimal(depositResponse.rate),
       fee: depositResponse.fee,
+      feeDecimal: formatDecimalAmount(
+        depositResponse.fee,
+        input.sourceCurrency,
+      ),
       estimatedAmount,
+      estimatedAmountDecimal: formatDecimalAmount(estimatedAmount, 'USD'),
       paymentInstructions: depositResponse.paymentInstructions,
       expiresAt: depositResponse.expiresAt,
     };

@@ -33,13 +33,25 @@ export const TransactionMetadataSchema: ContractSchema = {
       description: 'Amount in source currency',
       example: 10000,
     }),
+    sourceAmountDecimal: optional(FieldType.STRING, {
+      description: 'Amount in source currency as decimal-safe string',
+      example: '10000',
+    }),
     rate: optional(FieldType.NUMBER, {
       description: 'Exchange rate applied',
       example: 0.00166,
     }),
+    rateDecimal: optional(FieldType.STRING, {
+      description: 'Exchange rate as decimal-safe string',
+      example: '0.00166000',
+    }),
     fee: optional(FieldType.NUMBER, {
       description: 'Fee applied',
       example: 150,
+    }),
+    feeDecimal: optional(FieldType.STRING, {
+      description: 'Fee as decimal-safe string',
+      example: '150',
     }),
     recipientPhone: optional(FieldType.PHONE, {
       description: 'Recipient phone for internal transfers',
@@ -111,6 +123,10 @@ export const TransactionSchema: ContractSchema = {
     amount: required(FieldType.NUMBER, {
       description: 'Transaction amount',
       example: 16.45,
+    }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Transaction amount as decimal-safe string',
+      example: '16.450000',
     }),
     currency: required(FieldType.STRING, {
       description: 'Currency',
@@ -194,6 +210,10 @@ export const DepositStatusResponseSchema: ContractSchema = {
       description: 'Amount in target currency',
       example: 16.45,
     }),
+    amountDecimal: required(FieldType.STRING, {
+      description: 'Amount in target currency as decimal-safe string',
+      example: '16.450000',
+    }),
     sourceCurrency: required(FieldType.STRING, {
       description: 'Source currency',
       example: 'XOF',
@@ -206,9 +226,17 @@ export const DepositStatusResponseSchema: ContractSchema = {
       description: 'Exchange rate',
       example: 0.00166,
     }),
+    rateDecimal: required(FieldType.STRING, {
+      description: 'Exchange rate as decimal-safe string',
+      example: '0.00166000',
+    }),
     fee: required(FieldType.NUMBER, {
       description: 'Fee amount',
       example: 150,
+    }),
+    feeDecimal: required(FieldType.STRING, {
+      description: 'Fee amount as decimal-safe string',
+      example: '150',
     }),
     createdAt: required(FieldType.DATE, {
       description: 'Creation time',

@@ -76,7 +76,17 @@ describe('GetBalanceUseCase', () => {
     const cachedBalance: GetBalanceOutput = {
       walletId: 'wallet-123',
       currency: 'USDC',
-      balances: [{ currency: 'USDC', available: 50, pending: 10, total: 60 }],
+      balances: [
+        {
+          currency: 'USDC',
+          available: 50,
+          availableDecimal: '50.000000',
+          pending: 10,
+          pendingDecimal: '10.000000',
+          total: 60,
+          totalDecimal: '60.000000',
+        },
+      ],
     };
     cacheManager.get.mockResolvedValue(cachedBalance);
 
@@ -102,8 +112,24 @@ describe('GetBalanceUseCase', () => {
       walletId: 'wallet-123',
       currency: 'USDC',
       balances: [
-        { currency: 'USDC', available: 50, pending: 10, total: 60 },
-        { currency: 'USD', available: 50, pending: 10, total: 60 },
+        {
+          currency: 'USDC',
+          available: 50,
+          availableDecimal: '50.000000',
+          pending: 10,
+          pendingDecimal: '10.000000',
+          total: 60,
+          totalDecimal: '60.000000',
+        },
+        {
+          currency: 'USD',
+          available: 50,
+          availableDecimal: '50.00',
+          pending: 10,
+          pendingDecimal: '10.00',
+          total: 60,
+          totalDecimal: '60.00',
+        },
       ],
     });
     expect(cacheManager.set).toHaveBeenCalledWith(
@@ -135,8 +161,24 @@ describe('GetBalanceUseCase', () => {
       walletId: 'wallet-123',
       currency: 'USDC',
       balances: [
-        { currency: 'USD', available: 75, pending: 0, total: 75 },
-        { currency: 'USDC', available: 75, pending: 0, total: 75 },
+        {
+          currency: 'USD',
+          available: 75,
+          availableDecimal: '75.00',
+          pending: 0,
+          pendingDecimal: '0.00',
+          total: 75,
+          totalDecimal: '75.00',
+        },
+        {
+          currency: 'USDC',
+          available: 75,
+          availableDecimal: '75.000000',
+          pending: 0,
+          pendingDecimal: '0.000000',
+          total: 75,
+          totalDecimal: '75.000000',
+        },
       ],
     });
     expect(cacheManager.set).toHaveBeenCalledWith(
@@ -153,8 +195,24 @@ describe('GetBalanceUseCase', () => {
     const result = await useCase.execute({ userId: 'user-123' });
 
     expect(result.balances).toEqual([
-      { currency: 'USD', available: 75, pending: 0, total: 75 },
-      { currency: 'USDC', available: 75, pending: 0, total: 75 },
+      {
+        currency: 'USD',
+        available: 75,
+        availableDecimal: '75.00',
+        pending: 0,
+        pendingDecimal: '0.00',
+        total: 75,
+        totalDecimal: '75.00',
+      },
+      {
+        currency: 'USDC',
+        available: 75,
+        availableDecimal: '75.000000',
+        pending: 0,
+        pendingDecimal: '0.000000',
+        total: 75,
+        totalDecimal: '75.000000',
+      },
     ]);
   });
 
