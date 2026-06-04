@@ -5,7 +5,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 ## Recursive Backend/API Objective Checklist
 
 - [x] Exchange-rate route parity for mobile `GET /rates/pair?from=USDC&to=XOF`.
-- [ ] Legal consent route verifier coverage for mobile onboarding/settings consent calls.
+- [x] Legal consent route verifier coverage for mobile onboarding/settings consent calls.
 - [ ] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
 - [ ] Audit/log ingestion route decision for mobile background services.
 - [ ] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
@@ -45,3 +45,22 @@ Verification:
 
 - `npm test -- --runInBand --testPathPatterns="exchange-rate.service.spec"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="exchange-rate.controller"`
+
+### Legal Document and Consent Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile fetches `/legal/terms`, `/legal/privacy`, `/legal/cookies`, and posts `/legal/consent`.
+- Backend routes existed and the DTO matched mobile snake_case consent payloads, but the family was not included in `verify:backend:mobile`.
+
+Resolution:
+
+- Added legal controller e2e coverage for all active mobile document routes.
+- Added consent success and validation failure coverage for the exact mobile payload shape.
+- Added `legal.controller` to `verify:backend:mobile`.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="legal.controller"`
