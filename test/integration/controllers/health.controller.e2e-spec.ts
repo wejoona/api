@@ -78,6 +78,7 @@ describe('HealthController (e2e)', () => {
         nodeEnv: 'test',
         RISK_MANAGER_ENABLED: 'false',
         RISK_CLIENT_MODE: 'mock',
+        KYC_PROVIDER: 'mock',
       };
       return values[key] ?? defaultValue;
     });
@@ -144,6 +145,13 @@ describe('HealthController (e2e)', () => {
             liveConfigured: false,
             status: 'disabled',
           });
+          expect(body.kyc).toMatchObject({
+            provider: 'mock',
+            productionLike: false,
+            mockAllowed: true,
+            liveConfigured: false,
+            status: 'mock',
+          });
         });
     });
 
@@ -161,6 +169,8 @@ describe('HealthController (e2e)', () => {
             RISK_CLIENT_MODE: 'live',
             RISK_MANAGER_URL: 'http://risk-manager:3000',
             RISK_MANAGER_API_KEY: 'dev-api-key',
+            KYC_PROVIDER: 'verifyhq',
+            VERIFY_HQ_API_KEY: 'your-api-key-here',
           };
           return values[key] ?? defaultValue;
         },
@@ -179,7 +189,15 @@ describe('HealthController (e2e)', () => {
             liveConfigured: false,
             status: 'misconfigured',
           });
+          expect(body.kyc).toMatchObject({
+            provider: 'verifyhq',
+            productionLike: true,
+            mockAllowed: false,
+            liveConfigured: false,
+            status: 'misconfigured',
+          });
           expect(JSON.stringify(body)).not.toContain('dev-api-key');
+          expect(JSON.stringify(body)).not.toContain('your-api-key-here');
         });
     });
 

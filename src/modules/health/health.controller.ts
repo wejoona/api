@@ -135,6 +135,7 @@ export class HealthController {
       this.configService.get<string>('billPay.baseUrl'),
     );
     const riskClient = this.riskClientStatus();
+    const kyc = this.kycStatus();
 
     const appDependencies = { database, redis, blnk };
     const providerReadiness = {
@@ -184,6 +185,7 @@ export class HealthController {
       providers: providerReadiness,
       features,
       risk: riskClient,
+      kyc,
     };
   }
 
@@ -350,6 +352,40 @@ export class HealthController {
           : managerEnabled
             ? 'enabled'
             : 'disabled',
+    };
+  }
+
+  private kycStatus() {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+    const productionLike = ['production', 'staging'].includes(nodeEnv);
+    const configuredProvider =
+      this.configService.get<string>('KYC_PROVIDER') ||
+      this.configService.get<string>('kyc.provider', 'mock') ||
+      'mock';
+    const apiKey = this.configService.get<string>('VERIFY_HQ_API_KEY');
+    const verifyHqConfigured = Boolean(
+      apiKey && apiKey !== 'your-api-key-here',
+    );
+    const mockAllowed = !productionLike;
+
+    return {
+      provider: configuredProvider,
+      productionLike,
+      mockAllowed,
+      liveConfigured:
+        configuredProvider === 'verifyhq' ? verifyHqConfigured : false,
+      status:
+        productionLike &&
+        (configuredProvider === 'mock' ||
+          (configuredProvider === 'verifyhq' && !verifyHqConfigured))
+          ? 'misconfigured'
+          : configuredProvider === 'mock'
+            ? 'mock'
+            : 'enabled',
     };
   }
 

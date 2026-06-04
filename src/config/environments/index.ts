@@ -80,6 +80,17 @@ export function validateProductionConfig(): void {
     throw new Error('SMS_PROVIDER cannot be mock in production');
   }
 
+  if (!process.env.KYC_PROVIDER || process.env.KYC_PROVIDER === 'mock') {
+    throw new Error('KYC_PROVIDER cannot be mock in production');
+  }
+
+  if (
+    process.env.KYC_PROVIDER === 'verifyhq' &&
+    !process.env.VERIFY_HQ_API_KEY
+  ) {
+    throw new Error('VERIFY_HQ_API_KEY is required in production');
+  }
+
   if (process.env.FCM_USE_MOCK === 'true') {
     throw new Error('FCM_USE_MOCK must be false in production');
   }

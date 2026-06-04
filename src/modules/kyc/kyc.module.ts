@@ -34,6 +34,7 @@ import { ConsentModule } from '../consent/consent.module';
 
 // VerifyHQ
 import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
+import { resolveKycVerificationProviderMode } from './kyc-provider-mode';
 
 /**
  * KYC Module
@@ -60,7 +61,12 @@ import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
     VerifyHqModule,
     ConsentModule, // Consent verification before KYC submission
   ],
-  controllers: [KycController, AdminKycController, KycUploadController, KycVerifyController],
+  controllers: [
+    KycController,
+    AdminKycController,
+    KycUploadController,
+    KycVerifyController,
+  ],
   providers: [
     // Repository
     KycVerificationRepository,
@@ -76,8 +82,7 @@ import { VerifyHqModule } from '../shared/infrastructure/verify-hq';
         mockProvider: MockKycProvider,
         verifyHqProvider: VerifyHqKycProvider,
       ) => {
-        const apiKey = configService.get<string>('VERIFY_HQ_API_KEY');
-        if (apiKey && apiKey !== 'your-api-key-here') {
+        if (resolveKycVerificationProviderMode(configService) === 'verifyhq') {
           return verifyHqProvider;
         }
         return mockProvider;
