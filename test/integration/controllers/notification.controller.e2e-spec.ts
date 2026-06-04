@@ -199,4 +199,33 @@ describe('NotificationController (e2e)', () => {
       });
     });
   });
+
+  describe('DELETE /api/v1/notifications/push/token', () => {
+    it('should remove the mobile FCM token with no content response', async () => {
+      mockUnregisterDeviceToken.execute.mockResolvedValue(undefined);
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/push/token')
+        .send({ token: 'fcm-token-123' })
+        .expect(204);
+
+      expect(mockUnregisterDeviceToken.execute).toHaveBeenCalledWith({
+        token: 'fcm-token-123',
+      });
+    });
+  });
+
+  describe('DELETE /api/v1/notifications/push/tokens', () => {
+    it('should remove all mobile FCM tokens for the authenticated user', async () => {
+      mockUnregisterAllDeviceTokens.execute.mockResolvedValue(undefined);
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/push/tokens')
+        .expect(204);
+
+      expect(mockUnregisterAllDeviceTokens.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+      });
+    });
+  });
 });

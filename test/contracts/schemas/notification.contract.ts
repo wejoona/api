@@ -204,6 +204,19 @@ export const PushTokenRegistrationRequestSchema: ContractSchema = {
   },
 };
 
+export const RemovePushTokenRequestSchema: ContractSchema = {
+  name: 'RemovePushTokenRequest',
+  description: 'Remove a mobile push token',
+  fields: {
+    token: required(FieldType.STRING, {
+      description: 'Push token to remove',
+      example: 'fcm-token-123',
+      minLength: 1,
+      maxLength: 500,
+    }),
+  },
+};
+
 export const ActionMessageResponseSchema: ContractSchema = {
   name: 'ActionMessageResponse',
   description: 'Simple action response',
@@ -251,6 +264,21 @@ export const NotificationEndpoints: EndpointContract[] = [
     auth: 'bearer',
     requestBody: PushTokenRegistrationRequestSchema,
     responses: { 201: ActionMessageResponseSchema },
+  },
+  {
+    method: 'DELETE',
+    path: '/notifications/push/token',
+    description: 'Remove one FCM/APNS token',
+    auth: 'bearer',
+    requestBody: RemovePushTokenRequestSchema,
+    responses: {},
+  },
+  {
+    method: 'DELETE',
+    path: '/notifications/push/tokens',
+    description: 'Remove all FCM/APNS tokens for the current user',
+    auth: 'bearer',
+    responses: {},
   },
 ];
 

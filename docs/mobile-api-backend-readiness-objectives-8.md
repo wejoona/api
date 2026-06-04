@@ -17,7 +17,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 ## Feature Subscriptions And Notifications
 
 - [x] Add contract coverage for feature subscriptions so “stay informed” buttons store `featureKey`, `source`, user identity, and regional metadata.
-- [ ] Confirm notification feed, unread count, mark-read, read-all, and push-token endpoints share one stable mobile contract.
+- [x] Confirm notification feed, unread count, mark-read, read-all, and push-token endpoints share one stable mobile contract.
 - [ ] Confirm notification and feature-subscription errors include support-safe retry/review metadata where a dependency is unavailable.
 
 ## Region-Aware Mobile Configuration
@@ -154,3 +154,22 @@ Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="contact.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="contact.controller"`
+
+### Notification Mobile Contract - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Notification feed returns stable presentation fields for mobile list rendering and taps: `presentationType`, `severity`, `action`, `status`, timestamps, reference metadata, and `isUnread`.
+- Unread count supports the mobile-compatible `/notifications/unread-count` alias.
+- Mark-one-read and mark-all-read return deterministic no-content responses.
+- Push token registration is documented and verified at `/notifications/push/token`.
+- Push token removal and remove-all-token cleanup are now documented and covered through the canonical `NotificationController`.
+- The duplicate `PushNotificationController` is no longer registered in the module controller list, removing route-order ambiguity for `/notifications/push/token`.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller|push-notification.controller"`

@@ -9,6 +9,7 @@ import {
   NotificationListResponseSchema,
   NotificationSchema,
   PushTokenRegistrationRequestSchema,
+  RemovePushTokenRequestSchema,
   UnreadCountResponseSchema,
 } from '../schemas/notification.contract';
 import { validateSchema } from '../validators/schema-validator';
@@ -153,6 +154,14 @@ describe('Notification Contracts', () => {
       const result = validateSchema(
         { message: 'Device token registered successfully' },
         ActionMessageResponseSchema,
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate mobile push token removal request', () => {
+      const result = validateSchema(
+        { token: 'fcm-token-123' },
+        RemovePushTokenRequestSchema,
       );
       expect(result.valid).toBe(true);
     });
