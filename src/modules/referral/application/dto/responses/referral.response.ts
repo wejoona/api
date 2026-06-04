@@ -67,6 +67,29 @@ export class ReferralStatsResponse {
   referralLink: string;
 }
 
+export class ReferralInfoResponse {
+  @ApiProperty()
+  referralCode: string;
+
+  @ApiProperty()
+  referralLink: string;
+
+  @ApiProperty()
+  totalReferrals: number;
+
+  @ApiProperty()
+  successfulReferrals: number;
+
+  @ApiProperty()
+  totalEarned: number;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty({ type: [ReferralResponse] })
+  referrals: ReferralResponse[];
+}
+
 export class LeaderboardEntryResponse {
   @ApiProperty()
   rank: number;

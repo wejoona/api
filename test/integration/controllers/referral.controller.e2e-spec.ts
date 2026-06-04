@@ -84,21 +84,37 @@ describe('ReferralController (e2e)', () => {
   });
 
   describe('GET /api/v1/referrals', () => {
-    it('should return referral history through the mobile-compatible alias', async () => {
+    it('should return the mobile referral summary object', async () => {
+      mockReferralService.getUserStats.mockResolvedValue({
+        referralCode: 'REF123',
+        totalReferrals: 5,
+        completedReferrals: 3,
+        pendingReferrals: 2,
+        totalEarnings: BigInt(25000000),
+        pendingEarnings: BigInt(0),
+        earningsCurrency: 'USDC',
+        tier: 'bronze',
+      });
       mockReferralService.getUserReferrals.mockResolvedValue([referral()]);
 
       await request(app.getHttpServer())
         .get('/api/v1/referrals')
         .expect(200)
         .expect(({ body }) => {
-          expect(body).toHaveLength(1);
-          expect(body[0]).toMatchObject({
+          expect(Array.isArray(body)).toBe(false);
+          expect(body).toMatchObject({
+            referralCode: 'REF123',
+            referralLink: 'https://joonapay.com/invite/REF123',
+            totalReferrals: 5,
+            successfulReferrals: 3,
+            totalEarned: 25,
+            currency: 'USDC',
+          });
+          expect(body.referrals).toHaveLength(1);
+          expect(body.referrals[0]).toMatchObject({
             id: '550e8400-e29b-41d4-a716-446655440111',
             referralCode: 'REF123',
             status: 'pending',
-            referrerReward: '1000000',
-            referredReward: '500000',
-            rewardCurrency: 'USDC',
           });
         });
     });

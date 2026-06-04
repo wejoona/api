@@ -22,6 +22,7 @@ import { ReferralService } from '../domain/services/referral.service';
 import { ApplyReferralCodeRequest } from '../dto/requests/apply-referral-code.request';
 import {
   ReferralResponse,
+  ReferralInfoResponse,
   ReferralStatsResponse,
   LeaderboardResponse,
 } from '../dto/responses/referral.response';
@@ -48,15 +49,28 @@ export class ReferralController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get user referral history',
+    summary: 'Get mobile referral summary',
     description:
-      'Mobile-compatible alias for GET /referrals/history. Returns referrals created with or for the current user.',
+      'Mobile-compatible referral dashboard payload. Use GET /referrals/history for the raw referral history array.',
   })
-  @ApiResponse({ status: HttpStatus.OK, type: [ReferralResponse] })
+  @ApiResponse({ status: HttpStatus.OK, type: ReferralInfoResponse })
   async getReferrals(
     @CurrentUser('id') userId: string,
-  ): Promise<ReferralResponse[]> {
-    return this.getReferralHistory(userId);
+  ): Promise<ReferralInfoResponse> {
+    const [stats, referrals] = await Promise.all([
+      this.getStats(userId),
+      this.getReferralHistory(userId),
+    ]);
+
+    return {
+      referralCode: stats.referralCode,
+      referralLink: stats.referralLink,
+      totalReferrals: stats.totalReferrals,
+      successfulReferrals: stats.completedReferrals,
+      totalEarned: this.toMajorUnit(stats.totalEarnings),
+      currency: stats.earningsCurrency,
+      referrals,
+    };
   }
 
   @Get('code')
@@ -141,6 +155,14 @@ export class ReferralController {
       expiresAt: r.expiresAt,
       createdAt: r.createdAt,
     }));
+  }
+
+  private toMajorUnit(amount: string): number {
+    const minorUnits = Number(amount);
+    if (!Number.isFinite(minorUnits)) {
+      return 0;
+    }
+    return minorUnits / 1_000_000;
   }
 
   @Post('apply')
