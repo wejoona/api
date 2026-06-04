@@ -37,12 +37,12 @@ import { RiskNotificationListener } from './application/listeners/risk-notificat
 import { ReferralNotificationListener } from './application/listeners/referral-notification.listener';
 import { ScheduledPaymentNotificationListener } from './application/listeners/scheduled-payment-notification.listener';
 
-// Controllers
-import { NotificationController } from './application/controllers/notification.controller';
-
 @Module({
   imports: [ConfigModule, EventEmitterModule.forRoot()],
-  controllers: [NotificationController],
+  // This legacy module is imported by internal domain modules for notification
+  // listeners/services. Public mobile HTTP routes are owned by
+  // modules/notification to avoid duplicate /notifications handlers.
+  controllers: [],
   providers: [
     // Repositories
     NotificationPreferencesRepository,

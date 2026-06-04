@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, IsNull } from 'typeorm';
 import {
   NotificationOrmEntity,
   NotificationType,
@@ -44,7 +44,7 @@ export class NotificationRepository implements INotificationRepository {
 
   async findUnreadByUserId(userId: string): Promise<NotificationOrmEntity[]> {
     return this.repository.find({
-      where: { userId, readAt: undefined },
+      where: { userId, readAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
   }
@@ -104,7 +104,7 @@ export class NotificationRepository implements INotificationRepository {
 
   async markAllAsRead(userId: string): Promise<void> {
     await this.repository.update(
-      { userId, readAt: undefined as unknown as null },
+      { userId, readAt: IsNull() },
       { status: 'read', readAt: new Date() },
     );
   }
@@ -115,7 +115,7 @@ export class NotificationRepository implements INotificationRepository {
 
   async countUnread(userId: string): Promise<number> {
     return this.repository.count({
-      where: { userId, readAt: undefined as unknown as null },
+      where: { userId, readAt: IsNull() },
     });
   }
 
