@@ -15,7 +15,10 @@ const mockGetAnalytics = { execute: jest.fn() };
 const mockGetTransactions = { execute: jest.fn() };
 const mockQrCodeService = { generate: jest.fn() };
 
-import { MerchantController } from '@modules/merchant/application/controllers/merchant.controller';
+import {
+  MerchantCompatController,
+  MerchantController,
+} from '@modules/merchant/application/controllers';
 import {
   RegisterMerchantUseCase,
   CreatePaymentRequestUseCase,
@@ -26,6 +29,36 @@ import {
   GetMerchantTransactionsUseCase,
   QrCodeService,
 } from '@modules/merchant/application/usecases';
+
+function merchantResponse() {
+  return {
+    merchantId: '550e8400-e29b-41d4-a716-446655440077',
+    businessName: 'Test Shop',
+    displayName: 'Test Shop',
+    category: 'retail',
+    country: 'CI',
+    walletId: '660e8400-e29b-41d4-a716-446655440000',
+    qrCode:
+      'joonapay://pay?v=1&t=static&m=550e8400-e29b-41d4-a716-446655440077',
+    qrCodeUrl: 'https://example.com/merchant-qr.png',
+    isVerified: true,
+    feePercent: 1,
+    dailyLimit: 100000,
+    monthlyLimit: 1000000,
+    dailyVolume: 0,
+    monthlyVolume: 0,
+    remainingDailyLimit: 100000,
+    remainingMonthlyLimit: 1000000,
+    totalTransactions: 0,
+    status: 'active',
+    businessAddress: null,
+    businessPhone: null,
+    businessEmail: null,
+    logoUrl: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 describe('MerchantController (e2e)', () => {
   let app: INestApplication;
@@ -156,6 +189,114 @@ describe('MerchantController (e2e)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/merchants/550e8400-e29b-41d4-a716-446655440000/analytics')
         .expect(200);
+    });
+  });
+});
+
+describe('MerchantCompatController (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const result = await createTestApp({
+      controllers: [MerchantCompatController],
+      providers: [
+        {
+          provide: ProcessMerchantPaymentUseCase,
+          useValue: mockProcessPayment,
+        },
+        { provide: GetMerchantUseCase, useValue: mockGetMerchant },
+        { provide: GetMerchantAnalyticsUseCase, useValue: mockGetAnalytics },
+      ],
+    });
+    app = result.app;
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('POST /api/v1/merchant/payments', () => {
+    it('should process payment through the singular mobile alias', async () => {
+      mockProcessPayment.execute.mockResolvedValue({
+        success: true,
+        transactionId: 'tx_123',
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/merchant/payments')
+        .send({
+          qrData:
+            'joonapay://pay?v=1&t=static&m=550e8400-e29b-41d4-a716-446655440000',
+          amount: 50,
+        })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: true,
+            transactionId: 'tx_123',
+          });
+        });
+
+      expect(mockProcessPayment.execute).toHaveBeenCalledWith({
+        customerId: '550e8400-e29b-41d4-a716-446655440000',
+        qrData:
+          'joonapay://pay?v=1&t=static&m=550e8400-e29b-41d4-a716-446655440000',
+        amount: 50,
+      });
+    });
+  });
+
+  describe('GET /api/v1/merchant/qr', () => {
+    it('should return current merchant QR through the singular mobile alias', async () => {
+      mockGetMerchant.execute.mockResolvedValue(merchantResponse());
+
+      await request(app.getHttpServer())
+        .get('/api/v1/merchant/qr')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            merchantId: expect.any(String),
+            merchantName: expect.any(String),
+            qrCode: expect.any(String),
+          });
+        });
+    });
+  });
+
+  describe('GET /api/v1/merchant/dashboard', () => {
+    it('should return current merchant and analytics through the singular mobile alias', async () => {
+      const merchant = merchantResponse();
+      mockGetMerchant.execute.mockResolvedValue(merchant);
+      mockGetAnalytics.execute.mockResolvedValue({
+        merchantId: merchant.merchantId,
+        merchantName: merchant.displayName,
+        period: 'month',
+        totalRevenue: 5000,
+        totalTransactions: 100,
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/merchant/dashboard')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.merchant).toMatchObject({
+            merchantId: merchant.merchantId,
+          });
+          expect(body.analytics).toMatchObject({
+            merchantId: merchant.merchantId,
+            totalRevenue: 5000,
+          });
+        });
+
+      expect(mockGetAnalytics.execute).toHaveBeenCalledWith({
+        userId: '550e8400-e29b-41d4-a716-446655440000',
+        merchantId: merchant.merchantId,
+        period: 'month',
+      });
     });
   });
 });

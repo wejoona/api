@@ -6,7 +6,7 @@ Purpose: continue mobile dogfooding readiness after the first checklist is compl
 
 - [x] Add a mobile-compatible `GET /referrals` alias or update the contract so referral list screens do not call a missing route.
 - [x] Add contract/e2e coverage for `/config/countries` so Abidjan/USA region behavior is data-driven and stable.
-- [ ] Resolve merchant mobile endpoint drift: mobile uses `/merchant/*`, backend exposes `/merchants/*`.
+- [x] Resolve merchant mobile endpoint drift: mobile uses `/merchant/*`, backend exposes `/merchants/*`.
 - [ ] Verify payment-link mobile paths against backend for list, create, pay-by-code, get-by-id, and cancel.
 - [ ] Verify savings pots and cards return mobile-safe empty/disabled states when providers are unavailable.
 - [ ] Verify bank-linking endpoints return region-aware unavailable states for USA/CI if no live provider is enabled.

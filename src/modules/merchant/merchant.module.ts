@@ -39,7 +39,10 @@ import {
 } from './application/usecases';
 
 // Controllers
-import { MerchantController } from './application/controllers';
+import {
+  MerchantCompatController,
+  MerchantController,
+} from './application/controllers';
 
 // Other modules
 import { WalletModule } from '../wallet/wallet.module';
@@ -92,7 +95,7 @@ import {
     PinVerificationGuard,
     PinTokenService,
   ],
-  controllers: [MerchantController],
+  controllers: [MerchantController, MerchantCompatController],
   exports: [
     MerchantRepository,
     PaymentRequestRepository,
