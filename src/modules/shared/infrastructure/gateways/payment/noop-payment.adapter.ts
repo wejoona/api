@@ -42,6 +42,8 @@ export class NoopPaymentAdapter implements IPaymentGateway {
       reason: 'provider_or_feature_disabled',
       featureReason: 'yellow_card_disabled',
       provider: 'yellow_card',
+      retryable: false,
+      supportReviewRequired: false,
     });
   }
 

@@ -50,6 +50,8 @@ export class BillPayClientService {
             reason: 'provider_or_feature_disabled',
             featureReason: 'bill_pay_unavailable',
             provider: 'bill-pay',
+            retryable: true,
+            supportReviewRequired: false,
           },
         );
       }
@@ -75,6 +77,8 @@ export class BillPayClientService {
         reason: 'provider_or_feature_disabled',
         featureReason: 'bill_pay_unavailable',
         provider: 'bill-pay',
+        retryable: true,
+        supportReviewRequired: false,
       },
     );
   }

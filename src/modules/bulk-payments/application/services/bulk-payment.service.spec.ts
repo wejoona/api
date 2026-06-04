@@ -53,7 +53,10 @@ describe('BulkPaymentService', () => {
       data: [],
       available: false,
       status: 'unavailable',
-      reason: 'bulk_payments_unavailable',
+      reason: 'provider_or_feature_disabled',
+      featureReason: 'bulk_payments_unavailable',
+      retryable: false,
+      supportReviewRequired: false,
     });
 
     expect(repository.findByWalletId).not.toHaveBeenCalled();
@@ -73,6 +76,12 @@ describe('BulkPaymentService', () => {
       }),
     ).rejects.toMatchObject({
       code: ERROR_CODES.BULK_PAYMENTS_UNAVAILABLE,
+      context: expect.objectContaining({
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bulk_payments_unavailable',
+        retryable: false,
+        supportReviewRequired: false,
+      }),
     });
 
     expect(repository.save).not.toHaveBeenCalled();

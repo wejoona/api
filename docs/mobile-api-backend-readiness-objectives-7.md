@@ -16,7 +16,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 
 ## Mobile-Facing Operational Contracts
 
-- [ ] Confirm all mobile-facing provider-down responses include stable `reason`, optional `featureReason`, and support-safe retry/review metadata.
+- [x] Confirm all mobile-facing provider-down responses include stable `reason`, optional `featureReason`, and support-safe retry/review metadata.
 - [ ] Confirm health/readiness does not expose raw URLs, API keys, database names, tokens, or provider exception bodies.
 - [ ] Confirm contract tests cover the new readiness metadata needed by mobile/dashboard clients.
 
@@ -126,3 +126,16 @@ Verified and updated:
 Verification:
 
 - `npm run build`
+
+### Provider-Down Mobile Error Metadata - 2026-06-04
+
+Verified and hardened:
+
+- Bulk payments disabled list and mutation errors now include `reason`, `featureReason`, `retryable`, and `supportReviewRequired`.
+- Card issuing, bank linking, Bill Pay, Yellow Card disabled gateway, mobile money deposit/payout, and KYC provider unavailable errors now expose support-safe retry/review metadata.
+- Network/downstream provider outages that may recover use `retryable=true`; intentionally disabled or unimplemented features use `retryable=false`.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/bulk-payments/application/services/bulk-payment.service.spec.ts src/modules/cards/application/services/card.service.spec.ts src/modules/bank-linking/application/services/bank-linking.service.spec.ts src/modules/bill-payments/infrastructure/services/bill-pay-client.service.spec.ts src/modules/shared/infrastructure/gateways/payment/noop-payment.adapter.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="card.controller|bank-linking.controller|bill-payment.controller|wallet.controller"`

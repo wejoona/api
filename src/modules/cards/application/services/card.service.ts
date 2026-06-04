@@ -32,6 +32,8 @@ export class CardService {
           reason: 'provider_or_feature_disabled',
           featureReason: 'card_issuing_unavailable',
           provider: this.getIssuingProvider(),
+          retryable: false,
+          supportReviewRequired: false,
         },
       );
     }

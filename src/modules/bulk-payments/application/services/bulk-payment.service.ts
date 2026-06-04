@@ -77,7 +77,10 @@ export class BulkPaymentService {
         data: [],
         available: false,
         status: 'unavailable',
-        reason: 'bulk_payments_unavailable',
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bulk_payments_unavailable',
+        retryable: false,
+        supportReviewRequired: false,
       };
     }
 
@@ -91,6 +94,9 @@ export class BulkPaymentService {
       available: true,
       status: 'available',
       reason: null,
+      featureReason: null,
+      retryable: false,
+      supportReviewRequired: false,
     };
   }
 
@@ -106,6 +112,14 @@ export class BulkPaymentService {
     throw AppException.badRequest(
       ERROR_CODES.BULK_PAYMENTS_UNAVAILABLE,
       'Bulk payments are not available yet',
+      undefined,
+      {
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bulk_payments_unavailable',
+        provider: null,
+        retryable: false,
+        supportReviewRequired: false,
+      },
     );
   }
 

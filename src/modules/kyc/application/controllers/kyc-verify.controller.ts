@@ -108,7 +108,9 @@ export class KycVerifyController {
     @UploadedFile() photo: Express.Multer.File,
   ) {
     // Convert file buffer to Blob for SDK
-    const photoBlob = new Blob([new Uint8Array(photo.buffer)], { type: photo.mimetype });
+    const photoBlob = new Blob([new Uint8Array(photo.buffer)], {
+      type: photo.mimetype,
+    });
 
     const result = await this.callVerifyHq(() =>
       this.verifyHqService.submitChallenge(
@@ -131,7 +133,9 @@ export class KycVerifyController {
     @Body() body: { sessionToken: string },
     @UploadedFile() selfie: Express.Multer.File,
   ) {
-    const selfieBlob = new Blob([new Uint8Array(selfie.buffer)], { type: selfie.mimetype });
+    const selfieBlob = new Blob([new Uint8Array(selfie.buffer)], {
+      type: selfie.mimetype,
+    });
     return this.callVerifyHq(() =>
       this.verifyHqService.submitReferenceSelfie(body.sessionToken, selfieBlob),
     );
@@ -142,13 +146,17 @@ export class KycVerifyController {
   @ApiResponse({ status: 200, description: 'Liveness status' })
   async getLivenessStatus(@CurrentUser() user: JwtUser) {
     try {
-      const verifications = await this.verifyHqService.getUserVerifications(user.id);
+      const verifications = await this.verifyHqService.getUserVerifications(
+        user.id,
+      );
       if (!verifications.length) return { status: 'NOT_STARTED' };
 
       const latest = verifications[0];
       if (!latest.livenessCheckId) return { status: 'NOT_STARTED' };
 
-      const liveness = await this.verifyHqService.getLivenessCheck(latest.livenessCheckId);
+      const liveness = await this.verifyHqService.getLivenessCheck(
+        latest.livenessCheckId,
+      );
       return {
         id: liveness.id,
         status: liveness.status,
@@ -198,7 +206,9 @@ export class KycVerifyController {
 
     let verifyHqStatus = null;
     try {
-      const verifications = await this.verifyHqService.getUserVerifications(user.id);
+      const verifications = await this.verifyHqService.getUserVerifications(
+        user.id,
+      );
       if (verifications.length > 0) {
         const latest = verifications[0];
         verifyHqStatus = {
@@ -222,6 +232,14 @@ export class KycVerifyController {
       throw AppException.serviceUnavailable(
         ERROR_CODES.KYC_PROVIDER_UNAVAILABLE,
         'KYC verification provider is temporarily unavailable',
+        undefined,
+        {
+          reason: 'dependency_unavailable',
+          featureReason: 'kyc_provider_unavailable',
+          provider: 'verifyhq',
+          retryable: true,
+          supportReviewRequired: false,
+        },
       );
     }
   }

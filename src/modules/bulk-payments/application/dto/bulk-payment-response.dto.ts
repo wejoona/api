@@ -26,6 +26,9 @@ export class BulkPaymentListResponseDto {
   available: boolean;
   status: 'available' | 'unavailable';
   reason: string | null;
+  featureReason?: string | null;
+  retryable?: boolean;
+  supportReviewRequired?: boolean;
 }
 
 export class FailedReportResponseDto {

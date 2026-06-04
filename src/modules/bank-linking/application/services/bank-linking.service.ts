@@ -412,6 +412,8 @@ export class BankLinkingService {
         reason: 'provider_or_feature_disabled',
         featureReason: 'bank_linking_unavailable',
         provider: this.getBankLinkingProvider(),
+        retryable: false,
+        supportReviewRequired: false,
       },
     );
   }
