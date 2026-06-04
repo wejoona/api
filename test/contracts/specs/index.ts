@@ -14,5 +14,6 @@ export * from './beneficiary.contract.spec';
 export * from './user.contract.spec';
 export * from './notification.contract.spec';
 export * from './device-session.contract.spec';
+export * from './feature-flag.contract.spec';
 export * from './app-config.contract.spec';
 export * from './health.contract.spec';

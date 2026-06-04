@@ -152,7 +152,7 @@ describe('WalletController (e2e)', () => {
     await app?.close();
   });
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('GET /api/v1/wallet', () => {

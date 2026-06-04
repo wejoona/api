@@ -34,6 +34,9 @@ export * from './notification.contract';
 // Device and session contracts
 export * from './device-session.contract';
 
+// Feature flag contracts
+export * from './feature-flag.contract';
+
 // App config contracts
 export * from './app-config.contract';
 
@@ -50,6 +53,7 @@ import { BeneficiaryContractGroup } from './beneficiary.contract';
 import { UserContractGroup } from './user.contract';
 import { NotificationContractGroup } from './notification.contract';
 import { DeviceSessionContractGroup } from './device-session.contract';
+import { FeatureFlagContractGroup } from './feature-flag.contract';
 import { FeatureSubscriptionContractGroup } from './feature-subscription.contract';
 import { AppConfigContractGroup } from './app-config.contract';
 import { HealthContractGroup } from './health.contract';
@@ -64,6 +68,7 @@ export const AllContractGroups = [
   UserContractGroup,
   NotificationContractGroup,
   DeviceSessionContractGroup,
+  FeatureFlagContractGroup,
   FeatureSubscriptionContractGroup,
   AppConfigContractGroup,
   HealthContractGroup,
