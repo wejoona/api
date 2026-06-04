@@ -33,11 +33,17 @@ Cote d'Ivoire and the United States.
   - creates a second verified user in the same country
   - checks the current user's phone book against that verified contact
   - asserts `/contacts/check` returns `isKoridoUser` and `userId` for the match
+- Tightened device/session behavior:
+  - unauthenticated `/sessions` and `/devices` calls return `401`
+  - revoking one device also revokes sessions attached to that device
+  - revoking all devices also revokes all user sessions
+  - smoke coverage now registers and revokes a device through the mobile API
 
 ## Verification
 
 - `npm run build`
 - `npm test -- --runInBand --testPathPatterns="yellow-card.adapter|get-deposit-channels.use-case"`
+- `npm test -- --runInBand --testPathPatterns="device.service"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="app-config.controller"`
 - `npm run schema:check:mobile`
 - `npm run smoke:mobile:api`

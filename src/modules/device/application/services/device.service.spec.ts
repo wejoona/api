@@ -7,13 +7,22 @@ import { DeviceService } from './device.service';
 describe('DeviceService', () => {
   let service: DeviceService;
   let repository: jest.Mocked<DeviceRepository>;
-  let sessionService: jest.Mocked<Pick<SessionService, 'attachLatestActiveSessionToDevice'>>;
+  let sessionService: jest.Mocked<
+    Pick<
+      SessionService,
+      | 'attachLatestActiveSessionToDevice'
+      | 'revokeSessionsByDevice'
+      | 'revokeAllSessions'
+    >
+  >;
 
   const userId = '550e8400-e29b-41d4-a716-446655440000';
   const otherUserId = '550e8400-e29b-41d4-a716-446655440001';
   const deviceId = '550e8400-e29b-41d4-a716-446655440321';
 
-  function createDevice(overrides: Partial<Parameters<typeof Device.reconstitute>[0]> = {}) {
+  function createDevice(
+    overrides: Partial<Parameters<typeof Device.reconstitute>[0]> = {},
+  ) {
     return Device.reconstitute({
       id: deviceId,
       userId,
@@ -55,6 +64,8 @@ describe('DeviceService', () => {
 
     sessionService = {
       attachLatestActiveSessionToDevice: jest.fn().mockResolvedValue(true),
+      revokeSessionsByDevice: jest.fn().mockResolvedValue(1),
+      revokeAllSessions: jest.fn().mockResolvedValue(2),
     };
 
     service = new DeviceService(
@@ -80,10 +91,9 @@ describe('DeviceService', () => {
     expect(result.loginCount).toBe(1);
     expect(result.isActive).toBe(true);
     expect(repository.save).toHaveBeenCalledTimes(1);
-    expect(sessionService.attachLatestActiveSessionToDevice).toHaveBeenCalledWith(
-      userId,
-      result.id,
-    );
+    expect(
+      sessionService.attachLatestActiveSessionToDevice,
+    ).toHaveBeenCalledWith(userId, result.id);
   });
 
   it('updates an existing device instead of creating a duplicate', async () => {
@@ -113,13 +123,16 @@ describe('DeviceService', () => {
   });
 
   it('does not save when revoking another user device', async () => {
-    repository.findById.mockResolvedValue(createDevice({ userId: otherUserId }));
+    repository.findById.mockResolvedValue(
+      createDevice({ userId: otherUserId }),
+    );
 
     await expect(service.revokeDevice(userId, deviceId)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
 
     expect(repository.save).not.toHaveBeenCalled();
+    expect(sessionService.revokeSessionsByDevice).not.toHaveBeenCalled();
   });
 
   it('returns not found when revoking a missing device', async () => {
@@ -130,6 +143,7 @@ describe('DeviceService', () => {
     );
 
     expect(repository.save).not.toHaveBeenCalled();
+    expect(sessionService.revokeSessionsByDevice).not.toHaveBeenCalled();
   });
 
   it('keeps repeated revocation stable for an already inactive device', async () => {
@@ -140,5 +154,22 @@ describe('DeviceService', () => {
 
     expect(inactive.isActive).toBe(false);
     expect(repository.save).toHaveBeenCalledWith(inactive);
+    expect(sessionService.revokeSessionsByDevice).toHaveBeenCalledWith(
+      deviceId,
+      'device_revoked',
+    );
+  });
+
+  it('revokes all sessions when revoking all devices', async () => {
+    repository.deactivateAllForUser.mockResolvedValue(3);
+
+    const count = await service.revokeAllDevices(userId);
+
+    expect(count).toBe(3);
+    expect(repository.deactivateAllForUser).toHaveBeenCalledWith(userId);
+    expect(sessionService.revokeAllSessions).toHaveBeenCalledWith(
+      userId,
+      'devices_revoked',
+    );
   });
 });

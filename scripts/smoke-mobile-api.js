@@ -98,6 +98,8 @@ async function main() {
 
   await expectStatus('GET', '/health', [200]);
   const countries = await expectStatus('GET', '/config/countries', [200]);
+  await expectStatus('GET', '/sessions', [401]);
+  await expectStatus('GET', '/devices', [401]);
   const selectedCountry = Array.isArray(countries.data)
     ? countries.data.find((country) => country?.code === countryCode)
     : null;
@@ -162,19 +164,24 @@ async function main() {
       '/contacts/check did not identify the verified Korido contact',
     );
   }
-  await expectStatus('POST', '/devices/register', [200, 201], {
-    token,
-    body: {
-      deviceIdentifier: syntheticDeviceId,
-      platform: 'ios',
-      deviceName: 'Smoke iPhone',
-      model: 'iPhone Simulator',
-      os: 'iOS',
-      osVersion: '26.0',
-      appVersion: '1.0.0-smoke',
-      metadata: { source: 'mobile-api-smoke' },
+  const registeredDevice = await expectStatus(
+    'POST',
+    '/devices/register',
+    [200, 201],
+    {
+      token,
+      body: {
+        deviceIdentifier: syntheticDeviceId,
+        platform: 'ios',
+        deviceName: 'Smoke iPhone',
+        model: 'iPhone Simulator',
+        os: 'iOS',
+        osVersion: '26.0',
+        appVersion: '1.0.0-smoke',
+        metadata: { source: 'mobile-api-smoke' },
+      },
     },
-  });
+  );
   await expectStatus('GET', '/sessions', [200], { token });
   await expectStatus('GET', '/devices', [200], { token });
   await expectStatus('POST', '/notifications/device-token', [200, 201], {
@@ -288,6 +295,16 @@ async function main() {
   });
   await expectStatus('GET', '/risk/profile', [200], { token });
   await expectStatus('GET', '/security/addresses', [200], { token });
+  if (registeredDevice.data?.id) {
+    await expectStatus(
+      'DELETE',
+      `/devices/${registeredDevice.data.id}`,
+      [200],
+      {
+        token,
+      },
+    );
+  }
 
   console.log('Mobile API smoke passed.');
 }

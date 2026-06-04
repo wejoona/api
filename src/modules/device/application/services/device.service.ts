@@ -177,6 +177,10 @@ export class DeviceService {
 
     device.deactivate();
     await this.deviceRepository.save(device);
+    await this.sessionService.revokeSessionsByDevice(
+      deviceId,
+      'device_revoked',
+    );
     this.logger.log(`Device ${deviceId} revoked for user ${userId}`);
   }
 
@@ -185,6 +189,7 @@ export class DeviceService {
    */
   async revokeAllDevices(userId: string): Promise<number> {
     const count = await this.deviceRepository.deactivateAllForUser(userId);
+    await this.sessionService.revokeAllSessions(userId, 'devices_revoked');
     this.logger.log(`Revoked ${count} devices for user ${userId}`);
     return count;
   }
