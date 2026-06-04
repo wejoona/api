@@ -38,6 +38,62 @@ import {
 } from '@modules/wallet/application/usecases';
 import { GetDepositStatusUseCase } from '@modules/transaction/application/usecases';
 
+const walletResponse = {
+  walletId: '660e8400-e29b-41d4-a716-446655440000',
+  currency: 'USDC',
+  balances: [
+    {
+      currency: 'USDC',
+      available: 1000,
+      pending: 25,
+      total: 1025,
+    },
+  ],
+};
+
+const depositResponse = {
+  transactionId: '770e8400-e29b-41d4-a716-446655440000',
+  depositId: 'dep_mobile_123',
+  amount: 1000,
+  sourceCurrency: 'XOF',
+  targetCurrency: 'USDC',
+  rate: 0.00166,
+  fee: 15,
+  estimatedAmount: 1.64,
+  paymentInstructions: {
+    type: 'mobile_money',
+    provider: 'mtn',
+    accountNumber: '+2250700000000',
+    reference: 'DEP-MOBILE-123',
+    instructions: 'Send 1000 XOF using the displayed reference.',
+  },
+  expiresAt: '2026-06-04T13:00:00.000Z',
+};
+
+const transferResponse = {
+  transactionId: '880e8400-e29b-41d4-a716-446655440000',
+  fromWalletId: '660e8400-e29b-41d4-a716-446655440000',
+  toWalletId: '660e8400-e29b-41d4-a716-446655440001',
+  toPhone: '+2250701234568',
+  amount: 50,
+  currency: 'USDC',
+  status: 'completed',
+  fee: 0,
+  createdAt: '2026-06-04T12:00:00.000Z',
+};
+
+const externalTransferUseCaseResponse = {
+  transactionId: '990e8400-e29b-41d4-a716-446655440000',
+  walletId: '660e8400-e29b-41d4-a716-446655440000',
+  toAddress: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  amount: 50,
+  currency: 'USDC',
+  status: 'pending',
+  fee: 0.01,
+  txHash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  estimatedArrival: '1-2 minutes',
+};
+
 describe('WalletController (e2e)', () => {
   let app: INestApplication;
 
@@ -75,20 +131,51 @@ describe('WalletController (e2e)', () => {
 
   describe('GET /api/v1/wallet', () => {
     it('should return wallet balance (200)', async () => {
-      mockGetBalance.execute.mockResolvedValue(TestData.wallet());
+      mockGetBalance.execute.mockResolvedValue(walletResponse);
       const res = await request(app.getHttpServer())
         .get('/api/v1/wallet')
         .expect(200);
-      expect(mockGetBalance.execute).toHaveBeenCalled();
+
+      expect(mockGetBalance.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+      });
+      expect(res.body).toEqual(walletResponse);
+      expect(res.body.balances[0]).toEqual(
+        expect.objectContaining({
+          currency: 'USDC',
+          available: 1000,
+          pending: 25,
+          total: 1025,
+        }),
+      );
     });
   });
 
   describe('POST /api/v1/wallet/create', () => {
     it('should create wallet (201)', async () => {
-      mockCreateWallet.execute.mockResolvedValue(TestData.wallet());
-      await request(app.getHttpServer())
+      const wallet: Record<string, any> = TestData.wallet({
+        circleWalletId: 'circle-wallet-123',
+        circleWalletAddress: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      });
+      mockCreateWallet.execute.mockResolvedValue(wallet);
+
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/create')
         .expect(201);
+
+      expect(mockCreateWallet.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        userPhone: TEST_USER.phone,
+      });
+      expect(res.body).toEqual({
+        id: wallet.id,
+        userId: wallet.userId,
+        circleWalletId: wallet.circleWalletId,
+        circleWalletAddress: wallet.circleWalletAddress,
+        currency: wallet.currency,
+        balance: wallet.balance,
+        status: wallet.status,
+      });
     });
   });
 
@@ -103,11 +190,26 @@ describe('WalletController (e2e)', () => {
 
   describe('POST /api/v1/wallet/deposit', () => {
     it('should initiate deposit (201)', async () => {
-      mockInitiateDeposit.execute.mockResolvedValue(TestData.deposit());
-      await request(app.getHttpServer())
+      mockInitiateDeposit.execute.mockResolvedValue(depositResponse);
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/deposit')
         .send({ amount: 1000, sourceCurrency: 'XOF', channelId: 'mtn_momo' })
         .expect(201);
+
+      expect(mockInitiateDeposit.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        amount: 1000,
+        sourceCurrency: 'XOF',
+        channelId: 'mtn_momo',
+      });
+      expect(res.body).toEqual(depositResponse);
+      expect(res.body.paymentInstructions).toEqual(
+        expect.objectContaining({
+          type: 'mobile_money',
+          provider: 'mtn',
+          reference: 'DEP-MOBILE-123',
+        }),
+      );
     });
 
     it('should return 400 for missing amount', async () => {
@@ -120,19 +222,29 @@ describe('WalletController (e2e)', () => {
 
   describe('GET /api/v1/wallet/deposit/:id', () => {
     it('should return deposit status (200)', async () => {
-      mockGetDepositStatus.execute.mockResolvedValue(
-        TestData.deposit({ status: 'completed' }),
-      );
-      await request(app.getHttpServer())
+      const completedDeposit = {
+        ...depositResponse,
+        status: 'completed',
+        completedAt: '2026-06-04T12:05:00.000Z',
+      };
+      mockGetDepositStatus.execute.mockResolvedValue(completedDeposit);
+
+      const res = await request(app.getHttpServer())
         .get('/api/v1/wallet/deposit/550e8400-e29b-41d4-a716-446655440000')
         .expect(200);
+
+      expect(mockGetDepositStatus.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        transactionId: '550e8400-e29b-41d4-a716-446655440000',
+      });
+      expect(res.body).toEqual(completedDeposit);
     });
   });
 
   describe('POST /api/v1/wallet/transfer/internal', () => {
     it('should transfer internally (200)', async () => {
-      mockInternalTransfer.execute.mockResolvedValue(TestData.transfer());
-      await request(app.getHttpServer())
+      mockInternalTransfer.execute.mockResolvedValue(transferResponse);
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/transfer/internal')
         .send({
           toPhone: '+2250701234568',
@@ -140,6 +252,16 @@ describe('WalletController (e2e)', () => {
           currency: 'USDC',
         })
         .expect(200);
+
+      expect(mockInternalTransfer.execute).toHaveBeenCalledWith({
+        fromUserId: TEST_USER.id,
+        toPhone: '+2250701234568',
+        recipientUsername: undefined,
+        amount: 50,
+        currency: 'USDC',
+        note: undefined,
+      });
+      expect(res.body).toEqual(transferResponse);
     });
 
     it('should return 400 for missing recipientPhone', async () => {
@@ -152,28 +274,73 @@ describe('WalletController (e2e)', () => {
 
   describe('POST /api/v1/wallet/transfer/external', () => {
     it('should transfer externally (200)', async () => {
-      mockExternalTransfer.execute.mockResolvedValue(TestData.transfer());
-      await request(app.getHttpServer())
+      mockExternalTransfer.execute.mockResolvedValue(
+        externalTransferUseCaseResponse,
+      );
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/transfer/external')
         .send({
           toAddress: '0x' + 'a'.repeat(40),
           amount: 50,
           currency: 'USDC',
+          network: 'polygon',
         })
         .expect(200);
+
+      expect(mockExternalTransfer.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        toAddress: '0x' + 'a'.repeat(40),
+        amount: 50,
+        currency: 'USDC',
+        network: 'polygon',
+      });
+      expect(res.body).toEqual({
+        transactionId: externalTransferUseCaseResponse.transactionId,
+        id: externalTransferUseCaseResponse.transactionId,
+        walletId: externalTransferUseCaseResponse.walletId,
+        toAddress: externalTransferUseCaseResponse.toAddress,
+        recipientAddress: externalTransferUseCaseResponse.toAddress,
+        amount: externalTransferUseCaseResponse.amount,
+        currency: externalTransferUseCaseResponse.currency,
+        fee: externalTransferUseCaseResponse.fee,
+        status: externalTransferUseCaseResponse.status,
+        network: 'polygon',
+        txHash: externalTransferUseCaseResponse.txHash,
+        estimatedArrival: externalTransferUseCaseResponse.estimatedArrival,
+        timestamp: expect.any(String),
+        createdAt: expect.any(String),
+      });
     });
   });
 
   describe('POST /api/v1/wallet/withdraw', () => {
     it('should withdraw (200)', async () => {
-      mockExternalTransfer.execute.mockResolvedValue(TestData.transfer());
-      await request(app.getHttpServer())
+      mockExternalTransfer.execute.mockResolvedValue(
+        externalTransferUseCaseResponse,
+      );
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/withdraw')
         .send({
           destinationAddress: '0x' + 'a'.repeat(40),
           amount: 50,
         })
         .expect(200);
+
+      expect(mockExternalTransfer.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        toAddress: '0x' + 'a'.repeat(40),
+        amount: 50,
+        currency: 'USD',
+        network: 'polygon',
+      });
+      expect(res.body).toEqual({
+        transactionId: externalTransferUseCaseResponse.transactionId,
+        amount: externalTransferUseCaseResponse.amount,
+        destinationAddress: externalTransferUseCaseResponse.toAddress,
+        network: 'polygon',
+        fee: externalTransferUseCaseResponse.fee,
+        status: externalTransferUseCaseResponse.status,
+      });
     });
   });
 

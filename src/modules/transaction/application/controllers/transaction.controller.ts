@@ -145,6 +145,37 @@ export class TransactionController {
     };
   }
 
+  @Get('deposit/:id/status')
+  @ApiOperation({ summary: 'Get deposit status (live from payment provider)' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns deposit status with payment details',
+    schema: {
+      example: {
+        transactionId: '123e4567-e89b-12d3-a456-426614174000',
+        depositId: 'dep_1234567890',
+        status: 'pending',
+        amount: 16.45,
+        sourceCurrency: 'XOF',
+        targetCurrency: 'USD',
+        rate: 0.00166,
+        fee: 150,
+        createdAt: '2026-01-18T12:00:00.000Z',
+        completedAt: null,
+      },
+    },
+  })
+  async getDepositStatus(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.getDepositStatusUseCase.execute({
+      userId: req.user.id,
+      transactionId: id,
+    });
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get transaction details' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })
@@ -214,37 +245,6 @@ export class TransactionController {
       transactionId: id,
       reason: dto.reason,
       requestedBy: req.user.id,
-    });
-  }
-
-  @Get('deposit/:id/status')
-  @ApiOperation({ summary: 'Get deposit status (live from payment provider)' })
-  @ApiParam({ name: 'id', description: 'Transaction ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns deposit status with payment details',
-    schema: {
-      example: {
-        transactionId: '123e4567-e89b-12d3-a456-426614174000',
-        depositId: 'dep_1234567890',
-        status: 'pending',
-        amount: 16.45,
-        sourceCurrency: 'XOF',
-        targetCurrency: 'USD',
-        rate: 0.00166,
-        fee: 150,
-        createdAt: '2026-01-18T12:00:00.000Z',
-        completedAt: null,
-      },
-    },
-  })
-  async getDepositStatus(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    return this.getDepositStatusUseCase.execute({
-      userId: req.user.id,
-      transactionId: id,
     });
   }
 }
