@@ -114,6 +114,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: errorCode,
         message,
         details: details.length > 0 ? details : undefined,
+        ...(contextDetails ?? {}),
         context: contextDetails,
       },
       meta: {

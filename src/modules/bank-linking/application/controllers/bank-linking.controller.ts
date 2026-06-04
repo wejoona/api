@@ -43,6 +43,7 @@ export class BankLinkingController {
       available,
       status: available ? 'available' : 'unavailable',
       reason: this.bankLinkingService.getUnavailableReason(),
+      featureReason: this.bankLinkingService.getUnavailableFeatureReason(),
       provider: this.bankLinkingService.getBankLinkingProvider(),
       country: country ?? null,
     };
@@ -63,6 +64,7 @@ export class BankLinkingController {
       available,
       status: available ? 'available' : 'unavailable',
       reason: this.bankLinkingService.getUnavailableReason(),
+      featureReason: this.bankLinkingService.getUnavailableFeatureReason(),
       provider: this.bankLinkingService.getBankLinkingProvider(),
     };
   }

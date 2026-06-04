@@ -278,6 +278,40 @@ describe('WalletController (e2e)', () => {
         },
       });
     });
+
+    it('should return a deterministic provider-disabled envelope', async () => {
+      mockInitiateDeposit.execute.mockRejectedValue(
+        AppException.badRequest(
+          ERROR_CODES.DEPOSIT_PROVIDER_UNAVAILABLE,
+          'Payment gateway disabled (YELLOW_CARD_ENABLED=false). Cannot call initiateDeposit.',
+          undefined,
+          {
+            reason: 'provider_or_feature_disabled',
+            featureReason: 'yellow_card_disabled',
+            provider: 'yellow_card',
+          },
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/wallet/deposit')
+        .send({ amount: 1000, sourceCurrency: 'XOF', channelId: 'mtn_momo' })
+        .expect(400);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.DEPOSIT_PROVIDER_UNAVAILABLE,
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'yellow_card_disabled',
+          provider: 'yellow_card',
+        },
+        meta: {
+          path: '/api/v1/wallet/deposit',
+          method: 'POST',
+        },
+      });
+    });
   });
 
   describe('GET /api/v1/wallet/deposit/:id', () => {
@@ -442,6 +476,43 @@ describe('WalletController (e2e)', () => {
         ledgerReference: externalTransferUseCaseResponse.ledgerReference,
         ledgerTransactionId: externalTransferUseCaseResponse.ledgerTransactionId,
         providerReference: externalTransferUseCaseResponse.providerReference,
+      });
+    });
+
+    it('should return a deterministic provider-disabled envelope', async () => {
+      mockExternalTransfer.execute.mockRejectedValue(
+        AppException.badRequest(
+          ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+          'Payment gateway disabled (YELLOW_CARD_ENABLED=false). Cannot call externalTransfer.',
+          undefined,
+          {
+            reason: 'provider_or_feature_disabled',
+            featureReason: 'yellow_card_disabled',
+            provider: 'yellow_card',
+          },
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/wallet/withdraw')
+        .send({
+          destinationAddress: '0x' + 'a'.repeat(40),
+          amount: 50,
+        })
+        .expect(400);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'yellow_card_disabled',
+          provider: 'yellow_card',
+        },
+        meta: {
+          path: '/api/v1/wallet/withdraw',
+          method: 'POST',
+        },
       });
     });
   });

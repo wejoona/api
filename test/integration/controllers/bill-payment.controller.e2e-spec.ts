@@ -4,6 +4,8 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp, TEST_USER } from '../setup/test-app';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 const mockBillPayClient = {
   getProviders: jest.fn(),
@@ -35,7 +37,7 @@ describe('BillPaymentController (e2e)', () => {
     await app?.close();
   });
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('GET /api/v1/bill-payments/providers', () => {
@@ -46,6 +48,39 @@ describe('BillPaymentController (e2e)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/bill-payments/providers')
         .expect(200);
+    });
+
+    it('should return a deterministic unavailable-provider envelope (400)', async () => {
+      mockBillPayClient.getProviders.mockRejectedValue(
+        AppException.badRequest(
+          ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+          'Bill payments are not available right now',
+          undefined,
+          {
+            reason: 'provider_or_feature_disabled',
+            featureReason: 'bill_pay_unavailable',
+            provider: 'bill-pay',
+          },
+        ),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/bill-payments/providers')
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'bill_pay_unavailable',
+          provider: 'bill-pay',
+        },
+        meta: {
+          path: '/api/v1/bill-payments/providers',
+          method: 'GET',
+        },
+      });
     });
   });
 
@@ -75,13 +110,14 @@ describe('BillPaymentController (e2e)', () => {
 
   describe('POST /api/v1/bill-payments/pay', () => {
     it('should pay bill (200)', async () => {
+      const idempotencyKey = `bill-pay-idempotency-${Date.now()}`;
       mockBillPayClient.payBill.mockResolvedValue({
         success: true,
         reference: 'BP_123',
       });
       await request(app.getHttpServer())
         .post('/api/v1/bill-payments/pay')
-        .set('X-Idempotency-Key', 'bill-pay-idempotency-001')
+        .set('X-Idempotency-Key', idempotencyKey)
         .send({
           providerId: PROVIDER_ID,
           accountNumber: '123456',
@@ -101,7 +137,7 @@ describe('BillPaymentController (e2e)', () => {
           phone: undefined,
           email: undefined,
         },
-        'bill-pay-idempotency-001',
+        idempotencyKey,
       );
     });
   });

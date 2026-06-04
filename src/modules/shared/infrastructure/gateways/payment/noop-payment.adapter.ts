@@ -38,7 +38,11 @@ export class NoopPaymentAdapter implements IPaymentGateway {
   ): never {
     const msg = `Payment gateway disabled (YELLOW_CARD_ENABLED=false). Cannot call ${method}.`;
     this.logger.warn(msg);
-    throw AppException.badRequest(code, msg);
+    throw AppException.badRequest(code, msg, undefined, {
+      reason: 'provider_or_feature_disabled',
+      featureReason: 'yellow_card_disabled',
+      provider: 'yellow_card',
+    });
   }
 
   async createSubwallet(_req: CreateSubwalletRequest): Promise<Subwallet> {

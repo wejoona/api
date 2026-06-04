@@ -18,7 +18,7 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 
 - [x] Replace or clearly classify `/health/exchange-rates` fallback data so mobile never treats static rates as live executable quotes.
 - [x] Confirm CI and US feature availability is derived from config/profile/app-config data instead of hardcoded Orange/Wave/Ivory Coast assumptions.
-- [ ] Confirm disabled providers return deterministic `provider_or_feature_disabled` states across deposits, withdrawals, cards, bank linking, and bill pay.
+- [x] Confirm disabled providers return deterministic `provider_or_feature_disabled` states across deposits, withdrawals, cards, bank linking, and bill pay.
 
 ## Risk Client Modes And Production Safety
 
@@ -112,3 +112,16 @@ Verified and hardened:
   - US: USD, `en-US`, `north_america`, USDC-only by default, no mobile money providers.
 - The endpoint now supports deployment-driven overrides via `app.supportedCountries` or `SUPPORTED_COUNTRIES_JSON`.
 - E2E coverage proves US rails can be changed to `usdc + bank` from backend config without mobile hardcoding.
+
+### Disabled Provider Semantics - 2026-06-04
+
+Verified and hardened:
+
+- Disabled provider/feature states now expose `reason=provider_or_feature_disabled` consistently.
+- Feature-specific details remain available in `featureReason`:
+  - Yellow Card deposit/withdraw: `yellow_card_disabled`.
+  - Cards: `card_issuing_unavailable`.
+  - Bank linking: `bank_linking_unavailable`.
+  - Bill pay: `bill_pay_unavailable`.
+- List/capability endpoints return stable unavailable states instead of empty data with ambiguous reason strings.
+- Mutating endpoints return coded mobile envelopes with the same generic reason plus feature-specific context.

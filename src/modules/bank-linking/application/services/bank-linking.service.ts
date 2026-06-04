@@ -392,6 +392,10 @@ export class BankLinkingService {
   }
 
   getUnavailableReason(): string | null {
+    return this.isBankLinkingEnabled() ? null : 'provider_or_feature_disabled';
+  }
+
+  getUnavailableFeatureReason(): string | null {
     return this.isBankLinkingEnabled() ? null : 'bank_linking_unavailable';
   }
 
@@ -403,6 +407,12 @@ export class BankLinkingService {
     throw AppException.badRequest(
       ERROR_CODES.BANK_LINKING_UNAVAILABLE,
       'Bank linking is not available yet',
+      undefined,
+      {
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
+        provider: this.getBankLinkingProvider(),
+      },
     );
   }
 

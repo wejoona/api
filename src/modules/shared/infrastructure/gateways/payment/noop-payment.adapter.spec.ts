@@ -1,6 +1,5 @@
 import { NoopPaymentAdapter } from './noop-payment.adapter';
 import { ERROR_CODES } from '../../../../../common/constants/error-codes';
-import { AppException } from '../../../../../common/exceptions';
 
 describe('NoopPaymentAdapter', () => {
   let adapter: NoopPaymentAdapter;
@@ -25,7 +24,12 @@ describe('NoopPaymentAdapter', () => {
       }),
     ).rejects.toMatchObject({
       code: ERROR_CODES.DEPOSIT_PROVIDER_UNAVAILABLE,
-    } satisfies Partial<AppException>);
+      response: expect.objectContaining({
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'yellow_card_disabled',
+        provider: 'yellow_card',
+      }),
+    });
   });
 
   it('rejects external withdrawals with a mobile provider-unavailable code', async () => {
@@ -39,6 +43,11 @@ describe('NoopPaymentAdapter', () => {
       }),
     ).rejects.toMatchObject({
       code: ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
-    } satisfies Partial<AppException>);
+      response: expect.objectContaining({
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'yellow_card_disabled',
+        provider: 'yellow_card',
+      }),
+    });
   });
 });

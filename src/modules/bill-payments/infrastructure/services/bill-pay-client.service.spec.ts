@@ -50,6 +50,11 @@ describe('BillPayClientService provider-disabled semantics', () => {
     await expect(service.getProviders({ country: 'CI' })).rejects.toMatchObject(
       {
         code: ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+        response: expect.objectContaining({
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'bill_pay_unavailable',
+          provider: 'bill-pay',
+        }),
       },
     );
   });

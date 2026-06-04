@@ -51,6 +51,7 @@ export class CardListResponseDto {
   available: boolean;
   status: 'available' | 'unavailable';
   reason: string | null;
+  featureReason?: string | null;
   provider: string | null;
 
   static fromEntities(
@@ -58,6 +59,7 @@ export class CardListResponseDto {
     options: {
       available?: boolean;
       reason?: string | null;
+      featureReason?: string | null;
       provider?: string | null;
     } = {},
   ): CardListResponseDto {
@@ -69,6 +71,7 @@ export class CardListResponseDto {
       available,
       status: available ? 'available' : 'unavailable',
       reason: options.reason ?? null,
+      featureReason: options.featureReason ?? null,
       provider: options.provider ?? null,
     };
   }

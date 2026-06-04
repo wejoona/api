@@ -27,6 +27,12 @@ export class CardService {
       throw AppException.badRequest(
         ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
         'Virtual card issuing is not available yet',
+        undefined,
+        {
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'card_issuing_unavailable',
+          provider: this.getIssuingProvider(),
+        },
       );
     }
 

@@ -47,7 +47,8 @@ export class CardController {
     return CardListResponseDto.fromEntities(cards, {
       available,
       provider: this.cardService.getIssuingProvider(),
-      reason: available ? null : 'card_issuing_unavailable',
+      reason: available ? null : 'provider_or_feature_disabled',
+      featureReason: available ? null : 'card_issuing_unavailable',
     });
   }
 

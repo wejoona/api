@@ -69,7 +69,8 @@ describe('CardController (e2e)', () => {
         data: [],
         available: false,
         status: 'unavailable',
-        reason: 'card_issuing_unavailable',
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'card_issuing_unavailable',
         provider: null,
       });
     });
@@ -93,6 +94,12 @@ describe('CardController (e2e)', () => {
         AppException.badRequest(
           ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
           'Card issuing is not available yet',
+          undefined,
+          {
+            reason: 'provider_or_feature_disabled',
+            featureReason: 'card_issuing_unavailable',
+            provider: null,
+          },
         ),
       );
 
@@ -110,6 +117,9 @@ describe('CardController (e2e)', () => {
         error: {
           code: ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
           message: 'Card issuing is not available yet',
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'card_issuing_unavailable',
+          provider: null,
         },
         meta: {
           path: '/api/v1/cards',

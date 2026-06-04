@@ -45,6 +45,12 @@ export class BillPayClientService {
         throw AppException.badRequest(
           ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
           'Bill payments are not available right now',
+          undefined,
+          {
+            reason: 'provider_or_feature_disabled',
+            featureReason: 'bill_pay_unavailable',
+            provider: 'bill-pay',
+          },
         );
       }
 
@@ -64,6 +70,12 @@ export class BillPayClientService {
     throw AppException.badRequest(
       ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
       'Bill payments are not available right now',
+      undefined,
+      {
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bill_pay_unavailable',
+        provider: 'bill-pay',
+      },
     );
   }
 

@@ -18,6 +18,7 @@ const mockBankLinkingService = {
   isBankLinkingEnabled: jest.fn(),
   getBankLinkingProvider: jest.fn(),
   getUnavailableReason: jest.fn(),
+  getUnavailableFeatureReason: jest.fn(),
 };
 
 import { BankLinkingController } from '@modules/bank-linking/application/controllers/bank-linking.controller';
@@ -46,6 +47,7 @@ describe('BankLinkingController (e2e)', () => {
       'test-bank-provider',
     );
     mockBankLinkingService.getUnavailableReason.mockReturnValue(null);
+    mockBankLinkingService.getUnavailableFeatureReason.mockReturnValue(null);
   });
 
   describe('GET /api/v1/banks', () => {
@@ -64,6 +66,7 @@ describe('BankLinkingController (e2e)', () => {
         available: true,
         status: 'available',
         reason: null,
+        featureReason: null,
         provider: 'test-bank-provider',
         country: 'CI',
       });
@@ -75,6 +78,9 @@ describe('BankLinkingController (e2e)', () => {
       mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
       mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
       mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'provider_or_feature_disabled',
+      );
+      mockBankLinkingService.getUnavailableFeatureReason.mockReturnValue(
         'bank_linking_unavailable',
       );
 
@@ -87,7 +93,8 @@ describe('BankLinkingController (e2e)', () => {
         data: [],
         available: false,
         status: 'unavailable',
-        reason: 'bank_linking_unavailable',
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
         provider: null,
         country: 'CI',
       });
@@ -98,6 +105,9 @@ describe('BankLinkingController (e2e)', () => {
       mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
       mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
       mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'provider_or_feature_disabled',
+      );
+      mockBankLinkingService.getUnavailableFeatureReason.mockReturnValue(
         'bank_linking_unavailable',
       );
 
@@ -110,7 +120,8 @@ describe('BankLinkingController (e2e)', () => {
         data: [],
         available: false,
         status: 'unavailable',
-        reason: 'bank_linking_unavailable',
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
         provider: null,
         country: 'US',
       });
@@ -132,6 +143,7 @@ describe('BankLinkingController (e2e)', () => {
       expect(response.body.available).toBe(true);
       expect(response.body.status).toBe('available');
       expect(response.body.reason).toBeNull();
+      expect(response.body.featureReason).toBeNull();
       expect(response.body.provider).toBe('test-bank-provider');
     });
 
@@ -140,6 +152,9 @@ describe('BankLinkingController (e2e)', () => {
       mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
       mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
       mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'provider_or_feature_disabled',
+      );
+      mockBankLinkingService.getUnavailableFeatureReason.mockReturnValue(
         'bank_linking_unavailable',
       );
 
@@ -152,7 +167,8 @@ describe('BankLinkingController (e2e)', () => {
         data: [],
         available: false,
         status: 'unavailable',
-        reason: 'bank_linking_unavailable',
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
         provider: null,
       });
     });
