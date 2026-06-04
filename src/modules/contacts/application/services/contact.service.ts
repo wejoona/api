@@ -6,7 +6,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { createHash } from 'crypto';
 import { Contact } from '../../domain/entities';
 import { ContactRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../../user/infrastructure/repositories';
@@ -203,17 +202,13 @@ export class ContactService {
   }
 
   /**
-   * Hash phone number using SHA-256 (matches mobile app implementation)
-   */
-  private hashPhone(phone: string): string {
-    return createHash('sha256').update(phone).digest('hex');
-  }
-
-  /**
    * Sync phone contacts to find JoonaPay users
    * Accepts hashed phone numbers for privacy
    */
-  async syncContacts(phoneHashes: string[]): Promise<{
+  async syncContacts(
+    currentUserId: string,
+    phoneHashes: string[],
+  ): Promise<{
     matches: Array<{
       phoneHash: string;
       userId: string;
@@ -222,26 +217,22 @@ export class ContactService {
     totalChecked: number;
     matchesFound: number;
   }> {
-    const uniqueHashes = [...new Set(phoneHashes)];
+    const uniqueHashes = [
+      ...new Set(phoneHashes.map((hash) => hash.trim().toLowerCase())),
+    ];
     const users = await this.userRepository.findByPhoneHashes(uniqueHashes);
 
     const matches: Array<{
       phoneHash: string;
       userId: string;
       avatarUrl: string | null;
-    }> = [];
-
-    for (const user of users) {
-      const userPhoneHash = this.hashPhone(user.phone);
-
-      if (uniqueHashes.includes(userPhoneHash)) {
-        matches.push({
-          phoneHash: userPhoneHash,
-          userId: user.id,
-          avatarUrl: user.avatarUrl || null,
-        });
-      }
-    }
+    }> = users
+      .filter((user) => user.id !== currentUserId)
+      .map((user) => ({
+        phoneHash: this.userRepository.hashPhoneForLookup(user.phone),
+        userId: user.id,
+        avatarUrl: user.avatarUrl || null,
+      }));
 
     return {
       matches,
@@ -254,6 +245,7 @@ export class ContactService {
    * Send invite to non-Korido contact via SMS
    */
   async inviteContact(
+    invitedByUserId: string,
     phone: string,
   ): Promise<{ success: boolean; message: string }> {
     if (!phone.startsWith('+')) {
@@ -272,6 +264,7 @@ export class ContactService {
 
     // Emit invitation event for notification system to handle
     this.eventEmitter.emit('contact.invited', {
+      invitedByUserId,
       phone,
       inviteLink: 'https://korido.app/download',
       message: `You've been invited to Korido! Send money instantly across borders. Download now: https://korido.app/download`,

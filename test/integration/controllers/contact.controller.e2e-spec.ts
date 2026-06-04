@@ -3,8 +3,11 @@
  */
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../setup/test-app';
+import { createTestApp, TEST_USER } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
+import { ContactController } from '@modules/contacts/application/controllers/contact.controller';
+import { ContactService } from '@modules/contacts/application/services/contact.service';
+import { UserRepository } from '@modules/user/infrastructure/repositories';
 
 const mockContactService = {
   createContact: jest.fn(),
@@ -18,8 +21,9 @@ const mockContactService = {
   inviteContact: jest.fn(),
 };
 
-import { ContactController } from '@modules/contacts/application/controllers/contact.controller';
-import { ContactService } from '@modules/contacts/application/services/contact.service';
+const mockUserRepository = {
+  findActiveVerifiedByPhones: jest.fn(),
+};
 
 describe('ContactController (e2e)', () => {
   let app: INestApplication;
@@ -27,7 +31,10 @@ describe('ContactController (e2e)', () => {
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [ContactController],
-      providers: [{ provide: ContactService, useValue: mockContactService }],
+      providers: [
+        { provide: ContactService, useValue: mockContactService },
+        { provide: UserRepository, useValue: mockUserRepository },
+      ],
     });
     app = result.app;
   });
@@ -126,6 +133,7 @@ describe('ContactController (e2e)', () => {
 
   describe('POST /api/v1/contacts/sync', () => {
     it('should sync contacts (200)', async () => {
+      const phoneHash = 'a'.repeat(64);
       mockContactService.syncContacts.mockResolvedValue({
         matches: [],
         totalChecked: 1,
@@ -133,12 +141,48 @@ describe('ContactController (e2e)', () => {
       });
       await request(app.getHttpServer())
         .post('/api/v1/contacts/sync')
-        .send({
-          phoneHashes: [
-            'a665a45920422f9d417e4867efdc4fb8a04f3fff1fa07e998e86f7f7a27ae3',
-          ],
-        })
+        .send({ phoneHashes: [phoneHash] })
         .expect(200);
+
+      expect(mockContactService.syncContacts).toHaveBeenCalledWith(
+        TEST_USER.id,
+        [phoneHash],
+      );
+    });
+  });
+
+  describe('POST /api/v1/contacts/check', () => {
+    it('should check contacts against active verified users and exclude self', async () => {
+      mockUserRepository.findActiveVerifiedByPhones.mockResolvedValue([
+        {
+          id: TEST_USER.id,
+          phone: TEST_USER.phone,
+          displayName: 'Current User',
+        },
+        {
+          id: '550e8400-e29b-41d4-a716-446655440099',
+          phone: '+2250701234571',
+          displayName: 'Known User',
+        },
+      ]);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ phoneNumbers: [TEST_USER.phone, '+2250701234571'] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.registered).toEqual([
+            {
+              phone: '+2250701234571',
+              userId: '550e8400-e29b-41d4-a716-446655440099',
+              displayName: 'Known User',
+            },
+          ]);
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhones,
+      ).toHaveBeenCalledWith([TEST_USER.phone, '+2250701234571']);
     });
   });
 
@@ -152,6 +196,11 @@ describe('ContactController (e2e)', () => {
         .post('/api/v1/contacts/invite')
         .send({ phone: '+2250701234570' })
         .expect(200);
+
+      expect(mockContactService.inviteContact).toHaveBeenCalledWith(
+        TEST_USER.id,
+        '+2250701234570',
+      );
     });
   });
 });

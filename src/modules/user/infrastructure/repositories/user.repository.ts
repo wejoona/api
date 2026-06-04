@@ -121,8 +121,32 @@ export class UserRepository {
     return orms.map((orm) => UserMapper.toDomain(orm));
   }
 
-  async findByPhoneHashes(phoneHashes: string[]): Promise<User[]> {
-    const uniqueHashes = [...new Set(phoneHashes)];
+  async findActiveVerifiedByPhones(phones: string[]): Promise<User[]> {
+    const normalizedPhones = [
+      ...new Set(phones.map((phone) => this.normalizePhoneE164(phone))),
+    ];
+    if (normalizedPhones.length === 0) return [];
+
+    const orms = await this.ormRepository
+      .createQueryBuilder('user')
+      .where('user.phone IN (:...phones)', { phones: normalizedPhones })
+      .andWhere('user.status = :status', { status: 'active' })
+      .andWhere('user.phoneVerified = :phoneVerified', {
+        phoneVerified: true,
+      })
+      .getMany();
+    return orms.map((orm) => UserMapper.toDomain(orm));
+  }
+
+  async findByPhoneHashes(phoneHashes: string[], limit = 500): Promise<User[]> {
+    const uniqueHashes = [
+      ...new Set(
+        phoneHashes
+          .map((hash) => hash.trim().toLowerCase())
+          .filter((hash) => /^[a-f0-9]{64}$/.test(hash)),
+      ),
+    ].slice(0, limit);
+
     if (uniqueHashes.length === 0) return [];
 
     const orms = await this.ormRepository
@@ -145,6 +169,10 @@ export class UserRepository {
     await this.ormRepository.delete(id);
     // Invalidate cache on delete
     await this.invalidateUserCache(id);
+  }
+
+  hashPhoneForLookup(phone: string): string {
+    return this.hashPhone(phone);
   }
 
   /**
@@ -183,6 +211,16 @@ export class UserRepository {
   }
 
   private hashPhone(phone: string): string {
-    return createHash('sha256').update(phone).digest('hex');
+    return createHash('sha256')
+      .update(this.normalizePhoneE164(phone))
+      .digest('hex');
+  }
+
+  private normalizePhoneE164(phone: string): string {
+    let cleaned = phone.replace(/\D/g, '');
+    if (!cleaned.startsWith('225') && cleaned.length <= 10) {
+      cleaned = `225${cleaned}`;
+    }
+    return `+${cleaned}`;
   }
 }

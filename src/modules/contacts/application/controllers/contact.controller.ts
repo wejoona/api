@@ -12,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -214,18 +215,23 @@ export class ContactController {
       'Accepts up to 500 phone numbers and returns matching registered users.',
   })
   @ApiResponse({ status: 200, description: 'Registered users found' })
-  async checkContacts(@Body() dto: CheckContactsDto) {
-    // Normalize phone numbers to international format (strip spaces/dashes)
-    const normalized = dto.phoneNumbers.map((p) => p.replace(/[\s\-()]/g, ''));
-
-    const users = await this.userRepository.findByPhones(normalized);
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  async checkContacts(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: CheckContactsDto,
+  ) {
+    const users = await this.userRepository.findActiveVerifiedByPhones(
+      dto.phoneNumbers,
+    );
 
     return {
-      registered: users.map((u) => ({
-        phone: u.phone,
-        userId: u.id,
-        displayName: u.displayName,
-      })),
+      registered: users
+        .filter((u) => u.id !== req.user.id)
+        .map((u) => ({
+          phone: u.phone,
+          userId: u.id,
+          displayName: u.displayName,
+        })),
     };
   }
 
@@ -239,9 +245,13 @@ export class ContactController {
   @ApiResponse({ status: 200, type: SyncContactsResponse })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async syncContacts(
+    @Request() req: AuthenticatedRequest,
     @Body() dto: SyncContactsDto,
   ): Promise<SyncContactsResponse> {
-    const result = await this.contactService.syncContacts(dto.phoneHashes);
+    const result = await this.contactService.syncContacts(
+      req.user.id,
+      dto.phoneHashes,
+    );
 
     const response = new SyncContactsResponse();
     response.matches = result.matches;
@@ -260,9 +270,13 @@ export class ContactController {
   @ApiResponse({ status: 200, type: InviteContactResponse })
   @ApiResponse({ status: 400, description: 'Invalid phone number' })
   async inviteContact(
+    @Request() req: AuthenticatedRequest,
     @Body() dto: InviteContactDto,
   ): Promise<InviteContactResponse> {
-    const result = await this.contactService.inviteContact(dto.phone);
+    const result = await this.contactService.inviteContact(
+      req.user.id,
+      dto.phone,
+    );
 
     const response = new InviteContactResponse();
     response.success = result.success;
