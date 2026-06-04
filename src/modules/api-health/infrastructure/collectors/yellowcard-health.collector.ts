@@ -19,13 +19,28 @@ export class YellowCardHealthCollector implements HealthCollector {
 
   async checkHealth(): Promise<HealthCheckResult> {
     // Yellow Card integration disabled — return healthy stub
-    if (this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true') {
+    if (
+      this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true'
+    ) {
       return {
         provider: ApiProvider.YELLOW_CARD,
         endpoint: '/business/rates',
         available: false,
         latencyMs: 0,
         metadata: { disabled: true, note: 'YELLOW_CARD_ENABLED=false' },
+      };
+    }
+
+    if (this.configService.get<boolean>('yellowCard.useMock', true)) {
+      return {
+        provider: ApiProvider.YELLOW_CARD,
+        endpoint: '/business/rates',
+        available: true,
+        latencyMs: 0,
+        metadata: {
+          mock: true,
+          note: 'Yellow Card health check skipped because mock mode is enabled',
+        },
       };
     }
 
