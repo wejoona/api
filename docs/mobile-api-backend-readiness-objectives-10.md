@@ -15,7 +15,7 @@ Purpose: continue recursive backend/API readiness after pass 9 completed seconda
 ## API Reference Alignment
 
 - [x] Update backend/mobile API reference docs for secondary capability endpoints and referral summary/history split.
-- [ ] Check documented secondary routes against actual backend controller routes and record intentional aliases.
+- [x] Check documented secondary routes against actual backend controller routes and record intentional aliases.
 
 ## Recursive Execution Rule
 
@@ -66,6 +66,8 @@ Verified and hardened:
 - Backend contract decisions now document the common secondary capability metadata object and routes.
 - Backend provider-disabled docs now call out common retry/review metadata for secondary capabilities.
 - Mobile `.Codex/api-reference.md` documents secondary feature capability routes, existing list/mutation routes, and the `/referrals` summary versus `/referrals/history` split.
+- Documented route choices were checked against the current backend controllers for cards, bank linking, bill payments, payment links, savings pots, recurring transfers, and referrals.
+- Intentional compatibility choices are recorded: cards/banks expose metadata on list endpoints, payment links keep `{ links, total }`, savings pots keep array lists, recurring transfers keep `transfers`/`data` aliases, and referrals split summary/history.
 
 Verification:
 
