@@ -220,6 +220,16 @@ export class ContactController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CheckContactsDto,
   ) {
+    if (
+      dto.permissionStatus === 'denied' ||
+      dto.permissionStatus === 'unavailable'
+    ) {
+      return {
+        totalChecked: 0,
+        registered: [],
+      };
+    }
+
     const submittedPhoneHashes =
       dto.phoneHashes?.map((hash) => hash.trim().toLowerCase()) ??
       dto.phoneNumbers?.map((phone) =>

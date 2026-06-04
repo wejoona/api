@@ -175,6 +175,40 @@ describe('ContactController (e2e)', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('should ignore submitted hashes when contact permission is denied', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({
+          permissionStatus: 'denied',
+          phoneHashes: ['a'.repeat(64)],
+        })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 0, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should ignore submitted hashes when contact permission is unavailable', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({
+          permissionStatus: 'unavailable',
+          phoneHashes: ['b'.repeat(64)],
+        })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 0, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should return an empty result without querying users for an empty contact batch', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/contacts/check')

@@ -11,8 +11,8 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 ## Mobile Data Truthfulness
 
 - [x] Confirm transaction list/detail contracts expose enough backend fields for mobile to remove fake transaction history and success-detail data.
-- [ ] Confirm wallet balance/readiness responses identify data source, stale/degraded state, and provider-unavailable reasons.
-- [ ] Confirm contact discovery contracts stay scoped to requested contacts and requester visibility, with no whole-address-book leakage.
+- [x] Confirm wallet balance/readiness responses identify data source, stale/degraded state, and provider-unavailable reasons.
+- [x] Confirm contact discovery contracts stay scoped to requested contacts and requester visibility, with no whole-address-book leakage.
 
 ## Feature Subscriptions And Notifications
 
@@ -117,3 +117,40 @@ Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="auth.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="auth.controller"`
+
+### Wallet Balance Readiness Contract - 2026-06-04
+
+Status: complete.
+
+Verified:
+
+- `GET /wallet` identifies the balance source with `source`, `sourceOfTruth`, `readStatus`, `isStale`, `degraded`, and `warning`.
+- Fresh ledger reads are marked `source=ledger`, `sourceOfTruth=blnk`, `readStatus=fresh`, `isStale=false`, and `degraded=false`.
+- Blnk/provider-unavailable fallback is marked `source=local_mirror`, `sourceOfTruth=local_mirror`, `readStatus=degraded`, `isStale=true`, and `degraded=true`.
+- Cached degraded balances are marked `readStatus=cached_degraded`.
+- Decimal-safe balance fields remain required for mobile display.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/wallet/application/usecases/get-balance.use-case.spec.ts`
+- `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller"`
+
+### Contact Discovery Scope And Privacy - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `POST /contacts/check` accepts scoped hashed phone lookup through `phoneHashes`.
+- Deprecated raw `phoneNumbers` are hashed immediately for compatibility and are not returned.
+- Denied or unavailable contact permission is now enforced server-side: the API returns no matches and does not query users even if a buggy client submits hashes.
+- Empty batches do not query users.
+- Results are limited to active verified users found from the submitted hashes.
+- The current user is excluded from matches.
+- Responses return `phoneHash`, `maskedPhone`, `userId`, `displayName`, `avatarUrl`, and `isKoridoUser`; raw phone numbers are not returned.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="contact.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="contact.controller"`
