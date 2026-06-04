@@ -38,6 +38,10 @@ Cote d'Ivoire and the United States.
   - revoking one device also revokes sessions attached to that device
   - revoking all devices also revokes all user sessions
   - smoke coverage now registers and revokes a device through the mobile API
+- Added mobile waitlist/stay-informed smoke coverage:
+  - posts `/feature-subscriptions` with `featureKey`, `source`, phone, country,
+    locale, platform, app version, and screen metadata
+  - asserts the response remains feature-specific, active, and region-aware
 
 ## Verification
 

@@ -206,6 +206,38 @@ async function main() {
   await expectStatus('GET', '/user/data-export?format=json', [200], { token });
   await expectStatus('GET', '/feature-flags/me', [200], { token });
   await expectStatus('GET', '/feature-subscriptions', [200], { token });
+  const featureSubscription = await expectStatus(
+    'POST',
+    '/feature-subscriptions',
+    [200],
+    {
+      token,
+      body: {
+        featureKey: 'virtual_card',
+        source: 'vcard_screen',
+        phone,
+        countryCode,
+        locale: countryCode === 'CI' ? 'fr-CI' : 'en-US',
+        platform: 'ios',
+        appVersion: '1.0.0-smoke',
+        metadata: {
+          surface: 'vcard',
+          scenario: 'mobile-api-smoke',
+        },
+      },
+    },
+  );
+  if (
+    featureSubscription.data?.featureKey !== 'virtual_card' ||
+    featureSubscription.data?.source !== 'vcard_screen' ||
+    featureSubscription.data?.status !== 'subscribed' ||
+    featureSubscription.data?.isActive !== true ||
+    featureSubscription.data?.metadata?.countryCode !== countryCode
+  ) {
+    throw new Error(
+      '/feature-subscriptions did not persist feature-specific mobile context',
+    );
+  }
   const depositChannels = await expectStatus(
     'GET',
     `/wallet/deposit/channels?country=${countryCode}&currency=${countryProfile.depositCurrency}`,
