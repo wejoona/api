@@ -30,6 +30,21 @@ import {
 export class ReferralController {
   constructor(private readonly referralService: ReferralService) {}
 
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get user referral history',
+    description:
+      'Mobile-compatible alias for GET /referrals/history. Returns referrals created with or for the current user.',
+  })
+  @ApiResponse({ status: HttpStatus.OK, type: [ReferralResponse] })
+  async getReferrals(
+    @CurrentUser('id') userId: string,
+  ): Promise<ReferralResponse[]> {
+    return this.getReferralHistory(userId);
+  }
+
   @Get('code')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -90,6 +105,12 @@ export class ReferralController {
   @ApiResponse({ status: HttpStatus.OK, type: [ReferralResponse] })
   async getHistory(
     @CurrentUser('id') userId: string,
+  ): Promise<ReferralResponse[]> {
+    return this.getReferralHistory(userId);
+  }
+
+  private async getReferralHistory(
+    userId: string,
   ): Promise<ReferralResponse[]> {
     const referrals = await this.referralService.getUserReferrals(userId);
     return referrals.map((r) => ({

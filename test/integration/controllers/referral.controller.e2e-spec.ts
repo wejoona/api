@@ -9,6 +9,7 @@ const mockReferralService = {
   getUserReferralCode: jest.fn(),
   getUserStats: jest.fn(),
   generateReferralCode: jest.fn(),
+  getUserReferrals: jest.fn(),
   getLeaderboard: jest.fn(),
   applyReferralCode: jest.fn(),
 };
@@ -57,6 +58,41 @@ describe('ReferralController (e2e)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/referrals/code')
         .expect(200);
+    });
+  });
+
+  describe('GET /api/v1/referrals', () => {
+    it('should return referral history through the mobile-compatible alias', async () => {
+      mockReferralService.getUserReferrals.mockResolvedValue([referral()]);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/referrals')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toHaveLength(1);
+          expect(body[0]).toMatchObject({
+            id: '550e8400-e29b-41d4-a716-446655440111',
+            referralCode: 'REF123',
+            status: 'pending',
+            referrerReward: '1000000',
+            referredReward: '500000',
+            rewardCurrency: 'USDC',
+          });
+        });
+    });
+  });
+
+  describe('GET /api/v1/referrals/history', () => {
+    it('should preserve the explicit history route', async () => {
+      mockReferralService.getUserReferrals.mockResolvedValue([referral()]);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/referrals/history')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toHaveLength(1);
+          expect(body[0].referralCode).toBe('REF123');
+        });
     });
   });
 
