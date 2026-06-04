@@ -65,12 +65,19 @@ describe('InitiateDepositUseCase', () => {
 
     expect(result.estimatedAmount).toBe(8.18);
     expect(result.estimatedAmount).toBeGreaterThan(0);
+    expect(result).toMatchObject({
+      supportReference: expect.any(String),
+      providerReference: 'yc_dep_123',
+      paymentReference: 'DEP-123',
+    });
     expect(savedTransactions[0].amount).toBe(8.18);
     expect(savedTransactions[0].metadata).toMatchObject({
       fee: 75,
       feeCurrency: 'XOF',
       sourceAmount: 5000,
       sourceCurrency: 'XOF',
+      providerReference: 'yc_dep_123',
+      paymentReference: 'DEP-123',
     });
   });
 });

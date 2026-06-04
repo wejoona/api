@@ -70,6 +70,18 @@ export class TransferResponse {
   @ApiPropertyOptional({ example: 'circle_transfer_123' })
   providerTransferId?: string;
 
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  supportReference?: string;
+
+  @ApiPropertyOptional({ example: 'a5d6e7f8-1234-4abc-9876-123456789abc' })
+  ledgerReference?: string;
+
+  @ApiPropertyOptional({ example: 'blnk_txn_123' })
+  ledgerTransactionId?: string;
+
+  @ApiPropertyOptional({ example: 'circle_transfer_123' })
+  providerReference?: string;
+
   @ApiPropertyOptional({ example: 'circle' })
   providerName?: string;
 
@@ -108,6 +120,12 @@ export class TransferResponse {
     response.currency = entity.currency;
     response.note = entity.note || undefined;
     response.providerTransferId = entity.providerTransferId || undefined;
+    response.supportReference = entity.id;
+    response.ledgerReference =
+      (entity.metadata?.blnkReference as string | undefined) || undefined;
+    response.ledgerTransactionId =
+      (entity.metadata?.blnkTransactionId as string | undefined) || undefined;
+    response.providerReference = entity.providerTransferId || undefined;
     response.providerName = entity.providerName || undefined;
     response.txHash = entity.txHash || undefined;
     response.errorMessage = entity.errorMessage || undefined;

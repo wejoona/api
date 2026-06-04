@@ -44,6 +44,9 @@ export interface InternalTransferOutput {
   fee: number;
   feeDecimal: string;
   status: string;
+  supportReference: string;
+  ledgerReference: string;
+  ledgerTransactionId?: string;
 }
 
 /**
@@ -157,9 +160,10 @@ export class InternalTransferUseCase {
     // Step 6: Record P2P transfer in Blnk ledger (source of truth — NO on-chain tx)
     const amountInMicroUSDC = BigInt(Math.round(input.amount * 1_000_000));
     const senderTxId = uuidv4();
+    let ledgerTransactionId: string | undefined;
 
     try {
-      await this.ledgerProvider.recordP2PTransfer({
+      const ledgerResult = await this.ledgerProvider.recordP2PTransfer({
         senderId: input.fromUserId,
         recipientId: recipient.id,
         amount: amountInMicroUSDC,
@@ -174,6 +178,7 @@ export class InternalTransferUseCase {
         },
         note: input.note,
       });
+      ledgerTransactionId = ledgerResult.transactionId;
       this.logger.log(`Blnk P2P transfer recorded: ${senderTxId}`);
     } catch (error) {
       this.logger.error(
@@ -307,6 +312,9 @@ export class InternalTransferUseCase {
       fee: 0, // Internal transfers are free
       feeDecimal: formatDecimalAmount(0, currency),
       status: 'completed',
+      supportReference: senderTransaction.id,
+      ledgerReference: senderTxId,
+      ledgerTransactionId,
     };
   }
 

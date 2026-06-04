@@ -10,7 +10,7 @@ Purpose: move from hardened mobile contracts into operational backend readiness 
 
 ## Ledger And Reconciliation Operations
 
-- [ ] Confirm every money-moving route emits enough ledger identifiers for support to reconcile a user complaint without exposing provider secrets.
+- [x] Confirm every money-moving route emits enough ledger identifiers for support to reconcile a user complaint without exposing provider secrets.
 - [ ] Confirm reconciliation jobs can be observed through CronHub-compatible status without requiring in-process-only inspection.
 - [ ] Confirm failed ledger/provider settlement paths surface actionable support metadata while preserving mobile-safe errors.
 
@@ -77,4 +77,21 @@ Verified and hardened:
 Verification:
 
 - Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="kyc-verify.controller|liveness.controller"`
+- Full backend/mobile verifier: `npm run verify:backend:mobile`
+
+### Money Movement Reconciliation References - 2026-06-04
+
+Verified and hardened:
+
+- Internal transfer responses now include `supportReference`, `ledgerReference`, and `ledgerTransactionId`.
+- External transfer and withdrawal responses now include `supportReference`, `ledgerReference`, `ledgerTransactionId`, and `providerReference`.
+- Deposit initiation responses now include `supportReference`, `providerReference`, and `paymentReference`.
+- Payment-link payment responses now include `supportReference`, `ledgerReference`, and `ledgerTransactionId`.
+- Transfer DTO history/detail mapping exposes persisted support-safe reconciliation handles from local entity metadata where available.
+- The response fields intentionally expose local transaction ids, generated ledger references, Blnk transaction ids, and provider external ids only. No provider secrets, omnibus wallet ids, API keys, or signing material are returned.
+
+Verification:
+
+- Focused unit: `npm test -- --runInBand src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/wallet/application/usecases/initiate-deposit.use-case.spec.ts`
+- Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller|payment-link.controller"`
 - Full backend/mobile verifier: `npm run verify:backend:mobile`

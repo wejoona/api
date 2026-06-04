@@ -42,6 +42,9 @@ export interface InitiateDepositOutput {
   estimatedAmountDecimal: string;
   paymentInstructions: PaymentInstructions;
   expiresAt: Date;
+  supportReference: string;
+  providerReference: string;
+  paymentReference?: string;
 }
 
 @Injectable()
@@ -135,6 +138,8 @@ export class InitiateDepositUseCase {
         feeCurrency: input.sourceCurrency,
         channelId: input.channelId,
         depositId: depositResponse.id,
+        providerReference: depositResponse.externalId,
+        paymentReference: depositResponse.paymentInstructions?.reference,
       },
     });
 
@@ -167,6 +172,9 @@ export class InitiateDepositUseCase {
       estimatedAmountDecimal: formatDecimalAmount(estimatedAmount, 'USDC'),
       paymentInstructions: depositResponse.paymentInstructions,
       expiresAt: depositResponse.expiresAt,
+      supportReference: transaction.id,
+      providerReference: depositResponse.externalId,
+      paymentReference: depositResponse.paymentInstructions?.reference,
     };
   }
 

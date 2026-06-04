@@ -53,6 +53,10 @@ export interface ExternalTransferOutput {
   status: string;
   txHash?: string;
   estimatedArrival?: string;
+  supportReference: string;
+  ledgerReference: string;
+  ledgerTransactionId?: string;
+  providerReference?: string;
 }
 
 /**
@@ -288,6 +292,10 @@ export class ExternalTransferUseCase {
         status: transferResponse.status,
         txHash: transferResponse.txHash,
         estimatedArrival: '5-30 minutes',
+        supportReference: transaction.id,
+        ledgerReference: transactionRef,
+        ledgerTransactionId: blnkTxId,
+        providerReference: transferResponse.externalId,
       };
     } catch (error) {
       // On-chain transfer failed — void the Blnk inflight transaction

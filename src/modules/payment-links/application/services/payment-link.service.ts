@@ -217,7 +217,14 @@ export class PaymentLinkService {
     code: string,
     payerUserId: string,
     dto: PayPaymentLinkDto,
-  ): Promise<{ transactionId: string; amount: number; status: string }> {
+  ): Promise<{
+    transactionId: string;
+    amount: number;
+    status: string;
+    supportReference: string;
+    ledgerReference: string;
+    ledgerTransactionId?: string;
+  }> {
     const paymentLink = await this.paymentLinkRepository.findByCode(code);
 
     if (!paymentLink) {
@@ -315,9 +322,10 @@ export class PaymentLinkService {
 
     // Record P2P transfer in Blnk ledger (source of truth — NO direct wallet.debit/credit)
     const reference = `pl_${paymentLink.code}_${Date.now()}`;
+    let ledgerTransactionId: string | undefined;
     try {
       const amountInMicro = BigInt(Math.round(amount * 1_000_000));
-      await this.ledgerProvider.recordP2PTransfer({
+      const ledgerResult = await this.ledgerProvider.recordP2PTransfer({
         senderId: payerUserId,
         recipientId: paymentLink.userId,
         amount: amountInMicro,
@@ -329,6 +337,7 @@ export class PaymentLinkService {
           paymentLinkCode: paymentLink.code,
         },
       });
+      ledgerTransactionId = ledgerResult.transactionId;
     } catch (error) {
       this.logger.error(
         `Blnk P2P transfer failed for payment link ${paymentLink.code}: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -385,6 +394,9 @@ export class PaymentLinkService {
       transactionId: transfer.id,
       amount: amount,
       status: 'completed',
+      supportReference: transfer.id,
+      ledgerReference: reference,
+      ledgerTransactionId,
     };
   }
 

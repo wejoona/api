@@ -196,6 +196,9 @@ describe('PaymentLinkController (e2e)', () => {
         transactionId: 'tx_123',
         amount: 25,
         status: 'completed',
+        supportReference: 'tx_123',
+        ledgerReference: 'pl_PAY123ABC_1234567890',
+        ledgerTransactionId: 'blnk_pl_123',
       });
       await request(app.getHttpServer())
         .post('/api/v1/payment-links/code/PAY123ABC/pay')
@@ -206,6 +209,9 @@ describe('PaymentLinkController (e2e)', () => {
             transactionId: 'tx_123',
             amount: 25,
             status: 'completed',
+            supportReference: 'tx_123',
+            ledgerReference: 'pl_PAY123ABC_1234567890',
+            ledgerTransactionId: 'blnk_pl_123',
           });
         });
     });

@@ -158,6 +158,10 @@ describe('ExternalTransferUseCase', () => {
       currency: 'USDC',
       fee: 0.5,
       status: 'completed',
+      supportReference: expect.any(String),
+      ledgerReference: expect.any(String),
+      ledgerTransactionId: 'blnk-withdrawal-123',
+      providerReference: expect.any(String),
     });
     expect(transactionRiskService.isAddressSafe).toHaveBeenCalledWith(
       validAddress,

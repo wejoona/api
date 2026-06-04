@@ -149,6 +149,9 @@ describe('InternalTransferUseCase', () => {
       currency: 'USD',
       fee: 0,
       status: 'completed',
+      supportReference: expect.any(String),
+      ledgerReference: expect.any(String),
+      ledgerTransactionId: 'blnk-transfer-123',
     });
     expect(ledgerProvider.getAvailableBalance).toHaveBeenCalledWith(
       senderId,

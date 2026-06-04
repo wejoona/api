@@ -91,6 +91,9 @@ const transferResponse = {
   status: 'completed',
   fee: 0,
   feeDecimal: '0.000000',
+  supportReference: '880e8400-e29b-41d4-a716-446655440000',
+  ledgerReference: 'ledger-ref-internal-123',
+  ledgerTransactionId: 'blnk-internal-123',
   createdAt: '2026-06-04T12:00:00.000Z',
 };
 
@@ -106,6 +109,10 @@ const externalTransferUseCaseResponse = {
   feeDecimal: '0.010000',
   txHash: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   estimatedArrival: '1-2 minutes',
+  supportReference: '990e8400-e29b-41d4-a716-446655440000',
+  ledgerReference: 'ledger-ref-external-123',
+  ledgerTransactionId: 'blnk-external-123',
+  providerReference: 'provider-external-123',
 };
 
 describe('WalletController (e2e)', () => {
@@ -387,6 +394,10 @@ describe('WalletController (e2e)', () => {
         network: 'polygon',
         txHash: externalTransferUseCaseResponse.txHash,
         estimatedArrival: externalTransferUseCaseResponse.estimatedArrival,
+        supportReference: externalTransferUseCaseResponse.supportReference,
+        ledgerReference: externalTransferUseCaseResponse.ledgerReference,
+        ledgerTransactionId: externalTransferUseCaseResponse.ledgerTransactionId,
+        providerReference: externalTransferUseCaseResponse.providerReference,
         timestamp: expect.any(String),
         createdAt: expect.any(String),
       });
@@ -422,6 +433,10 @@ describe('WalletController (e2e)', () => {
         fee: externalTransferUseCaseResponse.fee,
         feeDecimal: externalTransferUseCaseResponse.feeDecimal,
         status: externalTransferUseCaseResponse.status,
+        supportReference: externalTransferUseCaseResponse.supportReference,
+        ledgerReference: externalTransferUseCaseResponse.ledgerReference,
+        ledgerTransactionId: externalTransferUseCaseResponse.ledgerTransactionId,
+        providerReference: externalTransferUseCaseResponse.providerReference,
       });
     });
   });

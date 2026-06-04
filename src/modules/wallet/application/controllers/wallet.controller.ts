@@ -529,6 +529,10 @@ export class WalletController {
       network: dto.network || 'polygon',
       txHash: result.txHash,
       estimatedArrival: result.estimatedArrival,
+      supportReference: result.supportReference,
+      ledgerReference: result.ledgerReference,
+      ledgerTransactionId: result.ledgerTransactionId,
+      providerReference: result.providerReference,
       timestamp: now.toISOString(),
       createdAt: now.toISOString(),
     };
@@ -662,6 +666,10 @@ export class WalletController {
       fee: result.fee,
       feeDecimal: result.feeDecimal,
       status: result.status,
+      supportReference: result.supportReference,
+      ledgerReference: result.ledgerReference,
+      ledgerTransactionId: result.ledgerTransactionId,
+      providerReference: result.providerReference,
     };
   }
 
