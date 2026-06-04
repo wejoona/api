@@ -77,6 +77,11 @@ describe('GetBalanceUseCase', () => {
       walletId: 'wallet-123',
       currency: 'USDC',
       source: 'ledger',
+      sourceOfTruth: 'blnk',
+      readStatus: 'fresh',
+      isStale: false,
+      degraded: false,
+      warning: null,
       balances: [
         {
           currency: 'USDC',
@@ -94,7 +99,10 @@ describe('GetBalanceUseCase', () => {
     const result = await useCase.execute({ userId: 'user-123' });
 
     expect(cacheManager.get).toHaveBeenCalledWith('balance:user-123');
-    expect(result).toEqual(cachedBalance);
+    expect(result).toEqual({
+      ...cachedBalance,
+      readStatus: 'cached',
+    });
     expect(walletRepository.findByUserId).not.toHaveBeenCalled();
     expect(ledgerProvider.getUserBalance).not.toHaveBeenCalled();
   });
@@ -113,6 +121,11 @@ describe('GetBalanceUseCase', () => {
       walletId: 'wallet-123',
       currency: 'USDC',
       source: 'ledger',
+      sourceOfTruth: 'blnk',
+      readStatus: 'fresh',
+      isStale: false,
+      degraded: false,
+      warning: null,
       balances: [
         {
           currency: 'USDC',
@@ -154,6 +167,12 @@ describe('GetBalanceUseCase', () => {
       walletId: 'wallet-123',
       currency: 'USDC',
       source: 'local_mirror',
+      sourceOfTruth: 'local_mirror',
+      readStatus: 'degraded',
+      isStale: true,
+      degraded: true,
+      warning:
+        'Ledger balance is temporarily unavailable. Showing local mirror balance.',
       balances: [
         {
           currency: 'USDC',
@@ -191,6 +210,48 @@ describe('GetBalanceUseCase', () => {
       },
     ]);
     expect(result.source).toBe('local_mirror');
+    expect(result).toMatchObject({
+      sourceOfTruth: 'local_mirror',
+      readStatus: 'degraded',
+      isStale: true,
+      degraded: true,
+      warning:
+        'Ledger balance is temporarily unavailable. Showing local mirror balance.',
+    });
+  });
+
+  it('marks cached local mirror balances as cached and degraded', async () => {
+    const cachedBalance: GetBalanceOutput = {
+      walletId: 'wallet-123',
+      currency: 'USDC',
+      source: 'local_mirror',
+      sourceOfTruth: 'local_mirror',
+      readStatus: 'degraded',
+      isStale: true,
+      degraded: true,
+      warning:
+        'Ledger balance is temporarily unavailable. Showing local mirror balance.',
+      balances: [
+        {
+          currency: 'USDC',
+          available: 75,
+          availableDecimal: '75.000000',
+          pending: 0,
+          pendingDecimal: '0.000000',
+          total: 75,
+          totalDecimal: '75.000000',
+        },
+      ],
+    };
+    cacheManager.get.mockResolvedValue(cachedBalance);
+
+    await expect(useCase.execute({ userId: 'user-123' })).resolves.toMatchObject({
+      source: 'local_mirror',
+      sourceOfTruth: 'local_mirror',
+      readStatus: 'cached_degraded',
+      isStale: true,
+      degraded: true,
+    });
   });
 
   it('uses independent cache keys for different users', async () => {

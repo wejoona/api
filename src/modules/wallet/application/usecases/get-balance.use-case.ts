@@ -17,6 +17,11 @@ export interface GetBalanceOutput {
   walletId: string;
   currency: string;
   source: 'ledger' | 'local_mirror';
+  sourceOfTruth: 'blnk' | 'local_mirror';
+  readStatus: 'fresh' | 'cached' | 'degraded' | 'cached_degraded';
+  isStale: boolean;
+  degraded: boolean;
+  warning: string | null;
   balances: Array<
     Balance & {
       availableDecimal: string;
@@ -53,7 +58,7 @@ export class GetBalanceUseCase {
     const cachedBalance =
       await this.cacheManager.get<GetBalanceOutput>(cacheKey);
     if (cachedBalance) {
-      return cachedBalance;
+      return this.markCached(cachedBalance);
     }
 
     // Cache miss - fetch from source
@@ -81,6 +86,11 @@ export class GetBalanceUseCase {
           walletId: wallet.id,
           currency: wallet.currency,
           source: 'ledger',
+          sourceOfTruth: 'blnk',
+          readStatus: 'fresh',
+          isStale: false,
+          degraded: false,
+          warning: null,
           balances: [
             this.withBalanceDecimals('USDC', available, pending, total),
           ],
@@ -100,6 +110,12 @@ export class GetBalanceUseCase {
       walletId: wallet.id,
       currency: wallet.currency,
       source: 'local_mirror',
+      sourceOfTruth: 'local_mirror',
+      readStatus: 'degraded',
+      isStale: true,
+      degraded: true,
+      warning:
+        'Ledger balance is temporarily unavailable. Showing local mirror balance.',
       balances: [
         this.withBalanceDecimals(
           wallet.currency,
@@ -113,6 +129,25 @@ export class GetBalanceUseCase {
     // Cache for shorter time since it's fallback balance
     await this.cacheManager.set(cacheKey, result, 10);
     return result;
+  }
+
+  private markCached(balance: GetBalanceOutput): GetBalanceOutput {
+    const isDegraded =
+      balance.degraded || balance.source === 'local_mirror' || balance.isStale;
+
+    return {
+      ...balance,
+      sourceOfTruth:
+        balance.sourceOfTruth ??
+        (balance.source === 'ledger' ? 'blnk' : 'local_mirror'),
+      readStatus: isDegraded ? 'cached_degraded' : 'cached',
+      isStale: isDegraded,
+      degraded: isDegraded,
+      warning: isDegraded
+        ? (balance.warning ??
+          'Ledger balance is temporarily unavailable. Showing cached local mirror balance.')
+        : null,
+    };
   }
 
   private withBalanceDecimals(

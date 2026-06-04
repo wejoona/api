@@ -44,6 +44,11 @@ const walletResponse = {
   walletId: '660e8400-e29b-41d4-a716-446655440000',
   currency: 'USDC',
   source: 'ledger',
+  sourceOfTruth: 'blnk',
+  readStatus: 'fresh',
+  isStale: false,
+  degraded: false,
+  warning: null,
   balances: [
     {
       currency: 'USDC',

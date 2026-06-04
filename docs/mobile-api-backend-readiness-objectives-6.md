@@ -10,8 +10,8 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 
 ## Wallet Read Model And Balance Truth
 
-- [ ] Confirm balance reads clearly identify Blnk source-of-truth, cached, and local fallback states for mobile.
-- [ ] Confirm local fallback balance is marked degraded/stale and cannot be mistaken for final ledger truth.
+- [x] Confirm balance reads clearly identify Blnk source-of-truth, cached, and local fallback states for mobile.
+- [x] Confirm local fallback balance is marked degraded/stale and cannot be mistaken for final ledger truth.
 - [ ] Confirm transaction history, payment links, and wallet summaries share consistent amount/currency precision and support references.
 
 ## Rates, Regions, And Provider Feature Flags
@@ -53,3 +53,24 @@ Verification:
 
 - `npm test -- --runInBand src/modules/user/application/domain/usecases/logout.usecase.spec.ts src/modules/user/application/domain/usecases/logout-all.usecase.spec.ts src/modules/user/application/domain/usecases/refresh-token.usecase.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="auth.controller|session.controller"`
+
+### Wallet Balance Source Semantics - 2026-06-04
+
+Verified and hardened:
+
+- Wallet balance responses now include explicit source metadata:
+  - `source`: `ledger` or `local_mirror`.
+  - `sourceOfTruth`: `blnk` or `local_mirror`.
+  - `readStatus`: `fresh`, `cached`, `degraded`, or `cached_degraded`.
+  - `isStale`, `degraded`, and mobile-safe `warning`.
+- Fresh Blnk reads return `source=ledger`, `sourceOfTruth=blnk`, `readStatus=fresh`, `isStale=false`, `degraded=false`.
+- Cached ledger reads return `readStatus=cached`.
+- Blnk-unavailable and missing-ledger-balance fallback reads return `source=local_mirror`, `readStatus=degraded`, `isStale=true`, `degraded=true`, and a warning so mobile cannot mistake local mirror data for final ledger truth.
+- Cached local mirror fallback reads return `readStatus=cached_degraded`.
+- Wallet contract tests now require this metadata for mobile compatibility.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/wallet/application/usecases/get-balance.use-case.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller"`
+- `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`

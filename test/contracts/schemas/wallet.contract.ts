@@ -75,6 +75,29 @@ export const WalletBalanceResponseSchema: ContractSchema = {
       enum: ['ledger', 'local_mirror'],
       example: 'ledger',
     }),
+    sourceOfTruth: required(FieldType.STRING, {
+      description: 'Authoritative balance source used by the API',
+      enum: ['blnk', 'local_mirror'],
+      example: 'blnk',
+    }),
+    readStatus: required(FieldType.STRING, {
+      description: 'Freshness/degradation state for the returned balance',
+      enum: ['fresh', 'cached', 'degraded', 'cached_degraded'],
+      example: 'fresh',
+    }),
+    isStale: required(FieldType.BOOLEAN, {
+      description: 'Whether the displayed balance may be stale',
+      example: false,
+    }),
+    degraded: required(FieldType.BOOLEAN, {
+      description: 'Whether the ledger source is unavailable or degraded',
+      example: false,
+    }),
+    warning: optional(FieldType.STRING, {
+      description: 'Mobile-safe warning to show when balance is degraded',
+      nullable: true,
+      example: null,
+    }),
     balances: required(FieldType.ARRAY, {
       description: 'Balances by currency',
       itemType: BalanceItemSchema,

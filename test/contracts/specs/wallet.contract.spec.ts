@@ -25,6 +25,11 @@ describe('Wallet Contracts', () => {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
         currency: 'USDC',
         source: 'ledger',
+        sourceOfTruth: 'blnk',
+        readStatus: 'fresh',
+        isStale: false,
+        degraded: false,
+        warning: null,
         balances: [
           {
             currency: 'USDC',
@@ -48,6 +53,12 @@ describe('Wallet Contracts', () => {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
         currency: 'USDC',
         source: 'local_mirror',
+        sourceOfTruth: 'local_mirror',
+        readStatus: 'degraded',
+        isStale: true,
+        degraded: true,
+        warning:
+          'Ledger balance is temporarily unavailable. Showing local mirror balance.',
         balances: [
           {
             currency: 'USDC',
@@ -70,6 +81,11 @@ describe('Wallet Contracts', () => {
         walletId: 'not-a-uuid',
         currency: 'USDC',
         source: 'ledger',
+        sourceOfTruth: 'blnk',
+        readStatus: 'fresh',
+        isStale: false,
+        degraded: false,
+        warning: null,
         balances: [
           { currency: 'USDC', available: 100.0, pending: 0, total: 100.0 },
         ],
@@ -87,6 +103,11 @@ describe('Wallet Contracts', () => {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
         currency: 'USDC',
         source: 'ledger',
+        sourceOfTruth: 'blnk',
+        readStatus: 'fresh',
+        isStale: false,
+        degraded: false,
+        warning: null,
         balances: [
           { currency: 'USDC', available: 100.0 }, // Missing pending and total
         ],
