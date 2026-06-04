@@ -110,12 +110,50 @@ describe('HealthController (e2e)', () => {
               available: true,
             }),
             redis: expect.objectContaining({ status: 'up', available: true }),
-            blnk: expect.objectContaining({ status: 'up', available: true }),
+            blnk: expect.objectContaining({
+              status: 'up',
+              available: true,
+              providerMode: expect.objectContaining({
+                provider: 'blnk',
+                mode: 'live',
+                productionLike: false,
+                liveConfigured: false,
+                modeStatus: 'enabled',
+              }),
+            }),
+          });
+          expect(body.providers.circle.providerMode).toMatchObject({
+            provider: 'circle',
+            mode: 'mock',
+            productionLike: false,
+            mockAllowed: true,
+            liveConfigured: false,
+            entityConfigured: false,
+            modeStatus: 'mock',
+          });
+          expect(body.providers.stellar.providerMode).toMatchObject({
+            provider: 'stellar',
+            mode: 'live',
+            productionLike: false,
+            mockAllowed: true,
+            liveConfigured: true,
+            network: 'testnet',
+            backend: 'rpc',
+            modeStatus: 'ok',
           });
           expect(body.providers.yellowCard).toMatchObject({
             status: 'skipped',
             available: false,
             reason: 'YELLOW_CARD_ENABLED=false',
+            providerMode: expect.objectContaining({
+              provider: 'yellow_card',
+              enabled: false,
+              mode: 'mock',
+              productionLike: false,
+              mockAllowed: true,
+              liveConfigured: false,
+              modeStatus: 'disabled',
+            }),
           });
           expect(body.providers.mobileMoneyDeposit).toMatchObject({
             mode: 'mock',
@@ -243,6 +281,42 @@ describe('HealthController (e2e)', () => {
               liveConfigured: false,
               status: 'misconfigured',
             },
+          });
+          expect(body.app.dependencies.blnk.providerMode).toMatchObject({
+            provider: 'blnk',
+            mode: 'live',
+            productionLike: true,
+            mockAllowed: false,
+            liveConfigured: false,
+            modeStatus: 'misconfigured',
+          });
+          expect(body.providers.circle.providerMode).toMatchObject({
+            provider: 'circle',
+            mode: 'mock',
+            productionLike: true,
+            mockAllowed: false,
+            liveConfigured: false,
+            entityConfigured: false,
+            modeStatus: 'misconfigured',
+          });
+          expect(body.providers.stellar.providerMode).toMatchObject({
+            provider: 'stellar',
+            mode: 'live',
+            productionLike: true,
+            mockAllowed: false,
+            liveConfigured: true,
+            network: 'testnet',
+            backend: 'rpc',
+            modeStatus: 'review_required',
+          });
+          expect(body.providers.yellowCard.providerMode).toMatchObject({
+            provider: 'yellow_card',
+            enabled: false,
+            mode: 'mock',
+            productionLike: true,
+            mockAllowed: false,
+            liveConfigured: false,
+            modeStatus: 'disabled',
           });
           expect(body.providers.mobileMoneyDeposit).toMatchObject({
             mode: 'disabled',

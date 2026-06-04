@@ -138,18 +138,36 @@ export class HealthController {
     const kyc = this.kycStatus();
     const messaging = this.messagingStatus();
     const moneyMovement = this.moneyMovementProviderStatus();
+    const providerModes = this.externalProviderModeStatus();
 
-    const appDependencies = { database, redis, blnk };
+    const appDependencies = {
+      database,
+      redis,
+      blnk: {
+        ...blnk,
+        providerMode: providerModes.blnk,
+      },
+    };
     const providerReadiness = {
-      circle,
-      stellar,
+      circle: {
+        ...circle,
+        providerMode: providerModes.circle,
+      },
+      stellar: {
+        ...stellar,
+        providerMode: providerModes.stellar,
+      },
       yellowCard: yellowCardEnabled
-        ? yellowCard
+        ? {
+            ...yellowCard,
+            providerMode: providerModes.yellowCard,
+          }
         : {
             ...yellowCard,
             status: 'skipped',
             available: false,
             reason: 'YELLOW_CARD_ENABLED=false',
+            providerMode: providerModes.yellowCard,
           },
       mobileMoneyDeposit: moneyMovement.deposit,
       mobileMoneyPayout: moneyMovement.payout,
@@ -461,6 +479,130 @@ export class HealthController {
     };
   }
 
+  private externalProviderModeStatus() {
+    return {
+      circle: this.circleProviderModeStatus(),
+      stellar: this.stellarProviderModeStatus(),
+      yellowCard: this.yellowCardProviderModeStatus(),
+      blnk: this.blnkProviderModeStatus(),
+    };
+  }
+
+  private circleProviderModeStatus() {
+    const productionLike = this.isProductionLike();
+    const useMock = this.getBooleanConfig(
+      'circle.useMock',
+      this.getBooleanConfig('CIRCLE_USE_MOCK', false) ||
+        !this.hasConfig('circle.apiKey', 'CIRCLE_API_KEY'),
+    );
+    const liveConfigured = this.hasConfig('circle.apiKey', 'CIRCLE_API_KEY');
+    const entityConfigured = this.hasConfig(
+      'circle.entitySecret',
+      'CIRCLE_ENTITY_SECRET',
+    );
+
+    return {
+      provider: 'circle',
+      mode: useMock ? 'mock' : 'live',
+      productionLike,
+      mockAllowed: !productionLike,
+      liveConfigured,
+      entityConfigured,
+      modeStatus: this.providerModeStatus(
+        useMock,
+        productionLike,
+        liveConfigured && entityConfigured,
+      ),
+    };
+  }
+
+  private stellarProviderModeStatus() {
+    const productionLike = this.isProductionLike();
+    const useMock = this.getBooleanConfig(
+      'stellar.useMock',
+      this.getBooleanConfig('STELLAR_USE_MOCK', false),
+    );
+    const network =
+      this.configService.get<string>('stellar.network') ||
+      this.configService.get<string>('STELLAR_NETWORK') ||
+      'testnet';
+    const provider =
+      this.configService.get<string>('stellar.provider') ||
+      this.configService.get<string>('STELLAR_PROVIDER') ||
+      'rpc';
+    const mainnetReady = network === 'mainnet';
+
+    return {
+      provider: 'stellar',
+      mode: useMock ? 'mock' : 'live',
+      productionLike,
+      mockAllowed: !productionLike,
+      liveConfigured: true,
+      network,
+      backend: provider,
+      modeStatus: productionLike && !mainnetReady ? 'review_required' : 'ok',
+    };
+  }
+
+  private yellowCardProviderModeStatus() {
+    const productionLike = this.isProductionLike();
+    const enabled =
+      this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') === 'true';
+    const useMock = this.getBooleanConfig(
+      'yellowCard.useMock',
+      this.getBooleanConfig('YELLOW_CARD_USE_MOCK', false) ||
+        !this.hasConfig('yellowCard.apiKey', 'YELLOW_CARD_API_KEY'),
+    );
+    const liveConfigured =
+      this.hasConfig('yellowCard.apiKey', 'YELLOW_CARD_API_KEY') &&
+      this.hasConfig('yellowCard.secretKey', 'YELLOW_CARD_SECRET_KEY');
+
+    return {
+      provider: 'yellow_card',
+      enabled,
+      mode: useMock ? 'mock' : 'live',
+      productionLike,
+      mockAllowed: !productionLike,
+      liveConfigured,
+      modeStatus: enabled
+        ? this.providerModeStatus(useMock, productionLike, liveConfigured)
+        : 'disabled',
+    };
+  }
+
+  private blnkProviderModeStatus() {
+    const productionLike = this.isProductionLike();
+    const liveConfigured =
+      this.hasConfig('blnk.apiKey', 'BLNK_API_KEY') &&
+      this.hasConfig('blnk.ledgerId', 'BLNK_LEDGER_ID');
+
+    return {
+      provider: 'blnk',
+      mode: 'live',
+      productionLike,
+      mockAllowed: false,
+      liveConfigured,
+      modeStatus:
+        productionLike && !liveConfigured ? 'misconfigured' : 'enabled',
+    };
+  }
+
+  private providerModeStatus(
+    useMock: boolean,
+    productionLike: boolean,
+    liveConfigured: boolean,
+  ) {
+    if (productionLike && useMock) {
+      return 'misconfigured';
+    }
+
+    if (useMock) {
+      return 'mock';
+    }
+
+    return liveConfigured ? 'enabled' : 'misconfigured';
+  }
+
   private mockBackedProviderStatus(configKey: string, featureReason: string) {
     const productionLike = this.isProductionLike();
     const useMock = this.getBooleanConfig(configKey, !productionLike);
@@ -521,6 +663,13 @@ export class HealthController {
     }
 
     return value;
+  }
+
+  private hasConfig(nestedKey: string, envKey: string): boolean {
+    return Boolean(
+      this.configService.get<string>(nestedKey) ||
+      this.configService.get<string>(envKey),
+    );
   }
 
   @Get('detailed')

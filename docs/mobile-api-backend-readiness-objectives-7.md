@@ -11,7 +11,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 ## Provider Factories And Legacy Mock Fallbacks
 
 - [x] Review deposit and payout provider factories so unavailable real providers return explicit disabled/unavailable states instead of falling back to mock.
-- [ ] Confirm Circle, Stellar, Yellow Card, and Blnk provider factory modes are visible in readiness/admin metadata.
+- [x] Confirm Circle, Stellar, Yellow Card, and Blnk provider factory modes are visible in readiness/admin metadata.
 - [ ] Confirm stale mock provider documentation cannot be mistaken for current production behavior.
 
 ## Mobile-Facing Operational Contracts
@@ -95,4 +95,21 @@ Verified and hardened:
 Verification:
 
 - `npm test -- --runInBand src/modules/deposit/infrastructure/providers/payment-provider.factory.spec.ts src/modules/withdrawal/infrastructure/providers/payout-provider.factory.spec.ts src/config/environments/index.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Provider Mode Readiness Metadata - 2026-06-04
+
+Verified and hardened:
+
+- `/health/mobile-readiness` now exposes sanitized provider mode metadata for:
+  - `providers.circle.providerMode`
+  - `providers.stellar.providerMode`
+  - `providers.yellowCard.providerMode`
+  - `app.dependencies.blnk.providerMode`
+- Metadata includes mode, production-like state, mock allowance, live configuration state, and mode status.
+- Stellar exposes network/backend only, not URLs.
+- Blnk exposes only live configuration booleans, not URL, API key, database, or ledger values.
+
+Verification:
+
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
