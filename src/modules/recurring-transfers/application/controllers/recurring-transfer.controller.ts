@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
+import { SecondaryFeatureCapabilityDto } from '../../../../common/dto';
 import { RecurringTransferService } from '../services/recurring-transfer.service';
 import { CreateRecurringTransferDto } from '../dto/create-recurring-transfer.dto';
 import { UpdateRecurringTransferDto } from '../dto/update-recurring-transfer.dto';
@@ -69,6 +70,17 @@ export class RecurringTransferController {
   constructor(
     private readonly recurringTransferService: RecurringTransferService,
   ) {}
+
+  @Get('capability')
+  @ApiOperation({ summary: 'Get recurring transfer capability metadata' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recurring transfer capability metadata',
+    type: SecondaryFeatureCapabilityDto,
+  })
+  async getCapability(): Promise<SecondaryFeatureCapabilityDto> {
+    return SecondaryFeatureCapabilityDto.available('recurring_transfers');
+  }
 
   @Get()
   @ApiOperation({ summary: 'List all recurring transfers' })

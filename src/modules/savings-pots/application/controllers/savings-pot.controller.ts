@@ -24,6 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
+import { SecondaryFeatureCapabilityDto } from '../../../../common/dto';
 import { User } from '../../../user/domain/entities/user.entity';
 import {
   CreateSavingsPotUseCase,
@@ -54,6 +55,17 @@ export class SavingsPotController {
     private readonly withdrawFromSavingsPotUseCase: WithdrawFromSavingsPotUseCase,
     private readonly cancelSavingsPotUseCase: CancelSavingsPotUseCase,
   ) {}
+
+  @Get('capability')
+  @ApiOperation({ summary: 'Get savings pots capability metadata' })
+  @ApiResponse({
+    status: 200,
+    description: 'Savings pots capability metadata',
+    type: SecondaryFeatureCapabilityDto,
+  })
+  async getCapability(): Promise<SecondaryFeatureCapabilityDto> {
+    return SecondaryFeatureCapabilityDto.available('savings_pots');
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a new savings pot' })

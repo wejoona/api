@@ -52,6 +52,28 @@ describe('ReferralController (e2e)', () => {
     jest.clearAllMocks();
   });
 
+  describe('GET /api/v1/referrals/capability', () => {
+    it('should return mobile-safe capability metadata (200)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/referrals/capability')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            feature: 'referrals',
+            available: true,
+            status: 'available',
+            reason: null,
+            featureReason: null,
+            provider: null,
+            retryable: false,
+            supportReviewRequired: false,
+          });
+        });
+
+      expect(mockReferralService.getUserReferrals).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /api/v1/referrals/code', () => {
     it('should return referral code (200)', async () => {
       mockReferralService.getUserReferralCode.mockResolvedValue('REF123');

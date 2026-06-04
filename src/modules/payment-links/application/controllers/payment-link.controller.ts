@@ -27,6 +27,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
+import { SecondaryFeatureCapabilityDto } from '../../../../common/dto';
 import { PaymentLinkService } from '../services/payment-link.service';
 import {
   CreatePaymentLinkDto,
@@ -43,6 +44,23 @@ interface UserPayload {
 @Controller('payment-links')
 export class PaymentLinkController {
   constructor(private readonly paymentLinkService: PaymentLinkService) {}
+
+  @Get('capability')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get payment link capability metadata',
+    description:
+      'Returns backend-owned availability metadata so mobile can render payment links without hardcoded assumptions.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment link capability metadata',
+    type: SecondaryFeatureCapabilityDto,
+  })
+  async getCapability(): Promise<SecondaryFeatureCapabilityDto> {
+    return SecondaryFeatureCapabilityDto.available('payment_links');
+  }
 
   @Post()
   @Throttle({ default: { ttl: 60000, limit: 10 } })

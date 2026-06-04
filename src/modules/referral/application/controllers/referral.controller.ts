@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { SecondaryFeatureCapabilityDto } from '@common/dto';
 import { ReferralService } from '../domain/services/referral.service';
 import { ApplyReferralCodeRequest } from '../dto/requests/apply-referral-code.request';
 import {
@@ -29,6 +30,19 @@ import {
 @Controller('referrals')
 export class ReferralController {
   constructor(private readonly referralService: ReferralService) {}
+
+  @Get('capability')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get referral capability metadata' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Referral capability metadata',
+    type: SecondaryFeatureCapabilityDto,
+  })
+  async getCapability(): Promise<SecondaryFeatureCapabilityDto> {
+    return SecondaryFeatureCapabilityDto.available('referrals');
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard)

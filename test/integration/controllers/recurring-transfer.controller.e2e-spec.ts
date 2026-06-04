@@ -40,6 +40,28 @@ describe('RecurringTransferController (e2e)', () => {
     jest.clearAllMocks();
   });
 
+  describe('GET /api/v1/recurring-transfers/capability', () => {
+    it('should return mobile-safe capability metadata (200)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/recurring-transfers/capability')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            feature: 'recurring_transfers',
+            available: true,
+            status: 'available',
+            reason: null,
+            featureReason: null,
+            provider: null,
+            retryable: false,
+            supportReviewRequired: false,
+          });
+        });
+
+      expect(mockRecurringService.getRecurringTransfer).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /api/v1/recurring-transfers', () => {
     it('should list recurring transfers with data alias (200)', async () => {
       mockRecurringService.getRecurringTransfers.mockResolvedValue([

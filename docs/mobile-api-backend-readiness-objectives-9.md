@@ -15,7 +15,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 
 ## Secondary Feature Capability Surfaces
 
-- [ ] Confirm cards, bank linking, bill payments, payment links, savings pots, recurring transfers, and referrals all expose capability/unavailable metadata consistently.
+- [x] Confirm cards, bank linking, bill payments, payment links, savings pots, recurring transfers, and referrals all expose capability/unavailable metadata consistently.
 - [ ] Confirm mutating endpoints for unavailable secondary features do not produce generic 400/500 messages.
 
 ## Recursive Execution Rule
@@ -112,3 +112,20 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="feature-flag.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="feature-flag.controller"`
+
+### Secondary Feature Capability Metadata - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Cards, bank linking, and bill payments already exposed mobile-safe availability metadata and unavailable reasons.
+- Added stable `GET /payment-links/capability`, `GET /savings-pots/capability`, `GET /recurring-transfers/capability`, and `GET /referrals/capability` endpoints.
+- Added a shared `SecondaryFeatureCapabilityDto` with `feature`, `available`, `status`, `reason`, `featureReason`, `provider`, `retryable`, and `supportReviewRequired`.
+- Kept existing list response shapes intact for savings pots and referrals so current mobile parsers do not break.
+- Controller e2e verifies capability routes do not fall through into `:id` routes.
+
+Verification:
+
+- `npm run build`
+- `npm run test:e2e -- --runInBand --testPathPatterns="payment-link.controller|savings-pot.controller|recurring-transfer.controller|referral.controller|card.controller|bank-linking.controller|bill-payment.controller"`

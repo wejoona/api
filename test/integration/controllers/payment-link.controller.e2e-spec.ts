@@ -71,6 +71,28 @@ describe('PaymentLinkController (e2e)', () => {
     jest.clearAllMocks();
   });
 
+  describe('GET /api/v1/payment-links/capability', () => {
+    it('should return mobile-safe capability metadata (200)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/payment-links/capability')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            feature: 'payment_links',
+            available: true,
+            status: 'available',
+            reason: null,
+            featureReason: null,
+            provider: null,
+            retryable: false,
+            supportReviewRequired: false,
+          });
+        });
+
+      expect(mockPaymentLinkService.getPaymentLinks).not.toHaveBeenCalled();
+    });
+  });
+
   describe('POST /api/v1/payment-links', () => {
     it('should create payment link (201)', async () => {
       mockPaymentLinkService.createPaymentLink.mockResolvedValue(
