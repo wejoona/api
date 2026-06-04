@@ -9,7 +9,7 @@ Purpose: continue mobile dogfooding readiness after the first checklist is compl
 - [x] Resolve merchant mobile endpoint drift: mobile uses `/merchant/*`, backend exposes `/merchants/*`.
 - [x] Verify payment-link mobile paths against backend for list, create, pay-by-code, get-by-id, and cancel.
 - [x] Verify savings pots and cards return mobile-safe empty/disabled states when providers are unavailable.
-- [ ] Verify bank-linking endpoints return region-aware unavailable states for USA/CI if no live provider is enabled.
+- [x] Verify bank-linking endpoints return region-aware unavailable states for USA/CI if no live provider is enabled.
 - [ ] Verify beneficiaries, bulk payments, and recurring transfers either work with real data or return explicit unavailable states.
 
 ## Backend Reliability And Compliance

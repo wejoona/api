@@ -15,6 +15,9 @@ const mockBankLinkingService = {
   deposit: jest.fn(),
   withdraw: jest.fn(),
   unlinkAccount: jest.fn(),
+  isBankLinkingEnabled: jest.fn(),
+  getBankLinkingProvider: jest.fn(),
+  getUnavailableReason: jest.fn(),
 };
 
 import { BankLinkingController } from '@modules/bank-linking/application/controllers/bank-linking.controller';
@@ -38,25 +41,120 @@ describe('BankLinkingController (e2e)', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(true);
+    mockBankLinkingService.getBankLinkingProvider.mockReturnValue(
+      'test-bank-provider',
+    );
+    mockBankLinkingService.getUnavailableReason.mockReturnValue(null);
   });
 
   describe('GET /api/v1/banks', () => {
-    it('should list banks (200)', async () => {
+    it('should list banks with mobile-safe capability metadata (200)', async () => {
       mockBankLinkingService.getBanks.mockResolvedValue([
         { id: 'tb001', name: 'Test Bank', country: 'CI' },
       ]);
-      await request(app.getHttpServer()).get('/api/v1/banks').expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/banks?country=CI')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        banks: [{ id: 'tb001', name: 'Test Bank', country: 'CI' }],
+        data: [{ id: 'tb001', name: 'Test Bank', country: 'CI' }],
+        available: true,
+        status: 'available',
+        reason: null,
+        provider: 'test-bank-provider',
+        country: 'CI',
+      });
+      expect(mockBankLinkingService.getBanks).toHaveBeenCalledWith('CI');
+    });
+
+    it('should return region-aware unavailable state for CI when provider is disabled', async () => {
+      mockBankLinkingService.getBanks.mockResolvedValue([]);
+      mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
+      mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
+      mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'bank_linking_unavailable',
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/banks?country=CI')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        banks: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bank_linking_unavailable',
+        provider: null,
+        country: 'CI',
+      });
+    });
+
+    it('should return region-aware unavailable state for US when provider is disabled', async () => {
+      mockBankLinkingService.getBanks.mockResolvedValue([]);
+      mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
+      mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
+      mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'bank_linking_unavailable',
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/banks?country=US')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        banks: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bank_linking_unavailable',
+        provider: null,
+        country: 'US',
+      });
     });
   });
 
   describe('GET /api/v1/bank-accounts', () => {
-    it('should list linked accounts (200)', async () => {
+    it('should list linked accounts with mobile-safe capability metadata (200)', async () => {
       mockBankLinkingService.getLinkedAccounts.mockResolvedValue([
         TestData.bankAccount(),
       ]);
-      await request(app.getHttpServer())
+
+      const response = await request(app.getHttpServer())
         .get('/api/v1/bank-accounts')
         .expect(200);
+
+      expect(response.body.accounts).toHaveLength(1);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.available).toBe(true);
+      expect(response.body.status).toBe('available');
+      expect(response.body.reason).toBeNull();
+      expect(response.body.provider).toBe('test-bank-provider');
+    });
+
+    it('should return a stable empty unavailable linked-account state (200)', async () => {
+      mockBankLinkingService.getLinkedAccounts.mockResolvedValue([]);
+      mockBankLinkingService.isBankLinkingEnabled.mockReturnValue(false);
+      mockBankLinkingService.getBankLinkingProvider.mockReturnValue(null);
+      mockBankLinkingService.getUnavailableReason.mockReturnValue(
+        'bank_linking_unavailable',
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/bank-accounts')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        accounts: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bank_linking_unavailable',
+        provider: null,
+      });
     });
   });
 

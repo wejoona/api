@@ -34,7 +34,16 @@ export class BankLinkingController {
   @Get('banks')
   async getBanks(@Query('country') country?: string) {
     const banks = await this.bankLinkingService.getBanks(country);
-    return { banks };
+    const available = this.bankLinkingService.isBankLinkingEnabled();
+    return {
+      banks,
+      data: banks,
+      available,
+      status: available ? 'available' : 'unavailable',
+      reason: this.bankLinkingService.getUnavailableReason(),
+      provider: this.bankLinkingService.getBankLinkingProvider(),
+      country: country ?? null,
+    };
   }
 
   /**
@@ -45,7 +54,15 @@ export class BankLinkingController {
     const accounts = await this.bankLinkingService.getLinkedAccounts(
       user.walletId,
     );
-    return { accounts };
+    const available = this.bankLinkingService.isBankLinkingEnabled();
+    return {
+      accounts,
+      data: accounts,
+      available,
+      status: available ? 'available' : 'unavailable',
+      reason: this.bankLinkingService.getUnavailableReason(),
+      provider: this.bankLinkingService.getBankLinkingProvider(),
+    };
   }
 
   /**

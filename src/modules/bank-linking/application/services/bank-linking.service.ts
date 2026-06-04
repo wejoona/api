@@ -6,6 +6,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { LinkedBankAccountRepository } from '../../domain/repositories/linked-bank-account.repository';
 import { BankRepository } from '../../domain/repositories/bank.repository';
@@ -15,6 +16,8 @@ import {
   BankAccountStatus,
 } from '../../domain/entities/linked-bank-account.entity';
 import { Bank } from '../../domain/entities/bank.entity';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
+import { AppException } from '../../../../common/exceptions';
 
 export interface LinkBankAccountParams {
   walletId: string;
@@ -85,6 +88,7 @@ export class BankLinkingService {
   constructor(
     private readonly linkedBankAccountRepository: LinkedBankAccountRepository,
     private readonly bankRepository: BankRepository,
+    private readonly configService: ConfigService,
   ) {
     // In production, load from environment variable or secrets manager
     this.encryptionKey =
@@ -96,6 +100,10 @@ export class BankLinkingService {
    * Get all available banks.
    */
   async getBanks(countryCode?: string): Promise<BankResponse[]> {
+    if (!this.isBankLinkingEnabled()) {
+      return [];
+    }
+
     let banks: Bank[];
 
     if (countryCode) {
@@ -113,6 +121,8 @@ export class BankLinkingService {
   async linkBankAccount(
     params: LinkBankAccountParams,
   ): Promise<BankAccountResponse> {
+    this.assertBankLinkingAvailable();
+
     const {
       walletId,
       bankCode,
@@ -175,6 +185,8 @@ export class BankLinkingService {
   async verifyBankAccount(
     params: VerifyBankAccountParams,
   ): Promise<BankAccountResponse> {
+    this.assertBankLinkingAvailable();
+
     const { walletId, accountId, otp } = params;
 
     const account = await this.getAccountForWallet(walletId, accountId);
@@ -253,6 +265,8 @@ export class BankLinkingService {
     walletId: string,
     accountId: string,
   ): Promise<{ balance: number; currency: string; updated_at: Date }> {
+    this.assertBankLinkingAvailable();
+
     const account = await this.getAccountForWallet(walletId, accountId);
 
     if (!account.canCheckBalance()) {
@@ -283,6 +297,8 @@ export class BankLinkingService {
     status: string;
     created_at: Date;
   }> {
+    this.assertBankLinkingAvailable();
+
     const { walletId, accountId, amount, description } = params;
 
     const account = await this.getAccountForWallet(walletId, accountId);
@@ -322,6 +338,8 @@ export class BankLinkingService {
     estimated_completion: Date;
     created_at: Date;
   }> {
+    this.assertBankLinkingAvailable();
+
     const { walletId, accountId, amount, description } = params;
 
     const account = await this.getAccountForWallet(walletId, accountId);
@@ -362,6 +380,29 @@ export class BankLinkingService {
     await this.linkedBankAccountRepository.delete(account.id);
     this.logger.log(
       `Unlinked bank account ${accountId} from wallet ${walletId}`,
+    );
+  }
+
+  isBankLinkingEnabled(): boolean {
+    return this.configService.get<boolean>('bankLinking.enabled') === true;
+  }
+
+  getBankLinkingProvider(): string | null {
+    return this.configService.get<string>('bankLinking.provider') || null;
+  }
+
+  getUnavailableReason(): string | null {
+    return this.isBankLinkingEnabled() ? null : 'bank_linking_unavailable';
+  }
+
+  private assertBankLinkingAvailable(): void {
+    if (this.isBankLinkingEnabled()) {
+      return;
+    }
+
+    throw AppException.badRequest(
+      ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+      'Bank linking is not available yet',
     );
   }
 

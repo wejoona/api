@@ -99,6 +99,8 @@ export const envValidationSchema = Joi.object({
   SUPPORTED_CURRENCIES: Joi.string().default('USDC,XOF,USD'),
   CARD_ISSUING_ENABLED: Joi.boolean().default(false),
   CARD_ISSUING_PROVIDER: Joi.string().allow('').default(''),
+  BANK_LINKING_ENABLED: Joi.boolean().default(false),
+  BANK_LINKING_PROVIDER: Joi.string().allow('').default(''),
   MIN_DEPOSIT_AMOUNT: Joi.number().positive().default(500),
   MAX_DEPOSIT_AMOUNT: Joi.number().positive().default(1000000),
   MIN_TRANSFER_AMOUNT: Joi.number().positive().default(1),

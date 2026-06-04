@@ -141,6 +141,11 @@ export default () => ({
     issuingProvider: process.env.CARD_ISSUING_PROVIDER || '',
   },
 
+  bankLinking: {
+    enabled: process.env.BANK_LINKING_ENABLED === 'true',
+    provider: process.env.BANK_LINKING_PROVIDER || '',
+  },
+
   // KYC Verification Settings
   kyc: {
     autoApprovalEnabled: process.env.KYC_AUTO_APPROVAL_ENABLED !== 'false', // Default true
