@@ -9,8 +9,8 @@ Purpose: continue recursive backend/API readiness after pass 9 completed seconda
 
 ## Secondary Capability Contract Schemas
 
-- [ ] Add formal backend contract schemas for secondary capability metadata.
-- [ ] Cover payment links, savings pots, recurring transfers, and referrals capability endpoints in contract tests.
+- [x] Add formal backend contract schemas for secondary capability metadata.
+- [x] Cover payment links, savings pots, recurring transfers, and referrals capability endpoints in contract tests.
 
 ## API Reference Alignment
 
@@ -41,3 +41,18 @@ Verified and hardened:
 Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="referral.controller"`
+
+### Secondary Capability Contract Schemas - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Added `SecondaryFeatureCapabilitySchema` with required `feature`, `available`, `status`, `reason`, `featureReason`, `provider`, `retryable`, and `supportReviewRequired` fields.
+- Added endpoint contracts for `GET /payment-links/capability`, `GET /savings-pots/capability`, `GET /recurring-transfers/capability`, and `GET /referrals/capability`.
+- Contract tests validate all four available examples, one unavailable-provider example, and rejection of incomplete metadata without retry/review hints.
+- Registered the new contract group in the central contract schema index.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="secondary-feature.contract"`
