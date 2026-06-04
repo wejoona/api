@@ -220,18 +220,27 @@ export class ContactController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CheckContactsDto,
   ) {
-    const phoneHashes =
+    const submittedPhoneHashes =
       dto.phoneHashes?.map((hash) => hash.trim().toLowerCase()) ??
       dto.phoneNumbers?.map((phone) =>
         this.userRepository.hashPhoneForLookup(phone),
       ) ??
       [];
+    const phoneHashes = [...new Set(submittedPhoneHashes)];
+
+    if (phoneHashes.length === 0) {
+      return {
+        totalChecked: 0,
+        registered: [],
+      };
+    }
+
     const users = await this.userRepository.findActiveVerifiedByPhoneHashes(
       phoneHashes,
     );
 
     return {
-      totalChecked: phoneHashes.length,
+      totalChecked: submittedPhoneHashes.length,
       registered: users
         .filter((u) => u.id !== req.user.id)
         .map((u) => ({

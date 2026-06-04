@@ -65,7 +65,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Verify contact list and lookup endpoints against live local API.
 - [x] Verify individual and bulk lookup latency and indexing strategy for scale.
 - [x] Confirm backend never stores or returns raw uploaded phone book data unless explicitly required by policy.
-- [ ] Add coverage for empty permission, denied permission, no matches, partial matches, and large contact batches.
+- [x] Add coverage for empty permission, denied permission, no matches, partial matches, and large contact batches.
 
 ## Reliability And Test Hygiene
 

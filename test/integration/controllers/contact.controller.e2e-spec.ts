@@ -161,6 +161,112 @@ describe('ContactController (e2e)', () => {
   });
 
   describe('POST /api/v1/contacts/check', () => {
+    it('should return an empty result without querying users when permission is denied', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ permissionStatus: 'denied' })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 0, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return an empty result without querying users for an empty contact batch', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ permissionStatus: 'granted', phoneHashes: [] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 0, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return no matches for unknown contact hashes', async () => {
+      const unknownHash = 'c'.repeat(64);
+      mockUserRepository.findActiveVerifiedByPhoneHashes.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ permissionStatus: 'granted', phoneHashes: [unknownHash] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 1, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).toHaveBeenCalledWith([unknownHash]);
+    });
+
+    it('should return only matched users for partial matches', async () => {
+      const knownHash = 'd'.repeat(64);
+      const unknownHash = 'e'.repeat(64);
+      mockUserRepository.hashPhoneForLookup.mockReturnValue(knownHash);
+      mockUserRepository.maskPhoneForLookup.mockReturnValue('+22507****72');
+      mockUserRepository.findActiveVerifiedByPhoneHashes.mockResolvedValue([
+        {
+          id: '550e8400-e29b-41d4-a716-446655440088',
+          phone: '+2250701234572',
+          displayName: 'Partial Match',
+          avatarUrl: null,
+        },
+      ]);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({
+          permissionStatus: 'limited',
+          phoneHashes: [knownHash, unknownHash],
+        })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.totalChecked).toBe(2);
+          expect(body.registered).toEqual([
+            {
+              phoneHash: knownHash,
+              maskedPhone: '+22507****72',
+              userId: '550e8400-e29b-41d4-a716-446655440088',
+              displayName: 'Partial Match',
+              avatarUrl: null,
+              isKoridoUser: true,
+            },
+          ]);
+        });
+    });
+
+    it('should accept large contact batches and query a deduplicated hash set', async () => {
+      const hashes = Array.from({ length: 500 }, (_, index) =>
+        index.toString(16).padStart(64, '0'),
+      );
+      const duplicatedHashes = [...hashes, hashes[0]];
+      mockUserRepository.findActiveVerifiedByPhoneHashes.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ permissionStatus: 'granted', phoneHashes: hashes })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 500, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).toHaveBeenCalledWith(hashes);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ permissionStatus: 'granted', phoneHashes: duplicatedHashes })
+        .expect(400);
+    });
+
     it('should check contact hashes against active verified users and exclude self without returning raw phones', async () => {
       const currentUserHash = 'a'.repeat(64);
       const knownUserHash = 'b'.repeat(64);

@@ -3,12 +3,33 @@ import {
   IsOptional,
   IsString,
   ArrayMaxSize,
-  ArrayMinSize,
   Matches,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+const CONTACT_PERMISSION_STATUSES = [
+  'granted',
+  'limited',
+  'denied',
+  'unavailable',
+] as const;
+
+export type ContactPermissionStatus =
+  (typeof CONTACT_PERMISSION_STATUSES)[number];
+
 export class CheckContactsDto {
+  @ApiProperty({
+    description:
+      'Optional mobile contact permission state. When denied or unavailable, clients should send no contact data.',
+    enum: CONTACT_PERMISSION_STATUSES,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(CONTACT_PERMISSION_STATUSES)
+  permissionStatus?: ContactPermissionStatus;
+
   @ApiProperty({
     description:
       'SHA-256 hashes of normalized E.164 phone numbers. Preferred for privacy-preserving lookup.',
@@ -20,7 +41,6 @@ export class CheckContactsDto {
   @IsArray()
   @IsString({ each: true })
   @Matches(/^[a-fA-F0-9]{64}$/, { each: true })
-  @ArrayMinSize(1)
   @ArrayMaxSize(500)
   phoneHashes?: string[];
 
@@ -34,7 +54,6 @@ export class CheckContactsDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMinSize(1)
   @ArrayMaxSize(500)
   phoneNumbers?: string[];
 }

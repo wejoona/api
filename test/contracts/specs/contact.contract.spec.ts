@@ -7,6 +7,7 @@
 import {
   ContactSchema,
   ContactListResponseSchema,
+  CheckContactsRequestSchema,
   CheckContactsResponseSchema,
 } from '../schemas/contact.contract';
 import { validateSchema } from '../validators/schema-validator';
@@ -340,6 +341,25 @@ describe('Contact Contracts', () => {
   });
 
   describe('POST /contacts/check - Registered Contact Lookup', () => {
+    it('should validate granted hashed lookup request', () => {
+      const request = {
+        permissionStatus: 'granted',
+        phoneHashes: ['a'.repeat(64), 'b'.repeat(64)],
+      };
+
+      const result = validateSchema(request, CheckContactsRequestSchema);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate denied permission request without contact data', () => {
+      const request = {
+        permissionStatus: 'denied',
+      };
+
+      const result = validateSchema(request, CheckContactsRequestSchema);
+      expect(result.valid).toBe(true);
+    });
+
     it('should validate hashed lookup response without raw phone numbers', () => {
       const response = {
         totalChecked: 2,

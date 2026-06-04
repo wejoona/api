@@ -142,8 +142,18 @@ export const CheckContactsRequestSchema: ContractSchema = {
   name: 'CheckContactsRequest',
   description: 'Privacy-preserving contact discovery request',
   fields: {
-    phoneHashes: required(FieldType.ARRAY, {
+    permissionStatus: optional(FieldType.STRING, {
+      description: 'Mobile contact permission state',
+      enum: ['granted', 'limited', 'denied', 'unavailable'],
+      example: 'granted',
+    }),
+    phoneHashes: optional(FieldType.ARRAY, {
       description: 'SHA-256 hashes of normalized E.164 phone numbers',
+      itemType: FieldType.STRING,
+    }),
+    phoneNumbers: optional(FieldType.ARRAY, {
+      description:
+        'Deprecated compatibility field. API hashes these immediately and never returns raw phone numbers.',
       itemType: FieldType.STRING,
     }),
   },
