@@ -4,21 +4,51 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
-import { TestData } from '../setup/mock-helpers';
 
 const mockPaymentLinkService = {
-  create: jest.fn(),
-  findAll: jest.fn(),
-  findById: jest.fn(),
-  findByCode: jest.fn(),
-  refresh: jest.fn(),
-  cancel: jest.fn(),
-  pay: jest.fn(),
-  delete: jest.fn(),
+  createPaymentLink: jest.fn(),
+  getPaymentLinks: jest.fn(),
+  getPaymentLinkById: jest.fn(),
+  getPaymentLinkByCode: jest.fn(),
+  refreshPaymentLink: jest.fn(),
+  cancelPaymentLink: jest.fn(),
+  payPaymentLink: jest.fn(),
+  deletePaymentLink: jest.fn(),
 };
 
 import { PaymentLinkController } from '@modules/payment-links/application/controllers/payment-link.controller';
 import { PaymentLinkService } from '@modules/payment-links/application/services/payment-link.service';
+
+function paymentLinkResponse(overrides: Record<string, unknown> = {}) {
+  const now = new Date().toISOString();
+  return {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    userId: '550e8400-e29b-41d4-a716-446655440000',
+    walletId: '660e8400-e29b-41d4-a716-446655440000',
+    code: 'PAY123ABC',
+    shortCode: 'PAY123ABC',
+    amount: 25,
+    currency: 'USDC',
+    recipientName: 'Korido user',
+    description: 'Test payment',
+    status: 'active',
+    expiresAt: now,
+    paidAt: null,
+    paidByUserId: null,
+    paidByPhone: null,
+    paidByName: null,
+    transactionId: null,
+    viewCount: 0,
+    isExpired: false,
+    isActive: true,
+    isFlexibleAmount: false,
+    url: 'https://app.korido.co/pay/PAY123ABC',
+    shareUrl: 'https://app.korido.co/pay/PAY123ABC',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
 
 describe('PaymentLinkController (e2e)', () => {
   let app: INestApplication;
@@ -42,77 +72,137 @@ describe('PaymentLinkController (e2e)', () => {
 
   describe('POST /api/v1/payment-links', () => {
     it('should create payment link (201)', async () => {
-      mockPaymentLinkService.create.mockResolvedValue(TestData.paymentLink());
+      mockPaymentLinkService.createPaymentLink.mockResolvedValue(
+        paymentLinkResponse(),
+      );
       await request(app.getHttpServer())
         .post('/api/v1/payment-links')
         .send({ amount: 25, currency: 'USDC', description: 'Test payment' })
-        .expect(201);
+        .expect(201)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            code: 'PAY123ABC',
+            shortCode: 'PAY123ABC',
+            recipientName: 'Korido user',
+            url: 'https://app.korido.co/pay/PAY123ABC',
+          });
+        });
+
+      expect(mockPaymentLinkService.createPaymentLink).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+        { amount: 25, currency: 'USDC', description: 'Test payment' },
+      );
     });
   });
 
   describe('GET /api/v1/payment-links', () => {
     it('should list payment links (200)', async () => {
-      mockPaymentLinkService.findAll.mockResolvedValue([
-        TestData.paymentLink(),
-      ]);
+      mockPaymentLinkService.getPaymentLinks.mockResolvedValue({
+        links: [paymentLinkResponse()],
+        total: 1,
+      });
       await request(app.getHttpServer())
         .get('/api/v1/payment-links')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.total).toBe(1);
+          expect(body.links).toHaveLength(1);
+          expect(body.links[0]).toMatchObject({
+            code: 'PAY123ABC',
+            shortCode: 'PAY123ABC',
+            url: 'https://app.korido.co/pay/PAY123ABC',
+          });
+        });
     });
   });
 
   describe('GET /api/v1/payment-links/:id', () => {
     it('should get payment link (200)', async () => {
-      mockPaymentLinkService.findById.mockResolvedValue(TestData.paymentLink());
+      mockPaymentLinkService.getPaymentLinkById.mockResolvedValue(
+        paymentLinkResponse(),
+      );
       await request(app.getHttpServer())
         .get('/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.shortCode).toBe('PAY123ABC');
+          expect(body.recipientName).toBe('Korido user');
+        });
     });
   });
 
   describe('GET /api/v1/payment-links/code/:code', () => {
     it('should get payment link by code (200) - public endpoint', async () => {
-      mockPaymentLinkService.findByCode.mockResolvedValue(
-        TestData.paymentLink(),
+      mockPaymentLinkService.getPaymentLinkByCode.mockResolvedValue(
+        paymentLinkResponse({ viewCount: 1 }),
       );
       await request(app.getHttpServer())
         .get('/api/v1/payment-links/code/PAY123ABC')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.code).toBe('PAY123ABC');
+          expect(body.viewCount).toBe(1);
+        });
     });
   });
 
   describe('PATCH /api/v1/payment-links/:id/cancel', () => {
     it('should cancel payment link (200)', async () => {
-      mockPaymentLinkService.cancel.mockResolvedValue(
-        TestData.paymentLink({ status: 'cancelled' }),
-      );
+      mockPaymentLinkService.cancelPaymentLink.mockResolvedValue({
+        success: true,
+        message: 'Payment link cancelled',
+      });
       await request(app.getHttpServer())
         .patch(
           '/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000/cancel',
         )
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            success: true,
+            message: 'Payment link cancelled',
+          });
+        });
     });
   });
 
   describe('POST /api/v1/payment-links/code/:code/pay', () => {
     it('should pay payment link (200)', async () => {
-      mockPaymentLinkService.pay.mockResolvedValue({
-        success: true,
+      mockPaymentLinkService.payPaymentLink.mockResolvedValue({
         transactionId: 'tx_123',
+        amount: 25,
+        status: 'completed',
       });
       await request(app.getHttpServer())
         .post('/api/v1/payment-links/code/PAY123ABC/pay')
         .send({ amount: 25 })
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            transactionId: 'tx_123',
+            amount: 25,
+            status: 'completed',
+          });
+        });
     });
   });
 
   describe('DELETE /api/v1/payment-links/:id', () => {
     it('should delete payment link (200)', async () => {
-      mockPaymentLinkService.delete.mockResolvedValue(undefined);
+      mockPaymentLinkService.deletePaymentLink.mockResolvedValue({
+        success: true,
+        message: 'Payment link deleted',
+      });
       await request(app.getHttpServer())
         .delete('/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            success: true,
+            message: 'Payment link deleted',
+          });
+        });
     });
   });
 });
