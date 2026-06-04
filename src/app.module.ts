@@ -163,27 +163,34 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        database: configService.get<string>('database.name'),
-        username: configService.get<string>('database.user'),
-        password: configService.get<string>('database.password'),
-        autoLoadEntities: true,
-        synchronize: configService.get<boolean>('database.synchronize', false), // Uses DATABASE_SYNCHRONIZE env var
-        logging: true,
-        logger: new CustomTypeOrmLogger(),
-        // PERFORMANCE: Connection pooling for better concurrency and resource management
-        extra: {
-          max: 20, // Maximum pool size
-          min: 5, // Minimum pool size (always-ready connections)
-          idleTimeoutMillis: 30000, // Close idle connections after 30s
-          connectionTimeoutMillis: 2000, // Fail fast if can't get connection in 2s
-        },
-        // PERFORMANCE: Log slow queries in development for optimization
-        maxQueryExecutionTime: 1000, // Log queries taking longer than 1s
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isTest = configService.get<string>('nodeEnv') === 'test';
+
+        return {
+          type: 'postgres',
+          host: configService.get<string>('database.host'),
+          port: configService.get<number>('database.port'),
+          database: configService.get<string>('database.name'),
+          username: configService.get<string>('database.user'),
+          password: configService.get<string>('database.password'),
+          autoLoadEntities: true,
+          synchronize: configService.get<boolean>(
+            'database.synchronize',
+            false,
+          ), // Uses DATABASE_SYNCHRONIZE env var
+          logging: true,
+          logger: new CustomTypeOrmLogger(),
+          // PERFORMANCE: Connection pooling for better concurrency and resource management
+          extra: {
+            max: isTest ? 5 : 20, // Maximum pool size
+            min: isTest ? 0 : 5, // Tests must drain all DB sockets on teardown
+            idleTimeoutMillis: isTest ? 100 : 30000,
+            connectionTimeoutMillis: 2000, // Fail fast if can't get connection in 2s
+          },
+          // PERFORMANCE: Log slow queries in development for optimization
+          maxQueryExecutionTime: 1000, // Log queries taking longer than 1s
+        };
+      },
     }),
 
     // Rate limiting - configured via environment
@@ -208,18 +215,22 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
 
     // Bull queue (Redis-backed job processing)
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get<string>('redis.host', 'localhost'),
-          port: configService.get<number>('redis.port', 6379),
-          password: configService.get<string>('redis.password'),
-          db: configService.get<number>('redis.db', 0),
-        },
-      }),
-    }),
+    ...(process.env.NODE_ENV === 'test'
+      ? []
+      : [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+              redis: {
+                host: configService.get<string>('redis.host', 'localhost'),
+                port: configService.get<number>('redis.port', 6379),
+                password: configService.get<string>('redis.password'),
+                db: configService.get<number>('redis.db', 0),
+              },
+            }),
+          }),
+        ]),
 
     // Distributed Tracing (OpenTelemetry + Jaeger)
     TracingModule,
@@ -290,7 +301,7 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     ResilienceModule,
     EventStoreModule,
     PaymentLinksModule,
-    BatchProcessingModule,
+    ...(process.env.NODE_ENV === 'test' ? [] : [BatchProcessingModule]),
     SavingsPotsModule,
     ScheduledPaymentsModule,
     SanctionsScreeningModule,

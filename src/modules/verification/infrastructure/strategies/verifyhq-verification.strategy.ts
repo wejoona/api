@@ -37,6 +37,8 @@ export class VerifyHqVerificationStrategy
   private readonly apiKey: string;
   private readonly redis: Redis;
   private readonly mappingTtlSeconds: number;
+  private isShuttingDown = false;
+  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl =
@@ -53,7 +55,12 @@ export class VerifyHqVerificationStrategy
       host: this.configService.get<string>('redis.host'),
       port: this.configService.get<number>('redis.port'),
       password: this.configService.get<string>('redis.password'),
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      retryStrategy: (times) => {
+        if (this.isShuttingDown || this.disableRedisRetries) {
+          return null;
+        }
+        return Math.min(times * 50, 2000);
+      },
       maxRetriesPerRequest: 3,
     });
 
@@ -69,7 +76,27 @@ export class VerifyHqVerificationStrategy
   }
 
   async onModuleDestroy() {
-    await this.redis.quit();
+    this.isShuttingDown = true;
+
+    if (this.redis.status !== 'end') {
+      this.redis.removeAllListeners?.();
+      let timeoutId: NodeJS.Timeout;
+      const shutdownTimeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Redis graceful shutdown timed out')),
+          500,
+        );
+        timeoutId.unref();
+      });
+
+      try {
+        await Promise.race([this.redis.quit(), shutdownTimeout]);
+      } catch {
+        this.redis.disconnect(false);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
+    }
   }
 
   async createVerification(

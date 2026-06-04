@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectQueue, Processor, Process } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { BatchJob, BatchJobType } from '../../domain/entities/batch-job.entity';
@@ -13,7 +18,7 @@ export const BATCH_QUEUE_NAME = 'batch-processing';
 
 @Injectable()
 @Processor(BATCH_QUEUE_NAME)
-export class BatchQueueService implements OnModuleInit {
+export class BatchQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BatchQueueService.name);
   private processors: Map<BatchJobType, IBatchProcessor> = new Map();
 
@@ -40,6 +45,11 @@ export class BatchQueueService implements OnModuleInit {
     this.processors.set(BatchJobType.DATA_EXPORT, this.dataExportProcessor);
 
     this.logger.log('Batch queue service initialized with processors');
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.batchQueue.close();
+    this.logger.log('Batch queue closed');
   }
 
   async addJob(batchJob: BatchJob, delay = 0): Promise<void> {

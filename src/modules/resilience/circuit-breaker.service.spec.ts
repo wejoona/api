@@ -164,7 +164,11 @@ describe('CircuitBreakerService', () => {
       const operation = jest
         .fn()
         .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 10000)),
+          () =>
+            new Promise((resolve) => {
+              const timeoutId = setTimeout(resolve, 10000);
+              timeoutId.unref();
+            }),
         );
 
       await expect(

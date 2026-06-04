@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import {
@@ -48,12 +48,14 @@ interface TwilioConfig {
  * - TWILIO_RATE_LIMIT_PER_HOUR: Max SMS per hour per phone (default: 10)
  */
 @Injectable()
-export class TwilioSmsAdapter implements ISmsGateway {
+export class TwilioSmsAdapter implements ISmsGateway, OnModuleDestroy {
   private readonly logger = new Logger(TwilioSmsAdapter.name);
   private readonly twilioClient: Twilio;
   private readonly config: TwilioConfig;
   private readonly redis: Redis;
   private readonly useDevMode: boolean;
+  private isShuttingDown = false;
+  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   readonly providerName = 'twilio';
 
@@ -70,6 +72,9 @@ export class TwilioSmsAdapter implements ISmsGateway {
       port: this.configService.get<number>('redis.port'),
       password: this.configService.get<string>('redis.password'),
       retryStrategy: (times) => {
+        if (this.isShuttingDown || this.disableRedisRetries) {
+          return null;
+        }
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
@@ -80,6 +85,9 @@ export class TwilioSmsAdapter implements ISmsGateway {
       this.configService.get<string>('nodeEnv') === 'development';
 
     this.redis.on('error', (error) => {
+      if (this.isShuttingDown) {
+        return;
+      }
       this.logger.error(`Redis connection error: ${error.message}`);
     });
 
@@ -432,8 +440,26 @@ export class TwilioSmsAdapter implements ISmsGateway {
    * Cleanup on module destroy
    */
   async onModuleDestroy() {
-    if (this.redis) {
-      await this.redis.quit();
+    this.isShuttingDown = true;
+
+    if (this.redis && this.redis.status !== 'end') {
+      this.redis.removeAllListeners?.();
+      let timeoutId: NodeJS.Timeout;
+      const shutdownTimeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Redis graceful shutdown timed out')),
+          500,
+        );
+        timeoutId.unref();
+      });
+
+      try {
+        await Promise.race([this.redis.quit(), shutdownTimeout]);
+      } catch {
+        this.redis.disconnect(false);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
       this.logger.log('Redis connection closed for Twilio adapter');
     }
   }

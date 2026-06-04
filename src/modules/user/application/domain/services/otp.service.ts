@@ -24,6 +24,8 @@ export class OtpService implements OnModuleDestroy {
   private readonly maxOtpRequestsPerHour: number;
   private readonly isDevMode: boolean;
   private isRedisConnected = false;
+  private isShuttingDown = false;
+  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(
     private readonly configService: ConfigService,
@@ -34,6 +36,9 @@ export class OtpService implements OnModuleDestroy {
       port: this.configService.get<number>('redis.port'),
       password: this.configService.get<string>('redis.password'),
       retryStrategy: (times) => {
+        if (this.isShuttingDown || this.disableRedisRetries) {
+          return null;
+        }
         const delay = Math.min(times * 50, 2000);
         this.logger.warn(
           `Redis connection retry attempt ${times}, waiting ${delay}ms`,
@@ -51,11 +56,17 @@ export class OtpService implements OnModuleDestroy {
 
     this.redis.on('error', (error) => {
       this.isRedisConnected = false;
+      if (this.isShuttingDown) {
+        return;
+      }
       this.logger.error(`Redis connection error: ${error.message}`);
     });
 
     this.redis.on('close', () => {
       this.isRedisConnected = false;
+      if (this.isShuttingDown) {
+        return;
+      }
       this.logger.warn('Redis connection closed');
     });
 
@@ -75,8 +86,27 @@ export class OtpService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.redis) {
-      await this.redis.quit();
+    this.isShuttingDown = true;
+    this.isRedisConnected = false;
+
+    if (this.redis && this.redis.status !== 'end') {
+      this.redis.removeAllListeners?.();
+      let timeoutId: NodeJS.Timeout;
+      const shutdownTimeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Redis graceful shutdown timed out')),
+          500,
+        );
+        timeoutId.unref();
+      });
+
+      try {
+        await Promise.race([this.redis.quit(), shutdownTimeout]);
+      } catch {
+        this.redis.disconnect(false);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
       this.logger.log('Redis connection closed gracefully');
     }
   }

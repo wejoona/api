@@ -355,15 +355,21 @@ export class CircuitBreakerService {
     timeoutMs: number,
     service: ExternalService,
   ): Promise<T> {
+    let timeoutId: NodeJS.Timeout;
     const timeout = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(
           new Error(`Request to ${service} timed out after ${timeoutMs}ms`),
         );
       }, timeoutMs);
+      timeoutId.unref();
     });
 
-    return Promise.race([promise, timeout]);
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      clearTimeout(timeoutId!);
+    }
   }
 
   /**

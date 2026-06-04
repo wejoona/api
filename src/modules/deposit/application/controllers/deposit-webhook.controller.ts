@@ -23,6 +23,7 @@ import {
   UnauthorizedException,
   Logger,
   RawBodyRequest,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
@@ -40,11 +41,12 @@ interface ProviderWebhookConfig {
 
 @ApiTags('Deposit Webhooks')
 @Controller('webhooks/deposit')
-export class DepositWebhookController {
+export class DepositWebhookController implements OnModuleDestroy {
   private readonly logger = new Logger(DepositWebhookController.name);
   private readonly providerConfigs: Map<string, ProviderWebhookConfig>;
   private readonly replayWindow = 300; // 5 minutes
   private readonly processedNonces = new Set<string>();
+  private readonly nonceCleanupInterval: NodeJS.Timeout;
 
   constructor(
     private readonly depositService: DepositService,
@@ -77,7 +79,15 @@ export class DepositWebhookController {
     );
 
     // Cleanup old nonces every 10 minutes
-    setInterval(() => this.processedNonces.clear(), 600_000);
+    this.nonceCleanupInterval = setInterval(
+      () => this.processedNonces.clear(),
+      600_000,
+    );
+    this.nonceCleanupInterval.unref();
+  }
+
+  onModuleDestroy(): void {
+    clearInterval(this.nonceCleanupInterval);
   }
 
   @Post(':providerCode')

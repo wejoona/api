@@ -15,7 +15,10 @@ const mockRedisInstance = {
     exec: jest.fn().mockResolvedValue([]),
   }),
   on: jest.fn(),
+  removeAllListeners: jest.fn(),
   quit: jest.fn().mockResolvedValue('OK'),
+  disconnect: jest.fn(),
+  status: 'ready',
 };
 
 jest.mock('ioredis', () => {
@@ -172,7 +175,9 @@ describe('TwilioWebhookService', () => {
       const result = await service.getDeliveryStatus('SM123456789');
 
       expect(result).toEqual(storedData);
-      expect(mockRedisInstance.get).toHaveBeenCalledWith('sms_delivery:SM123456789');
+      expect(mockRedisInstance.get).toHaveBeenCalledWith(
+        'sms_delivery:SM123456789',
+      );
     });
 
     it('should return null for non-existent message', async () => {
@@ -186,7 +191,14 @@ describe('TwilioWebhookService', () => {
 
   describe('getMetrics', () => {
     it('should retrieve metrics for a date', async () => {
-      mockRedisInstance.mget.mockResolvedValue(['100', '10', '20', '60', '5', '5']);
+      mockRedisInstance.mget.mockResolvedValue([
+        '100',
+        '10',
+        '20',
+        '60',
+        '5',
+        '5',
+      ]);
 
       const result = await service.getMetrics('2024-01-29');
 
@@ -201,7 +213,14 @@ describe('TwilioWebhookService', () => {
     });
 
     it('should handle missing metrics', async () => {
-      mockRedisInstance.mget.mockResolvedValue([null, null, null, null, null, null]);
+      mockRedisInstance.mget.mockResolvedValue([
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ]);
 
       const result = await service.getMetrics('2024-01-29');
 
@@ -281,6 +300,25 @@ describe('TwilioWebhookService', () => {
           status: expectedStatus,
         }),
       );
+    });
+  });
+
+  describe('shutdown', () => {
+    it('should close Redis without leaving retry listeners active', async () => {
+      await service.onModuleDestroy();
+
+      expect(mockRedisInstance.removeAllListeners).toHaveBeenCalled();
+      expect(mockRedisInstance.quit).toHaveBeenCalled();
+      expect(mockRedisInstance.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('should force disconnect when graceful Redis shutdown fails', async () => {
+      mockRedisInstance.quit.mockRejectedValueOnce(new Error('quit failed'));
+
+      await service.onModuleDestroy();
+
+      expect(mockRedisInstance.removeAllListeners).toHaveBeenCalled();
+      expect(mockRedisInstance.disconnect).toHaveBeenCalledWith(false);
     });
   });
 });

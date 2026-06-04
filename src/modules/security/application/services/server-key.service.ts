@@ -34,6 +34,8 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
   private readonly REDIS_KEY = 'server:jwe:keypair';
   private readonly KEY_TTL_DAYS: number;
   private currentKey: ServerKeyPair | null = null;
+  private isShuttingDown = false;
+  private readonly disableRedisRetries = process.env.NODE_ENV === 'test';
 
   constructor(private readonly configService: ConfigService) {
     this.KEY_TTL_DAYS = parseInt(
@@ -47,10 +49,11 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
       password: this.configService.get<string>('redis.password'),
       db: this.configService.get<number>('redis.db', 0),
       retryStrategy: (times) => {
+        if (this.isShuttingDown || this.disableRedisRetries) {
+          return null;
+        }
         const delay = Math.min(times * 50, 2000);
-        this.logger.warn(
-          `Redis retry attempt ${times}, waiting ${delay}ms`,
-        );
+        this.logger.warn(`Redis retry attempt ${times}, waiting ${delay}ms`);
         return delay;
       },
       maxRetriesPerRequest: 3,
@@ -62,7 +65,27 @@ export class ServerKeyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.redis.quit();
+    this.isShuttingDown = true;
+
+    if (this.redis.status !== 'end') {
+      this.redis.removeAllListeners?.();
+      let timeoutId: NodeJS.Timeout;
+      const shutdownTimeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error('Redis graceful shutdown timed out')),
+          500,
+        );
+        timeoutId.unref();
+      });
+
+      try {
+        await Promise.race([this.redis.quit(), shutdownTimeout]);
+      } catch {
+        this.redis.disconnect(false);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
+    }
   }
 
   /**

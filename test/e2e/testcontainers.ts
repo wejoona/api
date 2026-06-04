@@ -110,6 +110,25 @@ async function flushSharedRedis(sharedInfra: SharedInfraInfo): Promise<void> {
   try {
     await redis.flushdb();
   } finally {
-    redis.disconnect();
+    await closeRedisTestClient(redis);
+  }
+}
+
+async function closeRedisTestClient(redis: Redis): Promise<void> {
+  let timeoutId: NodeJS.Timeout;
+  const shutdownTimeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error('Redis test client shutdown timed out')),
+      500,
+    );
+    timeoutId.unref();
+  });
+
+  try {
+    await Promise.race([redis.quit(), shutdownTimeout]);
+  } catch {
+    redis.disconnect(false);
+  } finally {
+    clearTimeout(timeoutId!);
   }
 }

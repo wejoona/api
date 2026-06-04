@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   HealthIndicator,
   HealthIndicatorResult,
@@ -8,7 +8,10 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisHealthIndicator extends HealthIndicator {
+export class RedisHealthIndicator
+  extends HealthIndicator
+  implements OnModuleDestroy
+{
   private redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
@@ -21,6 +24,10 @@ export class RedisHealthIndicator extends HealthIndicator {
       connectTimeout: 5000,
       lazyConnect: true,
     });
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    this.redis.disconnect(false);
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
