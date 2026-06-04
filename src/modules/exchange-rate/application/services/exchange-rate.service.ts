@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -77,17 +82,39 @@ export class ExchangeRateService implements OnModuleInit {
    * Get current rate for a currency pair.
    */
   getRate(from: string, to: string): ExchangeRate | null {
-    const key = `${from.toUpperCase()}/${to.toUpperCase()}`;
+    const requestedFrom = from.toUpperCase();
+    const requestedTo = to.toUpperCase();
+    const normalizedFrom = requestedFrom === 'USDC' ? 'USD' : requestedFrom;
+    const normalizedTo = requestedTo === 'USDC' ? 'USD' : requestedTo;
+
+    if (normalizedFrom === normalizedTo) {
+      return {
+        from: requestedFrom,
+        to: requestedTo,
+        rate: 1,
+        inverseRate: 1,
+        source: 'stablecoin_peg',
+        updatedAt: new Date(),
+      };
+    }
+
+    const key = `${normalizedFrom}/${normalizedTo}`;
     const rate = this.rates.get(key);
-    if (rate) return rate;
+    if (rate) {
+      return {
+        ...rate,
+        from: requestedFrom,
+        to: requestedTo,
+      };
+    }
 
     // Try inverse
-    const inverseKey = `${to.toUpperCase()}/${from.toUpperCase()}`;
+    const inverseKey = `${normalizedTo}/${normalizedFrom}`;
     const inverse = this.rates.get(inverseKey);
     if (inverse) {
       return {
-        from: from.toUpperCase(),
-        to: to.toUpperCase(),
+        from: requestedFrom,
+        to: requestedTo,
         rate: inverse.inverseRate,
         inverseRate: inverse.rate,
         source: inverse.source,
@@ -103,7 +130,8 @@ export class ExchangeRateService implements OnModuleInit {
    */
   convert(amount: number, from: string, to: string): ConversionResult {
     // USDC = USD (1:1 peg)
-    const normalizedFrom = from.toUpperCase() === 'USDC' ? 'USD' : from.toUpperCase();
+    const normalizedFrom =
+      from.toUpperCase() === 'USDC' ? 'USD' : from.toUpperCase();
     const normalizedTo = to.toUpperCase() === 'USDC' ? 'USD' : to.toUpperCase();
 
     if (normalizedFrom === normalizedTo) {
@@ -120,7 +148,9 @@ export class ExchangeRateService implements OnModuleInit {
 
     const rate = this.getRate(normalizedFrom, normalizedTo);
     if (!rate) {
-      throw new BadRequestException(`No exchange rate available for ${from}/${to}`);
+      throw new BadRequestException(
+        `No exchange rate available for ${from}/${to}`,
+      );
     }
 
     const fee = amount * (this.feePercent / 100);
@@ -156,7 +186,13 @@ export class ExchangeRateService implements OnModuleInit {
     // 1. Manual override takes priority
     if (this.manualRate) {
       this.setRate('USD', 'XOF', this.manualRate, 'manual_override', now);
-      this.setRate('EUR', 'XOF', ExchangeRateService.BCEAO_EUR_XOF, 'bceao_peg', now);
+      this.setRate(
+        'EUR',
+        'XOF',
+        ExchangeRateService.BCEAO_EUR_XOF,
+        'bceao_peg',
+        now,
+      );
       this.logger.debug(`Using manual rate: 1 USD = ${this.manualRate} XOF`);
       return;
     }
@@ -173,12 +209,32 @@ export class ExchangeRateService implements OnModuleInit {
 
         const data = response.data;
         if (data?.result === 'success' && data?.conversion_rates?.XOF) {
-          this.setRate('USD', 'XOF', data.conversion_rates.XOF, 'exchangerate-api', now);
+          this.setRate(
+            'USD',
+            'XOF',
+            data.conversion_rates.XOF,
+            'exchangerate-api',
+            now,
+          );
           if (data.conversion_rates.EUR) {
-            this.setRate('EUR', 'XOF', ExchangeRateService.BCEAO_EUR_XOF, 'bceao_peg', now);
-            this.setRate('USD', 'EUR', data.conversion_rates.EUR, 'exchangerate-api', now);
+            this.setRate(
+              'EUR',
+              'XOF',
+              ExchangeRateService.BCEAO_EUR_XOF,
+              'bceao_peg',
+              now,
+            );
+            this.setRate(
+              'USD',
+              'EUR',
+              data.conversion_rates.EUR,
+              'exchangerate-api',
+              now,
+            );
           }
-          this.logger.log(`Rates refreshed: 1 USD = ${data.conversion_rates.XOF} XOF`);
+          this.logger.log(
+            `Rates refreshed: 1 USD = ${data.conversion_rates.XOF} XOF`,
+          );
           return;
         }
       } catch (error) {
@@ -189,12 +245,32 @@ export class ExchangeRateService implements OnModuleInit {
     }
 
     // 3. Fallback: fixed rates
-    this.setRate('USD', 'XOF', ExchangeRateService.DEFAULT_USD_XOF, 'fallback', now);
-    this.setRate('EUR', 'XOF', ExchangeRateService.BCEAO_EUR_XOF, 'bceao_peg', now);
-    this.logger.debug(`Using fallback rate: 1 USD = ${ExchangeRateService.DEFAULT_USD_XOF} XOF`);
+    this.setRate(
+      'USD',
+      'XOF',
+      ExchangeRateService.DEFAULT_USD_XOF,
+      'fallback',
+      now,
+    );
+    this.setRate(
+      'EUR',
+      'XOF',
+      ExchangeRateService.BCEAO_EUR_XOF,
+      'bceao_peg',
+      now,
+    );
+    this.logger.debug(
+      `Using fallback rate: 1 USD = ${ExchangeRateService.DEFAULT_USD_XOF} XOF`,
+    );
   }
 
-  private setRate(from: string, to: string, rate: number, source: string, updatedAt: Date): void {
+  private setRate(
+    from: string,
+    to: string,
+    rate: number,
+    source: string,
+    updatedAt: Date,
+  ): void {
     const key = `${from}/${to}`;
     this.rates.set(key, {
       from,
