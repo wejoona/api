@@ -325,7 +325,15 @@ describe('InternalTransferUseCase', () => {
         toPhone: recipientPhone,
         amount: 50,
       }),
-    ).rejects.toThrow('Transfer failed. Please try again later.');
+    ).rejects.toMatchObject({
+      message: 'Transfer failed. Please try again later.',
+      response: expect.objectContaining({
+        code: 'E3008',
+        supportReference: expect.any(String),
+        ledgerReference: expect.any(String),
+        settlementStage: 'ledger_recording',
+      }),
+    });
     expect(transactionRepository.save).not.toHaveBeenCalled();
   });
 });

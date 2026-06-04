@@ -106,6 +106,38 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
+  it('preserves AppException settlement support context', () => {
+    filter.catch(
+      AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_FAILED,
+        'Transfer failed. Please try again later.',
+        undefined,
+        {
+          supportReference: 'support-ref-1',
+          ledgerReference: 'ledger-ref-1',
+          ledgerTransactionId: 'blnk-1',
+          settlementStatus: 'voided',
+        },
+      ),
+      createHost('/api/v1/wallet/withdraw'),
+    );
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(body()).toMatchObject({
+      success: false,
+      error: {
+        code: ERROR_CODES.WITHDRAWAL_FAILED,
+        message: 'Transfer failed. Please try again later.',
+        context: {
+          supportReference: 'support-ref-1',
+          ledgerReference: 'ledger-ref-1',
+          ledgerTransactionId: 'blnk-1',
+          settlementStatus: 'voided',
+        },
+      },
+    });
+  });
+
   it('preserves invalid PIN context without leaking the PIN', () => {
     filter.catch(
       new BadRequestException({

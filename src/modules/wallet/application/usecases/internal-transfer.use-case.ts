@@ -184,7 +184,16 @@ export class InternalTransferUseCase {
       this.logger.error(
         `Failed to record P2P transfer in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new BadRequestException('Transfer failed. Please try again later.');
+      throw AppException.badRequest(
+        ERROR_CODES.TRANSFER_FAILED,
+        'Transfer failed. Please try again later.',
+        undefined,
+        {
+          supportReference: senderTxId,
+          ledgerReference: senderTxId,
+          settlementStage: 'ledger_recording',
+        },
+      );
     }
 
     // Step 7: Update local DB balances (mirror of Blnk)

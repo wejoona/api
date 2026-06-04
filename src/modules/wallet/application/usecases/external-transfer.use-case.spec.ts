@@ -307,9 +307,17 @@ describe('ExternalTransferUseCase', () => {
       new Error('Network error'),
     );
 
-    await expect(useCase.execute(input)).rejects.toThrow(
-      'Transfer failed. Your funds have been refunded. Please try again later.',
-    );
+    await expect(useCase.execute(input)).rejects.toMatchObject({
+      message: 'Transfer failed. Your funds have been refunded. Please try again later.',
+      response: expect.objectContaining({
+        code: ERROR_CODES.WITHDRAWAL_FAILED,
+        supportReference: expect.any(String),
+        ledgerReference: expect.any(String),
+        ledgerTransactionId: 'blnk-withdrawal-123',
+        settlementStage: 'provider_transfer',
+        settlementStatus: 'voided',
+      }),
+    });
     expect(ledgerProvider.voidTransaction).toHaveBeenCalledWith(
       'blnk-withdrawal-123',
     );
@@ -325,11 +333,33 @@ describe('ExternalTransferUseCase', () => {
     );
 
     await expect(useCase.execute(input)).rejects.toMatchObject({
-      code: ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+      response: expect.objectContaining({
+        code: ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+        ledgerTransactionId: 'blnk-withdrawal-123',
+        settlementStatus: 'voided',
+      }),
     });
     expect(ledgerProvider.voidTransaction).toHaveBeenCalledWith(
       'blnk-withdrawal-123',
     );
+    expect(ledgerProvider.commitTransaction).not.toHaveBeenCalled();
+  });
+
+  it('does not claim funds were refunded when voiding the Blnk transaction fails', async () => {
+    paymentGateway.externalTransfer.mockRejectedValue(
+      new Error('Network error'),
+    );
+    ledgerProvider.voidTransaction.mockRejectedValue(new Error('Blnk down'));
+
+    await expect(useCase.execute(input)).rejects.toMatchObject({
+      message:
+        'Transfer status is being reviewed. Contact support if it does not update shortly.',
+      response: expect.objectContaining({
+        code: ERROR_CODES.WITHDRAWAL_FAILED,
+        ledgerTransactionId: 'blnk-withdrawal-123',
+        settlementStatus: 'void_failed',
+      }),
+    });
     expect(ledgerProvider.commitTransaction).not.toHaveBeenCalled();
   });
 

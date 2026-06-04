@@ -15,19 +15,32 @@ export class AppException extends HttpException {
     message: string,
     status: HttpStatus,
     public readonly details?: string[],
+    public readonly context?: Record<string, unknown>,
   ) {
     super(
       {
         code,
         message,
         details,
+        ...context,
       },
       status,
     );
   }
 
-  static badRequest(code: ErrorCode | string, message: string, details?: string[]): AppException {
-    return new AppException(code, message, HttpStatus.BAD_REQUEST, details);
+  static badRequest(
+    code: ErrorCode | string,
+    message: string,
+    details?: string[],
+    context?: Record<string, unknown>,
+  ): AppException {
+    return new AppException(
+      code,
+      message,
+      HttpStatus.BAD_REQUEST,
+      details,
+      context,
+    );
   }
 
   static notFound(code: ErrorCode | string, message: string): AppException {

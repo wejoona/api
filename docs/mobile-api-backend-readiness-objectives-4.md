@@ -12,7 +12,7 @@ Purpose: move from hardened mobile contracts into operational backend readiness 
 
 - [x] Confirm every money-moving route emits enough ledger identifiers for support to reconcile a user complaint without exposing provider secrets.
 - [x] Confirm reconciliation jobs can be observed through CronHub-compatible status without requiring in-process-only inspection.
-- [ ] Confirm failed ledger/provider settlement paths surface actionable support metadata while preserving mobile-safe errors.
+- [x] Confirm failed ledger/provider settlement paths surface actionable support metadata while preserving mobile-safe errors.
 
 ## Data And Migration Safety
 
@@ -110,4 +110,20 @@ Verification:
 
 - Focused unit: `npm test -- --runInBand src/modules/jobs/services/scheduled-jobs.service.spec.ts`
 - Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="jobs.controller"`
+- Full backend/mobile verifier: `npm run verify:backend:mobile`
+
+### Failed Settlement Support Metadata - 2026-06-04
+
+Verified and hardened:
+
+- `AppException` can now carry safe context fields through the existing mobile-safe error envelope.
+- Internal transfer ledger-recording failures return `E3008` with `supportReference`, `ledgerReference`, and `settlementStage=ledger_recording`.
+- Payment-link ledger-recording failures return `E7007` with `supportReference`, `ledgerReference`, `paymentLinkId`, and `settlementStage=ledger_recording`.
+- External withdrawal ledger-reservation failures return `E6006` with `supportReference`, `ledgerReference`, and `settlementStage=ledger_reservation`.
+- External withdrawal provider-transfer failures return safe context with `supportReference`, `ledgerReference`, `ledgerTransactionId`, `settlementStage=provider_transfer`, and `settlementStatus`.
+- If Blnk voiding fails after a provider transfer failure, the API no longer claims funds were refunded; it returns a review-needed mobile-safe message with `settlementStatus=void_failed`.
+
+Verification:
+
+- Focused unit: `npm test -- --runInBand src/common/filters/http-exception.filter.spec.ts src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/payment-links/application/services/payment-link.service.spec.ts`
 - Full backend/mobile verifier: `npm run verify:backend:mobile`

@@ -200,7 +200,16 @@ export class ExternalTransferUseCase {
       this.logger.error(
         `Failed to record withdrawal in Blnk: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new BadRequestException('Transfer failed. Please try again later.');
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_FAILED,
+        'Transfer failed. Please try again later.',
+        undefined,
+        {
+          supportReference: transactionRef,
+          ledgerReference: transactionRef,
+          settlementStage: 'ledger_reservation',
+        },
+      );
     }
 
     // Step 3: Route through omnibus and execute on-chain transfer
@@ -303,23 +312,45 @@ export class ExternalTransferUseCase {
         `External transfer failed, voiding Blnk transaction: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
 
+      let settlementStatus: 'voided' | 'void_failed' | 'void_not_required' =
+        'void_not_required';
       if (blnkTxId) {
         try {
           await this.ledgerProvider.voidTransaction(blnkTxId);
+          settlementStatus = 'voided';
           this.logger.log(`Voided Blnk transaction ${blnkTxId}`);
         } catch (voidError) {
+          settlementStatus = 'void_failed';
           this.logger.error(
             `CRITICAL: Failed to void Blnk transaction ${blnkTxId}: ${voidError instanceof Error ? voidError.message : 'Unknown'}`,
           );
         }
       }
 
+      const supportContext = {
+        supportReference: transactionRef,
+        ledgerReference: transactionRef,
+        ledgerTransactionId: blnkTxId,
+        settlementStage: 'provider_transfer',
+        settlementStatus,
+      };
+
       if (error instanceof AppException) {
-        throw error;
+        throw AppException.badRequest(
+          error.code,
+          error.message,
+          undefined,
+          supportContext,
+        );
       }
 
-      throw new BadRequestException(
-        'Transfer failed. Your funds have been refunded. Please try again later.',
+      throw AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_FAILED,
+        settlementStatus === 'void_failed'
+          ? 'Transfer status is being reviewed. Contact support if it does not update shortly.'
+          : 'Transfer failed. Your funds have been refunded. Please try again later.',
+        undefined,
+        supportContext,
       );
     }
   }

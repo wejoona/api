@@ -342,7 +342,17 @@ export class PaymentLinkService {
       this.logger.error(
         `Blnk P2P transfer failed for payment link ${paymentLink.code}: ${error instanceof Error ? error.message : 'Unknown'}`,
       );
-      throw new BadRequestException('Payment failed. Please try again later.');
+      throw AppException.badRequest(
+        ERROR_CODES.PAYMENT_LINK_PAYMENT_FAILED,
+        'Payment failed. Please try again later.',
+        undefined,
+        {
+          supportReference: reference,
+          ledgerReference: reference,
+          paymentLinkId: paymentLink.id,
+          settlementStage: 'ledger_recording',
+        },
+      );
     }
 
     // Update local wallet balances as mirror of Blnk
