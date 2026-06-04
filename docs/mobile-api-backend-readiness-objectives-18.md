@@ -29,6 +29,10 @@ Cote d'Ivoire and the United States.
   - posts `/wallet/deposit`
   - verifies `/wallet/transactions/deposit/:transactionId/status`
   - verifies `/wallet/transactions/:transactionId`
+- Extended contact discovery smoke coverage:
+  - creates a second verified user in the same country
+  - checks the current user's phone book against that verified contact
+  - asserts `/contacts/check` returns `isKoridoUser` and `userId` for the match
 
 ## Verification
 

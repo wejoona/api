@@ -9,8 +9,8 @@ const otp = process.env.OTP || '123456';
 const countryProfiles = {
   CI: {
     dialCode: '+225',
-    makePhone: () =>
-      `+2250700${new Date().toISOString().replace(/\D/g, '').slice(8, 14)}`,
+    makePhone: (runDigits) => `+2250700${runDigits}`,
+    makeKnownContactPhone: (runDigits) => `+2250701${runDigits}`,
     lookupQuery: '0700',
     contactPhones: ['+2250700000001', '+2250700000002'],
     depositCurrency: 'XOF',
@@ -20,8 +20,8 @@ const countryProfiles = {
   },
   US: {
     dialCode: '+1',
-    makePhone: () =>
-      `+1415555${new Date().toISOString().replace(/\D/g, '').slice(10, 14)}`,
+    makePhone: (runDigits) => `+1415555${runDigits.slice(-4)}`,
+    makeKnownContactPhone: (runDigits) => `+1415666${runDigits.slice(-4)}`,
     lookupQuery: '415',
     contactPhones: ['+14155550101', '+14155550102'],
     depositCurrency: 'USD',
@@ -38,7 +38,11 @@ if (!countryProfile) {
     ).join(', ')}`,
   );
 }
-const phone = process.env.PHONE || countryProfile.makePhone();
+const runDigits = new Date().toISOString().replace(/\D/g, '').slice(8, 14);
+const phone = process.env.PHONE || countryProfile.makePhone(runDigits);
+const knownContactPhone =
+  process.env.KNOWN_CONTACT_PHONE ||
+  countryProfile.makeKnownContactPhone(runDigits);
 
 async function request(method, path, { token, body } = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -115,6 +119,13 @@ async function main() {
   const token = verified.data?.accessToken;
   if (!token) throw new Error('OTP verification did not return accessToken');
 
+  await expectStatus('POST', '/auth/register', [200, 201], {
+    body: { phone: knownContactPhone, countryCode },
+  });
+  await expectStatus('POST', '/auth/verify-otp', [200], {
+    body: { phone: knownContactPhone, otp },
+  });
+
   await expectStatus('GET', '/user/profile', [200], { token });
   await expectStatus('GET', '/wallet', [200, 404], { token });
   await expectStatus('POST', '/wallet/create', [200, 201, 409], { token });
@@ -132,8 +143,25 @@ async function main() {
   );
   await expectStatus('POST', '/contacts/check', [200], {
     token,
-    body: { phoneNumbers: countryProfile.contactPhones },
+    body: {
+      phoneNumbers: [...countryProfile.contactPhones, knownContactPhone],
+    },
   });
+  const knownContactCheck = await expectStatus(
+    'POST',
+    '/contacts/check',
+    [200],
+    {
+      token,
+      body: { phoneNumbers: [knownContactPhone] },
+    },
+  );
+  const knownContactMatch = knownContactCheck.data?.registered?.[0];
+  if (!knownContactMatch?.isKoridoUser || !knownContactMatch.userId) {
+    throw new Error(
+      '/contacts/check did not identify the verified Korido contact',
+    );
+  }
   await expectStatus('POST', '/devices/register', [200, 201], {
     token,
     body: {
