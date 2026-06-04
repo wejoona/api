@@ -27,6 +27,9 @@ export class AuditLogEntity {
   @Column({ type: 'varchar', length: 100 })
   action: string;
 
+  @Column({ name: 'event_type', type: 'varchar', length: 100 })
+  eventType: string;
+
   @Column({ name: 'resource_type', type: 'varchar', length: 50 })
   resourceType: string;
 

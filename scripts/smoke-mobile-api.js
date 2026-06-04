@@ -55,6 +55,9 @@ async function expectStatus(method, path, expected, options) {
 }
 
 async function main() {
+  const syntheticDeviceId = `smoke-device-${Date.now()}`;
+  const syntheticPushToken = `smoke-push-${Date.now()}`;
+
   console.log(`Mobile API smoke target: ${baseUrl}`);
   console.log(`Dogfood phone: ${phone}`);
 
@@ -84,8 +87,38 @@ async function main() {
     token,
     body: { phoneNumbers: ['+2250700000001', '+2250700000002'] },
   });
+  await expectStatus('POST', '/devices/register', [200, 201], {
+    token,
+    body: {
+      deviceIdentifier: syntheticDeviceId,
+      platform: 'ios',
+      deviceName: 'Smoke iPhone',
+      model: 'iPhone Simulator',
+      os: 'iOS',
+      osVersion: '26.0',
+      appVersion: '1.0.0-smoke',
+      metadata: { source: 'mobile-api-smoke' },
+    },
+  });
   await expectStatus('GET', '/sessions', [200], { token });
   await expectStatus('GET', '/devices', [200], { token });
+  await expectStatus('POST', '/notifications/device-token', [200, 201], {
+    token,
+    body: {
+      token: syntheticPushToken,
+      platform: 'ios',
+      deviceId: syntheticDeviceId,
+      deviceName: 'Smoke iPhone',
+      appVersion: '1.0.0-smoke',
+      osVersion: '26.0',
+    },
+  });
+  await expectStatus(
+    'DELETE',
+    `/notifications/device-token/${syntheticPushToken}`,
+    [200, 204],
+    { token },
+  );
   await expectStatus('GET', '/user/limits', [200], { token });
   await expectStatus('GET', '/user/limits/usage', [200], { token });
   await expectStatus('GET', '/user/data-export?format=json', [200], { token });

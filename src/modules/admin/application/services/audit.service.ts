@@ -46,6 +46,7 @@ export class AuditService {
       actorId: data.actorId || null,
       actorType: data.actorType || 'user',
       action: data.action,
+      eventType: data.action,
       resourceType: data.resourceType,
       resourceId: data.resourceId || null,
       details: data.details || null,
