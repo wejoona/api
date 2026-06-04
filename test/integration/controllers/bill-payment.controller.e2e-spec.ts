@@ -3,7 +3,7 @@
  */
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../setup/test-app';
+import { createTestApp, TEST_USER } from '../setup/test-app';
 
 const mockBillPayClient = {
   getProviders: jest.fn(),
@@ -81,8 +81,28 @@ describe('BillPaymentController (e2e)', () => {
       });
       await request(app.getHttpServer())
         .post('/api/v1/bill-payments/pay')
-        .send({ providerId: PROVIDER_ID, accountNumber: '123456', amount: 5000 })
+        .set('X-Idempotency-Key', 'bill-pay-idempotency-001')
+        .send({
+          providerId: PROVIDER_ID,
+          accountNumber: '123456',
+          amount: 5000,
+        })
         .expect(201);
+
+      expect(mockBillPayClient.payBill).toHaveBeenCalledWith(
+        TEST_USER.id,
+        {
+          providerId: PROVIDER_ID,
+          accountNumber: '123456',
+          meterNumber: undefined,
+          customerName: undefined,
+          amount: 5000,
+          currency: undefined,
+          phone: undefined,
+          email: undefined,
+        },
+        'bill-pay-idempotency-001',
+      );
     });
   });
 

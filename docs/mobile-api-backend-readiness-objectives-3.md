@@ -10,7 +10,7 @@ Purpose: harden the API beyond route existence and happy-path contracts. Focus o
 
 ## Financial Operation Integrity
 
-- [ ] Confirm all money-moving flows have a single source-of-truth balance check and clear fallback semantics.
+- [x] Confirm all money-moving flows have a single source-of-truth balance check and clear fallback semantics.
 - [ ] Confirm ledger reservation, commit, void, and provider failure paths are covered by focused unit tests.
 - [ ] Confirm recurring and scheduled transfer execution paths use the same PIN/risk/compliance decisions captured at setup time or explicitly re-evaluate before execution.
 

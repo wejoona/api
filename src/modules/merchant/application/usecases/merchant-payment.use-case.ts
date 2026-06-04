@@ -164,10 +164,8 @@ export class ProcessMerchantPaymentUseCase {
       customerId,
       'USDC',
     );
-    if (
-      !customerBalance ||
-      customerBalance.availableBalance < BigInt(Math.round(amount * 100))
-    ) {
+    const amountInMicro = BigInt(Math.round(amount * 1_000_000));
+    if (!customerBalance || customerBalance.availableBalance < amountInMicro) {
       throw new BadRequestException('Insufficient balance');
     }
 
@@ -193,7 +191,7 @@ export class ProcessMerchantPaymentUseCase {
       const transferResult = await this.ledgerProvider.recordP2PTransfer({
         senderId: customerId,
         recipientId: merchant.ownerId, // Merchant owner's user ID
-        amount: BigInt(Math.round(amount * 100)), // Convert to cents
+        amount: amountInMicro,
         currency: 'USDC',
         reference: `MP-${merchantPayment.reference}`,
         description: `Payment to ${merchant.displayName}`,
