@@ -9,8 +9,9 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 
 ## Mobile Parser Drift Audit
 
-- [ ] Audit mobile services that cast API responses directly to `Map<String, dynamic>` or `List` and identify backend routes that still need wrapper-tolerant contracts.
-- [ ] Patch the first confirmed backend/mobile mismatch with e2e or contract coverage.
+- [x] Audit mobile services that cast API responses directly to `Map<String, dynamic>` or `List` and identify backend routes that still need wrapper-tolerant contracts.
+- [x] Patch the first confirmed backend/mobile mismatch with e2e or contract coverage.
+- [ ] Continue parser drift audit for the next active screen/backend route mismatch.
 
 ## Recursive Execution Rule
 
@@ -36,3 +37,26 @@ Verified and hardened:
 Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="referral.contract"`
+
+### Savings Pot Transaction History Contract - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile calls `GET /savings-pots/:id/transactions` for pot child-screen history.
+- Backend exposed savings pot CRUD/deposit/withdraw routes but not the history route, so mobile swallowed a 404 into an empty list.
+
+Resolution:
+
+- Added explicit `GET /savings-pots/:id/transactions`.
+- The route validates pot ownership through `GetSavingsPotsUseCase.executeOne`.
+- The route returns `{ transactions: [], items: [], total: 0 }` until ledger-backed savings history is projected.
+- Added savings pot transaction contract schemas and tests.
+- Added controller e2e coverage to prevent route regression.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="savings-pot.contract|referral.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="savings-pot.controller.e2e-spec"`
+- `npm run verify:backend:mobile`

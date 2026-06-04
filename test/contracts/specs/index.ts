@@ -17,5 +17,6 @@ export * from './device-session.contract.spec';
 export * from './feature-flag.contract.spec';
 export * from './secondary-feature.contract.spec';
 export * from './referral.contract.spec';
+export * from './savings-pot.contract.spec';
 export * from './app-config.contract.spec';
 export * from './health.contract.spec';

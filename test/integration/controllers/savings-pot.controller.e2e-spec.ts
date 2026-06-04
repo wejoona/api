@@ -131,6 +131,30 @@ describe('SavingsPotController (e2e)', () => {
     });
   });
 
+  describe('GET /api/v1/savings-pots/:id/transactions', () => {
+    it('should return explicit empty transaction history and validate pot ownership', async () => {
+      mockGetPots.executeOne.mockResolvedValue(TestData.savingsPot());
+
+      await request(app.getHttpServer())
+        .get(
+          '/api/v1/savings-pots/550e8400-e29b-41d4-a716-446655440000/transactions',
+        )
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            transactions: [],
+            items: [],
+            total: 0,
+          });
+        });
+
+      expect(mockGetPots.executeOne).toHaveBeenCalledWith(
+        '550e8400-e29b-41d4-a716-446655440000',
+        '550e8400-e29b-41d4-a716-446655440000',
+      );
+    });
+  });
+
   describe('PUT /api/v1/savings-pots/:id', () => {
     it('should update savings pot (200)', async () => {
       mockUpdatePot.execute.mockResolvedValue(

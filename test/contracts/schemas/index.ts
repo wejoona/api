@@ -43,6 +43,9 @@ export * from './secondary-feature.contract';
 // Referral contracts
 export * from './referral.contract';
 
+// Savings pot contracts
+export * from './savings-pot.contract';
+
 // App config contracts
 export * from './app-config.contract';
 
@@ -62,6 +65,7 @@ import { DeviceSessionContractGroup } from './device-session.contract';
 import { FeatureFlagContractGroup } from './feature-flag.contract';
 import { SecondaryFeatureContractGroup } from './secondary-feature.contract';
 import { ReferralContractGroup } from './referral.contract';
+import { SavingsPotContractGroup } from './savings-pot.contract';
 import { FeatureSubscriptionContractGroup } from './feature-subscription.contract';
 import { AppConfigContractGroup } from './app-config.contract';
 import { HealthContractGroup } from './health.contract';
@@ -79,6 +83,7 @@ export const AllContractGroups = [
   FeatureFlagContractGroup,
   SecondaryFeatureContractGroup,
   ReferralContractGroup,
+  SavingsPotContractGroup,
   FeatureSubscriptionContractGroup,
   AppConfigContractGroup,
   HealthContractGroup,

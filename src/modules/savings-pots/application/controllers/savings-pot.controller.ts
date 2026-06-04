@@ -42,6 +42,12 @@ import {
   SavingsPotResponseDto,
 } from '../dtos';
 
+interface SavingsPotTransactionListResponseDto {
+  transactions: unknown[];
+  items: unknown[];
+  total: number;
+}
+
 @ApiTags('Savings Pots')
 @Controller('savings-pots')
 @UseGuards(JwtAuthGuard)
@@ -92,6 +98,27 @@ export class SavingsPotController {
   async getActive(@CurrentUser() user: User): Promise<SavingsPotResponseDto[]> {
     const savingsPots = await this.getSavingsPotsUseCase.executeActive(user.id);
     return savingsPots.map(SavingsPotResponseDto.fromEntity);
+  }
+
+  @Get(':id/transactions')
+  @ApiOperation({ summary: 'Get transaction history for a savings pot' })
+  @ApiParam({ name: 'id', description: 'Savings pot UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns savings pot transaction history',
+  })
+  @ApiResponse({ status: 404, description: 'Savings pot not found' })
+  async getTransactions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ): Promise<SavingsPotTransactionListResponseDto> {
+    await this.getSavingsPotsUseCase.executeOne(id, user.id);
+
+    return {
+      transactions: [],
+      items: [],
+      total: 0,
+    };
   }
 
   @Get(':id')
