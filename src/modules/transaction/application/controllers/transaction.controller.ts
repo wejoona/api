@@ -281,10 +281,19 @@ export class TransactionController {
     const metadata = transaction.metadata || {};
     const currency = transaction.currency;
     const sourceCurrency = metadata.sourceCurrency as string | undefined;
+    const ledgerReference =
+      (metadata.ledgerReference as string | undefined) ??
+      (metadata.blnkReference as string | undefined) ??
+      (metadata.reference as string | undefined) ??
+      null;
+    const providerReference = transaction.yellowCardRef ?? null;
 
     return {
       ...transaction,
       amountDecimal: formatDecimalAmount(transaction.amount, currency),
+      supportReference: transaction.id,
+      ledgerReference,
+      providerReference,
       metadata: {
         ...metadata,
         ...(metadata.sourceAmount !== undefined && {

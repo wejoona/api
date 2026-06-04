@@ -149,8 +149,20 @@ export const TransactionSchema: ContractSchema = {
       description: 'Additional transaction details',
       nestedSchema: TransactionMetadataSchema,
     }),
+    supportReference: required(FieldType.STRING, {
+      description: 'Stable customer support reference for this transaction',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ledgerReference: nullable(FieldType.STRING, {
+      description: 'Blnk/internal ledger reference when available',
+      example: 'ledger-ref-123',
+    }),
+    providerReference: nullable(FieldType.STRING, {
+      description: 'External payment/on-chain provider reference when available',
+      example: 'yc_dep_1234567890',
+    }),
     yellowCardRef: optional(FieldType.STRING, {
-      description: 'Yellow Card reference for deposits',
+      description: 'Legacy Yellow Card reference for deposits; use providerReference in new mobile clients',
       example: 'yc_dep_1234567890',
     }),
   },

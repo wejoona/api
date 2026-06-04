@@ -253,7 +253,16 @@ export class PaymentLinkController {
     @Param('code') code: string,
     @CurrentUser() user: UserPayload,
     @Body() dto: PayPaymentLinkDto,
-  ): Promise<{ transactionId: string; amount: number; status: string }> {
+  ): Promise<{
+    transactionId: string;
+    amount: number;
+    amountDecimal: string;
+    currency: string;
+    status: string;
+    supportReference: string;
+    ledgerReference: string;
+    ledgerTransactionId?: string;
+  }> {
     return this.paymentLinkService.payPaymentLink(code, user.id, dto);
   }
 

@@ -17,6 +17,10 @@ export class PaymentLinkResponseDto {
   paidByPhone?: string; // Mobile expects this field
   paidByName?: string; // Mobile expects this field
   transactionId?: string; // Mobile expects this field for paid links
+  amountDecimal?: string; // Decimal-safe amount for mobile money rendering
+  supportReference?: string; // Stable customer support reference
+  ledgerReference?: string | null; // Ledger/reference used for settlement
+  providerReference?: string | null; // External provider reference when available
   viewCount: number;
   isExpired: boolean;
   isActive: boolean;

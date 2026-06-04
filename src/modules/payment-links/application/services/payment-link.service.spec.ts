@@ -9,6 +9,59 @@ import { WalletEntity } from '../../../wallet/domain/entities/wallet.entity';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 describe('PaymentLinkService', () => {
+  it('returns decimal-safe amount and references when payment succeeds', async () => {
+    const recipientWallet = WalletEntity.create({ userId: 'recipient-user' });
+    const payerWallet = WalletEntity.create({ userId: 'payer-user' });
+    payerWallet.credit(100);
+
+    const paymentLink = PaymentLink.reconstitute({
+      id: 'payment-link-1',
+      userId: 'recipient-user',
+      walletId: recipientWallet.id,
+      code: 'PAY123AB',
+      amount: 25,
+      currency: 'USDC',
+      description: null,
+    });
+
+    const service = new PaymentLinkService(
+      {
+        findByCode: jest.fn().mockResolvedValue(paymentLink),
+        save: jest.fn().mockResolvedValue(paymentLink),
+      } as any,
+      {
+        findByUserId: jest.fn().mockResolvedValue(payerWallet),
+        findById: jest.fn().mockResolvedValue(recipientWallet),
+        save: jest.fn(),
+      } as any,
+      {
+        save: jest.fn(),
+      } as any,
+      {
+        getAvailableBalance: jest.fn().mockResolvedValue(100_000_000n),
+        recordP2PTransfer: jest.fn().mockResolvedValue({
+          transactionId: 'blnk_pl_123',
+        }),
+      } as any,
+      {
+        emit: jest.fn(),
+      } as unknown as EventEmitter2,
+    );
+
+    await expect(
+      service.payPaymentLink('PAY123AB', 'payer-user', {}),
+    ).resolves.toMatchObject({
+      transactionId: expect.any(String),
+      amount: 25,
+      amountDecimal: '25.000000',
+      currency: 'USDC',
+      status: 'completed',
+      supportReference: expect.any(String),
+      ledgerReference: expect.stringMatching(/^pl_PAY123AB_/),
+      ledgerTransactionId: 'blnk_pl_123',
+    });
+  });
+
   it('returns support-safe settlement context when ledger recording fails during payment', async () => {
     const recipientWallet = WalletEntity.create({ userId: 'recipient-user' });
     const payerWallet = WalletEntity.create({ userId: 'payer-user' });

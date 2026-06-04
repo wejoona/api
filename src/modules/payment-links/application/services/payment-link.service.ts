@@ -29,6 +29,7 @@ import {
 import { TransferEntity } from '../../../transfer/application/domain/entities/transfer.entity';
 import { AppException } from '../../../../common/exceptions';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
+import { formatDecimalAmount } from '../../../../common/utils/money-response.util';
 
 @Injectable()
 export class PaymentLinkService {
@@ -220,6 +221,8 @@ export class PaymentLinkService {
   ): Promise<{
     transactionId: string;
     amount: number;
+    amountDecimal: string;
+    currency: string;
     status: string;
     supportReference: string;
     ledgerReference: string;
@@ -403,6 +406,8 @@ export class PaymentLinkService {
     return {
       transactionId: transfer.id,
       amount: amount,
+      amountDecimal: formatDecimalAmount(amount, paymentLink.currency),
+      currency: paymentLink.currency,
       status: 'completed',
       supportReference: transfer.id,
       ledgerReference: reference,

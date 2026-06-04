@@ -195,6 +195,8 @@ describe('PaymentLinkController (e2e)', () => {
       mockPaymentLinkService.payPaymentLink.mockResolvedValue({
         transactionId: 'tx_123',
         amount: 25,
+        amountDecimal: '25.000000',
+        currency: 'USDC',
         status: 'completed',
         supportReference: 'tx_123',
         ledgerReference: 'pl_PAY123ABC_1234567890',
@@ -208,6 +210,8 @@ describe('PaymentLinkController (e2e)', () => {
           expect(body).toEqual({
             transactionId: 'tx_123',
             amount: 25,
+            amountDecimal: '25.000000',
+            currency: 'USDC',
             status: 'completed',
             supportReference: 'tx_123',
             ledgerReference: 'pl_PAY123ABC_1234567890',

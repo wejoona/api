@@ -29,6 +29,7 @@ const transactionResponse: Record<string, any> = TestData.transaction({
     rate: 0.00166,
     fee: 150,
     provider: 'mtn',
+    ledgerReference: 'ledger-dep-123',
   },
   yellowCardRef: 'yc_dep_123',
 });
@@ -36,6 +37,9 @@ const transactionResponse: Record<string, any> = TestData.transaction({
 const transactionResponseWithDecimals = {
   ...transactionResponse,
   amountDecimal: '16.450000',
+  supportReference: transactionResponse.id,
+  ledgerReference: 'ledger-dep-123',
+  providerReference: 'yc_dep_123',
   metadata: {
     ...transactionResponse.metadata,
     sourceAmountDecimal: '10000',

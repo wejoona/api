@@ -12,7 +12,7 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 
 - [x] Confirm balance reads clearly identify Blnk source-of-truth, cached, and local fallback states for mobile.
 - [x] Confirm local fallback balance is marked degraded/stale and cannot be mistaken for final ledger truth.
-- [ ] Confirm transaction history, payment links, and wallet summaries share consistent amount/currency precision and support references.
+- [x] Confirm transaction history, payment links, and wallet summaries share consistent amount/currency precision and support references.
 
 ## Rates, Regions, And Provider Feature Flags
 
@@ -74,3 +74,15 @@ Verification:
 - `npm test -- --runInBand src/modules/wallet/application/usecases/get-balance.use-case.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller"`
 - `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`
+
+### Transaction And Payment Reference Consistency - 2026-06-04
+
+Verified and hardened:
+
+- Transaction list/detail responses now expose provider-neutral reference fields:
+  - `supportReference`: stable support-facing transaction id.
+  - `ledgerReference`: Blnk/internal ledger reference when available.
+  - `providerReference`: external provider/on-chain reference when available.
+- Legacy `yellowCardRef` remains for backwards compatibility, but new mobile clients no longer need Yellow Card-specific naming.
+- Payment-link pay responses now include `amountDecimal` and `currency` alongside `supportReference`, `ledgerReference`, and optional `ledgerTransactionId`.
+- Wallet transfer/deposit responses already expose decimal-safe amount/fee fields and support references; this pass aligns transaction history and payment-link success responses with that shape.
