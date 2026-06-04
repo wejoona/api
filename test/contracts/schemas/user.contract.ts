@@ -251,6 +251,68 @@ export const UserErrorSchema: ContractSchema = {
   },
 };
 
+export const ProfileDependencyUnavailableSchema: ContractSchema = {
+  name: 'ProfileDependencyUnavailable',
+  description:
+    'Mobile-safe profile dependency failure. Mobile should keep cached profile data.',
+  fields: {
+    success: required(FieldType.BOOLEAN, { example: false }),
+    error: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'ProfileDependencyUnavailableError',
+        fields: {
+          code: required(FieldType.STRING, {
+            example: 'PROFILE_DEPENDENCY_UNAVAILABLE',
+          }),
+          message: required(FieldType.STRING, {
+            example:
+              'Profile is temporarily unavailable. Please try again later.',
+          }),
+          dependency: required(FieldType.STRING, {
+            example: 'user_profile_store',
+          }),
+          retryable: required(FieldType.BOOLEAN, { example: true }),
+          supportReviewRequired: required(FieldType.BOOLEAN, {
+            example: false,
+          }),
+        },
+      },
+    }),
+    meta: required(FieldType.OBJECT),
+  },
+};
+
+export const AvatarStorageUnavailableSchema: ContractSchema = {
+  name: 'AvatarStorageUnavailable',
+  description:
+    'Mobile-safe avatar storage failure. Mobile should keep cached avatar data.',
+  fields: {
+    success: required(FieldType.BOOLEAN, { example: false }),
+    error: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'AvatarStorageUnavailableError',
+        fields: {
+          code: required(FieldType.STRING, {
+            example: 'AVATAR_STORAGE_UNAVAILABLE',
+          }),
+          message: required(FieldType.STRING, {
+            example:
+              'Profile photo storage is temporarily unavailable. Please try again later.',
+          }),
+          dependency: required(FieldType.STRING, {
+            example: 'avatar_storage',
+          }),
+          retryable: required(FieldType.BOOLEAN, { example: true }),
+          supportReviewRequired: required(FieldType.BOOLEAN, {
+            example: false,
+          }),
+        },
+      },
+    }),
+    meta: required(FieldType.OBJECT),
+  },
+};
+
 // ============================================
 // Endpoint Contracts
 // ============================================
@@ -263,6 +325,7 @@ export const GetProfileEndpoint: EndpointContract = {
   responses: {
     200: UserSchema,
     401: UserErrorSchema,
+    503: ProfileDependencyUnavailableSchema,
   },
   exampleResponse: {
     200: {
@@ -273,10 +336,15 @@ export const GetProfileEndpoint: EndpointContract = {
       firstName: 'Amadou',
       lastName: 'Diallo',
       email: 'amadou@example.com',
+      avatarUrl: null,
+      avatarThumb: null,
+      preferredLocale: 'fr',
       countryCode: 'CI',
       kycStatus: 'approved',
+      kycRejectionReason: null,
       canTransact: true,
       canWithdraw: true,
+      hasPin: true,
       createdAt: '2026-01-18T12:00:00.000Z',
     },
   },
@@ -292,11 +360,54 @@ export const UpdateProfileEndpoint: EndpointContract = {
     200: UserSchema,
     400: UserErrorSchema,
     409: UserErrorSchema,
+    503: ProfileDependencyUnavailableSchema,
   },
   exampleRequest: {
     username: 'amadou_diallo',
     firstName: 'Amadou',
     lastName: 'Diallo',
+  },
+};
+
+export const UploadAvatarEndpoint: EndpointContract = {
+  method: 'POST',
+  path: '/user/avatar',
+  description: 'Upload current user avatar image',
+  auth: 'bearer',
+  responses: {
+    200: {
+      name: 'UploadAvatarResponse',
+      fields: {
+        avatarUrl: required(FieldType.STRING, {
+          example: '/user/avatar/123e4567-e89b-12d3-a456-426614174000',
+        }),
+        avatarThumb: nullable(FieldType.STRING, {
+          example: 'data:image/jpeg;base64,abc123',
+        }),
+        message: required(FieldType.STRING, {
+          example: 'Avatar uploaded successfully',
+        }),
+      },
+    },
+    503: AvatarStorageUnavailableSchema,
+  },
+};
+
+export const DeleteAvatarEndpoint: EndpointContract = {
+  method: 'DELETE',
+  path: '/user/avatar',
+  description: 'Remove current user avatar reference',
+  auth: 'bearer',
+  responses: {
+    200: {
+      name: 'DeleteAvatarResponse',
+      fields: {
+        message: required(FieldType.STRING, {
+          example: 'Avatar removed successfully',
+        }),
+      },
+    },
+    503: ProfileDependencyUnavailableSchema,
   },
 };
 
@@ -409,6 +520,8 @@ export const UserContractGroup: ContractGroup = {
   endpoints: [
     GetProfileEndpoint,
     UpdateProfileEndpoint,
+    UploadAvatarEndpoint,
+    DeleteAvatarEndpoint,
     CheckUsernameEndpoint,
     SearchUsernameEndpoint,
     FindByUsernameEndpoint,

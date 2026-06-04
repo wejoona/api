@@ -23,7 +23,9 @@ const mockChangePin = { execute: jest.fn() };
 const mockVerifyPin = { execute: jest.fn() };
 const mockResetPin = { execute: jest.fn() };
 const mockUploadService = {
+  uploadAvatar: jest.fn(),
   uploadDocument: jest.fn(),
+  getFileBuffer: jest.fn(),
   deleteDocument: jest.fn(),
 };
 const mockUserRepository = {
@@ -73,7 +75,7 @@ describe('UserController (e2e)', () => {
     await app?.close();
   });
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   // ==========================================
@@ -120,6 +122,32 @@ describe('UserController (e2e)', () => {
         hasPin: true,
       });
     });
+
+    it('should return mobile-safe dependency failure metadata (503)', async () => {
+      mockGetProfile.execute.mockRejectedValue(
+        new Error('profile database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/user/profile')
+        .set('Authorization', 'Bearer mock.token')
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'PROFILE_DEPENDENCY_UNAVAILABLE',
+              dependency: 'user_profile_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+            meta: {
+              path: '/api/v1/user/profile',
+              method: 'GET',
+            },
+          });
+        });
+    });
   });
 
   // ==========================================
@@ -145,6 +173,38 @@ describe('UserController (e2e)', () => {
   // ==========================================
   // DELETE /user/avatar
   // ==========================================
+  describe('POST /api/v1/user/avatar', () => {
+    it('should return mobile-safe storage failure metadata (503)', async () => {
+      mockUploadService.uploadAvatar.mockRejectedValue(
+        new Error('avatar bucket unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .post('/api/v1/user/avatar')
+        .set('Authorization', 'Bearer mock.token')
+        .attach('avatar', Buffer.from('avatar-bytes'), {
+          filename: 'avatar.jpg',
+          contentType: 'image/jpeg',
+        })
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'AVATAR_STORAGE_UNAVAILABLE',
+              dependency: 'avatar_storage',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+            meta: {
+              path: '/api/v1/user/avatar',
+              method: 'POST',
+            },
+          });
+        });
+    });
+  });
+
   describe('DELETE /api/v1/user/avatar', () => {
     it('should remove avatar (200)', async () => {
       mockUserRepository.findById.mockResolvedValue({
@@ -157,6 +217,33 @@ describe('UserController (e2e)', () => {
         .delete('/api/v1/user/avatar')
         .set('Authorization', 'Bearer mock.token')
         .expect(200);
+    });
+  });
+
+  describe('GET /api/v1/user/avatar/:userId', () => {
+    it('should return mobile-safe storage failure metadata (503)', async () => {
+      mockUploadService.getFileBuffer.mockRejectedValue(
+        new Error('avatar storage timeout'),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/user/avatar/550e8400-e29b-41d4-a716-446655440000')
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'AVATAR_STORAGE_UNAVAILABLE',
+              dependency: 'avatar_storage',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+            meta: {
+              path: '/api/v1/user/avatar/550e8400-e29b-41d4-a716-446655440000',
+              method: 'GET',
+            },
+          });
+        });
     });
   });
 

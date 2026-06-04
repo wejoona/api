@@ -11,7 +11,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 ## User Profile And Identity Surfaces
 
 - [x] Confirm profile/avatar endpoints expose stable mobile fields for name, photo, locale, country, and KYC state.
-- [ ] Confirm profile/avatar dependency or storage failures return classified retry/review metadata.
+- [x] Confirm profile/avatar dependency or storage failures return classified retry/review metadata.
 
 ## Secondary Feature Capability Surfaces
 
@@ -57,6 +57,24 @@ Verified and hardened:
 - Contract tests validate full, minimal, rejected-KYC, and multi-country profile responses with the complete mobile profile shape.
 - `GET /user/profile` e2e asserts runtime output includes name, avatar URL/thumb, locale, country, KYC state, rejection reason, transaction eligibility, and PIN state.
 - `verify:backend:mobile` now includes `user-profile.controller`.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="user.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller"`
+
+### Profile And Avatar Failure Metadata - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Unexpected profile store failures return `503 PROFILE_DEPENDENCY_UNAVAILABLE`.
+- Unexpected avatar upload/proxy storage failures return `503 AVATAR_STORAGE_UNAVAILABLE`.
+- Validation, conflict, not-found, and other intentional HTTP exceptions are preserved.
+- User contracts include mobile-safe retry/review metadata schemas for profile and avatar failures.
+- User-profile e2e covers profile dependency failure, avatar upload storage failure, and avatar proxy storage failure.
 
 Verification:
 

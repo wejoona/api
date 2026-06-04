@@ -16,6 +16,8 @@ import {
   HttpStatus,
   BadRequestException,
   NotFoundException,
+  HttpException,
+  ServiceUnavailableException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -255,11 +257,15 @@ export class UserController {
   async getProfile(
     @Request() req: AuthenticatedRequest,
   ): Promise<UserResponse> {
-    const result = await this.getProfileUsecase.execute({
-      userId: req.user.id,
-    });
+    try {
+      const result = await this.getProfileUsecase.execute({
+        userId: req.user.id,
+      });
 
-    return UserResponse.fromDomain(result.user, result.kycRejectionReason);
+      return UserResponse.fromDomain(result.user, result.kycRejectionReason);
+    } catch (error) {
+      this.throwProfileDependencyUnavailable(error);
+    }
   }
 
   @Put('profile')
@@ -270,15 +276,19 @@ export class UserController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateProfileDto,
   ): Promise<UserResponse> {
-    const user = await this.updateProfileUsecase.execute({
-      userId: req.user.id,
-      username: dto.username,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      email: dto.email,
-    });
+    try {
+      const user = await this.updateProfileUsecase.execute({
+        userId: req.user.id,
+        username: dto.username,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        email: dto.email,
+      });
 
-    return UserResponse.fromDomain(user);
+      return UserResponse.fromDomain(user);
+    } catch (error) {
+      this.throwProfileDependencyUnavailable(error);
+    }
   }
 
   @Post('avatar')
@@ -293,10 +303,15 @@ export class UserController {
       throw new BadRequestException('No file provided');
     }
 
-    const result = await this.uploadService.uploadAvatar({
-      userId: req.user.id,
-      file,
-    });
+    let result;
+    try {
+      result = await this.uploadService.uploadAvatar({
+        userId: req.user.id,
+        file,
+      });
+    } catch (error) {
+      this.throwAvatarStorageUnavailable(error);
+    }
 
     // Generate a small base64 thumbnail (64x64) for DB storage — no MinIO dependency
     let thumbBase64: string | null = null;
@@ -313,11 +328,15 @@ export class UserController {
     }
 
     // Store relative API URL + base64 thumb in DB
-    const user = await this.userRepository.findById(req.user.id);
-    if (!user) throw new BadRequestException('User not found');
     const avatarApiUrl = `/user/avatar/${req.user.id}`;
-    user.updateAvatar(avatarApiUrl, thumbBase64);
-    await this.userRepository.save(user);
+    try {
+      const user = await this.userRepository.findById(req.user.id);
+      if (!user) throw new BadRequestException('User not found');
+      user.updateAvatar(avatarApiUrl, thumbBase64);
+      await this.userRepository.save(user);
+    } catch (error) {
+      this.throwProfileDependencyUnavailable(error);
+    }
 
     return {
       avatarUrl: avatarApiUrl,
@@ -333,22 +352,30 @@ export class UserController {
     @Request() req: AuthenticatedRequest,
     @Body() body: UpdateLocaleDto,
   ) {
-    const user = await this.userRepository.findById(req.user.id);
-    if (!user) throw new BadRequestException('User not found');
-    user.updateLocale(body.locale);
-    await this.userRepository.save(user);
-    return { locale: user.preferredLocale, message: 'Locale updated' };
+    try {
+      const user = await this.userRepository.findById(req.user.id);
+      if (!user) throw new BadRequestException('User not found');
+      user.updateLocale(body.locale);
+      await this.userRepository.save(user);
+      return { locale: user.preferredLocale, message: 'Locale updated' };
+    } catch (error) {
+      this.throwProfileDependencyUnavailable(error);
+    }
   }
 
   @Delete('avatar')
   @ApiOperation({ summary: 'Remove user avatar' })
   @ApiResponse({ status: 200, description: 'Avatar removed' })
   async removeAvatar(@Request() req: AuthenticatedRequest) {
-    const user = await this.userRepository.findById(req.user.id);
-    if (!user) throw new BadRequestException('User not found');
-    user.updateAvatar(null);
-    await this.userRepository.save(user);
-    return { message: 'Avatar removed successfully' };
+    try {
+      const user = await this.userRepository.findById(req.user.id);
+      if (!user) throw new BadRequestException('User not found');
+      user.updateAvatar(null);
+      await this.userRepository.save(user);
+      return { message: 'Avatar removed successfully' };
+    } catch (error) {
+      this.throwProfileDependencyUnavailable(error);
+    }
   }
 
   @Public()
@@ -369,8 +396,11 @@ export class UserController {
         'Cache-Control': 'public, max-age=3600',
       });
       res.send(buffer);
-    } catch {
-      throw new NotFoundException('Avatar not found');
+    } catch (error) {
+      if (error instanceof HttpException && error.getStatus() === 400) {
+        throw new NotFoundException('Avatar not found');
+      }
+      this.throwAvatarStorageUnavailable(error);
     }
   }
 
@@ -433,6 +463,35 @@ export class UserController {
       avatarUrl: u.avatarUrl,
     }));
     return { users: results, total: results.length };
+  }
+
+  private throwProfileDependencyUnavailable(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    throw new ServiceUnavailableException({
+      code: 'PROFILE_DEPENDENCY_UNAVAILABLE',
+      message: 'Profile is temporarily unavailable. Please try again later.',
+      dependency: 'user_profile_store',
+      retryable: true,
+      supportReviewRequired: false,
+    });
+  }
+
+  private throwAvatarStorageUnavailable(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    throw new ServiceUnavailableException({
+      code: 'AVATAR_STORAGE_UNAVAILABLE',
+      message:
+        'Profile photo storage is temporarily unavailable. Please try again later.',
+      dependency: 'avatar_storage',
+      retryable: true,
+      supportReviewRequired: false,
+    });
   }
 
   @Get('username/check/:username')

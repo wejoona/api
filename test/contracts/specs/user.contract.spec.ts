@@ -5,7 +5,9 @@
  */
 
 import {
+  AvatarStorageUnavailableSchema,
   CheckUsernameResponseSchema,
+  ProfileDependencyUnavailableSchema,
   SearchUsernameResponseSchema,
   UserLimitsResponseSchema,
 } from '../schemas/user.contract';
@@ -95,6 +97,51 @@ describe('User Contracts', () => {
       });
 
       const result = validateSchema(response, UserSchema);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('Profile and avatar dependency failures', () => {
+    it('should validate mobile-safe profile dependency unavailable envelopes', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'PROFILE_DEPENDENCY_UNAVAILABLE',
+          message: 'Profile is temporarily unavailable. Please try again later.',
+          dependency: 'user_profile_store',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/user/profile',
+          method: 'GET',
+          timestamp: '2026-06-04T12:00:00.000Z',
+        },
+      };
+
+      const result = validateSchema(response, ProfileDependencyUnavailableSchema);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate mobile-safe avatar storage unavailable envelopes', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'AVATAR_STORAGE_UNAVAILABLE',
+          message:
+            'Profile photo storage is temporarily unavailable. Please try again later.',
+          dependency: 'avatar_storage',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/user/avatar',
+          method: 'POST',
+          timestamp: '2026-06-04T12:00:00.000Z',
+        },
+      };
+
+      const result = validateSchema(response, AvatarStorageUnavailableSchema);
       expect(result.valid).toBe(true);
     });
   });
