@@ -37,7 +37,7 @@ describe('SessionService', () => {
     it('should create a session with hashed token', async () => {
       const params = {
         userId: 'user-id',
-        deviceId: 'device-id',
+        deviceId: '4b862970-854d-4a84-98f0-2c36b01c1e87',
         refreshToken: 'refresh-token',
         ipAddress: '127.0.0.1',
         userAgent: 'test-agent',
@@ -54,6 +54,24 @@ describe('SessionService', () => {
       expect(result.deviceId).toBe(params.deviceId);
       expect(result.ipAddress).toBe(params.ipAddress);
       expect(result.isActive).toBe(true);
+      expect(sessionRepository.save).toHaveBeenCalled();
+    });
+
+    it('should ignore external device identifiers that are not internal UUIDs', async () => {
+      const params = {
+        userId: 'user-id',
+        deviceId: 'ios-simulator-external-id',
+        refreshToken: 'refresh-token',
+        expiresInSeconds: 604800,
+      };
+
+      sessionRepository.save.mockImplementation(async (session) => session);
+
+      const result = await service.createSession(params);
+
+      expect(result).toBeDefined();
+      expect(result.userId).toBe(params.userId);
+      expect(result.deviceId).toBeNull();
       expect(sessionRepository.save).toHaveBeenCalled();
     });
   });

@@ -3,7 +3,6 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { SessionRepository } from '../../domain/repositories/session.repository';
@@ -69,12 +68,19 @@ export class SessionService {
       }
     }
 
+    const normalizedDeviceId = this.normalizeInternalDeviceId(deviceId);
+    if (deviceId && !normalizedDeviceId) {
+      this.logger.warn(
+        `Ignoring external device identifier for session FK: ${deviceId}`,
+      );
+    }
+
     const refreshTokenHash = this.hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     const session = Session.create({
       userId,
-      deviceId,
+      deviceId: normalizedDeviceId,
       refreshTokenHash,
       ipAddress,
       userAgent,
@@ -199,6 +205,17 @@ export class SessionService {
    */
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private normalizeInternalDeviceId(deviceId?: string): string | null {
+    if (!deviceId) return null;
+    return this.isUuid(deviceId) ? deviceId : null;
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    );
   }
 
   private toResponse(session: Session): SessionResponse {

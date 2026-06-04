@@ -156,7 +156,8 @@ export class VerifyOtpUsecase {
     try {
       await this.sessionService.createSession({
         userId: updatedUser.id,
-        deviceId: input.deviceId,
+        // X-Device-ID is the client/simulator identifier. It is not the
+        // internal auth.devices UUID FK, which is created by /devices/register.
         refreshToken,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
