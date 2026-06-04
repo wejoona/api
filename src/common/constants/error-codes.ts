@@ -86,6 +86,9 @@ export const ERROR_CODES = {
   // Bulk Payment errors (8.8xxx)
   BULK_PAYMENTS_UNAVAILABLE: 'E8801',
 
+  // Bill Payment errors (8.9xxx)
+  BILL_PAYMENTS_UNAVAILABLE: 'E8901',
+
   // System errors (9xxx)
   RATE_LIMITED: 'E9001',
   MAINTENANCE_MODE: 'E9002',

@@ -26,6 +26,8 @@ import {
   createTestWallet,
   MockDataSource,
 } from '../../../../test/helpers/test-utils';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 describe('ExternalTransferUseCase', () => {
   let useCase: ExternalTransferUseCase;
@@ -304,6 +306,23 @@ describe('ExternalTransferUseCase', () => {
     await expect(useCase.execute(input)).rejects.toThrow(
       'Transfer failed. Your funds have been refunded. Please try again later.',
     );
+    expect(ledgerProvider.voidTransaction).toHaveBeenCalledWith(
+      'blnk-withdrawal-123',
+    );
+    expect(ledgerProvider.commitTransaction).not.toHaveBeenCalled();
+  });
+
+  it('preserves provider-unavailable codes after voiding the Blnk inflight transaction', async () => {
+    paymentGateway.externalTransfer.mockRejectedValue(
+      AppException.badRequest(
+        ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+        'Payment gateway disabled',
+      ),
+    );
+
+    await expect(useCase.execute(input)).rejects.toMatchObject({
+      code: ERROR_CODES.WITHDRAWAL_PROVIDER_UNAVAILABLE,
+    });
     expect(ledgerProvider.voidTransaction).toHaveBeenCalledWith(
       'blnk-withdrawal-123',
     );

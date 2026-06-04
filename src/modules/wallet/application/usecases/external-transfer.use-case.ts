@@ -306,6 +306,10 @@ export class ExternalTransferUseCase {
         }
       }
 
+      if (error instanceof AppException) {
+        throw error;
+      }
+
       throw new BadRequestException(
         'Transfer failed. Your funds have been refunded. Please try again later.',
       );

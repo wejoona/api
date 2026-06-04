@@ -3,6 +3,8 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
+import { AppException } from '../../../../common/exceptions';
 
 @Injectable()
 export class BillPayClientService {
@@ -36,6 +38,16 @@ export class BillPayClientService {
   private handleError(error: unknown, context: string): never {
     if (error instanceof AxiosError) {
       const status = error.response?.status || HttpStatus.BAD_GATEWAY;
+      if (!error.response || status >= 500) {
+        this.logger.error(
+          `Bill Pay ${context} unavailable: ${status} - ${JSON.stringify(error.response?.data)}`,
+        );
+        throw AppException.badRequest(
+          ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+          'Bill payments are not available right now',
+        );
+      }
+
       const message =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -45,17 +57,13 @@ export class BillPayClientService {
       );
       throw new HttpException(
         { statusCode: status, message, error: context },
-        status >= 500 ? HttpStatus.BAD_GATEWAY : status,
+        status,
       );
     }
     this.logger.error(`Bill Pay ${context} unexpected error: ${error}`);
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.BAD_GATEWAY,
-        message: 'Bill Pay service unavailable',
-        error: context,
-      },
-      HttpStatus.BAD_GATEWAY,
+    throw AppException.badRequest(
+      ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+      'Bill payments are not available right now',
     );
   }
 
