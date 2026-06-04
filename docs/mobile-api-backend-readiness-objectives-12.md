@@ -10,7 +10,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 - [x] Audit/log ingestion route decision for mobile background services.
 - [x] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
 - [x] Privacy/account export route parity or alias decision.
-- [ ] Expenses/insights route parity or remove from active mobile dependency graph.
+- [x] Expenses/insights route parity or remove from active mobile dependency graph.
 
 ## Recursive Execution Rule
 
@@ -148,3 +148,24 @@ Resolution:
 Verification:
 
 - `flutter test test/services/privacy/customer_export_route_boundary_test.dart`
+
+### Expenses and Insights Route Parity - 2026-06-04
+
+Status: complete.
+
+Confirmed state:
+
+- Active mobile insights screen calls `GET /wallet/transactions/stats`, which is already covered by `transaction.controller` e2e and included in `verify:backend:mobile`.
+- Mobile had parser drift: backend returns `totalTransactions`, `totalDeposited`, `totalWithdrawn`, and `totalTransferred`; mobile only read `totalCount` and did not include transfers in spending.
+- Expenses screens use local storage/manual aggregation and transaction stats fallback.
+- Dormant API wrappers exist for `/insights/*`, `/analytics/*`, and `/expenses/*`; those are not active customer mobile API contracts.
+
+Resolution:
+
+- Updated mobile insights parsing to use backend transaction stats fields.
+- Spending now includes withdrawals plus transfers; net flow falls back to deposits minus spending when the backend does not return `netFlow`.
+- Added a mobile architecture test preventing customer UI/provider code from depending on dormant insights/analytics/expenses API wrappers.
+
+Verification:
+
+- `flutter test test/services/insights/customer_insights_route_boundary_test.dart`
