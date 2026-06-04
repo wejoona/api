@@ -41,7 +41,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Contact discovery/bulk lookup performance and privacy contract audit.
 - [x] Feature subscription/waitlist payload completeness for every "stay informed" surface.
 - [x] Background refresh, push registration, and notification unread-count recovery audit.
-- [ ] Backend-mobile verifier must include every active mobile route family before release signoff.
+- [x] Backend-mobile verifier must include every active mobile route family before release signoff.
 
 ## Recursive Execution Rule
 
@@ -236,6 +236,27 @@ Verification:
 
 - `npm run build`
 - `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller.e2e-spec|session.controller.e2e-spec"`
+
+### Backend-Mobile Verifier Expansion - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- `npm run verify:backend:mobile` did not include several existing e2e specs for route families active in mobile code.
+- Active mobile families missing from the verifier included bill payments, standalone deposits, user PIN, health/time, business/sub-business, risk, step-up, security public key, wallet export, withdrawals, and whitelisted addresses.
+- `/withdrawals/*` and `/security/addresses/*` had controllers but no verifier-ready controller e2e specs.
+
+Resolution:
+
+- Expanded `verify:backend:mobile` to include the existing active mobile controller e2e specs.
+- Added `withdrawal.controller.e2e-spec.ts` for `POST /withdrawals/initiate`, `GET /withdrawals/:id`, and `GET /withdrawals`.
+- Added `whitelisted-address.controller.e2e-spec.ts` for list, create, check, and revoke address routes.
+- Kept this scoped to backend/mobile route verification; no Kubernetes or deployment mutation.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="withdrawal.controller|whitelisted-address.controller"`
 
 ### Transaction History List/Detail Compatibility - 2026-06-04
 
