@@ -309,6 +309,56 @@ export const AuthErrorSchema: ContractSchema = {
   },
 };
 
+export const AuthErrorDetailSchema: ContractSchema = {
+  name: 'AuthErrorDetail',
+  description: 'Mobile-safe auth error detail',
+  fields: {
+    code: required(FieldType.STRING, {
+      description: 'Stable machine-readable error code',
+      example: 'E1009',
+    }),
+    message: required(FieldType.STRING, {
+      description: 'User-safe error message',
+      example:
+        'Session store is temporarily unavailable. Please try again later.',
+    }),
+    details: optional(FieldType.OBJECT, {
+      description: 'Optional support-safe structured details',
+      example: { retryable: true },
+    }),
+  },
+};
+
+export const AuthErrorEnvelopeSchema: ContractSchema = {
+  name: 'AuthErrorEnvelope',
+  description: 'Current mobile-safe error envelope from the global API filter',
+  fields: {
+    success: required(FieldType.BOOLEAN, {
+      description: 'Always false for errors',
+      example: false,
+    }),
+    error: required(FieldType.OBJECT, {
+      description: 'Stable error object',
+      nestedSchema: AuthErrorDetailSchema,
+    }),
+    meta: optional(FieldType.OBJECT, {
+      description: 'Request metadata such as timestamp, path, and method',
+      example: {
+        timestamp: '2026-06-04T18:35:27.628Z',
+        path: '/api/v1/auth/refresh',
+        method: 'POST',
+      },
+    }),
+  },
+};
+
+export const AuthSessionStoreUnavailableSchema: ContractSchema = {
+  name: 'AuthSessionStoreUnavailable',
+  description:
+    'Stable mobile response when refresh/logout cannot access session storage',
+  fields: AuthErrorEnvelopeSchema.fields,
+};
+
 // ============================================
 // Endpoint Contracts
 // ============================================
@@ -408,6 +458,7 @@ export const RefreshEndpoint: EndpointContract = {
   responses: {
     200: RefreshResponseSchema,
     401: AuthErrorSchema,
+    503: AuthSessionStoreUnavailableSchema,
   },
   exampleRequest: {
     refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
@@ -430,6 +481,7 @@ export const LogoutEndpoint: EndpointContract = {
   responses: {
     200: LogoutResponseSchema,
     401: AuthErrorSchema,
+    503: AuthSessionStoreUnavailableSchema,
   },
   exampleRequest: {
     refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
@@ -458,6 +510,7 @@ export const LogoutAllEndpoint: EndpointContract = {
   responses: {
     200: LogoutAllResponseSchema,
     401: AuthErrorSchema,
+    503: AuthSessionStoreUnavailableSchema,
   },
   exampleResponse: {
     200: {

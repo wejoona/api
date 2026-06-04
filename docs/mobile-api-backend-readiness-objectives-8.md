@@ -6,7 +6,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 
 - [x] Confirm login/register/OTP contracts support the VerifyHQ-backed dev path with `123456` OTP while keeping SMS delivery mockable only at the sender boundary.
 - [x] Confirm active-session list/revoke endpoints are mobile-safe for authenticated users and return stable 401/403 envelopes for expired or unauthorized requests.
-- [ ] Confirm refresh/logout/logout-all responses remain stable when the session store or refresh-token path is unavailable.
+- [x] Confirm refresh/logout/logout-all responses remain stable when the session store or refresh-token path is unavailable.
 
 ## Mobile Data Truthfulness
 
@@ -101,3 +101,19 @@ Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="device-session.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="session.controller"`
+
+### Auth Session Store Error Contract - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Refresh, logout, and logout-all already return mobile-safe 503 envelopes when session storage is unavailable.
+- Auth contracts now include `AuthSessionStoreUnavailable` for `E1009`.
+- The contract requires stable `success=false`, `error.code`, and `error.message` so mobile can show predictable retry/session messaging.
+- Existing auth controller e2e covers 503 behavior for refresh/logout/logout-all.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="auth.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="auth.controller"`

@@ -10,6 +10,7 @@ import {
   RefreshResponseSchema,
   LogoutResponseSchema,
   LogoutAllResponseSchema,
+  AuthSessionStoreUnavailableSchema,
   UserSchema,
 } from '../schemas/auth.contract';
 import { validateSchema } from '../validators/schema-validator';
@@ -211,6 +212,32 @@ describe('Authentication Contracts', () => {
         }),
       );
     });
+
+    it('should validate mobile-safe session-store unavailable response', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'E1009',
+          message:
+            'Session store is temporarily unavailable. Please try again later.',
+        },
+        meta: {
+          timestamp: '2026-06-04T18:35:27.628Z',
+          path: '/api/v1/auth/refresh',
+          method: 'POST',
+          requestId: null,
+          correlationId: null,
+        },
+      };
+
+      const result = validateSchema(
+        response,
+        AuthSessionStoreUnavailableSchema,
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 
   describe('POST /auth/logout - Logout Response', () => {
@@ -245,6 +272,50 @@ describe('Authentication Contracts', () => {
 
       const result = validateSchema(response, LogoutAllResponseSchema);
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('Auth session store unavailable error', () => {
+    it('should require stable code and message for logout/logout-all mobile handling', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'E1009',
+          message:
+            'Session store is temporarily unavailable. Please try again later.',
+        },
+      };
+
+      const result = validateSchema(
+        response,
+        AuthSessionStoreUnavailableSchema,
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should fail when stable error code is missing', () => {
+      const response = {
+        success: false,
+        error: {
+          message:
+            'Session store is temporarily unavailable. Please try again later.',
+        },
+      };
+
+      const result = validateSchema(
+        response,
+        AuthSessionStoreUnavailableSchema,
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          path: 'error.code',
+          message: 'Missing required field',
+        }),
+      );
     });
   });
 
