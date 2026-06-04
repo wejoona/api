@@ -113,6 +113,29 @@ describe('NotificationController (e2e)', () => {
         offset: 0,
       });
     });
+
+    it('should return support-safe retry metadata when notification storage is unavailable', async () => {
+      mockGetUserNotifications.execute.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+              message:
+                'Notifications are temporarily unavailable. Please try again later.',
+              dependency: 'notification_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+          });
+        });
+    });
   });
 
   describe('PUT /api/v1/notifications/:id/read', () => {
@@ -127,6 +150,32 @@ describe('NotificationController (e2e)', () => {
         notificationId: '123',
       });
     });
+
+    it('should return support-safe retry metadata when push token registration fails', async () => {
+      mockRegisterDeviceToken.execute.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .post('/api/v1/notifications/push/token')
+        .send({
+          token: 'fcm-token-123',
+          platform: 'ios',
+          deviceId: 'device-123',
+        })
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+              dependency: 'notification_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+          });
+        });
+    });
   });
 
   describe('PUT /api/v1/notifications/read-all', () => {
@@ -139,6 +188,28 @@ describe('NotificationController (e2e)', () => {
       expect(mockMarkAllNotificationsRead.execute).toHaveBeenCalledWith({
         userId: TEST_USER.id,
       });
+    });
+
+    it('should return support-safe retry metadata when push token removal fails', async () => {
+      mockUnregisterDeviceToken.execute.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/push/token')
+        .send({ token: 'fcm-token-123' })
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+              dependency: 'notification_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+          });
+        });
     });
   });
 

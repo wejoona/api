@@ -4,6 +4,7 @@
 
 import {
   FeatureSubscriptionListResponseSchema,
+  FeatureSubscriptionDependencyUnavailableSchema,
   FeatureSubscriptionRequestSchema,
   FeatureSubscriptionSchema,
 } from '../schemas/feature-subscription.contract';
@@ -80,6 +81,32 @@ describe('Feature Subscription Contracts', () => {
     const result = validateSchema(
       response,
       FeatureSubscriptionListResponseSchema,
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should validate mobile-safe dependency unavailable error metadata', () => {
+    const response = {
+      success: false,
+      error: {
+        code: 'FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE',
+        message:
+          'Feature subscriptions are temporarily unavailable. Please try again later.',
+        dependency: 'feature_subscription_store',
+        retryable: true,
+        supportReviewRequired: false,
+      },
+      meta: {
+        path: '/api/v1/feature-subscriptions',
+        method: 'POST',
+      },
+    };
+
+    const result = validateSchema(
+      response,
+      FeatureSubscriptionDependencyUnavailableSchema,
     );
 
     expect(result.valid).toBe(true);

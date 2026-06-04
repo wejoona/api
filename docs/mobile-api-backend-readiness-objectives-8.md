@@ -18,7 +18,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 
 - [x] Add contract coverage for feature subscriptions so “stay informed” buttons store `featureKey`, `source`, user identity, and regional metadata.
 - [x] Confirm notification feed, unread count, mark-read, read-all, and push-token endpoints share one stable mobile contract.
-- [ ] Confirm notification and feature-subscription errors include support-safe retry/review metadata where a dependency is unavailable.
+- [x] Confirm notification and feature-subscription errors include support-safe retry/review metadata where a dependency is unavailable.
 
 ## Region-Aware Mobile Configuration
 
@@ -173,3 +173,20 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller|push-notification.controller"`
+
+### Notification And Feature Subscription Dependency Errors - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Unexpected notification-store failures return a mobile-safe `503` envelope with `code=NOTIFICATION_DEPENDENCY_UNAVAILABLE`.
+- Unexpected feature-subscription-store failures return a mobile-safe `503` envelope with `code=FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE`.
+- Error metadata includes `dependency`, `retryable=true`, and `supportReviewRequired=false`.
+- Intentional HTTP exceptions are preserved instead of being rewritten as dependency failures.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract|feature-subscription.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller|feature-subscription.controller"`

@@ -11,6 +11,8 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  HttpException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -91,11 +93,15 @@ export class NotificationController {
     @Request() req: AuthenticatedRequest,
     @Query() query: GetNotificationsRequest,
   ): Promise<NotificationListResponse> {
-    return this.getUserNotificationsUseCase.execute({
-      userId: req.user.id,
-      limit: query.limit,
-      offset: query.offset,
-    });
+    try {
+      return await this.getUserNotificationsUseCase.execute({
+        userId: req.user.id,
+        limit: query.limit,
+        offset: query.offset,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   @Get('unread/count')
@@ -132,9 +138,11 @@ export class NotificationController {
   }
 
   private getUnreadCountForUser(userId: string): Promise<UnreadCountResponse> {
-    return this.getUnreadCountUseCase.execute({
-      userId,
-    });
+    return this.getUnreadCountUseCase
+      .execute({
+        userId,
+      })
+      .catch((error) => this.throwDependencyUnavailable(error));
   }
 
   @Put(':id/read')
@@ -161,10 +169,14 @@ export class NotificationController {
     @Request() req: AuthenticatedRequest,
     @Param('id') notificationId: string,
   ): Promise<void> {
-    await this.markNotificationReadUseCase.execute({
-      userId: req.user.id,
-      notificationId,
-    });
+    try {
+      await this.markNotificationReadUseCase.execute({
+        userId: req.user.id,
+        notificationId,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   @Put('read-all')
@@ -175,9 +187,13 @@ export class NotificationController {
     description: 'All notifications marked as read',
   })
   async markAllAsRead(@Request() req: AuthenticatedRequest): Promise<void> {
-    await this.markAllNotificationsReadUseCase.execute({
-      userId: req.user.id,
-    });
+    try {
+      await this.markAllNotificationsReadUseCase.execute({
+        userId: req.user.id,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   @Post('device-token')
@@ -195,13 +211,17 @@ export class NotificationController {
     @Request() req: AuthenticatedRequest,
     @Body() body: RegisterDeviceTokenRequest,
   ): Promise<{ message: string }> {
-    await this.registerDeviceTokenUseCase.execute({
-      userId: req.user.id,
-      token: body.token,
-      platform: body.platform,
-      deviceId: body.deviceId,
-      deviceName: body.deviceName,
-    });
+    try {
+      await this.registerDeviceTokenUseCase.execute({
+        userId: req.user.id,
+        token: body.token,
+        platform: body.platform,
+        deviceId: body.deviceId,
+        deviceName: body.deviceName,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
 
     return {
       message: 'Device token registered successfully',
@@ -221,7 +241,11 @@ export class NotificationController {
     description: 'Device token unregistered successfully',
   })
   async unregisterDeviceToken(@Param('token') token: string): Promise<void> {
-    await this.unregisterDeviceTokenUseCase.execute({ token });
+    try {
+      await this.unregisterDeviceTokenUseCase.execute({ token });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   // Mobile SDK compatible endpoints
@@ -241,15 +265,19 @@ export class NotificationController {
     @Request() req: AuthenticatedRequest,
     @Body() body: RegisterFcmTokenRequest,
   ): Promise<{ message: string }> {
-    await this.registerDeviceTokenUseCase.execute({
-      userId: req.user.id,
-      token: body.token,
-      platform: body.platform,
-      deviceId: body.deviceId,
-      deviceName: body.deviceName,
-      // Note: appVersion and osVersion are accepted but not yet stored in the entity
-      // These can be added to the entity and repository in a future migration
-    });
+    try {
+      await this.registerDeviceTokenUseCase.execute({
+        userId: req.user.id,
+        token: body.token,
+        platform: body.platform,
+        deviceId: body.deviceId,
+        deviceName: body.deviceName,
+        // Note: appVersion and osVersion are accepted but not yet stored in the entity
+        // These can be added to the entity and repository in a future migration
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
 
     return {
       message: 'Push token registered successfully',
@@ -270,7 +298,11 @@ export class NotificationController {
     description: 'Invalid request data',
   })
   async removePushToken(@Body() body: RemoveFcmTokenRequest): Promise<void> {
-    await this.unregisterDeviceTokenUseCase.execute({ token: body.token });
+    try {
+      await this.unregisterDeviceTokenUseCase.execute({ token: body.token });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   @Delete('push/tokens')
@@ -286,8 +318,27 @@ export class NotificationController {
   async removeAllPushTokens(
     @Request() req: AuthenticatedRequest,
   ): Promise<void> {
-    await this.unregisterAllDeviceTokensUseCase.execute({
-      userId: req.user.id,
+    try {
+      await this.unregisterAllDeviceTokensUseCase.execute({
+        userId: req.user.id,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
+  }
+
+  private throwDependencyUnavailable(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    throw new ServiceUnavailableException({
+      code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+      message:
+        'Notifications are temporarily unavailable. Please try again later.',
+      dependency: 'notification_store',
+      retryable: true,
+      supportReviewRequired: false,
     });
   }
 }

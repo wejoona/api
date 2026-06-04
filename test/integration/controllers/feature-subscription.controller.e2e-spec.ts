@@ -99,6 +99,33 @@ describe('FeatureSubscriptionController (e2e)', () => {
         },
       );
     });
+
+    it('should return support-safe retry metadata when subscription storage is unavailable', async () => {
+      mockFeatureSubscriptionService.subscribe.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .post('/api/v1/feature-subscriptions')
+        .send({
+          featureKey: 'virtual_card',
+          source: 'vcard_screen',
+        })
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE',
+              message:
+                'Feature subscriptions are temporarily unavailable. Please try again later.',
+              dependency: 'feature_subscription_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+          });
+        });
+    });
   });
 
   describe('GET /api/v1/feature-subscriptions', () => {
@@ -141,6 +168,27 @@ describe('FeatureSubscriptionController (e2e)', () => {
           limit: 100,
         },
       );
+    });
+
+    it('should return support-safe retry metadata when list storage is unavailable', async () => {
+      mockFeatureSubscriptionService.listMine.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/feature-subscriptions')
+        .expect(503)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: false,
+            error: {
+              code: 'FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE',
+              dependency: 'feature_subscription_store',
+              retryable: true,
+              supportReviewRequired: false,
+            },
+          });
+        });
     });
   });
 });

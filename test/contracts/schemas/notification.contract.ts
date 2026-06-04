@@ -228,20 +228,52 @@ export const ActionMessageResponseSchema: ContractSchema = {
   },
 };
 
+export const NotificationDependencyUnavailableSchema: ContractSchema = {
+  name: 'NotificationDependencyUnavailable',
+  description: 'Mobile-safe error when notification storage is unavailable',
+  fields: {
+    success: required(FieldType.BOOLEAN, { example: false }),
+    error: required(FieldType.OBJECT, {
+      description: 'Stable retry metadata for mobile',
+      example: {
+        code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+        message:
+          'Notifications are temporarily unavailable. Please try again later.',
+        dependency: 'notification_store',
+        retryable: true,
+        supportReviewRequired: false,
+      },
+    }),
+    meta: optional(FieldType.OBJECT, {
+      description: 'Request metadata from the global exception filter',
+      example: {
+        path: '/api/v1/notifications',
+        method: 'GET',
+      },
+    }),
+  },
+};
+
 export const NotificationEndpoints: EndpointContract[] = [
   {
     method: 'GET',
     path: '/notifications',
     description: 'List notifications',
     auth: 'bearer',
-    responses: { 200: NotificationListResponseSchema },
+    responses: {
+      200: NotificationListResponseSchema,
+      503: NotificationDependencyUnavailableSchema,
+    },
   },
   {
     method: 'GET',
     path: '/notifications/unread-count',
     description: 'Get unread count using mobile-compatible alias',
     auth: 'bearer',
-    responses: { 200: UnreadCountResponseSchema },
+    responses: {
+      200: UnreadCountResponseSchema,
+      503: NotificationDependencyUnavailableSchema,
+    },
   },
   {
     method: 'PUT',
@@ -263,7 +295,10 @@ export const NotificationEndpoints: EndpointContract[] = [
     description: 'Register FCM/APNS token',
     auth: 'bearer',
     requestBody: PushTokenRegistrationRequestSchema,
-    responses: { 201: ActionMessageResponseSchema },
+    responses: {
+      201: ActionMessageResponseSchema,
+      503: NotificationDependencyUnavailableSchema,
+    },
   },
   {
     method: 'DELETE',
@@ -271,14 +306,14 @@ export const NotificationEndpoints: EndpointContract[] = [
     description: 'Remove one FCM/APNS token',
     auth: 'bearer',
     requestBody: RemovePushTokenRequestSchema,
-    responses: {},
+    responses: { 503: NotificationDependencyUnavailableSchema },
   },
   {
     method: 'DELETE',
     path: '/notifications/push/tokens',
     description: 'Remove all FCM/APNS tokens for the current user',
     auth: 'bearer',
-    responses: {},
+    responses: { 503: NotificationDependencyUnavailableSchema },
   },
 ];
 

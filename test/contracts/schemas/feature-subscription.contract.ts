@@ -104,6 +104,33 @@ export const FeatureSubscriptionListResponseSchema: ContractSchema = {
   },
 };
 
+export const FeatureSubscriptionDependencyUnavailableSchema: ContractSchema = {
+  name: 'FeatureSubscriptionDependencyUnavailable',
+  description:
+    'Mobile-safe error when feature subscription storage is unavailable',
+  fields: {
+    success: required(FieldType.BOOLEAN, { example: false }),
+    error: required(FieldType.OBJECT, {
+      description: 'Stable retry metadata for mobile',
+      example: {
+        code: 'FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE',
+        message:
+          'Feature subscriptions are temporarily unavailable. Please try again later.',
+        dependency: 'feature_subscription_store',
+        retryable: true,
+        supportReviewRequired: false,
+      },
+    }),
+    meta: optional(FieldType.OBJECT, {
+      description: 'Request metadata from the global exception filter',
+      example: {
+        path: '/api/v1/feature-subscriptions',
+        method: 'POST',
+      },
+    }),
+  },
+};
+
 export const FeatureSubscriptionEndpoints: EndpointContract[] = [
   {
     method: 'POST',
@@ -111,14 +138,20 @@ export const FeatureSubscriptionEndpoints: EndpointContract[] = [
     description: 'Subscribe current user to updates for one feature',
     auth: 'bearer',
     requestBody: FeatureSubscriptionRequestSchema,
-    responses: { 200: FeatureSubscriptionSchema },
+    responses: {
+      200: FeatureSubscriptionSchema,
+      503: FeatureSubscriptionDependencyUnavailableSchema,
+    },
   },
   {
     method: 'GET',
     path: '/feature-subscriptions',
     description: 'List current-user feature subscriptions',
     auth: 'bearer',
-    responses: { 200: FeatureSubscriptionListResponseSchema },
+    responses: {
+      200: FeatureSubscriptionListResponseSchema,
+      503: FeatureSubscriptionDependencyUnavailableSchema,
+    },
   },
 ];
 

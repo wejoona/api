@@ -5,9 +5,11 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  HttpException,
   ParseIntPipe,
   Post,
   Query,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -34,8 +36,12 @@ export class FeatureSubscriptionController {
     @CurrentUser() user: User,
     @Body() dto: CreateFeatureSubscriptionDto,
   ): Promise<FeatureSubscriptionResponseDto> {
-    const subscription = await this.service.subscribe(user.id, dto);
-    return FeatureSubscriptionResponseDto.fromEntity(subscription);
+    try {
+      const subscription = await this.service.subscribe(user.id, dto);
+      return FeatureSubscriptionResponseDto.fromEntity(subscription);
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   @Get()
@@ -46,15 +52,34 @@ export class FeatureSubscriptionController {
   ): Promise<FeatureSubscriptionListResponseDto> {
     const normalizedPage = Math.max(1, page);
     const normalizedLimit = Math.min(Math.max(1, limit), 100);
-    const result = await this.service.listMine(user.id, {
-      page: normalizedPage,
-      limit: normalizedLimit,
+    try {
+      const result = await this.service.listMine(user.id, {
+        page: normalizedPage,
+        limit: normalizedLimit,
+      });
+      return FeatureSubscriptionListResponseDto.fromEntities(
+        result.items,
+        result.total,
+        normalizedPage,
+        normalizedLimit,
+      );
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
+  }
+
+  private throwDependencyUnavailable(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    throw new ServiceUnavailableException({
+      code: 'FEATURE_SUBSCRIPTION_DEPENDENCY_UNAVAILABLE',
+      message:
+        'Feature subscriptions are temporarily unavailable. Please try again later.',
+      dependency: 'feature_subscription_store',
+      retryable: true,
+      supportReviewRequired: false,
     });
-    return FeatureSubscriptionListResponseDto.fromEntities(
-      result.items,
-      result.total,
-      normalizedPage,
-      normalizedLimit,
-    );
   }
 }

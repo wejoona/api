@@ -6,6 +6,7 @@
 
 import {
   ActionMessageResponseSchema,
+  NotificationDependencyUnavailableSchema,
   NotificationListResponseSchema,
   NotificationSchema,
   PushTokenRegistrationRequestSchema,
@@ -164,6 +165,34 @@ describe('Notification Contracts', () => {
         RemovePushTokenRequestSchema,
       );
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('Dependency unavailable errors', () => {
+    it('should validate mobile-safe notification dependency metadata', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'NOTIFICATION_DEPENDENCY_UNAVAILABLE',
+          message:
+            'Notifications are temporarily unavailable. Please try again later.',
+          dependency: 'notification_store',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/notifications',
+          method: 'GET',
+        },
+      };
+
+      const result = validateSchema(
+        response,
+        NotificationDependencyUnavailableSchema,
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 });
