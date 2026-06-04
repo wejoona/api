@@ -233,10 +233,112 @@ describe('WalletController (e2e)', () => {
 
   describe('GET /api/v1/wallet/deposit/channels', () => {
     it('should return deposit channels (200)', async () => {
-      mockGetDepositChannels.execute.mockResolvedValue([]);
-      await request(app.getHttpServer())
+      mockGetDepositChannels.execute.mockResolvedValue({
+        country: 'US',
+        currency: 'USD',
+        status: 'unavailable',
+        reason: 'no_deposit_channels_available',
+        retryable: false,
+        supportReviewRequired: true,
+        channels: [],
+      });
+      const res = await request(app.getHttpServer())
         .get('/api/v1/wallet/deposit/channels')
+        .query({ country: 'US', currency: 'USD' })
         .expect(200);
+
+      expect(mockGetDepositChannels.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        country: 'US',
+        currency: 'USD',
+      });
+      expect(res.body).toMatchObject({
+        country: 'US',
+        currency: 'USD',
+        status: 'unavailable',
+        reason: 'no_deposit_channels_available',
+        supportReviewRequired: true,
+        channels: [],
+      });
+    });
+  });
+
+  describe('GET /api/v1/wallet/deposit/providers', () => {
+    it('should return provider alias with capability metadata (200)', async () => {
+      mockGetDepositChannels.execute.mockResolvedValue({
+        country: 'CI',
+        currency: 'XOF',
+        status: 'available',
+        reason: null,
+        retryable: false,
+        supportReviewRequired: false,
+        channels: [
+          {
+            id: 'orange_money_ci',
+            name: 'Orange Money',
+            type: 'mobile_money',
+            provider: 'orange',
+            country: 'CI',
+            minAmount: 1000,
+            maxAmount: 500000,
+            fee: 1.5,
+            feeType: 'percentage',
+            currency: 'XOF',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/wallet/deposit/providers')
+        .query({ currency: 'XOF' })
+        .expect(200);
+
+      expect(mockGetDepositChannels.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        country: TEST_USER.countryCode,
+        currency: 'XOF',
+      });
+      expect(res.body).toMatchObject({
+        country: 'CI',
+        currency: 'XOF',
+        status: 'available',
+        reason: null,
+        providers: [
+          {
+            id: 'orange_money_ci',
+            type: 'mobile_money',
+            provider: 'orange',
+            country: 'CI',
+            currency: 'XOF',
+          },
+        ],
+      });
+    });
+  });
+
+  describe('GET /api/v1/wallet/withdraw/options', () => {
+    it('should return withdrawal options from backend capability data (200)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/wallet/withdraw/options')
+        .query({ country: 'US' })
+        .expect(200);
+
+      expect(res.body).toMatchObject({
+        country: 'US',
+        currency: 'USDC',
+        status: 'available',
+        reason: null,
+        retryable: false,
+        supportReviewRequired: false,
+        options: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'usdc_polygon',
+            type: 'blockchain',
+            network: 'polygon',
+            enabled: true,
+          }),
+        ]),
+      });
     });
   });
 

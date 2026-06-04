@@ -8,10 +8,17 @@ import {
 
 export interface GetDepositChannelsInput {
   userId: string;
+  country?: string;
   currency?: string;
 }
 
 export interface GetDepositChannelsOutput {
+  country: string;
+  currency: string | null;
+  status: 'available' | 'unavailable';
+  reason: string | null;
+  retryable: boolean;
+  supportReviewRequired: boolean;
   channels: OnRampChannel[];
 }
 
@@ -31,12 +38,21 @@ export class GetDepositChannelsUseCase {
       throw new NotFoundException('Wallet not found');
     }
 
-    // Get available deposit channels for Ivory Coast
+    const country = input.country?.trim().toUpperCase() || 'CI';
+    const currency = input.currency?.trim().toUpperCase();
     const channels = await this.paymentGateway.getOnRampChannels(
-      'CI',
-      input.currency,
+      country,
+      currency,
     );
 
-    return { channels };
+    return {
+      country,
+      currency: currency ?? null,
+      status: channels.length > 0 ? 'available' : 'unavailable',
+      reason: channels.length > 0 ? null : 'no_deposit_channels_available',
+      retryable: false,
+      supportReviewRequired: channels.length === 0,
+      channels,
+    };
   }
 }

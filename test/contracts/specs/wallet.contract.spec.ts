@@ -8,6 +8,7 @@ import {
   WalletBalanceResponseSchema,
   WalletCreateResponseSchema,
   DepositChannelsResponseSchema,
+  WithdrawalOptionsResponseSchema,
   DepositResponseSchema,
   InternalTransferResponseSchema,
   ExternalTransferResponseSchema,
@@ -170,6 +171,12 @@ describe('Wallet Contracts', () => {
   describe('GET /wallet/deposit/channels - Deposit Channels Response', () => {
     it('should validate deposit channels response', () => {
       const response = {
+        country: 'CI',
+        currency: 'XOF',
+        status: 'available',
+        reason: null,
+        retryable: false,
+        supportReviewRequired: false,
         channels: [
           {
             id: 'orange_money_ci',
@@ -192,6 +199,12 @@ describe('Wallet Contracts', () => {
 
     it('should validate multiple channels', () => {
       const response = {
+        country: 'CI',
+        currency: 'XOF',
+        status: 'available',
+        reason: null,
+        retryable: false,
+        supportReviewRequired: false,
         channels: [
           {
             id: 'orange_money_ci',
@@ -221,6 +234,52 @@ describe('Wallet Contracts', () => {
       };
 
       const result = validateSchema(response, DepositChannelsResponseSchema);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate unavailable deposit options without fake providers', () => {
+      const response = {
+        country: 'US',
+        currency: 'USD',
+        status: 'unavailable',
+        reason: 'no_deposit_channels_available',
+        retryable: false,
+        supportReviewRequired: true,
+        channels: [],
+      };
+
+      const result = validateSchema(response, DepositChannelsResponseSchema);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('GET /wallet/withdraw/options - Withdrawal Options Response', () => {
+    it('should validate backend-owned withdrawal options', () => {
+      const response = {
+        country: 'CI',
+        currency: 'USDC',
+        status: 'available',
+        reason: null,
+        retryable: false,
+        supportReviewRequired: false,
+        options: [
+          {
+            id: 'usdc_polygon',
+            name: 'USDC on Polygon',
+            type: 'blockchain',
+            network: 'polygon',
+            currency: 'USDC',
+            minAmount: 1,
+            maxAmount: 10000,
+            fee: 0.01,
+            feeType: 'fixed',
+            estimatedArrival: '1-2 minutes',
+            enabled: true,
+          },
+        ],
+      };
+
+      const result = validateSchema(response, WithdrawalOptionsResponseSchema);
       expect(result.valid).toBe(true);
     });
   });

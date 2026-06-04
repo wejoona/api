@@ -207,9 +207,89 @@ export const DepositChannelsResponseSchema: ContractSchema = {
   name: 'DepositChannelsResponse',
   description: 'Available deposit channels',
   fields: {
+    country: required(FieldType.STRING, {
+      description: 'Market used to resolve deposit options',
+      pattern: '^[A-Z]{2}$',
+      example: 'CI',
+    }),
+    currency: optional(FieldType.STRING, {
+      description: 'Currency filter used to resolve deposit options',
+      nullable: true,
+      example: 'XOF',
+    }),
+    status: required(FieldType.STRING, {
+      description: 'Whether deposit options are currently available',
+      enum: ['available', 'unavailable'],
+      example: 'available',
+    }),
+    reason: optional(FieldType.STRING, {
+      description: 'Machine-readable unavailable reason',
+      nullable: true,
+      example: null,
+    }),
+    retryable: required(FieldType.BOOLEAN, {
+      description: 'Whether retrying is expected to resolve the state',
+      example: false,
+    }),
+    supportReviewRequired: required(FieldType.BOOLEAN, {
+      description: 'Whether support/operator review is useful for this state',
+      example: false,
+    }),
     channels: required(FieldType.ARRAY, {
       description: 'List of available channels',
       itemType: DepositChannelSchema,
+    }),
+  },
+};
+
+export const WithdrawalOptionSchema: ContractSchema = {
+  name: 'WithdrawalOption',
+  description: 'Available withdrawal option for mobile',
+  fields: {
+    id: required(FieldType.STRING, { example: 'usdc_polygon' }),
+    name: required(FieldType.STRING, { example: 'USDC on Polygon' }),
+    type: required(FieldType.STRING, {
+      enum: ['blockchain'],
+      example: 'blockchain',
+    }),
+    network: required(FieldType.STRING, {
+      enum: ['polygon', 'base', 'ethereum', 'arbitrum', 'avalanche'],
+      example: 'polygon',
+    }),
+    currency: required(FieldType.STRING, { example: 'USDC' }),
+    minAmount: required(FieldType.NUMBER, { example: 1 }),
+    maxAmount: required(FieldType.NUMBER, { example: 10000 }),
+    fee: required(FieldType.NUMBER, { example: 0.01 }),
+    feeType: required(FieldType.STRING, {
+      enum: ['fixed', 'percentage'],
+      example: 'fixed',
+    }),
+    estimatedArrival: required(FieldType.STRING, { example: '1-2 minutes' }),
+    enabled: required(FieldType.BOOLEAN, { example: true }),
+  },
+};
+
+export const WithdrawalOptionsResponseSchema: ContractSchema = {
+  name: 'WithdrawalOptionsResponse',
+  description: 'Backend-owned withdrawal options and availability',
+  fields: {
+    country: required(FieldType.STRING, {
+      pattern: '^[A-Z]{2}$',
+      example: 'CI',
+    }),
+    currency: required(FieldType.STRING, { example: 'USDC' }),
+    status: required(FieldType.STRING, {
+      enum: ['available', 'unavailable'],
+      example: 'available',
+    }),
+    reason: optional(FieldType.STRING, {
+      nullable: true,
+      example: null,
+    }),
+    retryable: required(FieldType.BOOLEAN, { example: false }),
+    supportReviewRequired: required(FieldType.BOOLEAN, { example: false }),
+    options: required(FieldType.ARRAY, {
+      itemType: WithdrawalOptionSchema,
     }),
   },
 };
@@ -754,6 +834,10 @@ export const GetDepositChannelsEndpoint: EndpointContract = {
   queryParams: {
     name: 'DepositChannelsQuery',
     fields: {
+      country: optional(FieldType.STRING, {
+        description: 'Market/country code used for option discovery',
+        example: 'CI',
+      }),
       currency: optional(FieldType.STRING, {
         description: 'Filter by currency',
         example: 'XOF',
@@ -762,6 +846,25 @@ export const GetDepositChannelsEndpoint: EndpointContract = {
   },
   responses: {
     200: DepositChannelsResponseSchema,
+  },
+};
+
+export const GetWithdrawalOptionsEndpoint: EndpointContract = {
+  method: 'GET',
+  path: '/wallet/withdraw/options',
+  description: 'Get available withdrawal options',
+  auth: 'bearer',
+  queryParams: {
+    name: 'WithdrawalOptionsQuery',
+    fields: {
+      country: optional(FieldType.STRING, {
+        description: 'Market/country code used for option discovery',
+        example: 'CI',
+      }),
+    },
+  },
+  responses: {
+    200: WithdrawalOptionsResponseSchema,
   },
 };
 
@@ -868,6 +971,7 @@ export const WalletContractGroup: ContractGroup = {
     GetBalanceEndpoint,
     CreateWalletEndpoint,
     GetDepositChannelsEndpoint,
+    GetWithdrawalOptionsEndpoint,
     InitiateDepositEndpoint,
     InternalTransferEndpoint,
     ExternalTransferEndpoint,

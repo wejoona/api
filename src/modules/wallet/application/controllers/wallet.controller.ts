@@ -152,6 +152,7 @@ export class WalletController {
 
   @Get('deposit/channels')
   @ApiOperation({ summary: 'Get available deposit channels' })
+  @ApiQuery({ name: 'country', required: false, example: 'CI' })
   @ApiQuery({ name: 'currency', required: false, example: 'XOF' })
   @ApiResponse({
     status: 200,
@@ -177,10 +178,12 @@ export class WalletController {
   })
   async getDepositChannels(
     @Request() req: AuthenticatedRequest,
+    @Query('country') country?: string,
     @Query('currency') currency?: string,
   ) {
     return this.getDepositChannelsUseCase.execute({
       userId: req.user.id,
+      country: country || this.getUserCountry(req),
       currency,
     });
   }
@@ -251,6 +254,7 @@ export class WalletController {
     description:
       'Alias route for mobile SDK compatibility. Transforms channels response to providers format.',
   })
+  @ApiQuery({ name: 'country', required: false, example: 'CI' })
   @ApiQuery({ name: 'currency', required: false, example: 'XOF' })
   @ApiResponse({
     status: 200,
@@ -274,19 +278,30 @@ export class WalletController {
   })
   async getDepositProvidersAlias(
     @Request() req: AuthenticatedRequest,
+    @Query('country') country?: string,
     @Query('currency') currency?: string,
   ) {
     const result = await this.getDepositChannelsUseCase.execute({
       userId: req.user.id,
+      country: country || this.getUserCountry(req),
       currency,
     });
 
     // Transform channels to providers format for mobile SDK
     return {
+      country: result.country,
+      currency: result.currency,
+      status: result.status,
+      reason: result.reason,
+      retryable: result.retryable,
+      supportReviewRequired: result.supportReviewRequired,
       providers: result.channels.map((channel) => ({
         id: channel.id,
         name: channel.name,
-        logo: `https://example.com/${channel.provider}.png`, // You can enhance this with actual logo URLs
+        type: channel.type,
+        provider: channel.provider,
+        country: channel.country,
+        currency: channel.currency,
         minAmount: channel.minAmount,
         maxAmount: channel.maxAmount,
         fee: channel.fee,
@@ -294,6 +309,92 @@ export class WalletController {
         countries: [channel.country],
       })),
     };
+  }
+
+  @Get('withdraw/options')
+  @ApiOperation({
+    summary: 'Get withdrawal options for mobile',
+    description:
+      'Returns backend-owned withdrawal capability data so mobile does not hardcode networks or unavailable states.',
+  })
+  @ApiQuery({ name: 'country', required: false, example: 'CI' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns withdrawal options',
+    schema: {
+      example: {
+        country: 'CI',
+        currency: 'USDC',
+        status: 'available',
+        reason: null,
+        options: [
+          {
+            id: 'usdc_polygon',
+            name: 'USDC on Polygon',
+            type: 'blockchain',
+            network: 'polygon',
+            currency: 'USDC',
+            minAmount: 1,
+            maxAmount: 10000,
+            fee: 0.01,
+            feeType: 'fixed',
+            estimatedArrival: '1-2 minutes',
+            enabled: true,
+          },
+        ],
+      },
+    },
+  })
+  getWithdrawalOptions(
+    @Request() req: AuthenticatedRequest,
+    @Query('country') country?: string,
+  ) {
+    const resolvedCountry = (country || this.getUserCountry(req) || 'CI')
+      .trim()
+      .toUpperCase();
+
+    return {
+      country: resolvedCountry,
+      currency: 'USDC',
+      status: 'available',
+      reason: null,
+      retryable: false,
+      supportReviewRequired: false,
+      options: [
+        {
+          id: 'usdc_polygon',
+          name: 'USDC on Polygon',
+          type: 'blockchain',
+          network: 'polygon',
+          currency: 'USDC',
+          minAmount: 1,
+          maxAmount: 10000,
+          fee: 0.01,
+          feeType: 'fixed',
+          estimatedArrival: '1-2 minutes',
+          enabled: true,
+        },
+        {
+          id: 'usdc_base',
+          name: 'USDC on Base',
+          type: 'blockchain',
+          network: 'base',
+          currency: 'USDC',
+          minAmount: 1,
+          maxAmount: 10000,
+          fee: 0.05,
+          feeType: 'fixed',
+          estimatedArrival: '2-3 minutes',
+          enabled: true,
+        },
+      ],
+    };
+  }
+
+  private getUserCountry(req: AuthenticatedRequest): string | undefined {
+    return typeof req.user.countryCode === 'string'
+      ? req.user.countryCode
+      : undefined;
   }
 
   @Get('deposit/:id')

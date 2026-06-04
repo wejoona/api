@@ -23,7 +23,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 ## Region-Aware Mobile Configuration
 
 - [x] Confirm app config can describe Abidjan/USA availability, rails, and feature flags without hardcoded mobile assumptions.
-- [ ] Confirm payment/deposit/withdrawal options are returned from backend capability data, not static Côte d'Ivoire-only UI state.
+- [x] Confirm payment/deposit/withdrawal options are returned from backend capability data, not static Côte d'Ivoire-only UI state.
 
 ## Recursive Execution Rule
 
@@ -209,3 +209,23 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="app-config.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="app-config.controller|feature-flag.controller"`
+
+### Money Movement Option Capability Data - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `GET /wallet/deposit/channels` no longer hardcodes Côte d'Ivoire in the use case.
+- Deposit option discovery accepts country/currency from query or authenticated user context.
+- Deposit responses now include `country`, `currency`, `status`, `reason`, `retryable`, and `supportReviewRequired` alongside `channels`.
+- Empty deposit options are explicit `status=unavailable` with `reason=no_deposit_channels_available`, so mobile does not need fake provider rows.
+- `GET /wallet/deposit/providers` preserves the mobile alias and returns the same capability metadata.
+- Added `GET /wallet/withdraw/options` so mobile gets backend-owned USDC withdrawal networks/options instead of hardcoding them in the app.
+
+Verification:
+
+- `npm run build`
+- `npm test -- --runInBand src/modules/wallet/application/usecases/get-deposit-channels.use-case.spec.ts`
+- `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller"`
