@@ -61,6 +61,37 @@ export const FeatureFlagCheckResponseSchema: ContractSchema = {
   },
 };
 
+export const FeatureFlagDependencyUnavailableSchema: ContractSchema = {
+  name: 'FeatureFlagDependencyUnavailable',
+  description:
+    'Mobile-safe feature flag dependency failure. Mobile should keep cached/default flags.',
+  fields: {
+    success: required(FieldType.BOOLEAN, { example: false }),
+    error: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'FeatureFlagDependencyUnavailableError',
+        fields: {
+          code: required(FieldType.STRING, {
+            example: 'FEATURE_FLAG_DEPENDENCY_UNAVAILABLE',
+          }),
+          message: required(FieldType.STRING, {
+            example:
+              'Feature flags are temporarily unavailable. Cached app defaults may be used.',
+          }),
+          dependency: required(FieldType.STRING, {
+            example: 'feature_flag_store',
+          }),
+          retryable: required(FieldType.BOOLEAN, { example: true }),
+          supportReviewRequired: required(FieldType.BOOLEAN, {
+            example: false,
+          }),
+        },
+      },
+    }),
+    meta: required(FieldType.OBJECT),
+  },
+};
+
 export const GetMyFeatureFlagsEndpoint: EndpointContract = {
   method: 'GET',
   path: '/feature-flags/me',
@@ -75,6 +106,7 @@ export const GetMyFeatureFlagsEndpoint: EndpointContract = {
   },
   responses: {
     200: FeatureFlagsResponseSchema,
+    503: FeatureFlagDependencyUnavailableSchema,
   },
 };
 
@@ -95,6 +127,7 @@ export const CheckFeatureFlagEndpoint: EndpointContract = {
   },
   responses: {
     200: FeatureFlagCheckResponseSchema,
+    503: FeatureFlagDependencyUnavailableSchema,
   },
 };
 

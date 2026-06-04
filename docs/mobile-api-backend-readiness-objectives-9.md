@@ -5,7 +5,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 ## Mobile Bootstrap Contracts
 
 - [x] Confirm `/feature-flags/me` and `/feature-flags/check/:key` have explicit contracts matching mobile's flat `Map<String, bool>` parser.
-- [ ] Confirm feature-flag bootstrap failures return stable mobile-safe envelopes without breaking cached mobile startup.
+- [x] Confirm feature-flag bootstrap failures return stable mobile-safe envelopes without breaking cached mobile startup.
 - [ ] Confirm backend/mobile docs describe the same feature-flag response shape.
 
 ## User Profile And Identity Surfaces
@@ -39,6 +39,23 @@ Verified and hardened:
 - Contract tests reject wrapped per-key objects for known mobile keys such as `payment_links`.
 - Controller e2e verifies app version/platform query values and user country are forwarded to feature evaluation.
 - `npm run verify:backend:mobile` now includes `feature-flag.controller` in the mobile-facing e2e set.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="feature-flag.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="feature-flag.controller"`
+
+### Feature Flag Dependency Failure Envelope - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `/feature-flags/me` and `/feature-flags/check/:key` preserve intentional HTTP exceptions.
+- Unexpected feature-flag store failures return `503` with `FEATURE_FLAG_DEPENDENCY_UNAVAILABLE`.
+- The envelope includes `dependency`, `retryable`, and `supportReviewRequired` fields so mobile can keep cached/default flags without showing a generic startup error.
+- Contract and e2e tests assert the failure shape and route metadata.
 
 Verification:
 

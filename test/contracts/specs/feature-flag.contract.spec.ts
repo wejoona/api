@@ -3,6 +3,7 @@
  */
 
 import {
+  FeatureFlagDependencyUnavailableSchema,
   FeatureFlagCheckResponseSchema,
   FeatureFlagsResponseSchema,
 } from '../schemas/feature-flag.contract';
@@ -55,6 +56,33 @@ describe('Feature Flag Contracts', () => {
       };
 
       const result = validateSchema(response, FeatureFlagCheckResponseSchema);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('Feature flag dependency failures', () => {
+    it('should validate mobile-safe dependency unavailable envelopes', () => {
+      const response = {
+        success: false,
+        error: {
+          code: 'FEATURE_FLAG_DEPENDENCY_UNAVAILABLE',
+          message:
+            'Feature flags are temporarily unavailable. Cached app defaults may be used.',
+          dependency: 'feature_flag_store',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/feature-flags/me',
+          method: 'GET',
+          timestamp: '2026-06-04T12:00:00.000Z',
+        },
+      };
+
+      const result = validateSchema(
+        response,
+        FeatureFlagDependencyUnavailableSchema,
+      );
       expect(result.valid).toBe(true);
     });
   });

@@ -59,6 +59,30 @@ describe('FeatureFlagController (e2e)', () => {
       });
       expect(res.body).not.toHaveProperty('flags');
     });
+
+    it('should return mobile-safe dependency failure metadata (503)', async () => {
+      mockFeatureFlagService.getEnabledFlagsForContext.mockRejectedValue(
+        new Error('feature flag store unavailable'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/feature-flags/me')
+        .expect(503);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'FEATURE_FLAG_DEPENDENCY_UNAVAILABLE',
+          dependency: 'feature_flag_store',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/feature-flags/me',
+          method: 'GET',
+        },
+      });
+    });
   });
 
   describe('GET /api/v1/feature-flags/check/:key', () => {
@@ -81,6 +105,30 @@ describe('FeatureFlagController (e2e)', () => {
       expect(res.body).toEqual({
         key: 'payment_links',
         enabled: true,
+      });
+    });
+
+    it('should return mobile-safe dependency failure metadata (503)', async () => {
+      mockFeatureFlagService.isEnabled.mockRejectedValue(
+        new Error('feature flag store unavailable'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/feature-flags/check/payment_links')
+        .expect(503);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'FEATURE_FLAG_DEPENDENCY_UNAVAILABLE',
+          dependency: 'feature_flag_store',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/feature-flags/check/payment_links',
+          method: 'GET',
+        },
       });
     });
   });

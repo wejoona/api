@@ -6,6 +6,8 @@ import {
   Body,
   UseGuards,
   Query,
+  HttpException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
@@ -39,14 +41,18 @@ export class FeatureFlagController {
     @Query('appVersion') appVersion?: string,
     @Query('platform') platform?: string,
   ): Promise<{ key: string; enabled: boolean }> {
-    const enabled = await this.featureFlagService.isEnabled(key, {
-      userId: user.id,
-      countryCode: user.countryCode,
-      appVersion,
-      platform,
-    });
+    try {
+      const enabled = await this.featureFlagService.isEnabled(key, {
+        userId: user.id,
+        countryCode: user.countryCode,
+        appVersion,
+        platform,
+      });
 
-    return { key, enabled };
+      return { key, enabled };
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
   }
 
   /**
@@ -60,11 +66,30 @@ export class FeatureFlagController {
     @Query('appVersion') appVersion?: string,
     @Query('platform') platform?: string,
   ): Promise<Record<string, boolean>> {
-    return this.featureFlagService.getEnabledFlagsForContext({
-      userId: user.id,
-      countryCode: user.countryCode,
-      appVersion,
-      platform,
+    try {
+      return await this.featureFlagService.getEnabledFlagsForContext({
+        userId: user.id,
+        countryCode: user.countryCode,
+        appVersion,
+        platform,
+      });
+    } catch (error) {
+      this.throwDependencyUnavailable(error);
+    }
+  }
+
+  private throwDependencyUnavailable(error: unknown): never {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    throw new ServiceUnavailableException({
+      code: 'FEATURE_FLAG_DEPENDENCY_UNAVAILABLE',
+      message:
+        'Feature flags are temporarily unavailable. Cached app defaults may be used.',
+      dependency: 'feature_flag_store',
+      retryable: true,
+      supportReviewRequired: false,
     });
   }
 }
