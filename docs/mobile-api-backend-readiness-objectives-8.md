@@ -22,7 +22,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 
 ## Region-Aware Mobile Configuration
 
-- [ ] Confirm app config can describe Abidjan/USA availability, rails, and feature flags without hardcoded mobile assumptions.
+- [x] Confirm app config can describe Abidjan/USA availability, rails, and feature flags without hardcoded mobile assumptions.
 - [ ] Confirm payment/deposit/withdrawal options are returned from backend capability data, not static Côte d'Ivoire-only UI state.
 
 ## Recursive Execution Rule
@@ -190,3 +190,22 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract|feature-subscription.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller|feature-subscription.controller"`
+
+### Region App Config Availability And Features - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `GET /config/countries` now includes explicit per-market `availability` states for onboarding, deposits, withdrawals, bank linking, cards, and bill payments.
+- The same response includes public pre-auth `features` booleans for USDC wallet, internal transfers, contact discovery, mobile money, bank rails, virtual cards, and bill payments.
+- CI defaults remain Abidjan-ready with mobile money + USDC available and bank/card/bill-pay gated.
+- US defaults remain active with USDC available, no mobile money, bank/card waitlist, and bill-pay disabled.
+- Deployment overrides can change rails, availability, and features without mobile hardcoding.
+- Authenticated `/feature-flags/me` remains available for user-specific flag evaluation after login.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="app-config.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="app-config.controller|feature-flag.controller"`

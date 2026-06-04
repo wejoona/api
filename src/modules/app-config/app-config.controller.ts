@@ -19,6 +19,23 @@ export interface SupportedCountry {
   mobileMoneyProviders: string[];
   depositMethods: string[];
   withdrawalMethods: string[];
+  availability: {
+    onboarding: 'open' | 'waitlist' | 'disabled';
+    deposits: 'available' | 'waitlist' | 'disabled';
+    withdrawals: 'available' | 'waitlist' | 'disabled';
+    bankLinking: 'available' | 'waitlist' | 'disabled';
+    cards: 'available' | 'waitlist' | 'disabled';
+    billPayments: 'available' | 'waitlist' | 'disabled';
+  };
+  features: {
+    usdcWallet: boolean;
+    internalTransfers: boolean;
+    contactDiscovery: boolean;
+    mobileMoney: boolean;
+    bankRails: boolean;
+    virtualCards: boolean;
+    billPayments: boolean;
+  };
 }
 
 const SUPPORTED_COUNTRIES: SupportedCountry[] = [
@@ -38,6 +55,23 @@ const SUPPORTED_COUNTRIES: SupportedCountry[] = [
     mobileMoneyProviders: ['orange_money', 'mtn_momo', 'wave'],
     depositMethods: ['mobile_money', 'usdc'],
     withdrawalMethods: ['mobile_money', 'usdc'],
+    availability: {
+      onboarding: 'open',
+      deposits: 'available',
+      withdrawals: 'available',
+      bankLinking: 'disabled',
+      cards: 'waitlist',
+      billPayments: 'waitlist',
+    },
+    features: {
+      usdcWallet: true,
+      internalTransfers: true,
+      contactDiscovery: true,
+      mobileMoney: true,
+      bankRails: false,
+      virtualCards: false,
+      billPayments: false,
+    },
   },
   {
     code: 'SN',
@@ -55,6 +89,23 @@ const SUPPORTED_COUNTRIES: SupportedCountry[] = [
     mobileMoneyProviders: ['orange_money', 'wave'],
     depositMethods: ['mobile_money', 'usdc'],
     withdrawalMethods: ['mobile_money', 'usdc'],
+    availability: {
+      onboarding: 'waitlist',
+      deposits: 'waitlist',
+      withdrawals: 'waitlist',
+      bankLinking: 'disabled',
+      cards: 'waitlist',
+      billPayments: 'waitlist',
+    },
+    features: {
+      usdcWallet: true,
+      internalTransfers: true,
+      contactDiscovery: true,
+      mobileMoney: true,
+      bankRails: false,
+      virtualCards: false,
+      billPayments: false,
+    },
   },
   {
     code: 'ML',
@@ -72,6 +123,23 @@ const SUPPORTED_COUNTRIES: SupportedCountry[] = [
     mobileMoneyProviders: ['orange_money', 'moov_money'],
     depositMethods: ['mobile_money', 'usdc'],
     withdrawalMethods: ['mobile_money', 'usdc'],
+    availability: {
+      onboarding: 'waitlist',
+      deposits: 'waitlist',
+      withdrawals: 'waitlist',
+      bankLinking: 'disabled',
+      cards: 'waitlist',
+      billPayments: 'waitlist',
+    },
+    features: {
+      usdcWallet: true,
+      internalTransfers: true,
+      contactDiscovery: true,
+      mobileMoney: true,
+      bankRails: false,
+      virtualCards: false,
+      billPayments: false,
+    },
   },
   {
     code: 'US',
@@ -89,6 +157,23 @@ const SUPPORTED_COUNTRIES: SupportedCountry[] = [
     mobileMoneyProviders: [],
     depositMethods: ['usdc'],
     withdrawalMethods: ['usdc'],
+    availability: {
+      onboarding: 'open',
+      deposits: 'available',
+      withdrawals: 'available',
+      bankLinking: 'waitlist',
+      cards: 'waitlist',
+      billPayments: 'disabled',
+    },
+    features: {
+      usdcWallet: true,
+      internalTransfers: true,
+      contactDiscovery: true,
+      mobileMoney: false,
+      bankRails: false,
+      virtualCards: false,
+      billPayments: false,
+    },
   },
 ];
 

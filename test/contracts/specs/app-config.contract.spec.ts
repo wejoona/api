@@ -24,6 +24,23 @@ describe('App Config Contracts', () => {
         mobileMoneyProviders: ['orange_money', 'mtn_momo', 'wave'],
         depositMethods: ['mobile_money', 'usdc'],
         withdrawalMethods: ['mobile_money', 'usdc'],
+        availability: {
+          onboarding: 'open',
+          deposits: 'available',
+          withdrawals: 'available',
+          bankLinking: 'disabled',
+          cards: 'waitlist',
+          billPayments: 'waitlist',
+        },
+        features: {
+          usdcWallet: true,
+          internalTransfers: true,
+          contactDiscovery: true,
+          mobileMoney: true,
+          bankRails: false,
+          virtualCards: false,
+          billPayments: false,
+        },
       };
 
       const result = validateSchema(country, CountryConfigSchema);
@@ -47,11 +64,30 @@ describe('App Config Contracts', () => {
         mobileMoneyProviders: [],
         depositMethods: ['usdc'],
         withdrawalMethods: ['usdc'],
+        availability: {
+          onboarding: 'open',
+          deposits: 'available',
+          withdrawals: 'available',
+          bankLinking: 'waitlist',
+          cards: 'waitlist',
+          billPayments: 'disabled',
+        },
+        features: {
+          usdcWallet: true,
+          internalTransfers: true,
+          contactDiscovery: true,
+          mobileMoney: false,
+          bankRails: false,
+          virtualCards: false,
+          billPayments: false,
+        },
       };
 
       const result = validateSchema(country, CountryConfigSchema);
       expect(result.valid).toBe(true);
       expect(country.mobileMoneyProviders).toEqual([]);
+      expect(country.features.mobileMoney).toBe(false);
+      expect(country.availability.billPayments).toBe('disabled');
     });
   });
 });

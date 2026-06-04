@@ -10,6 +10,52 @@ import {
   required,
 } from './types';
 
+export const MarketAvailabilitySchema: ContractSchema = {
+  name: 'MarketAvailability',
+  description: 'Per-market availability states for public mobile UX gating',
+  fields: {
+    onboarding: required(FieldType.STRING, {
+      enum: ['open', 'waitlist', 'disabled'],
+      example: 'open',
+    }),
+    deposits: required(FieldType.STRING, {
+      enum: ['available', 'waitlist', 'disabled'],
+      example: 'available',
+    }),
+    withdrawals: required(FieldType.STRING, {
+      enum: ['available', 'waitlist', 'disabled'],
+      example: 'available',
+    }),
+    bankLinking: required(FieldType.STRING, {
+      enum: ['available', 'waitlist', 'disabled'],
+      example: 'disabled',
+    }),
+    cards: required(FieldType.STRING, {
+      enum: ['available', 'waitlist', 'disabled'],
+      example: 'waitlist',
+    }),
+    billPayments: required(FieldType.STRING, {
+      enum: ['available', 'waitlist', 'disabled'],
+      example: 'waitlist',
+    }),
+  },
+};
+
+export const MarketFeatureFlagsSchema: ContractSchema = {
+  name: 'MarketFeatureFlags',
+  description:
+    'Public market-level feature flags used before user-specific flags load',
+  fields: {
+    usdcWallet: required(FieldType.BOOLEAN, { example: true }),
+    internalTransfers: required(FieldType.BOOLEAN, { example: true }),
+    contactDiscovery: required(FieldType.BOOLEAN, { example: true }),
+    mobileMoney: required(FieldType.BOOLEAN, { example: true }),
+    bankRails: required(FieldType.BOOLEAN, { example: false }),
+    virtualCards: required(FieldType.BOOLEAN, { example: false }),
+    billPayments: required(FieldType.BOOLEAN, { example: false }),
+  },
+};
+
 export const CountryConfigSchema: ContractSchema = {
   name: 'CountryConfig',
   description: 'Supported country configuration for mobile region behavior',
@@ -51,6 +97,12 @@ export const CountryConfigSchema: ContractSchema = {
     }),
     withdrawalMethods: required(FieldType.ARRAY, {
       itemType: FieldType.STRING,
+    }),
+    availability: required(FieldType.OBJECT, {
+      nestedSchema: MarketAvailabilitySchema,
+    }),
+    features: required(FieldType.OBJECT, {
+      nestedSchema: MarketFeatureFlagsSchema,
     }),
   },
 };

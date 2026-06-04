@@ -46,6 +46,23 @@ describe('AppConfigController (e2e)', () => {
             market: 'active',
             paymentRails: ['mobile_money', 'usdc'],
             mobileMoneyProviders: ['orange_money', 'mtn_momo', 'wave'],
+            availability: {
+              onboarding: 'open',
+              deposits: 'available',
+              withdrawals: 'available',
+              bankLinking: 'disabled',
+              cards: 'waitlist',
+              billPayments: 'waitlist',
+            },
+            features: {
+              usdcWallet: true,
+              internalTransfers: true,
+              contactDiscovery: true,
+              mobileMoney: true,
+              bankRails: false,
+              virtualCards: false,
+              billPayments: false,
+            },
           });
           expect(us).toMatchObject({
             dialCode: '+1',
@@ -55,6 +72,23 @@ describe('AppConfigController (e2e)', () => {
             market: 'active',
             paymentRails: ['usdc'],
             mobileMoneyProviders: [],
+            availability: {
+              onboarding: 'open',
+              deposits: 'available',
+              withdrawals: 'available',
+              bankLinking: 'waitlist',
+              cards: 'waitlist',
+              billPayments: 'disabled',
+            },
+            features: {
+              usdcWallet: true,
+              internalTransfers: true,
+              contactDiscovery: true,
+              mobileMoney: false,
+              bankRails: false,
+              virtualCards: false,
+              billPayments: false,
+            },
           });
         });
     });
@@ -79,6 +113,23 @@ describe('AppConfigController (e2e)', () => {
             mobileMoneyProviders: [],
             depositMethods: ['usdc', 'bank'],
             withdrawalMethods: ['usdc', 'bank'],
+            availability: {
+              onboarding: 'open',
+              deposits: 'available',
+              withdrawals: 'available',
+              bankLinking: 'available',
+              cards: 'waitlist',
+              billPayments: 'disabled',
+            },
+            features: {
+              usdcWallet: true,
+              internalTransfers: true,
+              contactDiscovery: true,
+              mobileMoney: false,
+              bankRails: true,
+              virtualCards: false,
+              billPayments: false,
+            },
           },
         ];
       });
@@ -94,6 +145,14 @@ describe('AppConfigController (e2e)', () => {
             mobileMoneyProviders: [],
             depositMethods: ['usdc', 'bank'],
             withdrawalMethods: ['usdc', 'bank'],
+            availability: {
+              onboarding: 'open',
+              bankLinking: 'available',
+            },
+            features: {
+              mobileMoney: false,
+              bankRails: true,
+            },
           });
         });
     });
