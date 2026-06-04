@@ -55,6 +55,22 @@ describe('validateProductionConfig', () => {
     );
   });
 
+  it('rejects fixed dev OTP mode in production', () => {
+    process.env.OTP_USE_DEV_OTP = 'true';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'OTP_USE_DEV_OTP cannot be true in production',
+    );
+  });
+
+  it('rejects OTP debug logging in production', () => {
+    process.env.OTP_DEBUG_LOGGING = 'true';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'OTP_DEBUG_LOGGING cannot be true in production',
+    );
+  });
+
   it('rejects mock deposit providers in production', () => {
     process.env.DEPOSIT_USE_MOCK = 'true';
 

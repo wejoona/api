@@ -4,7 +4,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 
 ## Auth, VerifyHQ, And Sessions
 
-- [ ] Confirm login/register/OTP contracts support the VerifyHQ-backed dev path with `123456` OTP while keeping SMS delivery mockable only at the sender boundary.
+- [x] Confirm login/register/OTP contracts support the VerifyHQ-backed dev path with `123456` OTP while keeping SMS delivery mockable only at the sender boundary.
 - [ ] Confirm active-session list/revoke endpoints are mobile-safe for authenticated users and return stable 401/403 envelopes for expired or unauthorized requests.
 - [ ] Confirm refresh/logout/logout-all responses remain stable when the session store or refresh-token path is unavailable.
 
@@ -48,3 +48,18 @@ Target:
 Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="feature-subscription.contract"`
+
+### OTP Dev Path Production Guard - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Local verification already uses fixed `123456` only in development/test or non-production explicit dev mode.
+- Production startup validation now rejects `OTP_USE_DEV_OTP=true`.
+- Production startup validation now rejects `OTP_DEBUG_LOGGING=true`.
+- Auth contract examples continue documenting the six-digit `123456` dev/test OTP shape without allowing production fixed OTP.
+
+Verification:
+
+- `npm test -- --runInBand src/config/environments/index.spec.ts`

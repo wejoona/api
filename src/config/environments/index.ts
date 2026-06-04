@@ -88,6 +88,14 @@ export function validateProductionConfig(): void {
     throw new Error('SMS_PROVIDER cannot be mock in production');
   }
 
+  if (process.env.OTP_USE_DEV_OTP === 'true') {
+    throw new Error('OTP_USE_DEV_OTP cannot be true in production');
+  }
+
+  if (process.env.OTP_DEBUG_LOGGING === 'true') {
+    throw new Error('OTP_DEBUG_LOGGING cannot be true in production');
+  }
+
   if (process.env.TWILIO_VALIDATE_SIGNATURES === 'false') {
     throw new Error('TWILIO_VALIDATE_SIGNATURES cannot be false in production');
   }
