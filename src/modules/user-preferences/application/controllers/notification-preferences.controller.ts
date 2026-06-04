@@ -23,7 +23,7 @@ import {
 } from '../domain/usecases';
 
 @ApiTags('User Preferences')
-@Controller('user')
+@Controller()
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class NotificationPreferencesController {
@@ -32,7 +32,7 @@ export class NotificationPreferencesController {
     private readonly updatePreferencesUsecase: UpdateNotificationPreferencesUsecase,
   ) {}
 
-  @Get('notification-preferences')
+  @Get(['user/notification-preferences', 'notifications/preferences'])
   @ApiOperation({ summary: 'Get notification preferences for current user' })
   @ApiResponse({
     status: 200,
@@ -50,7 +50,7 @@ export class NotificationPreferencesController {
     return NotificationPreferencesResponse.fromDomain(preferences);
   }
 
-  @Put('notification-preferences')
+  @Put(['user/notification-preferences', 'notifications/preferences'])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update notification preferences for current user' })
   @ApiResponse({
@@ -64,21 +64,10 @@ export class NotificationPreferencesController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateNotificationPreferencesDto,
   ): Promise<NotificationPreferencesResponse> {
+    const normalized = dto.toUpdateProps();
     const preferences = await this.updatePreferencesUsecase.execute({
       userId: req.user.id,
-      pushEnabled: dto.pushEnabled,
-      pushTransactions: dto.pushTransactions,
-      pushSecurity: dto.pushSecurity,
-      pushMarketing: dto.pushMarketing,
-      emailEnabled: dto.emailEnabled,
-      emailTransactions: dto.emailTransactions,
-      emailMonthlyStatement: dto.emailMonthlyStatement,
-      emailMarketing: dto.emailMarketing,
-      smsEnabled: dto.smsEnabled,
-      smsTransactions: dto.smsTransactions,
-      smsSecurity: dto.smsSecurity,
-      largeTransactionThreshold: dto.largeTransactionThreshold,
-      lowBalanceThreshold: dto.lowBalanceThreshold,
+      ...normalized,
     });
 
     return NotificationPreferencesResponse.fromDomain(preferences);

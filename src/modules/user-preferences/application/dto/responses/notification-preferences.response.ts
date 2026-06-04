@@ -51,6 +51,33 @@ export class NotificationPreferencesResponse {
   @ApiProperty({ description: 'Low balance alert threshold (USDC)' })
   lowBalanceThreshold: number;
 
+  @ApiProperty({
+    description: 'Mobile grouped channel toggles compatibility shape',
+    example: { push: true, email: true, sms: true, inApp: true },
+  })
+  channels: {
+    push: boolean;
+    email: boolean;
+    sms: boolean;
+    inApp: boolean;
+  };
+
+  @ApiProperty({
+    description: 'Mobile grouped category toggles compatibility shape',
+    example: {
+      transaction: true,
+      security: true,
+      marketing: false,
+      system: true,
+    },
+  })
+  categories: {
+    transaction: boolean;
+    security: boolean;
+    marketing: boolean;
+    system: boolean;
+  };
+
   @ApiProperty({ description: 'Created timestamp' })
   createdAt: string;
 
@@ -76,6 +103,21 @@ export class NotificationPreferencesResponse {
     response.smsSecurity = preferences.smsSecurity;
     response.largeTransactionThreshold = preferences.largeTransactionThreshold;
     response.lowBalanceThreshold = preferences.lowBalanceThreshold;
+    response.channels = {
+      push: preferences.pushEnabled,
+      email: preferences.emailEnabled,
+      sms: preferences.smsEnabled,
+      inApp: true,
+    };
+    response.categories = {
+      transaction:
+        preferences.pushTransactions ||
+        preferences.emailTransactions ||
+        preferences.smsTransactions,
+      security: preferences.pushSecurity || preferences.smsSecurity,
+      marketing: preferences.pushMarketing || preferences.emailMarketing,
+      system: preferences.emailMonthlyStatement,
+    };
     response.createdAt = preferences.createdAt.toISOString();
     response.updatedAt = preferences.updatedAt.toISOString();
     return response;

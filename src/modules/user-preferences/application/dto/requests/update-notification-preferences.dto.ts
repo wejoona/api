@@ -1,7 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import {
+  IsBoolean,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  Min,
+  Max,
+} from 'class-validator';
+import { UpdateNotificationPreferencesProps } from '../../domain/entities';
+
+type MobilePreferenceChannels = {
+  push?: boolean;
+  email?: boolean;
+  sms?: boolean;
+};
+
+type MobilePreferenceCategories = {
+  transaction?: boolean;
+  security?: boolean;
+  marketing?: boolean;
+  system?: boolean;
+};
 
 export class UpdateNotificationPreferencesDto {
+  @ApiProperty({
+    description: 'Mobile grouped channel toggles compatibility payload',
+    example: { push: true, email: true, sms: true },
+    required: false,
+  })
+  @IsObject()
+  @IsOptional()
+  channels?: MobilePreferenceChannels;
+
+  @ApiProperty({
+    description: 'Mobile grouped notification categories compatibility payload',
+    example: {
+      transaction: true,
+      security: true,
+      marketing: false,
+      system: true,
+    },
+    required: false,
+  })
+  @IsObject()
+  @IsOptional()
+  categories?: MobilePreferenceCategories;
+
   // Push notification settings
   @ApiProperty({
     description: 'Enable/disable all push notifications',
@@ -132,4 +176,49 @@ export class UpdateNotificationPreferencesDto {
   @Min(0)
   @Max(100000)
   lowBalanceThreshold?: number;
+
+  toUpdateProps(): UpdateNotificationPreferencesProps {
+    const update: UpdateNotificationPreferencesProps = {
+      pushEnabled: this.pushEnabled,
+      pushTransactions: this.pushTransactions,
+      pushSecurity: this.pushSecurity,
+      pushMarketing: this.pushMarketing,
+      emailEnabled: this.emailEnabled,
+      emailTransactions: this.emailTransactions,
+      emailMonthlyStatement: this.emailMonthlyStatement,
+      emailMarketing: this.emailMarketing,
+      smsEnabled: this.smsEnabled,
+      smsTransactions: this.smsTransactions,
+      smsSecurity: this.smsSecurity,
+      largeTransactionThreshold: this.largeTransactionThreshold,
+      lowBalanceThreshold: this.lowBalanceThreshold,
+    };
+
+    if (this.channels?.push !== undefined)
+      update.pushEnabled = this.channels.push;
+    if (this.channels?.email !== undefined)
+      update.emailEnabled = this.channels.email;
+    if (this.channels?.sms !== undefined) update.smsEnabled = this.channels.sms;
+
+    if (this.categories?.transaction !== undefined) {
+      update.pushTransactions = this.categories.transaction;
+      update.emailTransactions = this.categories.transaction;
+      update.smsTransactions = this.categories.transaction;
+    }
+    if (this.categories?.security !== undefined) {
+      update.pushSecurity = this.categories.security;
+      update.smsSecurity = this.categories.security;
+    }
+    if (this.categories?.marketing !== undefined) {
+      update.pushMarketing = this.categories.marketing;
+      update.emailMarketing = this.categories.marketing;
+    }
+    if (this.categories?.system !== undefined) {
+      update.emailMonthlyStatement = this.categories.system;
+    }
+
+    return Object.fromEntries(
+      Object.entries(update).filter(([, value]) => value !== undefined),
+    ) as UpdateNotificationPreferencesProps;
+  }
 }

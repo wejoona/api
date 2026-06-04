@@ -16,7 +16,28 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Align transfer route contract and decimal amount semantics for mobile send/QR.
 - [x] Continue parser drift audit for the next active screen/backend route mismatch after transfers.
 - [x] Align alerts route ordering and mobile mark-read methods.
-- [ ] Continue parser drift audit for the next active screen/backend route mismatch after alerts.
+- [x] Continue parser drift audit for the next active screen/backend route mismatch after alerts.
+- [x] Align notification preferences route and payload compatibility for mobile settings.
+- [ ] Continue parser drift audit for the next active settings/backend route mismatch after notification preferences.
+
+## Recursive Backend/API Objective Checklist
+
+- [x] Referral summary and referral history contracts.
+- [x] Savings pot transaction history endpoint.
+- [x] User limits mobile-compatible aliases and usage route.
+- [x] Transfer internal route, decimal USDC semantics, and QR send payload.
+- [x] Alerts preferences route ordering and mobile read aliases.
+- [x] Notification preferences mobile route, response aliases, and grouped-payload compatibility.
+- [ ] Notification device-token legacy route contract coverage.
+- [ ] Profile/photo upload and profile data persistence route audit.
+- [ ] Active sessions 401/error-state audit against session routes.
+- [ ] Transaction history list/detail field parity with mobile parsers.
+- [ ] Deposit channel/create/status route parity for CI/US region data.
+- [ ] KYC/VerifyHQ OTP and status flow parity under real local stack.
+- [ ] Contact discovery/bulk lookup performance and privacy contract audit.
+- [ ] Feature subscription/waitlist payload completeness for every "stay informed" surface.
+- [ ] Background refresh, push registration, and notification unread-count recovery audit.
+- [ ] Backend-mobile verifier must include every active mobile route family before release signoff.
 
 ## Recursive Execution Rule
 
@@ -141,4 +162,31 @@ Verification:
 
 - `npm run build`
 - `npm run test:e2e -- --runInBand --testPathPatterns="monitoring.controller.e2e-spec"`
+- `npm run verify:backend:mobile`
+
+### Notification Preferences Mobile Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile settings calls `GET/PUT /notifications/preferences`.
+- Backend mounted persisted notification preferences at `GET/PUT /user/notification-preferences`.
+- Mobile full-save could send grouped `channels/categories`, which production validation rejected because the DTO only accepted flat fields.
+
+Resolution:
+
+- Preserved the existing `/user/notification-preferences` routes.
+- Added `/notifications/preferences` aliases for mobile.
+- Added grouped `channels/categories` response aliases while preserving flat canonical fields.
+- Added DTO compatibility for grouped mobile payloads.
+- Updated mobile full-save serialization to send canonical flat DTO fields.
+- Added controller e2e, contract tests, and mobile API contract test coverage.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="notification-preferences.controller.e2e-spec"`
+- `flutter test test/services/api_contract_alignment_test.dart`
 - `npm run verify:backend:mobile`

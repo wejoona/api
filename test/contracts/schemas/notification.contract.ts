@@ -170,6 +170,66 @@ export const UnreadCountResponseSchema: ContractSchema = {
   },
 };
 
+export const NotificationPreferenceChannelsSchema: ContractSchema = {
+  name: 'NotificationPreferenceChannels',
+  description: 'Grouped mobile channel notification toggles',
+  fields: {
+    push: required(FieldType.BOOLEAN, { example: true }),
+    email: required(FieldType.BOOLEAN, { example: true }),
+    sms: required(FieldType.BOOLEAN, { example: true }),
+    inApp: required(FieldType.BOOLEAN, { example: true }),
+  },
+};
+
+export const NotificationPreferenceCategoriesSchema: ContractSchema = {
+  name: 'NotificationPreferenceCategories',
+  description: 'Grouped mobile category notification toggles',
+  fields: {
+    transaction: required(FieldType.BOOLEAN, { example: true }),
+    security: required(FieldType.BOOLEAN, { example: true }),
+    marketing: required(FieldType.BOOLEAN, { example: false }),
+    system: required(FieldType.BOOLEAN, { example: true }),
+  },
+};
+
+export const NotificationPreferencesResponseSchema: ContractSchema = {
+  name: 'NotificationPreferencesResponse',
+  description: 'Current user notification preferences consumed by settings',
+  fields: {
+    id: required(FieldType.UUID, {
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    userId: required(FieldType.UUID, {
+      example: '123e4567-e89b-12d3-a456-426614174001',
+    }),
+    pushEnabled: required(FieldType.BOOLEAN, { example: true }),
+    pushTransactions: required(FieldType.BOOLEAN, { example: true }),
+    pushSecurity: required(FieldType.BOOLEAN, { example: true }),
+    pushMarketing: required(FieldType.BOOLEAN, { example: false }),
+    emailEnabled: required(FieldType.BOOLEAN, { example: true }),
+    emailTransactions: required(FieldType.BOOLEAN, { example: true }),
+    emailMonthlyStatement: required(FieldType.BOOLEAN, { example: true }),
+    emailMarketing: required(FieldType.BOOLEAN, { example: false }),
+    smsEnabled: required(FieldType.BOOLEAN, { example: true }),
+    smsTransactions: required(FieldType.BOOLEAN, { example: true }),
+    smsSecurity: required(FieldType.BOOLEAN, { example: true }),
+    largeTransactionThreshold: required(FieldType.NUMBER, { example: 1000 }),
+    lowBalanceThreshold: required(FieldType.NUMBER, { example: 100 }),
+    channels: required(FieldType.OBJECT, {
+      nestedSchema: NotificationPreferenceChannelsSchema,
+    }),
+    categories: required(FieldType.OBJECT, {
+      nestedSchema: NotificationPreferenceCategoriesSchema,
+    }),
+    createdAt: required(FieldType.DATE, {
+      example: '2026-06-04T10:30:00.000Z',
+    }),
+    updatedAt: required(FieldType.DATE, {
+      example: '2026-06-04T10:30:00.000Z',
+    }),
+  },
+};
+
 export const PushTokenRegistrationRequestSchema: ContractSchema = {
   name: 'PushTokenRegistrationRequest',
   description: 'Register mobile push token',
@@ -273,6 +333,24 @@ export const NotificationEndpoints: EndpointContract[] = [
     responses: {
       200: UnreadCountResponseSchema,
       503: NotificationDependencyUnavailableSchema,
+    },
+  },
+  {
+    method: 'GET',
+    path: '/notifications/preferences',
+    description: 'Get current user notification preferences',
+    auth: 'bearer',
+    responses: {
+      200: NotificationPreferencesResponseSchema,
+    },
+  },
+  {
+    method: 'PUT',
+    path: '/notifications/preferences',
+    description: 'Update current user notification preferences',
+    auth: 'bearer',
+    responses: {
+      200: NotificationPreferencesResponseSchema,
     },
   },
   {

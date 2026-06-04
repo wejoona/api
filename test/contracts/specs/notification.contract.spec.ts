@@ -8,6 +8,7 @@ import {
   ActionMessageResponseSchema,
   NotificationDependencyUnavailableSchema,
   NotificationListResponseSchema,
+  NotificationPreferencesResponseSchema,
   NotificationSchema,
   PushTokenRegistrationRequestSchema,
   RemovePushTokenRequestSchema,
@@ -136,6 +137,45 @@ describe('Notification Contracts', () => {
     });
   });
 
+  describe('Notification preferences', () => {
+    it('should validate flat and grouped mobile preferences response', () => {
+      const response = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        userId: '123e4567-e89b-12d3-a456-426614174001',
+        pushEnabled: true,
+        pushTransactions: true,
+        pushSecurity: true,
+        pushMarketing: false,
+        emailEnabled: true,
+        emailTransactions: true,
+        emailMonthlyStatement: true,
+        emailMarketing: false,
+        smsEnabled: true,
+        smsTransactions: true,
+        smsSecurity: true,
+        largeTransactionThreshold: 1000,
+        lowBalanceThreshold: 100,
+        channels: { push: true, email: true, sms: true, inApp: true },
+        categories: {
+          transaction: true,
+          security: true,
+          marketing: false,
+          system: true,
+        },
+        createdAt: '2026-06-04T10:30:00.000Z',
+        updatedAt: '2026-06-04T10:30:00.000Z',
+      };
+
+      const result = validateSchema(
+        response,
+        NotificationPreferencesResponseSchema,
+      );
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
+
   describe('Push token registration', () => {
     it('should validate mobile push token registration request', () => {
       const request = {
@@ -147,7 +187,10 @@ describe('Notification Contracts', () => {
         osVersion: 'iOS 18.0',
       };
 
-      const result = validateSchema(request, PushTokenRegistrationRequestSchema);
+      const result = validateSchema(
+        request,
+        PushTokenRegistrationRequestSchema,
+      );
       expect(result.valid).toBe(true);
     });
 
