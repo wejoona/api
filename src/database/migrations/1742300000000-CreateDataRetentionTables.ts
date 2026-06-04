@@ -123,10 +123,17 @@ export class CreateDataRetentionTables1742300000000 implements MigrationInterfac
       ADD COLUMN "deleted_at" timestamp DEFAULT NULL
     `);
 
-    await queryRunner.query(`
-      ALTER TABLE "webhook_deadletters"
-      ADD COLUMN "deleted_at" timestamp DEFAULT NULL
-    `);
+    const webhookDeadlettersTable = await this.resolveOptionalTable(
+      queryRunner,
+      'webhook_deadletters',
+      ['system', 'public'],
+    );
+    if (webhookDeadlettersTable) {
+      await queryRunner.query(`
+        ALTER TABLE ${webhookDeadlettersTable}
+        ADD COLUMN IF NOT EXISTS "deleted_at" timestamp DEFAULT NULL
+      `);
+    }
 
     // Create indexes for soft deletes
     await queryRunner.query(`
@@ -166,13 +173,44 @@ export class CreateDataRetentionTables1742300000000 implements MigrationInterfac
     await queryRunner.query(
       `ALTER TABLE "auth"."verifications" DROP COLUMN "deleted_at"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "webhook_deadletters" DROP COLUMN "deleted_at"`,
+    const webhookDeadlettersTable = await this.resolveOptionalTable(
+      queryRunner,
+      'webhook_deadletters',
+      ['system', 'public'],
     );
+    if (webhookDeadlettersTable) {
+      await queryRunner.query(
+        `ALTER TABLE ${webhookDeadlettersTable} DROP COLUMN IF EXISTS "deleted_at"`,
+      );
+    }
 
     // Drop tables
     await queryRunner.query(`DROP TABLE "system"."data_retention_logs"`);
     await queryRunner.query(`DROP TABLE "system"."data_deletion_requests"`);
     await queryRunner.query(`DROP TABLE "system"."retention_policies"`);
+  }
+
+  private async resolveOptionalTable(
+    queryRunner: QueryRunner,
+    tableName: string,
+    schemas: string[],
+  ): Promise<string | null> {
+    const quotedSchemas = schemas.map((schema) => `'${schema}'`).join(', ');
+    const result = await queryRunner.query(`
+      SELECT table_schema
+      FROM information_schema.tables
+      WHERE table_name = '${tableName}'
+        AND table_schema IN (${quotedSchemas})
+      ORDER BY CASE table_schema
+        ${schemas
+          .map((schema, index) => `WHEN '${schema}' THEN ${index}`)
+          .join(' ')}
+        ELSE ${schemas.length}
+      END
+      LIMIT 1
+    `);
+
+    const schema = result[0]?.table_schema;
+    return schema ? `"${schema}"."${tableName}"` : null;
   }
 }

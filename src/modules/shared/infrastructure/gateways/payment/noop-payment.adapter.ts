@@ -21,9 +21,9 @@ import {
  * No-op Payment Gateway Adapter
  *
  * Used when Yellow Card integration is disabled (YELLOW_CARD_ENABLED=false).
- * All methods throw an error indicating the provider is disabled.
- * This prevents runtime crashes from missing DI tokens while making it
- * clear that the payment gateway is not operational.
+ * Transactional methods throw an error indicating the provider is disabled.
+ * Discovery methods return empty results so mobile clients can render an
+ * unavailable state without receiving a 500.
  */
 @Injectable()
 export class NoopPaymentAdapter implements IPaymentGateway {
@@ -38,7 +38,15 @@ export class NoopPaymentAdapter implements IPaymentGateway {
 
   async createSubwallet(_req: CreateSubwalletRequest): Promise<Subwallet> { this.throwDisabled('createSubwallet'); }
   async getBalance(_id: string): Promise<BalanceResponse> { this.throwDisabled('getBalance'); }
-  async getOnRampChannels(_country: string, _currency?: string): Promise<OnRampChannel[]> { this.throwDisabled('getOnRampChannels'); }
+  async getOnRampChannels(
+    country: string,
+    currency?: string,
+  ): Promise<OnRampChannel[]> {
+    this.logger.warn(
+      `Payment gateway disabled (YELLOW_CARD_ENABLED=false). Returning no on-ramp channels for ${country}${currency ? `/${currency}` : ''}.`,
+    );
+    return [];
+  }
   async initiateDeposit(_req: InitiateDepositRequest): Promise<DepositResponse> { this.throwDisabled('initiateDeposit'); }
   async getDepositStatus(_id: string): Promise<DepositResponse> { this.throwDisabled('getDepositStatus'); }
   async internalTransfer(_req: InternalTransferRequest): Promise<TransferResponse> { this.throwDisabled('internalTransfer'); }

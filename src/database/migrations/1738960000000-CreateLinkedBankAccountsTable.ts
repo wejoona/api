@@ -4,6 +4,8 @@ export class CreateLinkedBankAccountsTable1738960000000 implements MigrationInte
   name = 'CreateLinkedBankAccountsTable1738960000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "wallet"`);
+
     await queryRunner.createTable(
       new Table({
         name: 'linked_bank_accounts',

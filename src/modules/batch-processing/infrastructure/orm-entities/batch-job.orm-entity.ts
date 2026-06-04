@@ -56,11 +56,11 @@ export class BatchJobOrmEntity {
   @Column({ type: 'int', default: 5 })
   priority: number;
 
-  @Column('uuid')
+  @Column({ name: 'user_id', type: 'uuid' })
   @Index()
   userId: string;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ name: 'organization_id', type: 'uuid', nullable: true })
   @Index()
   organizationId: string;
 
@@ -81,39 +81,39 @@ export class BatchJobOrmEntity {
     estimatedTimeRemaining?: number;
   };
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'scheduled_at', type: 'timestamp', nullable: true })
   scheduledAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'started_at', type: 'timestamp', nullable: true })
   startedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ name: 'error_details', type: 'jsonb', nullable: true })
   errorDetails: Record<string, any>;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'retry_count', type: 'int', default: 0 })
   retryCount: number;
 
-  @Column({ type: 'int', default: 3 })
+  @Column({ name: 'max_retries', type: 'int', default: 3 })
   maxRetries: number;
 
   @Column({ type: 'jsonb', nullable: true })
   results: Record<string, any>;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'result_file_url', type: 'text', nullable: true })
   resultFileUrl: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @Column('uuid')
+  @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;
 }

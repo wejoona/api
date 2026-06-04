@@ -273,6 +273,7 @@ export class CreateRecurringTransfersTable1744000000000 implements MigrationInte
         columnNames: ['wallet_id'],
         referencedColumnNames: ['id'],
         referencedTableName: 'wallets',
+        referencedSchema: 'wallet',
         onDelete: 'CASCADE',
       }),
     );
