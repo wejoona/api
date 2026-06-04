@@ -16,9 +16,9 @@ Purpose: move from hardened mobile contracts into operational backend readiness 
 
 ## Data And Migration Safety
 
-- [ ] Confirm migrations cover the entities touched by mobile dogfooding features and detect drift against a clean database.
-- [ ] Confirm seed/dev bootstrap creates only safe test fixtures and does not leak production-like secrets.
-- [ ] Confirm indexes exist for high-frequency mobile queries: contacts lookup, transactions history, sessions/devices, notifications, and audit logs.
+- [x] Confirm migrations cover the entities touched by mobile dogfooding features and detect drift against a clean database.
+- [x] Confirm seed/dev bootstrap creates only safe test fixtures and does not leak production-like secrets.
+- [x] Confirm indexes exist for high-frequency mobile queries: contacts lookup, transactions history, sessions/devices, notifications, and audit logs.
 
 ## Recursive Execution Rule
 
@@ -127,3 +127,36 @@ Verification:
 
 - Focused unit: `npm test -- --runInBand src/common/filters/http-exception.filter.spec.ts src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/payment-links/application/services/payment-link.service.spec.ts`
 - Full backend/mobile verifier: `npm run verify:backend:mobile`
+
+### Mobile Dogfood Schema Drift Detection - 2026-06-04
+
+Verified and hardened:
+
+- Local schema drift was confirmed: `public.batch_jobs` existed with legacy camelCase columns (`userId`, `createdAt`, `createdBy`) while the TypeORM entity and migration expect snake_case (`user_id`, `created_at`, `created_by`).
+- Added `NormalizeBatchJobsSchema1745500000000`, an idempotent migration that renames known legacy `batch_jobs` columns to the entity-backed snake_case names and restores support indexes.
+- Added `AddMobileDogfoodQueryIndexes1745600000000` for mobile-critical transaction history and notification feed queries.
+- Added `npm run schema:check:mobile`, a Postgres-backed schema drift check for mobile dogfooding tables: auth users, wallets, transactions, sessions, devices, contacts, notifications, feature subscriptions, audit logs, and batch jobs.
+- The checker fails on legacy `batch_jobs` camelCase columns so the previous runtime issue is caught before API boot or scheduled jobs touch the table.
+
+Verification:
+
+- Pre-fix schema check failed with missing `batch_jobs.user_id`, missing `batch_jobs.created_at`, missing mobile query indexes, and legacy camelCase batch columns.
+- Applied the idempotent repair SQL locally because this database has an empty migration ledger despite existing tables.
+- Post-fix `npm run schema:check:mobile` passed.
+- Build verification: `npm run build`
+
+### Seed And Mobile Query Bootstrap Safety - 2026-06-04
+
+Verified and hardened:
+
+- Production admin seeding no longer creates known privileged PINs. `seed:prod` now requires explicit 6-digit env vars: `SEED_ADMIN_PIN_SUPERADMIN`, `SEED_ADMIN_PIN_COMPLIANCE`, `SEED_ADMIN_PIN_SUPPORT`, and `SEED_ADMIN_PIN_FINANCE`.
+- The seed runner performs this production preflight before opening a database connection, so unsafe production seeding fails before mutating data.
+- Demo/test users remain restricted to staging/demo paths and are still blocked under `NODE_ENV=production`.
+- The schema checker now verifies high-frequency mobile query support for contacts lookup, transaction history, auth sessions/devices, notification feed, feature waitlists, audit logs, and batch jobs.
+- Added mobile-critical indexes for transaction history and notification feeds: `IDX_transactions_created_at`, `IDX_transactions_wallet_created_at`, and `IDX_notifications_user_status_created_at`.
+
+Verification:
+
+- `npm run seed:prod` without admin PIN env vars failed before database connection with the expected missing-env error.
+- `npm run schema:check:mobile` passed.
+- Build verification: `npm run build`

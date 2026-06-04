@@ -7,8 +7,8 @@ import * as bcrypt from 'bcrypt';
  *
  * Seeds initial admin accounts for system management.
  *
- * IMPORTANT: In production, change the default password immediately
- * after first login. The password is only used for initial setup.
+ * IMPORTANT: In production, admin PINs must be supplied through explicit
+ * environment variables. Known default privileged credentials are not allowed.
  *
  * Admin roles:
  * - super_admin: Full system access
@@ -26,10 +26,10 @@ interface AdminUserSeedData {
   lastName: string;
   email: string;
   role: string;
-  pinCode: string; // Will be hashed
+  pinCode?: string; // Non-production fallback only; will be hashed
 }
 
-// Default initial admin users
+// Initial admin users. Production PINs are resolved from env by username.
 const adminUsers: AdminUserSeedData[] = [
   {
     phone: '+22500000001',
@@ -38,7 +38,7 @@ const adminUsers: AdminUserSeedData[] = [
     lastName: 'Administrator',
     email: 'admin@joonapay.com',
     role: 'super_admin',
-    pinCode: '123456', // CHANGE IN PRODUCTION
+    pinCode: '123456',
   },
   {
     phone: '+22500000002',
@@ -47,7 +47,7 @@ const adminUsers: AdminUserSeedData[] = [
     lastName: 'Officer',
     email: 'compliance@joonapay.com',
     role: 'compliance_officer',
-    pinCode: '123456', // CHANGE IN PRODUCTION
+    pinCode: '123456',
   },
   {
     phone: '+22500000003',
@@ -56,7 +56,7 @@ const adminUsers: AdminUserSeedData[] = [
     lastName: 'Lead',
     email: 'support@joonapay.com',
     role: 'support_agent',
-    pinCode: '123456', // CHANGE IN PRODUCTION
+    pinCode: '123456',
   },
   {
     phone: '+22500000004',
@@ -65,7 +65,7 @@ const adminUsers: AdminUserSeedData[] = [
     lastName: 'Manager',
     email: 'finance@joonapay.com',
     role: 'finance_admin',
-    pinCode: '123456', // CHANGE IN PRODUCTION
+    pinCode: '123456',
   },
 ];
 
@@ -175,8 +175,50 @@ async function hashPin(pin: string): Promise<string> {
   return bcrypt.hash(pin, saltRounds);
 }
 
+function getAdminPinEnvName(username: string): string {
+  return `SEED_ADMIN_PIN_${username.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+}
+
+function resolveAdminPin(admin: AdminUserSeedData): string {
+  const envName = getAdminPinEnvName(admin.username);
+  const envPin = process.env[envName];
+
+  if (envPin) {
+    if (!/^\d{6}$/.test(envPin)) {
+      throw new Error(`${envName} must be a 6-digit PIN`);
+    }
+    return envPin;
+  }
+
+  if (isProductionSeedMode()) {
+    throw new Error(
+      `Missing ${envName}; production admin seed cannot create ${admin.username} with a default PIN`,
+    );
+  }
+
+  return admin.pinCode ?? '123456';
+}
+
+function isProductionSeedMode(): boolean {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    process.env.SEED_MODE === 'production'
+  );
+}
+
+function validateProductionAdminPins(): void {
+  if (!isProductionSeedMode()) {
+    return;
+  }
+
+  for (const admin of adminUsers) {
+    resolveAdminPin(admin);
+  }
+}
+
 export async function seedAdminUsers(dataSource: DataSource): Promise<void> {
   console.log('Seeding admin users...');
+  validateProductionAdminPins();
 
   const queryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();
@@ -239,7 +281,8 @@ export async function seedAdminUsers(dataSource: DataSource): Promise<void> {
 
       if (existing.length === 0) {
         const userId = uuidv4();
-        const pinHash = await hashPin(admin.pinCode);
+        const adminPin = resolveAdminPin(admin);
+        const pinHash = await hashPin(adminPin);
 
         await queryRunner.query(
           `INSERT INTO auth.users (
@@ -266,9 +309,11 @@ export async function seedAdminUsers(dataSource: DataSource): Promise<void> {
         );
 
         console.log(`  Created admin user: ${admin.username} (${admin.role})`);
-        console.log(
-          `    WARNING: Default PIN is '${admin.pinCode}' - CHANGE IMMEDIATELY IN PRODUCTION`,
-        );
+        if (!isProductionSeedMode()) {
+          console.log(
+            `    Non-production default PIN is configured for ${admin.username}`,
+          );
+        }
       } else {
         console.log(`  Skipped (exists): ${admin.username}`);
       }

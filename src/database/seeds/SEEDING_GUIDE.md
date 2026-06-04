@@ -52,6 +52,10 @@ src/database/seeds/
 
 ```bash
 # Production deployment (no test data)
+export SEED_ADMIN_PIN_SUPERADMIN='replace-with-6-digits'
+export SEED_ADMIN_PIN_COMPLIANCE='replace-with-6-digits'
+export SEED_ADMIN_PIN_SUPPORT='replace-with-6-digits'
+export SEED_ADMIN_PIN_FINANCE='replace-with-6-digits'
 npm run seed:prod
 
 # Staging/Development (includes test data)
@@ -70,6 +74,7 @@ npm run seed:demo
 Seeds all feature flags with production-ready defaults.
 
 **Categories:**
+
 - Core features (deposits, withdrawals, transfers)
 - KYC features (verification, auto-approval)
 - Security features (biometric, device binding, PIN)
@@ -95,6 +100,7 @@ Seeds all feature flags with production-ready defaults.
 Seeds Service Level Agreement settings for support operations.
 
 **Categories:**
+
 - Support Tickets (critical/high/medium/low)
 - KYC Review (blocked users, manual review, resubmission)
 - Compliance Cases (sanctions hits, fraud alerts)
@@ -118,14 +124,15 @@ Seeds transaction limits based on KYC tier. Amounts are in USDC with XOF context
 
 **Tier Limits:**
 
-| Tier | Daily | Weekly | Monthly | Tx/Day |
-|------|-------|--------|---------|--------|
-| Unverified | 50 | 100 | 200 | 3 |
-| Basic | 500 | 1,500 | 3,000 | 10 |
-| Verified | 2,000 | 7,000 | 20,000 | 50 |
-| Premium | 10,000 | 50,000 | 150,000 | 200 |
+| Tier       | Daily  | Weekly | Monthly | Tx/Day |
+| ---------- | ------ | ------ | ------- | ------ |
+| Unverified | 50     | 100    | 200     | 3      |
+| Basic      | 500    | 1,500  | 3,000   | 10     |
+| Verified   | 2,000  | 7,000  | 20,000  | 50     |
+| Premium    | 10,000 | 50,000 | 150,000 | 200    |
 
 **Fraud Detection Rules:**
+
 - Rapid transactions (>5 in 1 hour): FLAG
 - Large single transaction: REQUIRE_REVIEW
 - New account high activity: FLAG
@@ -156,7 +163,11 @@ Seeds initial administrator accounts with roles and permissions.
 | +22500000003 | support | support_agent |
 | +22500000004 | finance | finance_admin |
 
-> **WARNING**: All default accounts use PIN `123456`. Change immediately in production!
+> **Production safety**: `seed:prod` requires explicit 6-digit PINs in
+> `SEED_ADMIN_PIN_SUPERADMIN`, `SEED_ADMIN_PIN_COMPLIANCE`,
+> `SEED_ADMIN_PIN_SUPPORT`, and `SEED_ADMIN_PIN_FINANCE`. Non-production
+> staging/demo seeds may use default test PINs; production never creates known
+> default privileged credentials.
 
 ---
 
@@ -165,6 +176,7 @@ Seeds initial administrator accounts with roles and permissions.
 Seeds application configuration organized by category.
 
 **Categories:**
+
 - `app`: General app settings (version, maintenance, support)
 - `provider`: Payment provider configurations (Yellow Card, Circle)
 - `security`: PIN, session, OTP settings
@@ -175,6 +187,7 @@ Seeds application configuration organized by category.
 - `referral`: Referral program configuration
 
 **Key Settings:**
+
 ```
 app.maintenance_mode = false
 security.pin.max_attempts = 5
@@ -190,12 +203,14 @@ localization.default_currency = XOF
 Seeds realistic test data with West African context.
 
 **Test Users:**
+
 - 20 randomly generated users with various KYC statuses
 - 5 known test accounts (see below)
 - Realistic West African names (Diallo, Touré, Konaté, etc.)
 - Country distribution: Cote d'Ivoire, Senegal, Mali, Burkina Faso
 
 **Generated per user:**
+
 - Wallet with random balance (10-1000 USDC)
 - 5-15 sample transactions (deposits, withdrawals, transfers)
 - 2-7 beneficiaries (for verified users)
@@ -234,11 +249,11 @@ ts-node -r tsconfig-paths/register src/database/seeds/seed-runner.ts --mode=prod
 
 ## Environment Modes
 
-| Mode | Feature Flags | SLAs | Velocity | Admins | Settings | Demo Data |
-|------|--------------|------|----------|--------|----------|-----------|
-| `production` | Yes | Yes | Yes | Yes | Yes | No |
-| `staging` | Yes | Yes | Yes | Yes | Yes | Yes |
-| `demo` | No | No | No | No | No | Yes |
+| Mode         | Feature Flags | SLAs | Velocity | Admins | Settings | Demo Data |
+| ------------ | ------------- | ---- | -------- | ------ | -------- | --------- |
+| `production` | Yes           | Yes  | Yes      | Yes    | Yes      | No        |
+| `staging`    | Yes           | Yes  | Yes      | Yes    | Yes      | Yes       |
+| `demo`       | No            | No   | No       | No     | No       | Yes       |
 
 ### Safety Checks
 
@@ -252,13 +267,13 @@ ts-node -r tsconfig-paths/register src/database/seeds/seed-runner.ts --mode=prod
 
 All test accounts use PIN: `000000`
 
-| Phone | Username | KYC Status | Balance | Use Case |
-|-------|----------|------------|---------|----------|
-| +22507000001 | test_unverified | pending | 50 USDC | Test unverified limits |
-| +22507000002 | test_basic | approved | 500 USDC | Test basic tier |
-| +22507000003 | test_verified | approved | 2,000 USDC | Test verified tier |
-| +22507000004 | test_premium | approved | 10,000 USDC | Test premium tier |
-| +22507000005 | test_rejected | rejected | 0 USDC | Test rejected flow |
+| Phone        | Username        | KYC Status | Balance     | Use Case               |
+| ------------ | --------------- | ---------- | ----------- | ---------------------- |
+| +22507000001 | test_unverified | pending    | 50 USDC     | Test unverified limits |
+| +22507000002 | test_basic      | approved   | 500 USDC    | Test basic tier        |
+| +22507000003 | test_verified   | approved   | 2,000 USDC  | Test verified tier     |
+| +22507000004 | test_premium    | approved   | 10,000 USDC | Test premium tier      |
+| +22507000005 | test_rejected   | rejected   | 0 USDC      | Test rejected flow     |
 
 ---
 
@@ -329,11 +344,13 @@ export { seedMyData } from './07-my-data.seed';
 ### Modifying Existing Seeds
 
 Edit the data arrays in each seed file. The seed runner will:
+
 - Skip records that already exist (by unique key)
 - Create only new records
 - Not update existing records
 
 To update existing records, either:
+
 1. Delete the record manually, then re-run seed
 2. Create a migration instead of modifying the seed
 
@@ -344,20 +361,25 @@ To update existing records, either:
 ### Common Issues
 
 **"relation does not exist"**
+
 - Run migrations first: `npm run migration:run`
 
 **"duplicate key value violates unique constraint"**
+
 - Seeds are already applied; this is normal on re-run
 
 **"permission denied for schema"**
+
 - Ensure database user has CREATE SCHEMA permission
 
 **"Cannot run demo seed in production"**
+
 - This is a safety feature; demo data should never run in production
 
 ### Logs
 
 Seeds output detailed logs:
+
 ```
 ============================================================
 JoonaPay Database Seeder
@@ -410,13 +432,13 @@ SELECT username, kyc_status, phone FROM auth.users WHERE phone LIKE '+2250700%';
 
 Seeds create data in these schemas:
 
-| Schema | Tables | Purpose |
-|--------|--------|---------|
-| `system` | feature_flags, sla_configurations, system_settings | System configuration |
-| `compliance` | velocity_rules | Compliance rules |
-| `auth` | users, roles | Authentication |
-| `wallet` | beneficiaries | Wallet data |
-| (public) | wallets, transactions | Core data |
+| Schema       | Tables                                             | Purpose              |
+| ------------ | -------------------------------------------------- | -------------------- |
+| `system`     | feature_flags, sla_configurations, system_settings | System configuration |
+| `compliance` | velocity_rules                                     | Compliance rules     |
+| `auth`       | users, roles                                       | Authentication       |
+| `wallet`     | beneficiaries                                      | Wallet data          |
+| (public)     | wallets, transactions                              | Core data            |
 
 ---
 
@@ -425,6 +447,7 @@ Seeds create data in these schemas:
 ### Adding New Feature Flags
 
 1. Add to `01-feature-flags.seed.ts`:
+
 ```typescript
 {
   key: 'my_new_feature',

@@ -66,6 +66,30 @@ const seeds: SeedConfig[] = [
   },
 ];
 
+const productionAdminPinEnvNames = [
+  'SEED_ADMIN_PIN_SUPERADMIN',
+  'SEED_ADMIN_PIN_COMPLIANCE',
+  'SEED_ADMIN_PIN_SUPPORT',
+  'SEED_ADMIN_PIN_FINANCE',
+];
+
+function validateProductionSeedConfig(mode: SeedMode): void {
+  if (mode !== 'production' && process.env.NODE_ENV !== 'production') {
+    return;
+  }
+
+  const missing = productionAdminPinEnvNames.filter((envName) => {
+    const value = process.env[envName];
+    return !value || !/^\d{6}$/.test(value);
+  });
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Production seeding requires explicit 6-digit admin PIN env vars: ${missing.join(', ')}`,
+    );
+  }
+}
+
 async function runSeeds(mode: SeedMode): Promise<void> {
   console.log('='.repeat(60));
   console.log(`JoonaPay Database Seeder`);
@@ -79,6 +103,8 @@ async function runSeeds(mode: SeedMode): Promise<void> {
     console.error('ERROR: Cannot run demo seed in production environment!');
     process.exit(1);
   }
+
+  validateProductionSeedConfig(mode);
 
   // Initialize data source
   const dataSource = new DataSource(dataSourceOptions);

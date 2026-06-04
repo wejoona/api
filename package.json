@@ -47,6 +47,7 @@
     "migration:run": "npm run typeorm -- migration:run -d src/database/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/data-source.ts",
     "migration:show": "npm run typeorm -- migration:show -d src/database/data-source.ts",
+    "schema:check:mobile": "ts-node -r tsconfig-paths/register scripts/check-mobile-dogfood-schema.ts",
     "seed:prod": "SEED_MODE=production ts-node -r tsconfig-paths/register src/database/seeds/seed-runner.ts",
     "seed:staging": "SEED_MODE=staging ts-node -r tsconfig-paths/register src/database/seeds/seed-runner.ts",
     "seed:demo": "SEED_MODE=demo ts-node -r tsconfig-paths/register src/database/seeds/seed-runner.ts",
