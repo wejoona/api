@@ -9,7 +9,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 - [x] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
 - [x] Audit/log ingestion route decision for mobile background services.
 - [x] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
-- [ ] Privacy/account export route parity or alias decision.
+- [x] Privacy/account export route parity or alias decision.
 - [ ] Expenses/insights route parity or remove from active mobile dependency graph.
 
 ## Recursive Execution Rule
@@ -128,3 +128,23 @@ Decision:
 Verification:
 
 - `flutter test test/services/risk/customer_aml_fraud_boundary_test.dart`
+
+### Privacy and Account Export Route Parity - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Visible mobile export screen called `POST /account/export`.
+- Backend verified route is `GET /user/data-export`, returning immediate user profile export data.
+- Mobile also contains dormant privacy request services for `/privacy/export/*`, `/privacy/deletion/*`, and retention routes, but those backend controllers are not part of the mobile-safe API surface.
+
+Resolution:
+
+- Updated the visible export screen to call `GET /user/data-export`.
+- Kept richer async privacy export/deletion request APIs gated until backend owns a formal request lifecycle, retention policy integration, and notification delivery path.
+- Added a mobile architecture test preventing visible customer UI from depending on `/account/export` or dormant `/privacy/export/*` routes.
+
+Verification:
+
+- `flutter test test/services/privacy/customer_export_route_boundary_test.dart`
