@@ -189,19 +189,46 @@ export class HealthController {
   @ApiOperation({ summary: 'Get current exchange rates' })
   @ApiResponse({ status: 200, description: 'Exchange rates' })
   exchangeRates() {
-    // TODO: Replace with ExchangeRateService.getRates() for live rates
-    // These are fallback/default rates only
+    const updatedAt = new Date().toISOString();
+
+    // Health exposes indicative fallback data only. Executable quotes must come
+    // from wallet/rate or provider-backed quote endpoints with freshness rules.
     return {
       baseCurrency: 'USDC',
+      quoteStatus: 'indicative_fallback',
+      executable: false,
+      validForExecution: false,
+      live: false,
+      stale: true,
+      provider: null,
+      source: 'static_fallback',
+      reason: 'exchange_rate_provider_not_connected',
       rates: {
-        XOF: { buy: 595.0, sell: 605.0, mid: 600.0 },
-        USD: { buy: 1.0, sell: 1.0, mid: 1.0 },
-        EUR: { buy: 0.92, sell: 0.94, mid: 0.93 },
+        XOF: {
+          buy: 595.0,
+          sell: 605.0,
+          mid: 600.0,
+          source: 'static_fallback',
+          executable: false,
+        },
+        USD: {
+          buy: 1.0,
+          sell: 1.0,
+          mid: 1.0,
+          source: 'static_fallback',
+          executable: false,
+        },
+        EUR: {
+          buy: 0.92,
+          sell: 0.94,
+          mid: 0.93,
+          source: 'static_fallback',
+          executable: false,
+        },
       },
-      updatedAt: new Date().toISOString(),
-      source: 'fallback',
+      updatedAt,
       warning:
-        'These are fallback rates. Inject ExchangeRateService for live rates.',
+        'Indicative fallback rates only. Do not use this health endpoint for executable quotes.',
     };
   }
 

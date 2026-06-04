@@ -188,4 +188,31 @@ describe('HealthController (e2e)', () => {
         });
     });
   });
+
+  describe('GET /api/v1/health/exchange-rates', () => {
+    it('should classify fallback rates as non-executable indicative data', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/health/exchange-rates')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            baseCurrency: 'USDC',
+            quoteStatus: 'indicative_fallback',
+            executable: false,
+            validForExecution: false,
+            live: false,
+            stale: true,
+            provider: null,
+            source: 'static_fallback',
+            reason: 'exchange_rate_provider_not_connected',
+          });
+          expect(body.warning).toContain('Do not use this health endpoint');
+          expect(body.rates.XOF).toMatchObject({
+            mid: 600,
+            source: 'static_fallback',
+            executable: false,
+          });
+        });
+    });
+  });
 });

@@ -16,7 +16,7 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 
 ## Rates, Regions, And Provider Feature Flags
 
-- [ ] Replace or clearly classify `/health/exchange-rates` fallback data so mobile never treats static rates as live executable quotes.
+- [x] Replace or clearly classify `/health/exchange-rates` fallback data so mobile never treats static rates as live executable quotes.
 - [ ] Confirm CI and US feature availability is derived from config/profile/app-config data instead of hardcoded Orange/Wave/Ivory Coast assumptions.
 - [ ] Confirm disabled providers return deterministic `provider_or_feature_disabled` states across deposits, withdrawals, cards, bank linking, and bill pay.
 
@@ -86,3 +86,18 @@ Verified and hardened:
 - Legacy `yellowCardRef` remains for backwards compatibility, but new mobile clients no longer need Yellow Card-specific naming.
 - Payment-link pay responses now include `amountDecimal` and `currency` alongside `supportReference`, `ledgerReference`, and optional `ledgerTransactionId`.
 - Wallet transfer/deposit responses already expose decimal-safe amount/fee fields and support references; this pass aligns transaction history and payment-link success responses with that shape.
+
+### Health Exchange Rate Classification - 2026-06-04
+
+Verified and hardened:
+
+- `/health/exchange-rates` now returns machine-readable fallback metadata:
+  - `quoteStatus=indicative_fallback`
+  - `executable=false`
+  - `validForExecution=false`
+  - `live=false`
+  - `stale=true`
+  - `source=static_fallback`
+  - `reason=exchange_rate_provider_not_connected`
+- Each returned rate also carries `source=static_fallback` and `executable=false`.
+- Health remains diagnostic only; executable quotes must come from wallet/provider quote endpoints.
