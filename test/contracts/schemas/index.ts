@@ -50,6 +50,7 @@ import { BeneficiaryContractGroup } from './beneficiary.contract';
 import { UserContractGroup } from './user.contract';
 import { NotificationContractGroup } from './notification.contract';
 import { DeviceSessionContractGroup } from './device-session.contract';
+import { FeatureSubscriptionContractGroup } from './feature-subscription.contract';
 import { AppConfigContractGroup } from './app-config.contract';
 import { HealthContractGroup } from './health.contract';
 
@@ -63,6 +64,7 @@ export const AllContractGroups = [
   UserContractGroup,
   NotificationContractGroup,
   DeviceSessionContractGroup,
+  FeatureSubscriptionContractGroup,
   AppConfigContractGroup,
   HealthContractGroup,
 ];
