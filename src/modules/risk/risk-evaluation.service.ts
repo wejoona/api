@@ -27,7 +27,10 @@ export interface RiskEvaluationResult {
 
 /**
  * Calls Risk Manager service for real-time risk evaluation.
- * Graceful degradation: returns APPROVE if Risk Manager is unavailable.
+ *
+ * If the service is explicitly disabled, risk evaluation is skipped for local
+ * and test environments. If it is enabled but unavailable, money flows must
+ * fail closed by requiring step-up verification.
  */
 @Injectable()
 export class RiskEvaluationService {
@@ -67,7 +70,7 @@ export class RiskEvaluationService {
 
       if (!response.ok) {
         this.logger.warn(`Risk Manager returned ${response.status}`);
-        return null;
+        return this.failClosed(request, `http_${response.status}`);
       }
 
       const result = await response.json() as RiskEvaluationResult;
@@ -78,7 +81,7 @@ export class RiskEvaluationService {
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown';
       this.logger.warn(`Risk Manager unavailable: ${msg}`);
-      return null;
+      return this.failClosed(request, 'unavailable');
     }
   }
 
@@ -108,5 +111,20 @@ export class RiskEvaluationService {
     }
 
     return result;
+  }
+
+  private failClosed(
+    request: RiskEvaluationRequest,
+    reason: string,
+  ): RiskEvaluationResult {
+    return {
+      transactionId: request.transactionId,
+      score: 100,
+      decision: 'STEP_UP',
+      factors: ['risk_manager_unavailable'],
+      triggeredRules: [`fail_closed:${reason}`],
+      evaluationTimeMs: 0,
+      timestamp: new Date().toISOString(),
+    };
   }
 }

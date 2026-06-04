@@ -151,7 +151,7 @@ describe('MobileMutationAuditInterceptor', () => {
           body: expect.objectContaining({
             token: '[redacted]',
             platform: 'ios',
-            deviceId: 'device-123',
+            deviceId: '[redacted]',
           }),
           error: expect.objectContaining({
             statusCode: 400,
@@ -163,6 +163,9 @@ describe('MobileMutationAuditInterceptor', () => {
 
     expect(JSON.stringify(auditService.log.mock.calls[0][0])).not.toContain(
       'fcm-token-secret',
+    );
+    expect(JSON.stringify(auditService.log.mock.calls[0][0])).not.toContain(
+      'device-123',
     );
   });
 

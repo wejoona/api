@@ -22,9 +22,9 @@ Purpose: continue backend readiness after schema/bootstrap hardening, with focus
 
 ## Audit, Security, And Compliance Backend
 
-- [ ] Confirm auth/device/session mutations write audit events with correlation ids and sanitized metadata.
-- [ ] Confirm contact discovery uses hashed/normalized phone lookup and does not expose unrelated users' full phone book data.
-- [ ] Confirm risk/compliance checks are either wired to the current risk service or fail closed with clear support state.
+- [x] Confirm auth/device/session mutations write audit events with correlation ids and sanitized metadata.
+- [x] Confirm contact discovery uses hashed/normalized phone lookup and does not expose unrelated users' full phone book data.
+- [x] Confirm risk/compliance checks are either wired to the current risk service or fail closed with clear support state.
 
 ## Recursive Execution Rule
 
@@ -102,3 +102,21 @@ Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
 - `npm test -- --runInBand src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/notification/application/domain/services/notification-fallback.spec.ts src/modules/feature-subscriptions/application/services/feature-subscription.service.spec.ts`
+
+### Audit, Security, And Compliance Backend - 2026-06-04
+
+Verified and hardened:
+
+- Mobile mutation audit logs include correlation id, actor id/type, route key, duration, sanitized request details, sanitized result summary, IP, and user agent.
+- Audit redaction now treats `deviceId`/`device_id` as sensitive, matching existing token, PIN, OTP, wallet-address, phone, and email redaction behavior.
+- Contact discovery uses submitted phone hashes or server-side hashing for compatibility phone numbers, deduplicates submitted hashes, excludes the requesting user, and returns only `phoneHash`, `maskedPhone`, display metadata, and Korido badge state.
+- Contact sync uses indexed phone-hash lookup and does not scan/expose unrelated phone-book data.
+- Risk Manager behavior now fails closed when explicitly enabled but unavailable:
+  - HTTP errors or network failures return `decision=STEP_UP`, `score=100`, and `triggeredRules=fail_closed:*`.
+  - Local/dev disabled mode remains explicit no-op through `RISK_MANAGER_ENABLED=false`.
+  - Deposit, internal transfer, and withdrawal use cases already stop on `STEP_UP`.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/risk/risk-evaluation.service.spec.ts src/modules/wallet/application/usecases/initiate-deposit.use-case.spec.ts src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/common/interceptors/mobile-mutation-audit.interceptor.spec.ts src/modules/contacts/application/services/contact.service.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="contact.controller|device.controller|session.controller|auth.controller|risk.controller"`

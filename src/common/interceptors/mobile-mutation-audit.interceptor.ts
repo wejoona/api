@@ -64,6 +64,8 @@ const REDACTED_KEY_FRAGMENTS = [
   'ssn',
   'taxid',
   'tax_id',
+  'deviceid',
+  'device_id',
   'privatekey',
   'private_key',
   'mnemonic',
