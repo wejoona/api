@@ -22,22 +22,31 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { NotificationService } from '../services/notification.service';
 
 class RegisterDeviceTokenDto {
+  @IsString()
   token: string;
+
+  @IsEnum(['ios', 'android', 'web'])
   platform: 'ios' | 'android' | 'web';
 }
 
 class UpdatePreferencesDto {
+  @IsOptional()
+  @IsObject()
   channels?: {
     push?: boolean;
     sms?: boolean;
     email?: boolean;
     inApp?: boolean;
   };
+
+  @IsOptional()
+  @IsObject()
   categories?: {
     transaction?: boolean;
     kyc?: boolean;
@@ -47,12 +56,18 @@ class UpdatePreferencesDto {
     risk?: boolean;
     referral?: boolean;
   };
+
+  @IsOptional()
+  @IsObject()
   quietHours?: {
     enabled: boolean;
     startTime: string;
     endTime: string;
     timezone: string;
   };
+
+  @IsOptional()
+  @IsString()
   language?: string;
 }
 
