@@ -20,7 +20,9 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Align notification preferences route and payload compatibility for mobile settings.
 - [x] Continue parser drift audit for the next active settings/backend route mismatch after notification preferences.
 - [x] Add notification device-token legacy route contract coverage.
-- [ ] Continue parser drift audit for profile/photo and active session routes.
+- [x] Continue parser drift audit for profile/photo and active session routes.
+- [x] Add profile avatar upload success-path contract coverage.
+- [ ] Continue parser drift audit for transaction history list/detail routes.
 
 ## Recursive Backend/API Objective Checklist
 
@@ -31,8 +33,8 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Alerts preferences route ordering and mobile read aliases.
 - [x] Notification preferences mobile route, response aliases, and grouped-payload compatibility.
 - [x] Notification device-token legacy route contract coverage.
-- [ ] Profile/photo upload and profile data persistence route audit.
-- [ ] Active sessions 401/error-state audit against session routes.
+- [x] Profile/photo upload and profile data persistence route audit.
+- [x] Active sessions 401/error-state audit against session routes.
 - [ ] Transaction history list/detail field parity with mobile parsers.
 - [ ] Deposit channel/create/status route parity for CI/US region data.
 - [ ] KYC/VerifyHQ OTP and status flow parity under real local stack.
@@ -214,3 +216,23 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller.e2e-spec"`
+
+### Profile Photo and Session Route Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed state:
+
+- Mobile profile loads `GET /user/profile`, updates `PUT /user/profile`, uploads `POST /user/avatar`, and removes `DELETE /user/avatar`.
+- Backend profile contracts already include profile/avatar dependency failure envelopes.
+- Mobile sessions consume `GET /sessions`, `DELETE /sessions/:id`, and `DELETE /sessions`; backend already returns `{ sessions, items, total }` and e2e covers 401/403 envelopes.
+
+Resolution:
+
+- Added avatar upload success-path e2e coverage for mobile response fields: `avatarUrl`, `avatarThumb`, and `message`.
+- Confirmed active session routes already have mobile-compatible wrappers and auth/error coverage.
+
+Verification:
+
+- `npm run build`
+- `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller.e2e-spec|session.controller.e2e-spec"`

@@ -174,6 +174,44 @@ describe('UserController (e2e)', () => {
   // DELETE /user/avatar
   // ==========================================
   describe('POST /api/v1/user/avatar', () => {
+    it('should upload avatar and return mobile-compatible avatar fields (200)', async () => {
+      const updateAvatar = jest.fn();
+      mockUploadService.uploadAvatar.mockResolvedValue({
+        key: `${TEST_USER.id}/avatar.jpg`,
+      });
+      mockUserRepository.findById.mockResolvedValue({
+        updateAvatar,
+      });
+      mockUserRepository.save.mockResolvedValue({});
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/user/avatar')
+        .set('Authorization', 'Bearer mock.token')
+        .attach('avatar', Buffer.from('avatar-bytes'), {
+          filename: 'avatar.jpg',
+          contentType: 'image/jpeg',
+        })
+        .expect(201);
+
+      expect(mockUploadService.uploadAvatar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: TEST_USER.id,
+          file: expect.objectContaining({
+            originalname: 'avatar.jpg',
+          }),
+        }),
+      );
+      expect(updateAvatar).toHaveBeenCalledWith(
+        `/user/avatar/${TEST_USER.id}`,
+        null,
+      );
+      expect(res.body).toEqual({
+        avatarUrl: `/user/avatar/${TEST_USER.id}`,
+        avatarThumb: null,
+        message: 'Avatar uploaded successfully',
+      });
+    });
+
     it('should return mobile-safe storage failure metadata (503)', async () => {
       mockUploadService.uploadAvatar.mockRejectedValue(
         new Error('avatar bucket unavailable'),
@@ -331,6 +369,5 @@ describe('UserController (e2e)', () => {
           expect(body.resetAt).toEqual(expect.any(String));
         });
     });
-
   });
 });
