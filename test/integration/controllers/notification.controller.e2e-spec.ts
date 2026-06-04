@@ -3,7 +3,7 @@
  */
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp } from '../setup/test-app';
+import { createTestApp, TEST_USER } from '../setup/test-app';
 
 const mockGetUserNotifications = { execute: jest.fn() };
 const mockMarkNotificationRead = { execute: jest.fn() };
@@ -89,6 +89,23 @@ describe('NotificationController (e2e)', () => {
       await request(app.getHttpServer())
         .get('/api/v1/notifications/unread/count')
         .expect(200);
+    });
+  });
+
+  describe('GET /api/v1/notifications/unread-count', () => {
+    it('should return unread count through the mobile-compatible alias (200)', async () => {
+      mockGetUnreadCount.execute.mockResolvedValue({ count: 7 });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/notifications/unread-count')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ count: 7 });
+        });
+
+      expect(mockGetUnreadCount.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+      });
     });
   });
 });

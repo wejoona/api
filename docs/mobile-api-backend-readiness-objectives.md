@@ -17,6 +17,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Feature subscription list endpoint normalizes pagination boundaries.
 - [x] Contact sync test covers hashed lookup instead of raw full phone book matching.
 - [x] Contact sync excludes the requesting user from Korido matches.
+- [x] Notification unread count supports the mobile-compatible `/notifications/unread-count` alias.
 - [ ] Verify mobile request/response mappings against live API for auth, wallet, transactions, contacts, devices, sessions, notifications, and feature subscriptions.
 - [ ] Add missing contract tests where mobile currently depends on undocumented response fields.
 - [ ] Ensure every mobile-facing error returns a stable user-actionable code/message pair.

@@ -113,8 +113,27 @@ export class NotificationController {
   async getUnreadCount(
     @Request() req: AuthenticatedRequest,
   ): Promise<UnreadCountResponse> {
+    return this.getUnreadCountForUser(req.user.id);
+  }
+
+  @Get('unread-count')
+  @ApiOperation({
+    summary: 'Get unread notification count (mobile-compatible alias)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns count of unread notifications',
+    type: UnreadCountResponse,
+  })
+  async getUnreadCountAlias(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UnreadCountResponse> {
+    return this.getUnreadCountForUser(req.user.id);
+  }
+
+  private getUnreadCountForUser(userId: string): Promise<UnreadCountResponse> {
     return this.getUnreadCountUseCase.execute({
-      userId: req.user.id,
+      userId,
     });
   }
 
