@@ -38,7 +38,7 @@ export class InternalTransferDto {
   recipientUsername?: string;
 
   @ApiProperty({
-    description: 'Amount in USD to transfer',
+    description: 'Amount in USDC to transfer',
     example: 50,
     minimum: 0.01,
   })
@@ -47,8 +47,8 @@ export class InternalTransferDto {
   amount: number;
 
   @ApiProperty({
-    description: 'Currency (defaults to USD)',
-    example: 'USD',
+    description: 'Currency (defaults to USDC)',
+    example: 'USDC',
     required: false,
   })
   @IsOptional()

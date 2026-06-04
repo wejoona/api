@@ -76,7 +76,7 @@ export class InternalTransferUseCase {
   ) {}
 
   async execute(input: InternalTransferInput): Promise<InternalTransferOutput> {
-    const currency = input.currency || 'USD';
+    const currency = input.currency || 'USDC';
 
     // Step 1: Validate transfer request
     this.validateTransferRequest(input);
@@ -339,7 +339,11 @@ export class InternalTransferUseCase {
       );
     }
 
-    return recipient;
+    return {
+      id: recipient.id,
+      phone: recipient.phone,
+      fullName: recipient.displayName,
+    };
   }
 
   private async checkDailyLimits(

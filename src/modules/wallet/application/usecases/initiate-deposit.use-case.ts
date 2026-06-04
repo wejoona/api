@@ -112,7 +112,7 @@ export class InitiateDepositUseCase {
       subwalletId: wallet.yellowCardWalletId,
       amount: input.amount,
       sourceCurrency: input.sourceCurrency,
-      targetCurrency: 'USD',
+      targetCurrency: 'USDC',
       channelId: input.channelId,
     });
     const estimatedAmount = this.calculateNetTargetAmount(
@@ -125,7 +125,7 @@ export class InitiateDepositUseCase {
     const transaction = TransactionEntity.createDeposit({
       walletId: wallet.id,
       amount: estimatedAmount,
-      currency: 'USD',
+      currency: 'USDC',
       yellowCardRef: depositResponse.externalId,
       metadata: {
         sourceCurrency: input.sourceCurrency,
@@ -155,7 +155,7 @@ export class InitiateDepositUseCase {
       amount: input.amount,
       amountDecimal: formatDecimalAmount(input.amount, input.sourceCurrency),
       sourceCurrency: input.sourceCurrency,
-      targetCurrency: 'USD',
+      targetCurrency: 'USDC',
       rate: depositResponse.rate,
       rateDecimal: formatRateDecimal(depositResponse.rate),
       fee: depositResponse.fee,
@@ -164,7 +164,7 @@ export class InitiateDepositUseCase {
         input.sourceCurrency,
       ),
       estimatedAmount,
-      estimatedAmountDecimal: formatDecimalAmount(estimatedAmount, 'USD'),
+      estimatedAmountDecimal: formatDecimalAmount(estimatedAmount, 'USDC'),
       paymentInstructions: depositResponse.paymentInstructions,
       expiresAt: depositResponse.expiresAt,
     };

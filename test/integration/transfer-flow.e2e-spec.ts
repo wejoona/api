@@ -275,6 +275,20 @@ describe('Transfer Flow (Integration)', () => {
     return balance?.available ?? 0;
   }
 
+  async function getTransactionRow(transactionId: string) {
+    const rows = await dataSource.query(
+      `
+      SELECT id, wallet_id, recipient_wallet_id, type, status, amount, currency,
+             metadata, failure_reason, completed_at
+      FROM transactions
+      WHERE id = $1
+      `,
+      [transactionId],
+    );
+
+    return rows[0];
+  }
+
   function setupExternalApiMocks() {
     const blnkUrl = process.env.BLNK_API_URL;
     const circleUrl = process.env.CIRCLE_API_URL;
@@ -459,7 +473,29 @@ describe('Transfer Flow (Integration)', () => {
       expect(response.body).toHaveProperty('transactionId');
       expect(response.body).toHaveProperty('status', 'completed');
       expect(response.body).toHaveProperty('amount', 10);
+      expect(response.body).toHaveProperty('amountDecimal', '10.000000');
+      expect(response.body).toHaveProperty('fee', 0);
+      expect(response.body).toHaveProperty('feeDecimal', '0.000000');
       expect(response.body).toHaveProperty('toPhone', recipientPhone);
+
+      const persisted = await getTransactionRow(response.body.transactionId);
+      expect(persisted).toEqual(
+        expect.objectContaining({
+          id: response.body.transactionId,
+          type: 'transfer_internal',
+          status: 'completed',
+          currency: 'USDC',
+        }),
+      );
+      expect(Number(persisted.amount)).toBe(-10);
+      expect(persisted.completed_at).toBeTruthy();
+      expect(persisted.metadata).toEqual(
+        expect.objectContaining({
+          direction: 'outbound',
+          recipientName: expect.any(String),
+          omnibusPattern: true,
+        }),
+      );
     });
 
     it('should require PIN token', async () => {
@@ -611,8 +647,32 @@ describe('Transfer Flow (Integration)', () => {
 
       expect(response.body).toHaveProperty('transactionId');
       expect(response.body).toHaveProperty('status');
+      expect(response.body).toHaveProperty('amount', 10);
+      expect(response.body).toHaveProperty('amountDecimal', '10.000000');
+      expect(response.body).toHaveProperty('fee');
+      expect(response.body).toHaveProperty('feeDecimal');
       expect(response.body).toHaveProperty('recipientAddress', validPolygonAddress);
       expect(response.body).toHaveProperty('network', 'polygon');
+
+      const persisted = await getTransactionRow(response.body.transactionId);
+      expect(persisted).toEqual(
+        expect.objectContaining({
+          id: response.body.transactionId,
+          type: 'transfer_external',
+          status: 'completed',
+          currency: 'USDC',
+        }),
+      );
+      expect(Number(persisted.amount)).toBeLessThan(-10);
+      expect(persisted.metadata).toEqual(
+        expect.objectContaining({
+          network: 'polygon',
+          grossAmount: 10,
+          status: 'completed',
+          blnkTransactionId: expect.any(String),
+          omnibusNetwork: expect.any(String),
+        }),
+      );
     });
 
     it('should reject invalid blockchain address', async () => {
@@ -814,10 +874,132 @@ describe('Transfer Flow (Integration)', () => {
         .expect(200);
 
       expect(detailResponse.body).toHaveProperty('id', transactionId);
-      expect(detailResponse.body).toHaveProperty('type');
-      expect(detailResponse.body).toHaveProperty('amount');
-      expect(detailResponse.body).toHaveProperty('status');
+      expect(detailResponse.body).toHaveProperty('type', 'transfer_internal');
+      expect(detailResponse.body).toHaveProperty('amount', -8);
+      expect(detailResponse.body).toHaveProperty('amountDecimal', '-8.000000');
+      expect(detailResponse.body).toHaveProperty('status', 'completed');
       expect(detailResponse.body).toHaveProperty('createdAt');
+      expect(detailResponse.body).toHaveProperty('completedAt');
+      expect(detailResponse.body.metadata).toEqual(
+        expect.objectContaining({
+          direction: 'outbound',
+          recipientName: expect.any(String),
+          omnibusPattern: true,
+        }),
+      );
+    });
+
+    it('should expose empty, funded, pending, failed, and completed transaction states', async () => {
+      const emptyPhone = '+2250700000999';
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ phone: emptyPhone, countryCode: 'CI' })
+        .expect(201);
+
+      const emptyVerify = await request(app.getHttpServer())
+        .post('/auth/verify-otp')
+        .send({ phone: emptyPhone, otp: '123456' })
+        .expect(200);
+
+      const emptyToken = emptyVerify.body.accessToken;
+
+      await request(app.getHttpServer())
+        .get('/wallet/transactions')
+        .set('Authorization', `Bearer ${emptyToken}`)
+        .expect(200)
+        .expect((response) => {
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              transactions: [],
+              total: 0,
+              hasMore: false,
+            }),
+          );
+        });
+
+      const completedTransfer = await request(app.getHttpServer())
+        .post('/wallet/transfer/internal')
+        .set('Authorization', `Bearer ${senderToken}`)
+        .set('X-Pin-Token', senderPinToken)
+        .send({
+          toPhone: recipientPhone,
+          amount: 7,
+          note: 'State coverage completed transfer',
+        })
+        .expect(200);
+
+      const senderWallet = await dataSource.query(
+        `SELECT id FROM wallets WHERE user_id = $1`,
+        [senderUserId],
+      );
+      expect(senderWallet).toHaveLength(1);
+
+      const pendingId = '11111111-1111-4111-8111-111111111111';
+      const failedId = '22222222-2222-4222-8222-222222222222';
+
+      await dataSource.query(
+        `
+        INSERT INTO transactions (
+          id, wallet_id, type, status, amount, currency, metadata,
+          failure_reason, created_at, completed_at
+        )
+        VALUES
+          ($1, $3, 'transfer_external', 'pending', -12.34, 'USDC',
+           '{"network":"polygon","grossAmount":12.34,"fee":0.07}'::jsonb,
+           NULL, NOW(), NULL),
+          ($2, $3, 'transfer_external', 'failed', -5.00, 'USDC',
+           '{"network":"polygon","grossAmount":5,"fee":0.03}'::jsonb,
+           'Provider timeout', NOW(), NOW())
+        `,
+        [pendingId, failedId, senderWallet[0].id],
+      );
+
+      const history = await request(app.getHttpServer())
+        .get('/wallet/transactions')
+        .set('Authorization', `Bearer ${senderToken}`)
+        .query({ limit: 50 })
+        .expect(200);
+
+      const states = new Map(
+        history.body.transactions.map((transaction: any) => [
+          transaction.id,
+          transaction,
+        ]),
+      );
+
+      expect(states.get(completedTransfer.body.transactionId)).toEqual(
+        expect.objectContaining({
+          status: 'completed',
+          amountDecimal: '-7.000000',
+        }),
+      );
+      expect(states.get(pendingId)).toEqual(
+        expect.objectContaining({
+          status: 'pending',
+          amountDecimal: '-12.340000',
+        }),
+      );
+      expect(states.get(failedId)).toEqual(
+        expect.objectContaining({
+          status: 'failed',
+          amountDecimal: '-5.000000',
+          failureReason: 'Provider timeout',
+        }),
+      );
+
+      const fundedBalance = await request(app.getHttpServer())
+        .get('/wallet/balance')
+        .set('Authorization', `Bearer ${senderToken}`)
+        .expect(200);
+
+      expect(getUsdcAvailable(fundedBalance.body)).toBeGreaterThan(0);
+      expect(fundedBalance.body.balances[0]).toEqual(
+        expect.objectContaining({
+          availableDecimal: expect.any(String),
+          pendingDecimal: expect.any(String),
+          totalDecimal: expect.any(String),
+        }),
+      );
     });
 
     it('should not return other user transactions', async () => {

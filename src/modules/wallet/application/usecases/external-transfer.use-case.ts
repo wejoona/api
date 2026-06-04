@@ -92,7 +92,7 @@ export class ExternalTransferUseCase {
   ) {}
 
   async execute(input: ExternalTransferInput): Promise<ExternalTransferOutput> {
-    const currency = input.currency || 'USD';
+    const currency = input.currency || 'USDC';
 
     // Validate address format based on network
     if (!this.isValidAddress(input.toAddress, input.network)) {

@@ -56,7 +56,7 @@ export class ExternalTransferDto {
   }
 
   @ApiProperty({
-    description: 'Amount in USD to transfer',
+    description: 'Amount in USDC to transfer',
     example: 50,
     minimum: 1,
   })
@@ -65,8 +65,8 @@ export class ExternalTransferDto {
   amount: number;
 
   @ApiProperty({
-    description: 'Currency (defaults to USD)',
-    example: 'USD',
+    description: 'Currency (defaults to USDC)',
+    example: 'USDC',
     required: false,
   })
   @IsOptional()

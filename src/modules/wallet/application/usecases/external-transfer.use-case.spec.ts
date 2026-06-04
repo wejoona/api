@@ -153,7 +153,7 @@ describe('ExternalTransferUseCase', () => {
       walletId: 'wallet-id',
       toAddress: validAddress,
       amount: 100,
-      currency: 'USD',
+      currency: 'USDC',
       fee: 0.5,
       status: 'completed',
     });
@@ -182,7 +182,7 @@ describe('ExternalTransferUseCase', () => {
       subwalletId: 'omnibus-wallet-id',
       toAddress: validAddress,
       amount: 100,
-      currency: 'USD',
+      currency: 'USDC',
       network: 'polygon',
     });
     expect(ledgerProvider.commitTransaction).toHaveBeenCalledWith(

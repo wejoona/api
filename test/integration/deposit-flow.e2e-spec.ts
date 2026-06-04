@@ -392,10 +392,62 @@ describe('Deposit Flow (Integration)', () => {
           depositId: expect.any(String),
           amount: 10000,
           sourceCurrency: 'XOF',
-          targetCurrency: 'USD',
+          targetCurrency: 'USDC',
+          amountDecimal: '10000',
+          rateDecimal: expect.any(String),
+          feeDecimal: expect.any(String),
+          estimatedAmountDecimal: expect.any(String),
           paymentInstructions: expect.objectContaining({
             reference: expect.any(String),
             instructions: expect.any(String),
+          }),
+        }),
+      );
+
+      const persisted = await dataSource.query(
+        `
+        SELECT t.id, t.type, t.status, t.amount, t.currency, t.metadata
+        FROM transactions t
+        WHERE t.id = $1
+        `,
+        [response.transactionId],
+      );
+
+      expect(persisted).toHaveLength(1);
+      expect(persisted[0]).toEqual(
+        expect.objectContaining({
+          id: response.transactionId,
+          type: 'deposit',
+          status: 'pending',
+          currency: 'USDC',
+        }),
+      );
+      expect(persisted[0].metadata).toEqual(
+        expect.objectContaining({
+          sourceCurrency: 'XOF',
+          sourceAmount: 10000,
+          channelId: 'orange_money_ci',
+          depositId: response.depositId,
+        }),
+      );
+
+      const detailResponse = await request(app.getHttpServer())
+        .get(`/wallet/transactions/${response.transactionId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(detailResponse.body).toEqual(
+        expect.objectContaining({
+          id: response.transactionId,
+          type: 'deposit',
+          status: 'pending',
+          amountDecimal: expect.any(String),
+          metadata: expect.objectContaining({
+            sourceCurrency: 'XOF',
+            sourceAmount: 10000,
+            sourceAmountDecimal: '10000',
+            rateDecimal: expect.any(String),
+            feeDecimal: expect.any(String),
           }),
         }),
       );
