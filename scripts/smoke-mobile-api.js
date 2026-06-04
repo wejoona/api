@@ -126,6 +126,13 @@ async function main() {
   await expectStatus('GET', '/referrals/capability', [200], { token });
   await expectStatus('GET', '/referrals', [200], { token });
   await expectStatus('GET', '/referrals/history', [200], { token });
+  await expectStatus('POST', '/risk/session', [200], {
+    token,
+    body: {
+      deviceFingerprint: `smoke-${Date.now()}`,
+      appVersion: '1.0.0-smoke',
+    },
+  });
   await expectStatus('GET', '/risk/profile', [200], { token });
   await expectStatus('GET', '/security/addresses', [200], { token });
 
