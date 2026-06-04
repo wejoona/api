@@ -5,6 +5,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 const mockBankLinkingService = {
   getBanks: jest.fn(),
@@ -23,6 +25,21 @@ const mockBankLinkingService = {
 
 import { BankLinkingController } from '@modules/bank-linking/application/controllers/bank-linking.controller';
 import { BankLinkingService } from '@modules/bank-linking/application/services/bank-linking.service';
+
+function bankLinkingUnavailable() {
+  return AppException.badRequest(
+    ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+    'Bank linking is not available yet',
+    undefined,
+    {
+      reason: 'provider_or_feature_disabled',
+      featureReason: 'bank_linking_unavailable',
+      provider: null,
+      retryable: false,
+      supportReviewRequired: false,
+    },
+  );
+}
 
 describe('BankLinkingController (e2e)', () => {
   let app: INestApplication;
@@ -196,6 +213,39 @@ describe('BankLinkingController (e2e)', () => {
         .send({ accountNumber: '1234567890' })
         .expect(400);
     });
+
+    it('should return a deterministic unavailable-provider envelope (400)', async () => {
+      mockBankLinkingService.linkBankAccount.mockRejectedValue(
+        bankLinkingUnavailable(),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/bank-accounts')
+        .send({
+          bank_code: 'TB001',
+          account_number: '1234567890',
+          account_holder_name: 'Test User',
+          country_code: 'CI',
+        })
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+          message: 'Bank linking is not available yet',
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'bank_linking_unavailable',
+          provider: null,
+          retryable: false,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/bank-accounts',
+          method: 'POST',
+        },
+      });
+    });
   });
 
   describe('POST /api/v1/bank-accounts/:id/verify', () => {
@@ -209,6 +259,27 @@ describe('BankLinkingController (e2e)', () => {
         )
         .send({ otp: '123456' })
         .expect(201);
+    });
+
+    it('should return unavailable metadata when verification provider is disabled', async () => {
+      mockBankLinkingService.verifyBankAccount.mockRejectedValue(
+        bankLinkingUnavailable(),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(
+          '/api/v1/bank-accounts/550e8400-e29b-41d4-a716-446655440000/verify',
+        )
+        .send({ otp: '123456' })
+        .expect(400);
+
+      expect(response.body.error).toMatchObject({
+        code: ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
+        retryable: false,
+        supportReviewRequired: false,
+      });
     });
   });
 
@@ -225,6 +296,27 @@ describe('BankLinkingController (e2e)', () => {
         .send({ amount: 500 })
         .expect(201);
     });
+
+    it('should return unavailable metadata when bank deposits are disabled', async () => {
+      mockBankLinkingService.deposit.mockRejectedValue(
+        bankLinkingUnavailable(),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(
+          '/api/v1/bank-accounts/550e8400-e29b-41d4-a716-446655440000/deposit',
+        )
+        .send({ amount: 500 })
+        .expect(400);
+
+      expect(response.body.error).toMatchObject({
+        code: ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
+        retryable: false,
+        supportReviewRequired: false,
+      });
+    });
   });
 
   describe('POST /api/v1/bank-accounts/:id/withdraw', () => {
@@ -239,6 +331,27 @@ describe('BankLinkingController (e2e)', () => {
         )
         .send({ amount: 200 })
         .expect(201);
+    });
+
+    it('should return unavailable metadata when bank withdrawals are disabled', async () => {
+      mockBankLinkingService.withdraw.mockRejectedValue(
+        bankLinkingUnavailable(),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(
+          '/api/v1/bank-accounts/550e8400-e29b-41d4-a716-446655440000/withdraw',
+        )
+        .send({ amount: 200 })
+        .expect(400);
+
+      expect(response.body.error).toMatchObject({
+        code: ERROR_CODES.BANK_LINKING_UNAVAILABLE,
+        reason: 'provider_or_feature_disabled',
+        featureReason: 'bank_linking_unavailable',
+        retryable: false,
+        supportReviewRequired: false,
+      });
     });
   });
 

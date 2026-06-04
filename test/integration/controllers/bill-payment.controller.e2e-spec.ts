@@ -20,6 +20,21 @@ const PROVIDER_ID = '550e8400-e29b-41d4-a716-446655440210';
 import { BillPaymentController } from '@modules/bill-payments/application/controllers/bill-payment.controller';
 import { BillPayClientService } from '@modules/bill-payments/infrastructure/services/bill-pay-client.service';
 
+function billPaymentsUnavailable() {
+  return AppException.badRequest(
+    ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+    'Bill payments are not available right now',
+    undefined,
+    {
+      reason: 'provider_or_feature_disabled',
+      featureReason: 'bill_pay_unavailable',
+      provider: 'bill-pay',
+      retryable: true,
+      supportReviewRequired: false,
+    },
+  );
+}
+
 describe('BillPaymentController (e2e)', () => {
   let app: INestApplication;
 
@@ -106,6 +121,33 @@ describe('BillPaymentController (e2e)', () => {
         .send({ providerId: PROVIDER_ID, accountNumber: '123456' })
         .expect(200);
     });
+
+    it('should return unavailable metadata when bill validation provider is down', async () => {
+      mockBillPayClient.lookupBill.mockRejectedValue(
+        billPaymentsUnavailable(),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/bill-payments/validate')
+        .send({ providerId: PROVIDER_ID, accountNumber: '123456' })
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'bill_pay_unavailable',
+          provider: 'bill-pay',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/bill-payments/validate',
+          method: 'POST',
+        },
+      });
+    });
   });
 
   describe('POST /api/v1/bill-payments/pay', () => {
@@ -139,6 +181,37 @@ describe('BillPaymentController (e2e)', () => {
         },
         idempotencyKey,
       );
+    });
+
+    it('should return unavailable metadata when bill payment provider is down', async () => {
+      const idempotencyKey = `bill-pay-idempotency-${Date.now()}-unavailable`;
+      mockBillPayClient.payBill.mockRejectedValue(billPaymentsUnavailable());
+
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/bill-payments/pay')
+        .set('X-Idempotency-Key', idempotencyKey)
+        .send({
+          providerId: PROVIDER_ID,
+          accountNumber: '123456',
+          amount: 5000,
+        })
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.BILL_PAYMENTS_UNAVAILABLE,
+          reason: 'provider_or_feature_disabled',
+          featureReason: 'bill_pay_unavailable',
+          provider: 'bill-pay',
+          retryable: true,
+          supportReviewRequired: false,
+        },
+        meta: {
+          path: '/api/v1/bill-payments/pay',
+          method: 'POST',
+        },
+      });
     });
   });
 

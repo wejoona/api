@@ -16,7 +16,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 ## Secondary Feature Capability Surfaces
 
 - [x] Confirm cards, bank linking, bill payments, payment links, savings pots, recurring transfers, and referrals all expose capability/unavailable metadata consistently.
-- [ ] Confirm mutating endpoints for unavailable secondary features do not produce generic 400/500 messages.
+- [x] Confirm mutating endpoints for unavailable secondary features do not produce generic 400/500 messages.
 
 ## Recursive Execution Rule
 
@@ -129,3 +129,19 @@ Verification:
 
 - `npm run build`
 - `npm run test:e2e -- --runInBand --testPathPatterns="payment-link.controller|savings-pot.controller|recurring-transfer.controller|referral.controller|card.controller|bank-linking.controller|bill-payment.controller"`
+
+### Secondary Feature Mutation Failure Metadata - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Card creation already returned a coded unavailable-provider envelope when card issuing is disabled.
+- Added e2e coverage for disabled bank-linking mutation paths: link account, verify account, bank deposit, and bank withdrawal.
+- Added e2e coverage for disabled/down bill-payment mutation paths: account validation and bill payment.
+- Verified unavailable mutation envelopes include stable `reason`, `featureReason`, `provider`, `retryable`, and `supportReviewRequired` metadata instead of generic 400/500 messages.
+- Payment links, savings pots, recurring transfers, and referrals are currently API-available surfaces rather than disabled-provider surfaces, so their mutation paths were not assigned artificial unavailable behavior.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="card.controller|bank-linking.controller|bill-payment.controller"`
