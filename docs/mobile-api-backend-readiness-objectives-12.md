@@ -7,7 +7,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 - [x] Exchange-rate route parity for mobile `GET /rates/pair?from=USDC&to=XOF`.
 - [x] Legal consent route verifier coverage for mobile onboarding/settings consent calls.
 - [x] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
-- [ ] Audit/log ingestion route decision for mobile background services.
+- [x] Audit/log ingestion route decision for mobile background services.
 - [ ] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
 - [ ] Privacy/account export route parity or alias decision.
 - [ ] Expenses/insights route parity or remove from active mobile dependency graph.
@@ -84,3 +84,24 @@ Resolution:
 Verification:
 
 - `flutter test test/services/compliance/customer_compliance_boundary_test.dart`
+
+### Audit/Log Ingestion Boundary Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed state:
+
+- Mobile has dormant audit utility services with hardcoded `/audit/*` routes for login attempts, security batches, user action batches, and compliance event batches.
+- Those utility providers are not wired into normal customer features, providers, or router code.
+- Backend audit retrieval is currently admin-owned under `/admin/audit-logs`; there is no mobile-safe `/audit/*` ingestion controller.
+- Server-side wallet, auth, admin, compliance, and transaction operations remain the authoritative audit source for regulated actions.
+
+Decision:
+
+- Do not expose public customer mobile `/audit/*` ingestion in this pass.
+- Keep mobile audit ingestion dormant until the backend owns a formal ingestion contract covering authentication, rate limits, idempotency, event schema, PII filtering, retention, replay protection, and abuse handling.
+- Added a mobile architecture test preventing customer UI/navigation/provider code from depending on the inactive `/audit/*` routes.
+
+Verification:
+
+- `flutter test test/services/audit/customer_audit_ingestion_boundary_test.dart`
