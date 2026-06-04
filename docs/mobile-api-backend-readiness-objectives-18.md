@@ -24,6 +24,11 @@ Cote d'Ivoire and the United States.
   - validates selected country exists and has open onboarding
   - uses CI phone/contact/rate/deposit expectations for `COUNTRY_CODE=CI`
   - uses US phone/contact/rate/deposit expectations for `COUNTRY_CODE=US`
+- Extended smoke coverage from deposit discovery to deposit initiation:
+  - selects the first active deposit channel for the country/currency
+  - posts `/wallet/deposit`
+  - verifies `/wallet/transactions/deposit/:transactionId/status`
+  - verifies `/wallet/transactions/:transactionId`
 
 ## Verification
 

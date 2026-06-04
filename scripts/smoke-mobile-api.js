@@ -171,7 +171,7 @@ async function main() {
   await expectStatus('GET', '/user/data-export?format=json', [200], { token });
   await expectStatus('GET', '/feature-flags/me', [200], { token });
   await expectStatus('GET', '/feature-subscriptions', [200], { token });
-  await expectStatus(
+  const depositChannels = await expectStatus(
     'GET',
     `/wallet/deposit/channels?country=${countryCode}&currency=${countryProfile.depositCurrency}`,
     [200],
@@ -183,6 +183,34 @@ async function main() {
     [200],
     { token },
   );
+  const firstDepositChannel = depositChannels.data?.channels?.[0];
+  if (!firstDepositChannel?.id) {
+    throw new Error(
+      `${countryCode} ${countryProfile.depositCurrency} has no deposit channel`,
+    );
+  }
+  const depositAmount = Math.max(firstDepositChannel.minAmount || 1, 1);
+  const deposit = await expectStatus('POST', '/wallet/deposit', [201], {
+    token,
+    body: {
+      amount: depositAmount,
+      sourceCurrency: countryProfile.depositCurrency,
+      channelId: firstDepositChannel.id,
+    },
+  });
+  const transactionId = deposit.data?.transactionId;
+  if (!transactionId) {
+    throw new Error('Deposit initiation did not return transactionId');
+  }
+  await expectStatus(
+    'GET',
+    `/wallet/transactions/deposit/${transactionId}/status`,
+    [200],
+    { token },
+  );
+  await expectStatus('GET', `/wallet/transactions/${transactionId}`, [200], {
+    token,
+  });
   await expectStatus(
     'GET',
     `/wallet/exchange-rate?${countryProfile.exchangeQuery}`,
