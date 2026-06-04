@@ -10,6 +10,8 @@ export interface RegisterDeviceTokenParams {
   platform: 'ios' | 'android' | 'web';
   deviceId?: string;
   deviceName?: string;
+  appVersion?: string;
+  osVersion?: string;
 }
 
 /**
@@ -38,6 +40,8 @@ export class RegisterDeviceTokenUseCase {
       params.platform,
       params.deviceId,
       params.deviceName,
+      params.appVersion,
+      params.osVersion,
     );
 
     this.logger.log(

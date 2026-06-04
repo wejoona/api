@@ -40,7 +40,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] KYC/VerifyHQ OTP and status flow parity under real local stack.
 - [x] Contact discovery/bulk lookup performance and privacy contract audit.
 - [x] Feature subscription/waitlist payload completeness for every "stay informed" surface.
-- [ ] Background refresh, push registration, and notification unread-count recovery audit.
+- [x] Background refresh, push registration, and notification unread-count recovery audit.
 - [ ] Backend-mobile verifier must include every active mobile route family before release signoff.
 
 ## Recursive Execution Rule
@@ -304,6 +304,28 @@ Verification:
 - `npm test -- --runInBand --testPathPatterns="feature-subscription.service.spec"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="feature-subscription.controller.e2e-spec"`
 - `npm run test:contracts -- --runInBand --testPathPatterns="feature-subscription.contract"`
+- `flutter test test/services/api_contract_alignment_test.dart`
+
+### Background Notification Recovery Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Notification list, unread-count aliases, read actions, and dependency recovery envelopes already had backend/mobile coverage.
+- Push token DTOs accepted `appVersion` and `osVersion`, but the backend controller/use case/repository dropped them before persistence.
+- Mobile `NotificationsService.registerFcmToken` also accepted `deviceId`, `deviceName`, `appVersion`, and `osVersion` but sent only token/platform.
+
+Resolution:
+
+- Added nullable `app_version` and `os_version` columns to `device_tokens` via migration.
+- Passed app/OS version through notification controller, register-device-token use case, and repository upsert.
+- Updated controller e2e to prove both `/notifications/push/token` and active `/notifications/device-token` preserve runtime metadata.
+- Updated mobile notification registration to send device/app/OS metadata when provided, and direct push registration to include OS version.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller.e2e-spec"`
 - `flutter test test/services/api_contract_alignment_test.dart`
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`

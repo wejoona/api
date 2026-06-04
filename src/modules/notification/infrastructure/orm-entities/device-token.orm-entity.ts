@@ -34,6 +34,12 @@ export class DeviceTokenOrmEntity {
   @Column({ name: 'device_name', type: 'varchar', length: 255, nullable: true })
   deviceName: string | null;
 
+  @Column({ name: 'app_version', type: 'varchar', length: 50, nullable: true })
+  appVersion: string | null;
+
+  @Column({ name: 'os_version', type: 'varchar', length: 50, nullable: true })
+  osVersion: string | null;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 

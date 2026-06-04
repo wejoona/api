@@ -285,6 +285,8 @@ describe('NotificationController (e2e)', () => {
         platform: 'ios',
         deviceId: 'device-123',
         deviceName: 'Ben iPhone',
+        appVersion: '1.2.3',
+        osVersion: 'iOS 18.0',
       });
     });
   });
@@ -314,6 +316,8 @@ describe('NotificationController (e2e)', () => {
         platform: 'ios',
         deviceId: 'device-legacy-123',
         deviceName: 'Ben iPhone',
+        appVersion: '1.2.3',
+        osVersion: 'iOS 18.0',
       });
     });
   });

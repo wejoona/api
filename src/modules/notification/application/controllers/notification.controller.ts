@@ -218,6 +218,8 @@ export class NotificationController {
         platform: body.platform,
         deviceId: body.deviceId,
         deviceName: body.deviceName,
+        appVersion: body.appVersion,
+        osVersion: body.osVersion,
       });
     } catch (error) {
       this.throwDependencyUnavailable(error);
@@ -272,8 +274,8 @@ export class NotificationController {
         platform: body.platform,
         deviceId: body.deviceId,
         deviceName: body.deviceName,
-        // Note: appVersion and osVersion are accepted but not yet stored in the entity
-        // These can be added to the entity and repository in a future migration
+        appVersion: body.appVersion,
+        osVersion: body.osVersion,
       });
     } catch (error) {
       this.throwDependencyUnavailable(error);

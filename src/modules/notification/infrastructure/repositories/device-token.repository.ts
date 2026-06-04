@@ -57,6 +57,8 @@ export class DeviceTokenRepository implements IDeviceTokenRepository {
     platform: DevicePlatform,
     deviceId?: string,
     deviceName?: string,
+    appVersion?: string,
+    osVersion?: string,
   ): Promise<DeviceTokenOrmEntity> {
     const existing = await this.repository.findOne({
       where: { userId, token },
@@ -68,6 +70,8 @@ export class DeviceTokenRepository implements IDeviceTokenRepository {
       existing.platform = platform;
       if (deviceId) existing.deviceId = deviceId;
       if (deviceName) existing.deviceName = deviceName;
+      if (appVersion) existing.appVersion = appVersion;
+      if (osVersion) existing.osVersion = osVersion;
       return this.repository.save(existing);
     }
 
@@ -77,6 +81,8 @@ export class DeviceTokenRepository implements IDeviceTokenRepository {
       platform,
       deviceId,
       deviceName,
+      appVersion,
+      osVersion,
       isActive: true,
       lastUsedAt: new Date(),
     });
