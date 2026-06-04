@@ -40,6 +40,9 @@ export * from './feature-flag.contract';
 // Secondary feature capability contracts
 export * from './secondary-feature.contract';
 
+// Referral contracts
+export * from './referral.contract';
+
 // App config contracts
 export * from './app-config.contract';
 
@@ -58,6 +61,7 @@ import { NotificationContractGroup } from './notification.contract';
 import { DeviceSessionContractGroup } from './device-session.contract';
 import { FeatureFlagContractGroup } from './feature-flag.contract';
 import { SecondaryFeatureContractGroup } from './secondary-feature.contract';
+import { ReferralContractGroup } from './referral.contract';
 import { FeatureSubscriptionContractGroup } from './feature-subscription.contract';
 import { AppConfigContractGroup } from './app-config.contract';
 import { HealthContractGroup } from './health.contract';
@@ -74,6 +78,7 @@ export const AllContractGroups = [
   DeviceSessionContractGroup,
   FeatureFlagContractGroup,
   SecondaryFeatureContractGroup,
+  ReferralContractGroup,
   FeatureSubscriptionContractGroup,
   AppConfigContractGroup,
   HealthContractGroup,
