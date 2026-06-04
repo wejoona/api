@@ -8,7 +8,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 - [x] Legal consent route verifier coverage for mobile onboarding/settings consent calls.
 - [x] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
 - [x] Audit/log ingestion route decision for mobile background services.
-- [ ] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
+- [x] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
 - [ ] Privacy/account export route parity or alias decision.
 - [ ] Expenses/insights route parity or remove from active mobile dependency graph.
 
@@ -105,3 +105,26 @@ Decision:
 Verification:
 
 - `flutter test test/services/audit/customer_audit_ingestion_boundary_test.dart`
+
+### AML/Fraud Mobile Boundary Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed state:
+
+- Active send and withdrawal flows use backend-owned `/step-up/transaction`, with fallback to local verification if risk evaluation is unavailable.
+- Active mobile session/profile risk routes are `/risk/session` and `/risk/profile`, already covered by `risk.controller` e2e.
+- Whitelisted external address management uses `/security/addresses/*`, already covered by `whitelisted-address.controller` e2e.
+- Mobile contains dormant AML/fraud utility services with `/aml/*` and `/fraud/*` route strings that do not exist as customer-safe backend controllers.
+- Mobile also contains an address pre-screen helper for `/risk/screen-address`; backend performs address screening server-side through transaction/risk services, but no mobile-safe public route exists for that helper.
+
+Decision:
+
+- Keep active customer flows on `/step-up/*`, `/risk/session`, `/risk/profile`, and `/security/addresses/*`.
+- Do not expose `/aml/*`, `/fraud/*`, or `/risk/screen-address` to customer mobile in this pass.
+- Final AML, sanctions, and address-screening enforcement stays backend-side during money movement.
+- Added a mobile architecture test preventing dormant AML/fraud/address-screening helpers from being wired into customer UI/provider code.
+
+Verification:
+
+- `flutter test test/services/risk/customer_aml_fraud_boundary_test.dart`
