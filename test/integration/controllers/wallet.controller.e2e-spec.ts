@@ -253,10 +253,18 @@ describe('WalletController (e2e)', () => {
     });
 
     it('should return 400 for missing amount', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/deposit')
         .send({ sourceCurrency: 'XOF' })
         .expect(400);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          details: expect.arrayContaining([expect.stringContaining('amount')]),
+        },
+      });
     });
   });
 
@@ -474,6 +482,29 @@ describe('WalletController (e2e)', () => {
           method: 'POST',
         },
       });
+    });
+
+    it('should return validation details without echoing PIN or token values (400)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/wallet/pin/verify')
+        .send({
+          pin: '12ab',
+          clientToken: 'tok_secret_123456',
+        })
+        .expect(400);
+
+      const serialized = JSON.stringify(res.body);
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          details: expect.arrayContaining([
+            expect.stringContaining('PIN must contain only digits'),
+          ]),
+        },
+      });
+      expect(serialized).not.toContain('12ab');
+      expect(serialized).not.toContain('tok_secret_123456');
     });
   });
 

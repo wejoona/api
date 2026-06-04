@@ -117,6 +117,33 @@ describe('CardController (e2e)', () => {
         },
       });
     });
+
+    it('should return validation details without echoing card secrets (400)', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/cards')
+        .send({
+          cardholderName: '',
+          spendingLimit: 'large',
+          cardType: 'virtual',
+          cvv: '999',
+          providerPayload: 'issuer-secret-payload',
+        })
+        .expect(400);
+
+      const serialized = JSON.stringify(response.body);
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          details: expect.arrayContaining([
+            expect.stringContaining('cardholderName'),
+            expect.stringContaining('spendingLimit'),
+          ]),
+        },
+      });
+      expect(serialized).not.toContain('999');
+      expect(serialized).not.toContain('issuer-secret-payload');
+    });
   });
 
   describe('GET /api/v1/cards/:id', () => {
