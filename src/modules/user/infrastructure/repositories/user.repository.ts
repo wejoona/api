@@ -138,14 +138,34 @@ export class UserRepository {
     return orms.map((orm) => UserMapper.toDomain(orm));
   }
 
+  async findActiveVerifiedByPhoneHashes(
+    phoneHashes: string[],
+    limit = 500,
+  ): Promise<User[]> {
+    const uniqueHashes = this.normalizePhoneHashes(phoneHashes).slice(
+      0,
+      limit,
+    );
+    if (uniqueHashes.length === 0) return [];
+
+    const orms = await this.ormRepository
+      .createQueryBuilder('user')
+      .where('user.phoneHash IN (:...phoneHashes)', {
+        phoneHashes: uniqueHashes,
+      })
+      .andWhere('user.status = :status', { status: 'active' })
+      .andWhere('user.phoneVerified = :phoneVerified', {
+        phoneVerified: true,
+      })
+      .getMany();
+    return orms.map((orm) => UserMapper.toDomain(orm));
+  }
+
   async findByPhoneHashes(phoneHashes: string[], limit = 500): Promise<User[]> {
-    const uniqueHashes = [
-      ...new Set(
-        phoneHashes
-          .map((hash) => hash.trim().toLowerCase())
-          .filter((hash) => /^[a-f0-9]{64}$/.test(hash)),
-      ),
-    ].slice(0, limit);
+    const uniqueHashes = this.normalizePhoneHashes(phoneHashes).slice(
+      0,
+      limit,
+    );
 
     if (uniqueHashes.length === 0) return [];
 
@@ -173,6 +193,12 @@ export class UserRepository {
 
   hashPhoneForLookup(phone: string): string {
     return this.hashPhone(phone);
+  }
+
+  maskPhoneForLookup(phone: string): string {
+    const normalized = this.normalizePhoneE164(phone);
+    if (normalized.length <= 8) return `${normalized.slice(0, 4)}****`;
+    return `${normalized.slice(0, 6)}****${normalized.slice(-2)}`;
   }
 
   /**
@@ -214,6 +240,16 @@ export class UserRepository {
     return createHash('sha256')
       .update(this.normalizePhoneE164(phone))
       .digest('hex');
+  }
+
+  private normalizePhoneHashes(phoneHashes: string[]): string[] {
+    return [
+      ...new Set(
+        phoneHashes
+          .map((hash) => hash.trim().toLowerCase())
+          .filter((hash) => /^[a-f0-9]{64}$/.test(hash)),
+      ),
+    ];
   }
 
   private normalizePhoneE164(phone: string): string {

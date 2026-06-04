@@ -212,7 +212,7 @@ export class ContactController {
   @ApiOperation({
     summary: 'Check which phone numbers are registered Korido users',
     description:
-      'Accepts up to 500 phone numbers and returns matching registered users.',
+      'Accepts up to 500 phone hashes and returns matching registered users without exposing raw phone book entries.',
   })
   @ApiResponse({ status: 200, description: 'Registered users found' })
   @Throttle({ default: { ttl: 60000, limit: 5 } })
@@ -220,17 +220,27 @@ export class ContactController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CheckContactsDto,
   ) {
-    const users = await this.userRepository.findActiveVerifiedByPhones(
-      dto.phoneNumbers,
+    const phoneHashes =
+      dto.phoneHashes?.map((hash) => hash.trim().toLowerCase()) ??
+      dto.phoneNumbers?.map((phone) =>
+        this.userRepository.hashPhoneForLookup(phone),
+      ) ??
+      [];
+    const users = await this.userRepository.findActiveVerifiedByPhoneHashes(
+      phoneHashes,
     );
 
     return {
+      totalChecked: phoneHashes.length,
       registered: users
         .filter((u) => u.id !== req.user.id)
         .map((u) => ({
-          phone: u.phone,
+          phoneHash: this.userRepository.hashPhoneForLookup(u.phone),
+          maskedPhone: this.userRepository.maskPhoneForLookup(u.phone),
           userId: u.id,
           displayName: u.displayName,
+          avatarUrl: u.avatarUrl || null,
+          isKoridoUser: true,
         })),
     };
   }

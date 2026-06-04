@@ -1,15 +1,40 @@
-import { IsArray, IsString, ArrayMaxSize, ArrayMinSize } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  ArrayMaxSize,
+  ArrayMinSize,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CheckContactsDto {
   @ApiProperty({
-    description: 'Phone numbers in international format to check',
+    description:
+      'SHA-256 hashes of normalized E.164 phone numbers. Preferred for privacy-preserving lookup.',
+    example: ['a'.repeat(64), 'b'.repeat(64)],
+    maxItems: 500,
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(/^[a-fA-F0-9]{64}$/, { each: true })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  phoneHashes?: string[];
+
+  @ApiProperty({
+    description:
+      'Deprecated compatibility field. Phone numbers are hashed immediately and are not returned.',
     example: ['+2250701234567', '+221771234567'],
     maxItems: 500,
+    required: false,
   })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   @ArrayMinSize(1)
   @ArrayMaxSize(500)
-  phoneNumbers: string[];
+  phoneNumbers?: string[];
 }

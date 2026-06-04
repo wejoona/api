@@ -138,6 +138,64 @@ export const SearchContactsQuerySchema: ContractSchema = {
   },
 };
 
+export const CheckContactsRequestSchema: ContractSchema = {
+  name: 'CheckContactsRequest',
+  description: 'Privacy-preserving contact discovery request',
+  fields: {
+    phoneHashes: required(FieldType.ARRAY, {
+      description: 'SHA-256 hashes of normalized E.164 phone numbers',
+      itemType: FieldType.STRING,
+    }),
+  },
+};
+
+export const RegisteredContactSchema: ContractSchema = {
+  name: 'RegisteredContact',
+  description: 'Registered Korido user match for a contact hash',
+  fields: {
+    phoneHash: required(FieldType.STRING, {
+      description: 'Matched phone hash',
+      pattern: '^[a-f0-9]{64}$',
+      example: 'a'.repeat(64),
+    }),
+    maskedPhone: required(FieldType.STRING, {
+      description: 'Masked E.164 phone number',
+      example: '+22507****71',
+    }),
+    userId: required(FieldType.UUID, {
+      description: 'Matched user id',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    displayName: nullable(FieldType.STRING, {
+      description: 'Display name',
+      example: 'Ama Kone',
+    }),
+    avatarUrl: nullable(FieldType.STRING, {
+      description: 'Avatar URL',
+      example: 'https://example.com/avatar.png',
+    }),
+    isKoridoUser: required(FieldType.BOOLEAN, {
+      description: 'Whether this contact is a Korido user',
+      example: true,
+    }),
+  },
+};
+
+export const CheckContactsResponseSchema: ContractSchema = {
+  name: 'CheckContactsResponse',
+  description: 'Registered Korido users found from hashed contact lookup',
+  fields: {
+    totalChecked: required(FieldType.NUMBER, {
+      description: 'Number of submitted hashes checked',
+      example: 2,
+    }),
+    registered: required(FieldType.ARRAY, {
+      description: 'Registered Korido user matches',
+      itemType: RegisteredContactSchema,
+    }),
+  },
+};
+
 // ============================================
 // Error Schemas
 // ============================================
@@ -308,6 +366,18 @@ export const DeleteContactEndpoint: EndpointContract = {
   },
 };
 
+export const CheckContactsEndpoint: EndpointContract = {
+  method: 'POST',
+  path: '/contacts/check',
+  description: 'Check hashed phone contacts against registered Korido users',
+  auth: 'bearer',
+  requestBody: CheckContactsRequestSchema,
+  responses: {
+    200: CheckContactsResponseSchema,
+    400: ContactErrorSchema,
+  },
+};
+
 // ============================================
 // Contract Group
 // ============================================
@@ -325,5 +395,6 @@ export const ContactContractGroup: ContractGroup = {
     UpdateContactEndpoint,
     ToggleFavoriteEndpoint,
     DeleteContactEndpoint,
+    CheckContactsEndpoint,
   ],
 };

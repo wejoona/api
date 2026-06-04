@@ -23,6 +23,9 @@ const mockContactService = {
 
 const mockUserRepository = {
   findActiveVerifiedByPhones: jest.fn(),
+  findActiveVerifiedByPhoneHashes: jest.fn(),
+  hashPhoneForLookup: jest.fn((phone: string) => `hash:${phone}`),
+  maskPhoneForLookup: jest.fn((phone: string) => `${phone.slice(0, 6)}****`),
 };
 
 describe('ContactController (e2e)', () => {
@@ -44,6 +47,12 @@ describe('ContactController (e2e)', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUserRepository.hashPhoneForLookup.mockImplementation(
+      (phone: string) => `hash:${phone}`,
+    );
+    mockUserRepository.maskPhoneForLookup.mockImplementation(
+      (phone: string) => `${phone.slice(0, 6)}****`,
+    );
   });
 
   describe('POST /api/v1/contacts', () => {
@@ -152,8 +161,15 @@ describe('ContactController (e2e)', () => {
   });
 
   describe('POST /api/v1/contacts/check', () => {
-    it('should check contacts against active verified users and exclude self', async () => {
-      mockUserRepository.findActiveVerifiedByPhones.mockResolvedValue([
+    it('should check contact hashes against active verified users and exclude self without returning raw phones', async () => {
+      const currentUserHash = 'a'.repeat(64);
+      const knownUserHash = 'b'.repeat(64);
+      mockUserRepository.hashPhoneForLookup.mockImplementation(
+        (phone: string) =>
+          phone === TEST_USER.phone ? currentUserHash : knownUserHash,
+      );
+      mockUserRepository.maskPhoneForLookup.mockReturnValue('+22507****71');
+      mockUserRepository.findActiveVerifiedByPhoneHashes.mockResolvedValue([
         {
           id: TEST_USER.id,
           phone: TEST_USER.phone,
@@ -163,26 +179,54 @@ describe('ContactController (e2e)', () => {
           id: '550e8400-e29b-41d4-a716-446655440099',
           phone: '+2250701234571',
           displayName: 'Known User',
+          avatarUrl: 'https://example.com/avatar.png',
         },
       ]);
 
       await request(app.getHttpServer())
         .post('/api/v1/contacts/check')
-        .send({ phoneNumbers: [TEST_USER.phone, '+2250701234571'] })
+        .send({ phoneHashes: [currentUserHash, knownUserHash] })
         .expect(200)
         .expect(({ body }) => {
+          expect(body.totalChecked).toBe(2);
           expect(body.registered).toEqual([
             {
-              phone: '+2250701234571',
+              phoneHash: knownUserHash,
+              maskedPhone: '+22507****71',
               userId: '550e8400-e29b-41d4-a716-446655440099',
               displayName: 'Known User',
+              avatarUrl: 'https://example.com/avatar.png',
+              isKoridoUser: true,
             },
           ]);
+          expect(JSON.stringify(body)).not.toContain('+2250701234571');
         });
 
       expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).toHaveBeenCalledWith([currentUserHash, knownUserHash]);
+    });
+
+    it('should hash deprecated raw phone inputs before lookup', async () => {
+      mockUserRepository.hashPhoneForLookup.mockImplementation(
+        (phone: string) => `hashed-${phone}`,
+      );
+      mockUserRepository.findActiveVerifiedByPhoneHashes.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/check')
+        .send({ phoneNumbers: ['+2250701234571'] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ totalChecked: 1, registered: [] });
+        });
+
+      expect(
+        mockUserRepository.findActiveVerifiedByPhoneHashes,
+      ).toHaveBeenCalledWith(['hashed-+2250701234571']);
+      expect(
         mockUserRepository.findActiveVerifiedByPhones,
-      ).toHaveBeenCalledWith([TEST_USER.phone, '+2250701234571']);
+      ).not.toHaveBeenCalled();
     });
   });
 

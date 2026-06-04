@@ -7,6 +7,7 @@
 import {
   ContactSchema,
   ContactListResponseSchema,
+  CheckContactsResponseSchema,
 } from '../schemas/contact.contract';
 import { validateSchema } from '../validators/schema-validator';
 
@@ -335,6 +336,46 @@ describe('Contact Contracts', () => {
 
       const result = validateSchema(response, ContactListResponseSchema);
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('POST /contacts/check - Registered Contact Lookup', () => {
+    it('should validate hashed lookup response without raw phone numbers', () => {
+      const response = {
+        totalChecked: 2,
+        registered: [
+          {
+            phoneHash: 'a'.repeat(64),
+            maskedPhone: '+22507****71',
+            userId: '123e4567-e89b-12d3-a456-426614174000',
+            displayName: 'Ama Kone',
+            avatarUrl: null,
+            isKoridoUser: true,
+          },
+        ],
+      };
+
+      const result = validateSchema(response, CheckContactsResponseSchema);
+      expect(result.valid).toBe(true);
+      expect(JSON.stringify(response)).not.toContain('+2250701234571');
+    });
+
+    it('should fail if phoneHash is missing from a registered match', () => {
+      const response = {
+        totalChecked: 1,
+        registered: [
+          {
+            maskedPhone: '+22507****71',
+            userId: '123e4567-e89b-12d3-a456-426614174000',
+            displayName: 'Ama Kone',
+            avatarUrl: null,
+            isKoridoUser: true,
+          },
+        ],
+      };
+
+      const result = validateSchema(response, CheckContactsResponseSchema);
+      expect(result.valid).toBe(false);
     });
   });
 });
