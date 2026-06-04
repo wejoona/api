@@ -4,6 +4,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
+import { AppException } from '@/common/exceptions';
 
 const mockPaymentLinkService = {
   createPaymentLink: jest.fn(),
@@ -129,6 +130,28 @@ describe('PaymentLinkController (e2e)', () => {
           expect(body.shortCode).toBe('PAY123ABC');
           expect(body.recipientName).toBe('Korido user');
         });
+    });
+
+    it('should return a deterministic forbidden ownership envelope (403)', async () => {
+      mockPaymentLinkService.getPaymentLinkById.mockRejectedValue(
+        AppException.forbidden('PAYMENT_LINK_FORBIDDEN', 'Access denied'),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000')
+        .expect(403);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'PAYMENT_LINK_FORBIDDEN',
+          message: 'Access denied',
+        },
+        meta: {
+          path: '/api/v1/payment-links/550e8400-e29b-41d4-a716-446655440000',
+          method: 'GET',
+        },
+      });
     });
   });
 

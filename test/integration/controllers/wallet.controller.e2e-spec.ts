@@ -2,10 +2,12 @@
  * Wallet Controller Integration Tests
  */
 
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, NotFoundException } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp, TEST_USER } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 const mockGetBalance = { execute: jest.fn() };
 const mockGetDepositChannels = { execute: jest.fn() };
@@ -164,6 +166,28 @@ describe('WalletController (e2e)', () => {
         }),
       );
     });
+
+    it('should return a mobile-safe missing wallet envelope (404)', async () => {
+      mockGetBalance.execute.mockRejectedValue(
+        new NotFoundException('Wallet not found'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/wallet')
+        .expect(404);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Wallet not found',
+        },
+        meta: {
+          path: '/api/v1/wallet',
+          method: 'GET',
+        },
+      });
+    });
   });
 
   describe('POST /api/v1/wallet/create', () => {
@@ -286,6 +310,36 @@ describe('WalletController (e2e)', () => {
         .send({ amount: 50 })
         .expect(400);
     });
+
+    it('should return a deterministic insufficient funds envelope (400)', async () => {
+      mockInternalTransfer.execute.mockRejectedValue(
+        AppException.badRequest(
+          ERROR_CODES.TRANSFER_INSUFFICIENT_FUNDS,
+          'Insufficient balance',
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/wallet/transfer/internal')
+        .send({
+          toPhone: '+2250701234568',
+          amount: 5000,
+          currency: 'USDC',
+        })
+        .expect(400);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.TRANSFER_INSUFFICIENT_FUNDS,
+          message: 'Insufficient balance',
+        },
+        meta: {
+          path: '/api/v1/wallet/transfer/internal',
+          method: 'POST',
+        },
+      });
+    });
   });
 
   describe('POST /api/v1/wallet/transfer/external', () => {
@@ -397,6 +451,29 @@ describe('WalletController (e2e)', () => {
         .post('/api/v1/wallet/pin/verify')
         .send({ pin: '1234' })
         .expect(200);
+    });
+
+    it('should return a deterministic invalid PIN envelope (400)', async () => {
+      mockVerifyPin.execute.mockRejectedValue(
+        AppException.badRequest(ERROR_CODES.PIN_INCORRECT, 'Invalid PIN'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/wallet/pin/verify')
+        .send({ pin: '0000' })
+        .expect(400);
+
+      expect(res.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.PIN_INCORRECT,
+          message: 'Invalid PIN',
+        },
+        meta: {
+          path: '/api/v1/wallet/pin/verify',
+          method: 'POST',
+        },
+      });
     });
   });
 

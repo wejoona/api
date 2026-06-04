@@ -5,7 +5,7 @@ Purpose: harden the API beyond route existence and happy-path contracts. Focus o
 ## Error Semantics And Domain Codes
 
 - [x] Replace generic mobile-facing money-movement exceptions with `AppException` codes where clients need deterministic handling.
-- [ ] Add endpoint-level negative-path e2e coverage for representative unavailable, forbidden ownership, insufficient funds, invalid PIN, and missing wallet envelopes.
+- [x] Add endpoint-level negative-path e2e coverage for representative unavailable, forbidden ownership, insufficient funds, invalid PIN, and missing wallet envelopes.
 - [ ] Confirm validation errors expose field-level details without leaking secrets or provider internals.
 
 ## Financial Operation Integrity

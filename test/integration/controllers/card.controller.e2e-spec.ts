@@ -5,6 +5,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { CardEntity } from '@modules/cards/domain/entities/card.entity';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 const mockCardService = {
   getCards: jest.fn(),
@@ -84,6 +86,36 @@ describe('CardController (e2e)', () => {
           cardType: 'virtual',
         })
         .expect(201);
+    });
+
+    it('should return a deterministic unavailable-provider envelope (400)', async () => {
+      mockCardService.createCard.mockRejectedValue(
+        AppException.badRequest(
+          ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
+          'Card issuing is not available yet',
+        ),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/cards')
+        .send({
+          cardholderName: 'Test User',
+          spendingLimit: 5000,
+          cardType: 'virtual',
+        })
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
+          message: 'Card issuing is not available yet',
+        },
+        meta: {
+          path: '/api/v1/cards',
+          method: 'POST',
+        },
+      });
     });
   });
 
