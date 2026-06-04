@@ -50,6 +50,7 @@ import { SessionModule } from './modules/session/session.module';
 import { BeneficiaryModule } from './modules/beneficiary/beneficiary.module';
 import { BankLinkingModule } from './modules/bank-linking/bank-linking.module';
 import { FeatureFlagModule } from './modules/feature-flag/feature-flag.module';
+import { FeatureSubscriptionsModule } from './modules/feature-subscriptions';
 import { RecurringTransferModule } from './modules/recurring-transfers/recurring-transfer.module';
 import { DepositModule } from './modules/deposit/deposit.module';
 import { WithdrawalModule } from './modules/withdrawal/withdrawal.module';
@@ -258,12 +259,15 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     HealthModule,
     MetricsModule,
     SecurityModule,
-    ...(process.env.PULSAR_ENABLED === 'true' ? [require('./modules/messaging/messaging.module').MessagingModule] : []),
+    ...(process.env.PULSAR_ENABLED === 'true'
+      ? [require('./modules/messaging/messaging.module').MessagingModule]
+      : []),
     RiskModule,
     LegalModule,
     ContactsModule,
     UserPreferencesModule,
     FeatureFlagModule, // Feature flags for gradual rollout
+    FeatureSubscriptionsModule, // Waitlist/newsletter interest for gated product surfaces
     ApiKeysModule, // External API key management
     UploadModule, // S3 document upload
     KycModule, // KYC verification flow
