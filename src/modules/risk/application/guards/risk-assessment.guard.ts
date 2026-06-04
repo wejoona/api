@@ -24,6 +24,9 @@ export interface RiskCheckOptions {
   amountField?: string;
   currencyField?: string;
   recipientField?: string;
+  recipientType?: 'internal' | 'external' | 'merchant';
+  destinationAddressField?: string;
+  blockchainField?: string;
   skipSanctionsCheck?: boolean;
 }
 
@@ -107,6 +110,12 @@ export class RiskAssessmentGuard implements CanActivate {
     const recipientId = options.recipientField
       ? body[options.recipientField]
       : body.recipientId;
+    const destinationAddress = options.destinationAddressField
+      ? body[options.destinationAddressField]
+      : body.destinationAddress || body.toAddress || body.address;
+    const blockchain = options.blockchainField
+      ? this.mapBlockchain(body[options.blockchainField])
+      : this.mapBlockchain(body.network);
 
     // Get device fingerprint from headers
     const deviceFingerprint = this.extractDeviceFingerprint(request);
@@ -123,10 +132,14 @@ export class RiskAssessmentGuard implements CanActivate {
         amount: parseFloat(amount) || 0,
         currency,
         recipientId,
-        recipientType: await this.determineRecipientType(recipientId),
+        recipientType:
+          options.recipientType ||
+          (await this.determineRecipientType(recipientId)),
         channel: this.determineChannel(request),
         deviceFingerprint,
         skipSanctionsCheck: options.skipSanctionsCheck,
+        destinationAddress,
+        blockchain,
       });
 
       // Attach risk assessment to request for use in controller
@@ -247,5 +260,28 @@ export class RiskAssessmentGuard implements CanActivate {
     if (platform === 'ios' || platform === 'android') return 'mobile';
     if (request.headers['x-api-client']) return 'api';
     return 'web';
+  }
+
+  private mapBlockchain(network?: string): string | undefined {
+    if (!network) return undefined;
+
+    const normalized = network.toLowerCase();
+    const map: Record<string, string> = {
+      polygon: 'MATIC',
+      matic: 'MATIC',
+      ethereum: 'ETH',
+      eth: 'ETH',
+      base: 'BASE',
+      arbitrum: 'ARB',
+      arb: 'ARB',
+      avalanche: 'AVAX',
+      avax: 'AVAX',
+      optimism: 'OP',
+      op: 'OP',
+      solana: 'SOL',
+      sol: 'SOL',
+    };
+
+    return map[normalized] || network.toUpperCase();
   }
 }

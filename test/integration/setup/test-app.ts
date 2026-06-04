@@ -29,6 +29,7 @@ import { UserRepository } from '@/modules/user/infrastructure/repositories';
 import { JweDecryptInterceptor } from '@/modules/security/application/interceptors/jwe-decrypt.interceptor';
 import { ServerKeyService } from '@/modules/security/application/services/server-key.service';
 import { GlobalExceptionFilter } from '@/common/filters/http-exception.filter';
+import { RiskAssessmentGuard } from '@/modules/risk/application/guards/risk-assessment.guard';
 
 /**
  * Default mock user for authenticated requests
@@ -131,6 +132,20 @@ export class MockThrottlerGuard implements CanActivate {
 
 export class MockIdempotencyGuard implements CanActivate {
   canActivate(): boolean {
+    return true;
+  }
+}
+
+export class MockRiskAssessmentGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest();
+    req.riskAssessment = {
+      allowed: true,
+      requiresStepUp: false,
+      riskScore: 20,
+      riskLevel: 'low',
+      mocked: true,
+    };
     return true;
   }
 }
@@ -342,7 +357,9 @@ export async function createTestApp(options: TestAppOptions): Promise<{
     .overrideGuard(ThrottlerGuard)
     .useClass(MockThrottlerGuard)
     .overrideGuard(IdempotencyGuard)
-    .useClass(MockIdempotencyGuard);
+    .useClass(MockIdempotencyGuard)
+    .overrideGuard(RiskAssessmentGuard)
+    .useClass(MockRiskAssessmentGuard);
 
   const module = await moduleBuilder.compile();
   const app = module.createNestApplication();
@@ -391,7 +408,9 @@ export async function createUnauthTestApp(
     .overrideGuard(ThrottlerGuard)
     .useClass(MockThrottlerGuard)
     .overrideGuard(IdempotencyGuard)
-    .useClass(MockIdempotencyGuard);
+    .useClass(MockIdempotencyGuard)
+    .overrideGuard(RiskAssessmentGuard)
+    .useClass(MockRiskAssessmentGuard);
 
   const module = await moduleBuilder.compile();
   const app = module.createNestApplication();

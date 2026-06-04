@@ -26,6 +26,10 @@ import { JwtAuthGuard, AuthenticatedRequest } from '../../../../common/guards';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
 import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
+  RiskAssessmentGuard,
+  RiskCheck,
+} from '../../../risk/application/guards/risk-assessment.guard';
+import {
   InitiateDepositDto,
   InternalTransferDto,
   ExternalTransferDto,
@@ -184,6 +188,13 @@ export class WalletController {
   @Post('deposit')
   @SensitiveEndpoint()
   @HttpCode(HttpStatus.CREATED)
+  @RiskCheck({
+    transactionType: 'deposit',
+    amountField: 'amount',
+    currencyField: 'sourceCurrency',
+    skipSanctionsCheck: true,
+  })
+  @UseGuards(RiskAssessmentGuard)
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Initiate a deposit (XOF → USD)' })
   @ApiHeader({
@@ -365,7 +376,14 @@ export class WalletController {
   @Post('transfer/internal')
   @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(PinVerificationGuard)
+  @RiskCheck({
+    transactionType: 'transfer',
+    amountField: 'amount',
+    currencyField: 'currency',
+    recipientType: 'internal',
+    skipSanctionsCheck: true,
+  })
+  @UseGuards(PinVerificationGuard, RiskAssessmentGuard)
   @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Transfer to another user by phone number' })
@@ -425,7 +443,14 @@ export class WalletController {
   @Post('transfer/external')
   @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(PinVerificationGuard)
+  @RiskCheck({
+    transactionType: 'withdrawal',
+    amountField: 'amount',
+    currencyField: 'currency',
+    recipientType: 'external',
+    blockchainField: 'network',
+  })
+  @UseGuards(PinVerificationGuard, RiskAssessmentGuard)
   @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Transfer to external wallet address (USDC)' })
@@ -567,7 +592,14 @@ export class WalletController {
   @Post('withdraw')
   @SensitiveEndpoint()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(PinVerificationGuard)
+  @RiskCheck({
+    transactionType: 'withdrawal',
+    amountField: 'amount',
+    recipientType: 'external',
+    destinationAddressField: 'destinationAddress',
+    blockchainField: 'network',
+  })
+  @UseGuards(PinVerificationGuard, RiskAssessmentGuard)
   @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Withdraw USDC to external wallet address' })
@@ -795,7 +827,10 @@ export class WalletController {
     status: 400,
     description: 'Invalid PIN or PINs do not match',
   })
-  async setPin(@Request() req: AuthenticatedRequest, @Body() dto: WalletSetPinDto) {
+  async setPin(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: WalletSetPinDto,
+  ) {
     return this.setPinUseCase.execute({
       userId: req.user.id,
       pin: dto.pin,
