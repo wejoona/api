@@ -7,11 +7,13 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '@common/guards/pin-verification.guard';
+import { IdempotencyInterceptor } from '@common/interceptors';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { BankLinkingService } from '../services/bank-linking.service';
 import {
@@ -129,6 +131,7 @@ export class BankLinkingController {
    */
   @Post('bank-accounts/:id/deposit')
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   async deposit(
     @CurrentUser() user: any,
     @Param('id') id: string,
@@ -147,6 +150,7 @@ export class BankLinkingController {
    */
   @Post('bank-accounts/:id/withdraw')
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   async withdraw(
     @CurrentUser() user: any,
     @Param('id') id: string,

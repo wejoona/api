@@ -8,12 +8,14 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
+import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   ApiTags,
   ApiOperation,
@@ -210,6 +212,7 @@ export class PaymentLinkController {
   @Post('code/:code/pay')
   @Throttle({ default: { ttl: 60000, limit: 5 } })
   @UseGuards(JwtAuthGuard, PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiBearerAuth()
   @ApiHeader({
     name: 'X-Pin-Token',

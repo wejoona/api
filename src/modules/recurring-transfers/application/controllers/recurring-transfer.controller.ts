@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
   ParseUUIDPipe,
   ParseIntPipe,
   BadRequestException,
@@ -16,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
+import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { RecurringTransferService } from '../services/recurring-transfer.service';
 import { CreateRecurringTransferDto } from '../dto/create-recurring-transfer.dto';
@@ -116,6 +118,7 @@ export class RecurringTransferController {
 
   @Post()
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Create a recurring transfer (requires PIN)' })
   @ApiHeader({
     name: 'X-Pin-Token',
@@ -153,6 +156,8 @@ export class RecurringTransferController {
   }
 
   @Patch(':id')
+  @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Update a recurring transfer' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,

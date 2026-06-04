@@ -7,12 +7,14 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PinVerificationGuard } from '../../../../common/guards/pin-verification.guard';
+import { IdempotencyInterceptor } from '../../../../common/interceptors';
 import {
   ApiTags,
   ApiOperation,
@@ -114,6 +116,7 @@ export class SavingsPotController {
   @Post(':id/deposit')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Deposit funds to a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Deposit successful' })
@@ -134,6 +137,7 @@ export class SavingsPotController {
   @Post(':id/withdraw')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Withdraw funds from a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Withdrawal successful' })
@@ -154,6 +158,7 @@ export class SavingsPotController {
   @Post(':id/withdraw-all')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PinVerificationGuard)
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Withdraw all funds from a savings pot' })
   @ApiParam({ name: 'id', description: 'Savings pot UUID' })
   @ApiResponse({ status: 200, description: 'Full withdrawal successful' })
