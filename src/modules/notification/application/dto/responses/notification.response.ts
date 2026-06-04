@@ -3,6 +3,10 @@ import {
   NotificationType,
   NotificationStatus,
 } from '@modules/notification/infrastructure/orm-entities/notification.orm-entity';
+import {
+  NotificationPresentationType,
+  NotificationSeverity,
+} from '../../domain/mappers/notification-presentation.mapper';
 
 export class NotificationResponse {
   @ApiProperty({
@@ -30,6 +34,51 @@ export class NotificationResponse {
     example: 'transfer_received',
   })
   type: NotificationType;
+
+  @ApiProperty({
+    description: 'Stable mobile display type derived from backend type',
+    enum: [
+      'transactionComplete',
+      'transactionFailed',
+      'securityAlert',
+      'promotion',
+      'lowBalance',
+      'general',
+      'transfer',
+      'deposit',
+      'withdrawal',
+      'security',
+      'kyc',
+      'newDeviceLogin',
+      'largeTransaction',
+      'withdrawalPending',
+      'addressWhitelisted',
+      'priceAlert',
+      'weeklySpendingSummary',
+    ],
+    example: 'transfer',
+  })
+  presentationType: NotificationPresentationType;
+
+  @ApiProperty({
+    description: 'Stable severity for mobile color and priority treatment',
+    enum: ['info', 'success', 'warning', 'critical'],
+    example: 'success',
+  })
+  severity: NotificationSeverity;
+
+  @ApiProperty({
+    description: 'Stable mobile action target for notification taps',
+    enum: [
+      'open_transaction',
+      'open_kyc',
+      'open_security',
+      'open_wallet',
+      'none',
+    ],
+    example: 'open_transaction',
+  })
+  action: 'open_transaction' | 'open_kyc' | 'open_security' | 'open_wallet' | 'none';
 
   @ApiProperty({
     description: 'Notification status',

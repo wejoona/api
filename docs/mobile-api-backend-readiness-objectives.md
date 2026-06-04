@@ -55,7 +55,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 
 - [x] Verify notification feed, unread count, and preferences endpoints against live local API.
 - [ ] Verify mark-read and mark-all-read endpoints against live local API.
-- [ ] Ensure backend notification color/type/severity maps are stable enough for mobile UI styling.
+- [x] Ensure backend notification color/type/severity maps are stable enough for mobile UI styling.
 - [ ] Confirm push setup fallback does not block in-app notification usage.
 
 ## Contacts And Discovery

@@ -19,6 +19,9 @@ describe('Notification Contracts', () => {
       const notification = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'transfer_received',
+        presentationType: 'transfer',
+        severity: 'success',
+        action: 'open_transaction',
         status: 'delivered',
         title: 'Payment received',
         body: 'You received 50.00 USDC from Ama.',
@@ -41,6 +44,9 @@ describe('Notification Contracts', () => {
       const notification = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'system',
+        presentationType: 'general',
+        severity: 'info',
+        action: 'none',
         status: 'read',
         title: 'Security update',
         body: 'Your security settings were updated.',
@@ -62,6 +68,9 @@ describe('Notification Contracts', () => {
       const notification = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'system',
+        presentationType: 'general',
+        severity: 'info',
+        action: 'none',
         status: 'sent',
         title: 'Security update',
         body: 'Your security settings were updated.',
@@ -90,6 +99,9 @@ describe('Notification Contracts', () => {
           {
             id: '123e4567-e89b-12d3-a456-426614174000',
             type: 'transfer_received',
+            presentationType: 'transfer',
+            severity: 'success',
+            action: 'open_transaction',
             status: 'delivered',
             title: 'Payment received',
             body: 'You received 50.00 USDC from Ama.',

@@ -5,6 +5,7 @@ import {
 } from '@modules/notification/infrastructure/repositories/notification.repository';
 import { NotificationResponse } from '../../dto/responses/notification.response';
 import { NotificationListResponse } from '../../dto/responses/notification-list.response';
+import { getNotificationPresentation } from '../mappers/notification-presentation.mapper';
 
 export interface GetUserNotificationsParams {
   userId: string;
@@ -53,21 +54,28 @@ export class GetUserNotificationsUseCase {
 
     // Map to response DTOs
     const notificationResponses: NotificationResponse[] = notifications.map(
-      (notification) => ({
-        id: notification.id,
-        type: notification.type,
-        status: notification.status,
-        title: notification.title,
-        body: notification.body,
-        data: notification.data,
-        referenceType: notification.referenceType,
-        referenceId: notification.referenceId,
-        sentAt: notification.sentAt,
-        deliveredAt: notification.deliveredAt,
-        readAt: notification.readAt,
-        createdAt: notification.createdAt,
-        isUnread: notification.readAt === null,
-      }),
+      (notification) => {
+        const presentation = getNotificationPresentation(notification.type);
+
+        return {
+          id: notification.id,
+          type: notification.type,
+          presentationType: presentation.presentationType,
+          severity: presentation.severity,
+          action: presentation.action,
+          status: notification.status,
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          referenceType: notification.referenceType,
+          referenceId: notification.referenceId,
+          sentAt: notification.sentAt,
+          deliveredAt: notification.deliveredAt,
+          readAt: notification.readAt,
+          createdAt: notification.createdAt,
+          isUnread: notification.readAt === null,
+        };
+      },
     );
 
     return {
