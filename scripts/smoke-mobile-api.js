@@ -6,9 +6,39 @@ const baseUrl = (process.env.API_URL || 'http://127.0.0.1:3401/api/v1').replace(
 );
 const countryCode = process.env.COUNTRY_CODE || 'CI';
 const otp = process.env.OTP || '123456';
-const phone =
-  process.env.PHONE ||
-  `+2250700${new Date().toISOString().replace(/\D/g, '').slice(8, 14)}`;
+const countryProfiles = {
+  CI: {
+    dialCode: '+225',
+    makePhone: () =>
+      `+2250700${new Date().toISOString().replace(/\D/g, '').slice(8, 14)}`,
+    lookupQuery: '0700',
+    contactPhones: ['+2250700000001', '+2250700000002'],
+    depositCurrency: 'XOF',
+    exchangeQuery:
+      'sourceCurrency=XOF&targetCurrency=USD&amount=10000&direction=buy',
+    ratePairQuery: 'from=USDC&to=XOF',
+  },
+  US: {
+    dialCode: '+1',
+    makePhone: () =>
+      `+1415555${new Date().toISOString().replace(/\D/g, '').slice(10, 14)}`,
+    lookupQuery: '415',
+    contactPhones: ['+14155550101', '+14155550102'],
+    depositCurrency: 'USD',
+    exchangeQuery:
+      'sourceCurrency=USD&targetCurrency=USDC&amount=25&direction=buy',
+    ratePairQuery: 'from=USDC&to=USD',
+  },
+};
+const countryProfile = countryProfiles[countryCode];
+if (!countryProfile) {
+  throw new Error(
+    `Unsupported smoke COUNTRY_CODE=${countryCode}. Supported: ${Object.keys(
+      countryProfiles,
+    ).join(', ')}`,
+  );
+}
+const phone = process.env.PHONE || countryProfile.makePhone();
 
 async function request(method, path, { token, body } = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -59,10 +89,22 @@ async function main() {
   const syntheticPushToken = `smoke-push-${Date.now()}`;
 
   console.log(`Mobile API smoke target: ${baseUrl}`);
+  console.log(`Dogfood country: ${countryCode}`);
   console.log(`Dogfood phone: ${phone}`);
 
   await expectStatus('GET', '/health', [200]);
-  await expectStatus('GET', '/config/countries', [200]);
+  const countries = await expectStatus('GET', '/config/countries', [200]);
+  const selectedCountry = Array.isArray(countries.data)
+    ? countries.data.find((country) => country?.code === countryCode)
+    : null;
+  if (!selectedCountry) {
+    throw new Error(`/config/countries does not include ${countryCode}`);
+  }
+  if (selectedCountry.availability?.onboarding !== 'open') {
+    throw new Error(
+      `${countryCode} onboarding is not open: ${selectedCountry.availability?.onboarding}`,
+    );
+  }
 
   await expectStatus('POST', '/auth/register', [200, 201], {
     body: { phone, countryCode },
@@ -82,10 +124,15 @@ async function main() {
   await expectStatus('GET', '/notifications', [200], { token });
   await expectStatus('GET', '/notifications/unread-count', [200], { token });
   await expectStatus('GET', '/contacts', [200], { token });
-  await expectStatus('GET', '/contacts/lookup?query=0700', [200], { token });
+  await expectStatus(
+    'GET',
+    `/contacts/lookup?query=${encodeURIComponent(countryProfile.lookupQuery)}`,
+    [200],
+    { token },
+  );
   await expectStatus('POST', '/contacts/check', [200], {
     token,
-    body: { phoneNumbers: ['+2250700000001', '+2250700000002'] },
+    body: { phoneNumbers: countryProfile.contactPhones },
   });
   await expectStatus('POST', '/devices/register', [200, 201], {
     token,
@@ -124,15 +171,32 @@ async function main() {
   await expectStatus('GET', '/user/data-export?format=json', [200], { token });
   await expectStatus('GET', '/feature-flags/me', [200], { token });
   await expectStatus('GET', '/feature-subscriptions', [200], { token });
-  await expectStatus('GET', '/wallet/deposit/channels', [200], { token });
-  await expectStatus('GET', '/wallet/deposit/providers', [200], { token });
   await expectStatus(
     'GET',
-    '/wallet/exchange-rate?sourceCurrency=XOF&targetCurrency=USD&amount=10000&direction=buy',
+    `/wallet/deposit/channels?country=${countryCode}&currency=${countryProfile.depositCurrency}`,
     [200],
     { token },
   );
-  await expectStatus('GET', '/rates/pair?from=USDC&to=XOF', [200], { token });
+  await expectStatus(
+    'GET',
+    `/wallet/deposit/providers?country=${countryCode}&currency=${countryProfile.depositCurrency}`,
+    [200],
+    { token },
+  );
+  await expectStatus(
+    'GET',
+    `/wallet/exchange-rate?${countryProfile.exchangeQuery}`,
+    [200],
+    { token },
+  );
+  await expectStatus(
+    'GET',
+    `/rates/pair?${countryProfile.ratePairQuery}`,
+    [200],
+    {
+      token,
+    },
+  );
   await expectStatus(
     'GET',
     '/wallet/transfer/external/estimate-fee?amount=25&currency=USDC&network=stellar',

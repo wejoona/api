@@ -194,10 +194,31 @@ export class AppConfigController {
   }
 
   private getConfiguredCountries(): SupportedCountry[] {
-    const configuredCountries =
-      this.configService?.get<SupportedCountry[]>('app.supportedCountries');
+    const configuredCountries = this.configService?.get<
+      Array<SupportedCountry | string>
+    >('app.supportedCountries');
     if (Array.isArray(configuredCountries) && configuredCountries.length > 0) {
-      return configuredCountries.map((country) => ({ ...country }));
+      const objectCountries = configuredCountries.filter(
+        this.isSupportedCountry,
+      );
+      if (objectCountries.length === configuredCountries.length) {
+        return objectCountries.map((country) => ({ ...country }));
+      }
+
+      const countryCodes = configuredCountries
+        .filter((country): country is string => typeof country === 'string')
+        .map((country) => country.trim().toUpperCase())
+        .filter(Boolean);
+      if (countryCodes.length > 0) {
+        const countriesByCode = new Map(
+          SUPPORTED_COUNTRIES.map((country) => [country.code, country]),
+        );
+        const countries = countryCodes
+          .map((code) => countriesByCode.get(code))
+          .filter((country): country is SupportedCountry => Boolean(country))
+          .map((country) => ({ ...country }));
+        if (countries.length > 0) return countries;
+      }
     }
 
     const encodedCountries = this.configService?.get<string>(
@@ -207,7 +228,9 @@ export class AppConfigController {
       try {
         const parsed = JSON.parse(encodedCountries) as unknown;
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((country) => ({ ...(country as SupportedCountry) }));
+          return parsed.map((country) => ({
+            ...(country as SupportedCountry),
+          }));
         }
       } catch {
         // Invalid overrides fall back to built-in defaults.
@@ -215,5 +238,15 @@ export class AppConfigController {
     }
 
     return SUPPORTED_COUNTRIES.map((country) => ({ ...country }));
+  }
+
+  private isSupportedCountry(value: unknown): value is SupportedCountry {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as SupportedCountry).code === 'string' &&
+      typeof (value as SupportedCountry).dialCode === 'string' &&
+      typeof (value as SupportedCountry).currency === 'string'
+    );
   }
 }

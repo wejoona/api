@@ -156,5 +156,35 @@ describe('AppConfigController (e2e)', () => {
           });
         });
     });
+
+    it('should resolve configured country code lists to full country objects', async () => {
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key !== 'app.supportedCountries') return undefined;
+        return ['CI', 'US'];
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/config/countries')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toHaveLength(2);
+          expect(body.map((country: any) => country.code)).toEqual([
+            'CI',
+            'US',
+          ]);
+          expect(body[0]).toMatchObject({
+            code: 'CI',
+            dialCode: '+225',
+            currency: 'XOF',
+            availability: { onboarding: 'open' },
+          });
+          expect(body[1]).toMatchObject({
+            code: 'US',
+            dialCode: '+1',
+            currency: 'USD',
+            availability: { onboarding: 'open' },
+          });
+        });
+    });
   });
 });

@@ -53,7 +53,7 @@ export interface BalanceResponse {
 export interface OnRampChannel {
   id: string;
   name: string;
-  type: 'mobile_money' | 'bank_transfer' | 'card';
+  type: 'mobile_money' | 'bank_transfer' | 'card' | 'crypto';
   provider: string;
   country: string;
   minAmount: number;
@@ -74,7 +74,7 @@ export interface InitiateDepositRequest {
 }
 
 export interface PaymentInstructions {
-  type: 'mobile_money' | 'bank_transfer' | 'card';
+  type: 'mobile_money' | 'bank_transfer' | 'card' | 'crypto';
   provider: string;
   accountNumber?: string;
   accountName?: string;

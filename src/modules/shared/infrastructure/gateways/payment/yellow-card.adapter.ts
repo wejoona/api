@@ -13,6 +13,7 @@ import {
   TransferResponse,
   RateRequest,
   RateResponse,
+  PaymentInstructions,
   SubmitKycRequest,
   KycResponse,
   WebhookEvent,
@@ -233,10 +234,14 @@ export class YellowCardPaymentAdapter implements IPaymentGateway {
   private mockGetOnRampChannels(
     country: string,
 
-    _currency?: string,
+    currency?: string,
   ): OnRampChannel[] {
-    if (country === 'CI') {
-      return [
+    const normalizedCountry = country.trim().toUpperCase();
+    const normalizedCurrency = currency?.trim().toUpperCase();
+    const channels: OnRampChannel[] = [];
+
+    if (normalizedCountry === 'CI') {
+      channels.push(
         {
           id: 'orange_money_ci',
           name: 'Orange Money',
@@ -273,36 +278,71 @@ export class YellowCardPaymentAdapter implements IPaymentGateway {
           feeType: 'percentage',
           currency: 'XOF',
         },
-      ];
+      );
     }
-    return [];
+
+    if (normalizedCountry === 'US') {
+      channels.push({
+        id: 'usdc_crypto_us',
+        name: 'USDC Transfer',
+        type: 'crypto',
+        provider: 'usdc',
+        country: 'US',
+        minAmount: 1,
+        maxAmount: 100000,
+        fee: 0,
+        feeType: 'fixed',
+        currency: 'USD',
+      });
+    }
+
+    return normalizedCurrency
+      ? channels.filter((channel) => channel.currency === normalizedCurrency)
+      : channels;
   }
 
   private mockInitiateDeposit(
     request: InitiateDepositRequest,
   ): DepositResponse {
     const id = `dep_${Date.now()}`;
-    const rate = 0.00166; // XOF to USD
-    const fee = request.amount * 0.015;
+    const sourceCurrency = request.sourceCurrency.trim().toUpperCase();
+    const targetCurrency = (request.targetCurrency || 'USDC')
+      .trim()
+      .toUpperCase();
+    const isUsdStablecoinDeposit =
+      sourceCurrency === 'USD' && targetCurrency === 'USDC';
+    const rate = isUsdStablecoinDeposit ? 1 : 0.00166; // XOF to USDC fallback
+    const fee = isUsdStablecoinDeposit ? 0 : request.amount * 0.015;
+    const reference = `DEP-${id.slice(-8).toUpperCase()}`;
+    const paymentInstructions: PaymentInstructions = isUsdStablecoinDeposit
+      ? {
+          type: 'crypto',
+          provider: 'usdc',
+          accountNumber: '0x0000000000000000000000000000000000000000',
+          accountName: 'Korido USDC Omnibus',
+          reference,
+          instructions: `Send ${request.amount} USD-equivalent USDC using reference ${reference}.`,
+        }
+      : {
+          type: 'mobile_money',
+          provider: 'orange',
+          accountNumber: '+2250700000000',
+          accountName: 'USD Wallet',
+          reference,
+          instructions: `Send ${request.amount} ${request.sourceCurrency} to the number above with reference ${reference}`,
+        };
 
     return {
       id,
       externalId: `yc_${id}`,
       subwalletId: request.subwalletId,
       amount: request.amount,
-      sourceCurrency: request.sourceCurrency,
-      targetCurrency: request.targetCurrency || 'USD',
+      sourceCurrency,
+      targetCurrency,
       rate,
       fee,
       status: 'pending',
-      paymentInstructions: {
-        type: 'mobile_money',
-        provider: 'orange',
-        accountNumber: '+2250700000000',
-        accountName: 'USD Wallet',
-        reference: `DEP-${id.slice(-8).toUpperCase()}`,
-        instructions: `Send ${request.amount} ${request.sourceCurrency} to the number above with reference DEP-${id.slice(-8).toUpperCase()}`,
-      },
+      paymentInstructions,
       createdAt: new Date(),
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     };
