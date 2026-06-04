@@ -14,7 +14,7 @@ Purpose: continue recursive backend/API readiness after pass 9 completed seconda
 
 ## API Reference Alignment
 
-- [ ] Update backend/mobile API reference docs for secondary capability endpoints and referral summary/history split.
+- [x] Update backend/mobile API reference docs for secondary capability endpoints and referral summary/history split.
 - [ ] Check documented secondary routes against actual backend controller routes and record intentional aliases.
 
 ## Recursive Execution Rule
@@ -56,3 +56,17 @@ Verified and hardened:
 Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="secondary-feature.contract"`
+
+### Secondary API Reference Alignment - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Backend contract decisions now document the common secondary capability metadata object and routes.
+- Backend provider-disabled docs now call out common retry/review metadata for secondary capabilities.
+- Mobile `.Codex/api-reference.md` documents secondary feature capability routes, existing list/mutation routes, and the `/referrals` summary versus `/referrals/history` split.
+
+Verification:
+
+- Docs-only change; no runtime tests required.

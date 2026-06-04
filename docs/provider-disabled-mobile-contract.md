@@ -8,5 +8,8 @@ Mobile-facing provider-disabled behavior is intentionally deterministic:
 - Mobile money deposit and payout mocks are development/test only. Production-like environments reject mock provider switches during startup; unimplemented live providers return explicit unavailable errors instead of falling back to mock.
 - External withdrawals preserve `WITHDRAWAL_PROVIDER_UNAVAILABLE` after voiding any Blnk inflight reservation.
 - Bill Pay preserves downstream 4xx form/provider errors, but network and 5xx dependency failures normalize to `BILL_PAYMENTS_UNAVAILABLE`.
+- Secondary feature capability endpoints use the same retry/review metadata
+  fields so clients can treat unavailable states consistently across enabled,
+  coming-soon, and dependency-down surfaces.
 
 Mobile clients should use the code/reason field for localized copy and avoid branching on raw provider messages.

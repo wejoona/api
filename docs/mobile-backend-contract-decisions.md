@@ -18,3 +18,17 @@
 - `GET /cards/:id/transactions` exists for mobile contract stability.
 - Until card processor transaction ingestion is implemented, it returns an empty paginated response:
   `{ data: [], transactions: [], total: 0, limit, offset }`.
+
+## Secondary Feature Capabilities
+
+- Capability endpoints return a common metadata object:
+  `{ feature, available, status, reason, featureReason, provider, retryable, supportReviewRequired }`.
+- Stable capability routes:
+  `/payment-links/capability`, `/savings-pots/capability`,
+  `/recurring-transfers/capability`, `/referrals/capability`.
+- Existing list response shapes are intentionally preserved. In particular,
+  savings pots remain an array and referrals split summary/history:
+  `GET /referrals` returns the mobile summary object, while
+  `GET /referrals/history` returns the raw referral array.
+- Mobile should use capability metadata for UI availability and localized
+  unavailable copy instead of hardcoding secondary feature status.
