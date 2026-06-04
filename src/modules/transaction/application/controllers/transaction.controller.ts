@@ -281,16 +281,36 @@ export class TransactionController {
     const metadata = transaction.metadata || {};
     const currency = transaction.currency;
     const sourceCurrency = metadata.sourceCurrency as string | undefined;
+    const counterpartyName =
+      (metadata.counterpartyName as string | undefined) ??
+      (metadata.recipientName as string | undefined) ??
+      (metadata.senderName as string | undefined) ??
+      null;
+    const counterpartyPhone =
+      (metadata.counterpartyPhone as string | undefined) ??
+      (metadata.recipientPhone as string | undefined) ??
+      (metadata.senderPhone as string | undefined) ??
+      null;
     const ledgerReference =
       (metadata.ledgerReference as string | undefined) ??
       (metadata.blnkReference as string | undefined) ??
       (metadata.reference as string | undefined) ??
       null;
     const providerReference = transaction.yellowCardRef ?? null;
+    const externalReference =
+      transaction.externalReference ??
+      providerReference ??
+      ledgerReference ??
+      null;
 
     return {
       ...transaction,
       amountDecimal: formatDecimalAmount(transaction.amount, currency),
+      description: transaction.description ?? metadata.note ?? null,
+      counterpartyName,
+      counterpartyPhone,
+      direction: this.getTransactionDirection(transaction.type),
+      externalReference,
       supportReference: transaction.id,
       ledgerReference,
       providerReference,
@@ -316,5 +336,26 @@ export class TransactionController {
         }),
       },
     };
+  }
+
+  private getTransactionDirection(type: string): 'credit' | 'debit' | 'neutral' {
+    if (
+      type === 'deposit' ||
+      type === 'mobile_money_deposit' ||
+      type === 'internal_transfer_received'
+    ) {
+      return 'credit';
+    }
+
+    if (
+      type === 'withdrawal' ||
+      type === 'mobile_money_withdrawal' ||
+      type === 'internal_transfer_sent' ||
+      type === 'external_transfer'
+    ) {
+      return 'debit';
+    }
+
+    return 'neutral';
   }
 }

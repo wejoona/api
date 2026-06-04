@@ -10,7 +10,7 @@ Purpose: continue API/backend readiness for internal dogfooding with mobile scre
 
 ## Mobile Data Truthfulness
 
-- [ ] Confirm transaction list/detail contracts expose enough backend fields for mobile to remove fake transaction history and success-detail data.
+- [x] Confirm transaction list/detail contracts expose enough backend fields for mobile to remove fake transaction history and success-detail data.
 - [ ] Confirm wallet balance/readiness responses identify data source, stale/degraded state, and provider-unavailable reasons.
 - [ ] Confirm contact discovery contracts stay scoped to requested contacts and requester visibility, with no whole-address-book leakage.
 
@@ -63,3 +63,24 @@ Verified and hardened:
 Verification:
 
 - `npm test -- --runInBand src/config/environments/index.spec.ts`
+
+### Transaction Display Contract Coverage - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- Transaction responses now include stable top-level mobile display fields:
+  - `description`
+  - `counterpartyName`
+  - `counterpartyPhone`
+  - `direction`
+  - `externalReference`
+- Metadata remains intact for detail views and support/audit context.
+- Contract coverage now requires these fields on transaction list/detail responses.
+- Controller e2e verifies internal-transfer metadata is projected into mobile-safe top-level fields.
+
+Verification:
+
+- `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="transaction.controller"`

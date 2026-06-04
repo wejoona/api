@@ -149,6 +149,27 @@ export const TransactionSchema: ContractSchema = {
       description: 'Additional transaction details',
       nestedSchema: TransactionMetadataSchema,
     }),
+    description: nullable(FieldType.STRING, {
+      description: 'Mobile-safe display description, usually transfer note',
+      example: 'Lunch money',
+    }),
+    counterpartyName: nullable(FieldType.STRING, {
+      description: 'Mobile-safe sender or recipient display name when available',
+      example: 'Amadou Diallo',
+    }),
+    counterpartyPhone: nullable(FieldType.PHONE, {
+      description: 'Mobile-safe sender or recipient phone when available',
+      example: '+2250701234567',
+    }),
+    direction: required(FieldType.STRING, {
+      description: 'Stable money direction for mobile list styling',
+      enum: ['credit', 'debit', 'neutral'],
+      example: 'credit',
+    }),
+    externalReference: nullable(FieldType.STRING, {
+      description: 'Best available external/ledger reference for receipt display',
+      example: 'yc_dep_1234567890',
+    }),
     supportReference: required(FieldType.STRING, {
       description: 'Stable customer support reference for this transaction',
       example: '123e4567-e89b-12d3-a456-426614174000',

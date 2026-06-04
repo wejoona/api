@@ -37,6 +37,11 @@ const transactionResponse: Record<string, any> = TestData.transaction({
 const transactionResponseWithDecimals = {
   ...transactionResponse,
   amountDecimal: '16.450000',
+  description: null,
+  counterpartyName: null,
+  counterpartyPhone: null,
+  direction: 'credit',
+  externalReference: 'yc_dep_123',
   supportReference: transactionResponse.id,
   ledgerReference: 'ledger-dep-123',
   providerReference: 'yc_dep_123',
@@ -127,6 +132,53 @@ describe('TransactionController (e2e)', () => {
         offset: 0,
         hasMore: false,
       });
+    });
+
+    it('should expose mobile-safe counterparty display fields', async () => {
+      const transfer = TestData.transaction({
+        id: '770e8400-e29b-41d4-a716-446655440111',
+        type: 'internal_transfer_sent',
+        amount: 25,
+        currency: 'USDC',
+        status: 'completed',
+        completedAt: '2026-06-04T12:05:00.000Z',
+        metadata: {
+          recipientName: 'Amadou Diallo',
+          recipientPhone: '+2250701234567',
+          note: 'Dinner',
+          ledgerReference: 'ledger-int-123',
+        },
+      });
+
+      mockGetTransactions.execute.mockResolvedValue({
+        transactions: [transfer],
+        total: 1,
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/wallet/transactions')
+        .expect(200);
+
+      expect(res.body.transactions[0]).toEqual(
+        expect.objectContaining({
+          description: 'Dinner',
+          counterpartyName: 'Amadou Diallo',
+          counterpartyPhone: '+2250701234567',
+          direction: 'debit',
+          externalReference: 'ledger-int-123',
+          supportReference: transfer.id,
+        }),
+      );
+      expect(res.body.transactions[0].metadata).toEqual(
+        expect.objectContaining({
+          recipientName: 'Amadou Diallo',
+          recipientPhone: '+2250701234567',
+          note: 'Dinner',
+        }),
+      );
     });
   });
 
