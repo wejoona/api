@@ -89,55 +89,61 @@ export class NotificationService {
     const tokens = deviceTokens.map((dt) => dt.token);
     let successCount = 0;
 
-    if (tokens.length === 1) {
-      // Single device
-      const request: SendPushRequest = {
-        deviceToken: tokens[0],
-        title: params.title,
-        body: params.body,
-        data: params.data,
-        priority: params.priority ?? 'normal',
-      };
+    try {
+      if (tokens.length === 1) {
+        // Single device
+        const request: SendPushRequest = {
+          deviceToken: tokens[0],
+          title: params.title,
+          body: params.body,
+          data: params.data,
+          priority: params.priority ?? 'normal',
+        };
 
-      const result = await this.pushGateway.send(request);
-      successCount = result.success ? 1 : 0;
+        const result = await this.pushGateway.send(request);
+        successCount = result.success ? 1 : 0;
 
-      if (!result.success) {
-        this.logger.warn(
-          `Push notification failed for token: ${result.failureReason}`,
-        );
-        // Deactivate invalid tokens
-        if (
-          result.failureReason?.includes('invalid') ||
-          result.failureReason?.includes('unregistered')
-        ) {
-          await this.deviceTokenRepository.deactivateToken(tokens[0]);
-        }
-      }
-    } else {
-      // Multiple devices
-      const result = await this.pushGateway.sendMulticast({
-        deviceTokens: tokens,
-        title: params.title,
-        body: params.body,
-        data: params.data,
-        priority: params.priority ?? 'normal',
-      });
-
-      successCount = result.successCount;
-
-      // Deactivate failed tokens
-      for (const response of result.responses) {
-        if (
-          !response.success &&
-          (response.failureReason?.includes('invalid') ||
-            response.failureReason?.includes('unregistered'))
-        ) {
-          await this.deviceTokenRepository.deactivateToken(
-            response.deviceToken,
+        if (!result.success) {
+          this.logger.warn(
+            `Push notification failed for token: ${result.failureReason}`,
           );
+          // Deactivate invalid tokens
+          if (
+            result.failureReason?.includes('invalid') ||
+            result.failureReason?.includes('unregistered')
+          ) {
+            await this.deviceTokenRepository.deactivateToken(tokens[0]);
+          }
+        }
+      } else {
+        // Multiple devices
+        const result = await this.pushGateway.sendMulticast({
+          deviceTokens: tokens,
+          title: params.title,
+          body: params.body,
+          data: params.data,
+          priority: params.priority ?? 'normal',
+        });
+
+        successCount = result.successCount;
+
+        // Deactivate failed tokens
+        for (const response of result.responses) {
+          if (
+            !response.success &&
+            (response.failureReason?.includes('invalid') ||
+              response.failureReason?.includes('unregistered'))
+          ) {
+            await this.deviceTokenRepository.deactivateToken(
+              response.deviceToken,
+            );
+          }
         }
       }
+    } catch (error) {
+      this.logger.warn(
+        `Push notification delivery failed after persisting notification ${notification.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
 
     // 4. Update notification status

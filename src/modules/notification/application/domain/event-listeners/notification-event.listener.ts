@@ -122,15 +122,16 @@ export class NotificationEventListener {
       `Processing transfer.received event for user ${event.userId}`,
     );
 
-    // Send push notification
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'received',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-      senderName: event.senderName,
-    });
+    await this.sendPushSafely('transfer.received', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'received',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+        senderName: event.senderName,
+      }),
+    );
 
     // Create in-app notification
     await this.notificationService.sendToUser({
@@ -155,14 +156,16 @@ export class NotificationEventListener {
   async handleTransferSent(event: TransferSentEvent): Promise<void> {
     this.logger.log(`Processing transfer.sent event for user ${event.userId}`);
 
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'sent',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-      recipientName: event.recipientName,
-    });
+    await this.sendPushSafely('transfer.sent', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'sent',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+        recipientName: event.recipientName,
+      }),
+    );
 
     await this.notificationService.sendToUser({
       userId: event.userId,
@@ -188,13 +191,15 @@ export class NotificationEventListener {
       `Processing transfer.completed event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'completed',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-    });
+    await this.sendPushSafely('transfer.completed', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'completed',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+      }),
+    );
 
     await this.notificationService.sendToUser({
       userId: event.userId,
@@ -218,13 +223,15 @@ export class NotificationEventListener {
       `Processing transfer.failed event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'failed',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-    });
+    await this.sendPushSafely('transfer.failed', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'failed',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+      }),
+    );
 
     await this.notificationService.sendToUser({
       userId: event.userId,
@@ -253,10 +260,12 @@ export class NotificationEventListener {
       `Processing kyc.status.changed event for user ${event.userId}: ${event.status}`,
     );
 
-    await this.pushNotificationService.sendKycStatusNotification(
-      event.userId,
-      event.status,
-      event.reason,
+    await this.sendPushSafely('kyc.status.changed', () =>
+      this.pushNotificationService.sendKycStatusNotification(
+        event.userId,
+        event.status,
+        event.reason,
+      ),
     );
 
     const titles: Record<string, string> = {
@@ -298,10 +307,12 @@ export class NotificationEventListener {
       `Processing security.new_device_login event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendNewDeviceLoginAlert(
-      event.userId,
-      event.deviceName,
-      event.location,
+    await this.sendPushSafely('security.new_device_login', () =>
+      this.pushNotificationService.sendNewDeviceLoginAlert(
+        event.userId,
+        event.deviceName,
+        event.location,
+      ),
     );
 
     await this.notificationService.sendToUser({
@@ -325,11 +336,13 @@ export class NotificationEventListener {
       `Processing security.large_transaction event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendLargeTransactionAlert(
-      event.userId,
-      event.amount,
-      event.currency,
-      event.transactionId,
+    await this.sendPushSafely('security.large_transaction', () =>
+      this.pushNotificationService.sendLargeTransactionAlert(
+        event.userId,
+        event.amount,
+        event.currency,
+        event.transactionId,
+      ),
     );
 
     await this.notificationService.sendToUser({
@@ -356,11 +369,13 @@ export class NotificationEventListener {
   async handleLowBalance(event: LowBalanceEvent): Promise<void> {
     this.logger.log(`Processing balance.low event for user ${event.userId}`);
 
-    await this.pushNotificationService.sendLowBalanceAlert(
-      event.userId,
-      event.currentBalance,
-      event.threshold,
-      event.currency,
+    await this.sendPushSafely('balance.low', () =>
+      this.pushNotificationService.sendLowBalanceAlert(
+        event.userId,
+        event.currentBalance,
+        event.threshold,
+        event.currency,
+      ),
     );
 
     await this.notificationService.sendToUser({
@@ -386,13 +401,15 @@ export class NotificationEventListener {
       `Processing deposit.completed event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'completed',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-    });
+    await this.sendPushSafely('deposit.completed', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'completed',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+      }),
+    );
 
     await this.notificationService.sendToUser({
       userId: event.userId,
@@ -418,13 +435,15 @@ export class NotificationEventListener {
       `Processing withdrawal.completed event for user ${event.userId}`,
     );
 
-    await this.pushNotificationService.sendTransactionNotification({
-      userId: event.userId,
-      type: 'completed',
-      amount: event.amount,
-      currency: event.currency,
-      transactionId: event.transactionId,
-    });
+    await this.sendPushSafely('withdrawal.completed', () =>
+      this.pushNotificationService.sendTransactionNotification({
+        userId: event.userId,
+        type: 'completed',
+        amount: event.amount,
+        currency: event.currency,
+        transactionId: event.transactionId,
+      }),
+    );
 
     await this.notificationService.sendToUser({
       userId: event.userId,
@@ -440,5 +459,18 @@ export class NotificationEventListener {
       referenceType: 'transaction',
       referenceId: event.transactionId,
     });
+  }
+
+  private async sendPushSafely(
+    eventName: string,
+    send: () => Promise<unknown>,
+  ): Promise<void> {
+    try {
+      await send();
+    } catch (error) {
+      this.logger.warn(
+        `Push notification failed for ${eventName}; in-app notification will continue: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 }
