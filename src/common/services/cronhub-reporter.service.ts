@@ -1,13 +1,14 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-interface CronJobRegistration {
+export interface CronJobRegistration {
   id?: string;
   name: string;
   schedule: string;
   grace_period: number;
   service_name: string;
   product_name: string;
+  expected_interval_minutes: number;
 }
 
 @Injectable()
@@ -24,6 +25,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 300,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 60,
     },
     {
       name: 'cleanup_transaction_metadata',
@@ -31,6 +33,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 600,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 1440,
     },
     {
       name: 'cleanup_audit_logs',
@@ -38,6 +41,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 600,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 10080,
     },
     {
       name: 'daily_reconciliation',
@@ -45,6 +49,15 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 600,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 1440,
+    },
+    {
+      name: 'reconcile_blnk_balances',
+      schedule: '30 2 * * *',
+      grace_period: 600,
+      service_name: 'korido-backend',
+      product_name: 'korido',
+      expected_interval_minutes: 1440,
     },
     {
       name: 'cleanup_expired_sessions',
@@ -52,6 +65,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 300,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 60,
     },
     {
       name: 'cleanup_fcm_tokens',
@@ -59,6 +73,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 600,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 1440,
     },
     {
       name: 'cleanup_notifications',
@@ -66,6 +81,7 @@ export class CronHubReporterService implements OnModuleInit {
       grace_period: 600,
       service_name: 'korido-backend',
       product_name: 'korido',
+      expected_interval_minutes: 10080,
     },
   ];
 
@@ -75,6 +91,13 @@ export class CronHubReporterService implements OnModuleInit {
 
   get enabled(): boolean {
     return !!this.baseUrl;
+  }
+
+  getRegisteredJobs(): CronJobRegistration[] {
+    return this.jobs.map((job) => ({
+      ...job,
+      id: this.jobIds.get(job.name),
+    }));
   }
 
   async onModuleInit(): Promise<void> {

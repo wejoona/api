@@ -12,6 +12,31 @@ import { NotificationOrmEntity } from '@modules/notification/infrastructure/orm-
 import { SessionService } from '@modules/session/application/services/session.service';
 import { CronHubReporterService } from '@common/services/cronhub-reporter.service';
 
+export interface CronHubCompatibleJobStatus {
+  name: string;
+  productName: string;
+  serviceName: string;
+  schedule: string;
+  gracePeriodSeconds: number;
+  expectedIntervalMinutes: number;
+  status: 'new' | 'healthy' | 'running' | 'late' | 'missed';
+  lastStatus: 'success' | 'failure' | 'running' | 'new';
+  lastRunId: string | null;
+  lastStartedAt: string | null;
+  lastHeartbeatAt: string | null;
+  nextExpectedAt: string | null;
+  durationMs: number | null;
+  recordsProcessed: number;
+  errorMessage: string | null;
+}
+
+export interface CronHubCompatibleStatusResponse {
+  productName: string;
+  serviceName: string;
+  generatedAt: string;
+  jobs: CronHubCompatibleJobStatus[];
+}
+
 @Injectable()
 export class ScheduledJobsService {
   private readonly logger = new Logger(ScheduledJobsService.name);
@@ -577,6 +602,124 @@ export class ScheduledJobsService {
     }
 
     return query.getMany();
+  }
+
+  async getCronHubCompatibleStatus(
+    jobName?: string,
+  ): Promise<CronHubCompatibleStatusResponse> {
+    const registrations = this.cronHub
+      .getRegisteredJobs()
+      .filter((job) => !jobName || job.name === jobName);
+    const generatedAt = new Date();
+
+    const jobs = await Promise.all(
+      registrations.map(async (registration) => {
+        const latestRun = await this.getLatestJobRun(registration.name);
+
+        return this.toCronHubCompatibleStatus(
+          registration,
+          latestRun,
+          generatedAt,
+        );
+      }),
+    );
+
+    return {
+      productName: 'korido',
+      serviceName: 'korido-backend',
+      generatedAt: generatedAt.toISOString(),
+      jobs,
+    };
+  }
+
+  private async getLatestJobRun(
+    jobName: string,
+  ): Promise<ScheduledJobEntity | null> {
+    return this.jobRepository
+      .createQueryBuilder('job')
+      .where('job.jobName = :jobName', { jobName })
+      .orderBy('job.createdAt', 'DESC')
+      .getOne();
+  }
+
+  private toCronHubCompatibleStatus(
+    registration: ReturnType<CronHubReporterService['getRegisteredJobs']>[number],
+    latestRun: ScheduledJobEntity | null,
+    generatedAt: Date,
+  ): CronHubCompatibleJobStatus {
+    const lastStartedAt = latestRun?.startedAt ?? null;
+    const lastCompletedAt = latestRun?.completedAt ?? null;
+    const lastHeartbeatAt = lastCompletedAt;
+    const durationMs =
+      lastStartedAt && lastCompletedAt
+        ? Math.max(0, lastCompletedAt.getTime() - lastStartedAt.getTime())
+        : null;
+    const nextExpectedAt = lastHeartbeatAt
+      ? new Date(
+          lastHeartbeatAt.getTime() +
+            registration.expected_interval_minutes * 60_000,
+        )
+      : null;
+    const lastStatus = this.toCronHubLastStatus(latestRun);
+    const status = this.computeCronHubStatus(
+      latestRun,
+      nextExpectedAt,
+      registration.grace_period,
+      generatedAt,
+    );
+
+    return {
+      name: registration.name,
+      productName: registration.product_name,
+      serviceName: registration.service_name,
+      schedule: registration.schedule,
+      gracePeriodSeconds: registration.grace_period,
+      expectedIntervalMinutes: registration.expected_interval_minutes,
+      status,
+      lastStatus,
+      lastRunId: latestRun?.id ?? null,
+      lastStartedAt: lastStartedAt?.toISOString() ?? null,
+      lastHeartbeatAt: lastHeartbeatAt?.toISOString() ?? null,
+      nextExpectedAt: nextExpectedAt?.toISOString() ?? null,
+      durationMs,
+      recordsProcessed: latestRun?.recordsProcessed ?? 0,
+      errorMessage: latestRun?.errorMessage ?? null,
+    };
+  }
+
+  private toCronHubLastStatus(
+    latestRun: ScheduledJobEntity | null,
+  ): CronHubCompatibleJobStatus['lastStatus'] {
+    if (!latestRun) return 'new';
+    if (latestRun.status === 'completed') return 'success';
+    if (latestRun.status === 'failed') return 'failure';
+    return 'running';
+  }
+
+  private computeCronHubStatus(
+    latestRun: ScheduledJobEntity | null,
+    nextExpectedAt: Date | null,
+    gracePeriodSeconds: number,
+    generatedAt: Date,
+  ): CronHubCompatibleJobStatus['status'] {
+    if (!latestRun) return 'new';
+
+    if (latestRun.status === 'failed') return 'missed';
+
+    if (latestRun.status === 'running') {
+      const startedAt = latestRun.startedAt ?? latestRun.createdAt;
+      const graceDeadline = new Date(
+        startedAt.getTime() + gracePeriodSeconds * 1000,
+      );
+      return generatedAt > graceDeadline ? 'late' : 'running';
+    }
+
+    if (!nextExpectedAt) return 'new';
+
+    const graceDeadline = new Date(
+      nextExpectedAt.getTime() + gracePeriodSeconds * 1000,
+    );
+    return generatedAt > graceDeadline ? 'late' : 'healthy';
   }
 
   /**

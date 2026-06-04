@@ -8,6 +8,7 @@ import { NotificationOrmEntity } from '@modules/notification/infrastructure/orm-
 import { SessionModule } from '@modules/session/session.module';
 import { ScheduledJobsService } from './services/scheduled-jobs.service';
 import { CronHubReporterService } from '@common/services/cronhub-reporter.service';
+import { JobsController } from './controllers/jobs.controller';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CronHubReporterService } from '@common/services/cronhub-reporter.servic
     ]),
     SessionModule,
   ],
+  controllers: [JobsController],
   providers: [ScheduledJobsService, CronHubReporterService],
   exports: [ScheduledJobsService],
 })

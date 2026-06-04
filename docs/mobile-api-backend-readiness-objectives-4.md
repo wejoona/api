@@ -11,7 +11,7 @@ Purpose: move from hardened mobile contracts into operational backend readiness 
 ## Ledger And Reconciliation Operations
 
 - [x] Confirm every money-moving route emits enough ledger identifiers for support to reconcile a user complaint without exposing provider secrets.
-- [ ] Confirm reconciliation jobs can be observed through CronHub-compatible status without requiring in-process-only inspection.
+- [x] Confirm reconciliation jobs can be observed through CronHub-compatible status without requiring in-process-only inspection.
 - [ ] Confirm failed ledger/provider settlement paths surface actionable support metadata while preserving mobile-safe errors.
 
 ## Data And Migration Safety
@@ -94,4 +94,20 @@ Verification:
 
 - Focused unit: `npm test -- --runInBand src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/wallet/application/usecases/initiate-deposit.use-case.spec.ts`
 - Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller|payment-link.controller"`
+- Full backend/mobile verifier: `npm run verify:backend:mobile`
+
+### CronHub-Compatible Reconciliation Job Status - 2026-06-04
+
+Verified and hardened:
+
+- `reconcile_blnk_balances` is now registered with the CronHub reporter; before this pass, the job called `pingStart`/`pingComplete` but had no registration entry, so the pings were no-ops.
+- Added authenticated admin endpoint `GET /jobs/cronhub/status`.
+- The endpoint maps local `scheduled_jobs` history into CronHub-compatible status vocabulary: `new`, `healthy`, `running`, `late`, and `missed`.
+- The response includes job schedule, grace period, expected interval, last run id, last status, last heartbeat time, next expected time, duration, records processed, and failure reason.
+- The endpoint can be filtered with `jobName=daily_reconciliation` or `jobName=reconcile_blnk_balances`.
+
+Verification:
+
+- Focused unit: `npm test -- --runInBand src/modules/jobs/services/scheduled-jobs.service.spec.ts`
+- Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="jobs.controller"`
 - Full backend/mobile verifier: `npm run verify:backend:mobile`
