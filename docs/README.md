@@ -250,18 +250,18 @@ npm run migration:revert
 
 ## Technology Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Framework** | NestJS | ^10.0.0 |
-| **Language** | TypeScript | ^5.1.0 |
-| **Runtime** | Node.js | ^20.0.0 |
-| **Database** | PostgreSQL | ^15.0 |
-| **Cache** | Redis | ^7.0 |
-| **ORM** | TypeORM | ^0.3.0 |
-| **Queue** | Bull | ^4.10.0 |
+| Component      | Technology      | Version |
+| -------------- | --------------- | ------- |
+| **Framework**  | NestJS          | ^10.0.0 |
+| **Language**   | TypeScript      | ^5.1.0  |
+| **Runtime**    | Node.js         | ^20.0.0 |
+| **Database**   | PostgreSQL      | ^15.0   |
+| **Cache**      | Redis           | ^7.0    |
+| **ORM**        | TypeORM         | ^0.3.0  |
+| **Queue**      | Bull            | ^4.10.0 |
 | **Validation** | class-validator | ^0.14.0 |
-| **Testing** | Jest | ^29.5.0 |
-| **API Docs** | Swagger/OpenAPI | ^3.0.0 |
+| **Testing**    | Jest            | ^29.5.0 |
+| **API Docs**   | Swagger/OpenAPI | ^3.0.0  |
 
 **Learn more:** [ARCHITECTURE.md#technology-stack](./ARCHITECTURE.md#technology-stack)
 
@@ -299,6 +299,11 @@ FCM_PRIVATE_KEY=...
 ```
 
 **Full list:** See `.env.example` in project root
+
+Production-like environments reject mock provider modes at startup. For
+release checks, use `/api/v1/health/mobile-readiness` to confirm provider
+modes are live, disabled, unavailable, or misconfigured; do not infer
+production readiness from local mock behavior.
 
 ## Security Best Practices
 
@@ -476,27 +481,35 @@ Structured JSON logs:
 ### Common Issues
 
 #### Database Connection Errors
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:5432
 ```
+
 **Solution:** Ensure PostgreSQL is running and DATABASE_URL is correct
 
 #### Redis Connection Errors
+
 ```
 Error: Redis connection to localhost:6379 failed
 ```
+
 **Solution:** Ensure Redis is running and REDIS_URL is correct
 
 #### Migration Errors
+
 ```
 Error: relation "users" already exists
 ```
+
 **Solution:** Check migration history with `npm run migration:show`
 
 #### JWT Errors
+
 ```
 Error: jwt malformed
 ```
+
 **Solution:** Verify JWT_SECRET is set and token format is correct
 
 ### Debug Mode

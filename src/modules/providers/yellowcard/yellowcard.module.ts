@@ -14,11 +14,15 @@ import {
  * - On-ramp: XOF (Mobile Money) → USDC
  * - Off-ramp: USDC → XOF (Mobile Money)
  *
- * Uses factory pattern to switch between mock and real implementations based on config.
+ * Uses factory pattern to switch between mock and real implementations based
+ * on config. Mock mode is for development/test only; production-like
+ * environments reject `YELLOW_CARD_USE_MOCK=true` during startup validation.
  *
  * Configuration:
- * - YELLOW_CARD_USE_MOCK=true or absence of YELLOW_CARD_API_KEY: Uses mock adapters
+ * - YELLOW_CARD_USE_MOCK=true: Uses mock adapters outside production-like environments
  * - YELLOW_CARD_API_KEY present: Uses real Yellow Card API
+ * - YELLOW_CARD_ENABLED=false: reports skipped/disabled in mobile readiness
+ * - Missing production credentials: reported as misconfigured in mobile readiness
  *
  * Yellow Card is ONLY used for fiat conversion, not for wallets or transfers.
  * Circle handles all wallet and transfer operations.

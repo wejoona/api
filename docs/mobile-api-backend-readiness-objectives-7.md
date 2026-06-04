@@ -12,7 +12,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 
 - [x] Review deposit and payout provider factories so unavailable real providers return explicit disabled/unavailable states instead of falling back to mock.
 - [x] Confirm Circle, Stellar, Yellow Card, and Blnk provider factory modes are visible in readiness/admin metadata.
-- [ ] Confirm stale mock provider documentation cannot be mistaken for current production behavior.
+- [x] Confirm stale mock provider documentation cannot be mistaken for current production behavior.
 
 ## Mobile-Facing Operational Contracts
 
@@ -113,3 +113,16 @@ Verified and hardened:
 Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Mock Provider Documentation Alignment - 2026-06-04
+
+Verified and updated:
+
+- Provider module comments now state mock modes are development/test only.
+- README production checklist now requires live provider mode or explicit disabled/unavailable states.
+- Mobile readiness contract documents provider mode semantics and forbids secrets/raw URLs in mode metadata.
+- Provider-disabled mobile contract documents fail-closed behavior for mobile money deposit and payout providers.
+
+Verification:
+
+- `npm run build`

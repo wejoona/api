@@ -209,6 +209,7 @@ module/
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/v1/auth/register` - Register new user
 - `POST /api/v1/auth/verify-otp` - Verify OTP and get access token
 - `POST /api/v1/auth/login` - Request login OTP
@@ -216,6 +217,7 @@ module/
 - `POST /api/v1/auth/logout` - Logout and invalidate token
 
 ### Wallet
+
 - `GET /api/v1/wallet` - Get wallet balance
 - `POST /api/v1/wallet/create` - Create wallet
 - `GET /api/v1/wallet/deposit/channels` - Get deposit channels
@@ -225,15 +227,18 @@ module/
 - `GET /api/v1/wallet/rate` - Get exchange rate
 
 ### Transactions
+
 - `GET /api/v1/wallet/transactions` - Get transaction history
 - `GET /api/v1/wallet/transactions/:id` - Get transaction details
 - `GET /api/v1/wallet/transactions/deposit/:id/status` - Get deposit status
 
 ### KYC
+
 - `GET /api/v1/wallet/kyc/status` - Get KYC status
 - `POST /api/v1/wallet/kyc/submit` - Submit KYC documents
 
 ### Webhooks
+
 - `POST /api/v1/webhooks/payment` - Handle payment provider webhooks
 - `POST /api/v1/webhooks/payment/yellow-card` - Yellow Card webhooks
 - `POST /api/v1/webhooks/circle` - Circle webhooks
@@ -252,19 +257,24 @@ module/
 ## External Service Integrations
 
 ### Blnk (Ledger)
+
 - Double-entry accounting ledger
 - Transaction and balance management
 - Located in: `src/modules/providers/blnk/`
 
 ### Yellow Card (Mobile Money)
+
 - Deposits and withdrawals
 - Orange Money, MTN, Wave integration
-- Located in: `src/modules/providers/yellow-card/`
+- Located in: `src/modules/providers/yellowcard/`
+- Mock mode is development/test only; production-like environments must use live configuration or report the feature as unavailable.
 
 ### Circle (USDC)
+
 - External crypto transfers
 - USDC wallet infrastructure
 - Located in: `src/modules/providers/circle/`
+- Mock mode is development/test only; production-like environments must provide live credentials.
 
 ## Development Commands
 
@@ -304,6 +314,7 @@ npm run migration:revert
 - Configure logging and monitoring
 - Run database migrations
 - Set up health check monitoring
+- Confirm `/api/v1/health/mobile-readiness` reports live provider modes or explicit disabled/unavailable states; do not release with production-like mock provider modes.
 
 ### Docker Deployment
 

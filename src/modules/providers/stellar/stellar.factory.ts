@@ -2,7 +2,7 @@
  * Stellar Provider Factory
  *
  * Creates appropriate Stellar adapters based on configuration.
- * Supports mock mode for testing and real mode for production.
+ * Supports mock/testnet mode for development and real mode for production.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -27,8 +27,10 @@ import { KeyVaultService } from '@modules/shared/infrastructure/services';
 /**
  * Stellar Provider Factory
  *
- * Creates the appropriate Stellar adapter (mock or real) based on configuration.
- * Configuration: STELLAR_USE_MOCK env var or absence of anchor domain
+ * Creates the appropriate Stellar adapter based on configuration.
+ * `STELLAR_USE_MOCK=true` is development/test only; production-like
+ * environments reject it during startup validation. Missing production anchor
+ * configuration is surfaced as readiness metadata instead of being hidden.
  */
 @Injectable()
 export class StellarProviderFactory {
@@ -45,8 +47,7 @@ export class StellarProviderFactory {
     private readonly sep24Service: StellarSep24Service,
     private readonly keyVault: KeyVaultService,
   ) {
-    this.useMock =
-      this.configService.get<boolean>('stellar.useMock') ?? false;
+    this.useMock = this.configService.get<boolean>('stellar.useMock') ?? false;
     this.providerType =
       this.configService.get<string>('stellar.provider') || 'rpc';
 
@@ -78,7 +79,11 @@ export class StellarProviderFactory {
     }
     // Pass the active stellar service (RPC or Horizon) — both implement StellarAdapter.
     // The wallet adapter accepts StellarHorizonService by type but both services are structurally compatible.
-    return new StellarWalletAdapter(this.configService, this.stellarService as any, this.keyVault);
+    return new StellarWalletAdapter(
+      this.configService,
+      this.stellarService as any,
+      this.keyVault,
+    );
   }
 
   /**
@@ -88,7 +93,10 @@ export class StellarProviderFactory {
     if (this.useMock) {
       this.logger.log('Creating Stellar transfer provider (testnet mode)');
     }
-    return new StellarTransferAdapter(this.configService, this.stellarService as any);
+    return new StellarTransferAdapter(
+      this.configService,
+      this.stellarService as any,
+    );
   }
 
   /**
