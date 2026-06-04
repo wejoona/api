@@ -24,7 +24,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Session and device controller e2e tests assert response shape and request bodies, not only HTTP status.
 - [x] Live API smoke verified auth, wallet, transactions, contacts, devices, sessions, notifications, and feature subscriptions return mobile-consumable responses.
 - [x] Disabled deposit provider discovery returns mobile-safe empty `channels`/`providers` responses instead of 500.
-- [ ] Add missing contract tests where mobile currently depends on undocumented response fields.
+- [x] Add missing contract tests where mobile currently depends on undocumented response fields for notifications, devices, and sessions.
 - [x] Ensure every mobile-facing error returns a stable user-actionable code/message pair for validation, auth, and session ownership failures.
 
 ## Auth, Sessions, And Devices

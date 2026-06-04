@@ -28,6 +28,12 @@ export * from './beneficiary.contract';
 // User contracts
 export * from './user.contract';
 
+// Notification contracts
+export * from './notification.contract';
+
+// Device and session contracts
+export * from './device-session.contract';
+
 // All contract groups
 import { AuthContractGroup } from './auth.contract';
 import { WalletContractGroup } from './wallet.contract';
@@ -36,6 +42,8 @@ import { KycContractGroup } from './kyc.contract';
 import { ContactContractGroup } from './contact.contract';
 import { BeneficiaryContractGroup } from './beneficiary.contract';
 import { UserContractGroup } from './user.contract';
+import { NotificationContractGroup } from './notification.contract';
+import { DeviceSessionContractGroup } from './device-session.contract';
 
 export const AllContractGroups = [
   AuthContractGroup,
@@ -45,4 +53,6 @@ export const AllContractGroups = [
   ContactContractGroup,
   BeneficiaryContractGroup,
   UserContractGroup,
+  NotificationContractGroup,
+  DeviceSessionContractGroup,
 ];

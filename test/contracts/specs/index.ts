@@ -12,3 +12,5 @@ export * from './kyc.contract.spec';
 export * from './contact.contract.spec';
 export * from './beneficiary.contract.spec';
 export * from './user.contract.spec';
+export * from './notification.contract.spec';
+export * from './device-session.contract.spec';

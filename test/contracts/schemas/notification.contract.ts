@@ -1,0 +1,223 @@
+/**
+ * Notification API Contracts
+ *
+ * Defines notification contracts consumed by mobile notification list, badge,
+ * read actions, and push-token registration flows.
+ */
+
+import {
+  ContractGroup,
+  ContractSchema,
+  EndpointContract,
+  FieldType,
+  nullable,
+  optional,
+  required,
+} from './types';
+
+export const NotificationSchema: ContractSchema = {
+  name: 'Notification',
+  description: 'Single in-app notification item',
+  fields: {
+    id: required(FieldType.UUID, {
+      description: 'Notification ID',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    type: required(FieldType.STRING, {
+      description: 'Notification type',
+      enum: [
+        'transfer_received',
+        'transfer_sent',
+        'transfer_failed',
+        'deposit_completed',
+        'deposit_failed',
+        'withdrawal_completed',
+        'withdrawal_failed',
+        'kyc_approved',
+        'kyc_rejected',
+        'low_balance',
+        'system',
+        'promotional',
+      ],
+      example: 'transfer_received',
+    }),
+    status: required(FieldType.STRING, {
+      description: 'Delivery/read status',
+      enum: ['pending', 'sent', 'delivered', 'read', 'failed'],
+      example: 'delivered',
+    }),
+    title: required(FieldType.STRING, {
+      description: 'Display title',
+      example: 'Payment received',
+    }),
+    body: required(FieldType.STRING, {
+      description: 'Display body',
+      example: 'You received 50.00 USDC from Ama.',
+    }),
+    data: required(FieldType.OBJECT, {
+      description: 'Structured metadata for navigation and display',
+      example: { transactionId: '123e4567-e89b-12d3-a456-426614174001' },
+    }),
+    referenceType: nullable(FieldType.STRING, {
+      description: 'Referenced entity type',
+      example: 'transaction',
+    }),
+    referenceId: nullable(FieldType.UUID, {
+      description: 'Referenced entity ID',
+      example: '123e4567-e89b-12d3-a456-426614174001',
+    }),
+    sentAt: nullable(FieldType.DATE, {
+      description: 'Sent timestamp',
+      example: '2026-06-04T10:30:00.000Z',
+    }),
+    deliveredAt: nullable(FieldType.DATE, {
+      description: 'Delivered timestamp',
+      example: '2026-06-04T10:30:05.000Z',
+    }),
+    readAt: nullable(FieldType.DATE, {
+      description: 'Read timestamp; mobile derives read state from this',
+      example: null,
+    }),
+    createdAt: required(FieldType.DATE, {
+      description: 'Creation timestamp',
+      example: '2026-06-04T10:30:00.000Z',
+    }),
+    isUnread: required(FieldType.BOOLEAN, {
+      description: 'Backend unread flag for badges and list styling',
+      example: true,
+    }),
+    actionUrl: optional(FieldType.STRING, {
+      description: 'Optional deep-link/action URL when provided',
+      example: '/transactions/123e4567-e89b-12d3-a456-426614174001',
+    }),
+  },
+};
+
+export const NotificationListResponseSchema: ContractSchema = {
+  name: 'NotificationListResponse',
+  description: 'Paginated notification list',
+  fields: {
+    notifications: required(FieldType.ARRAY, {
+      description: 'Notification items',
+      itemType: NotificationSchema,
+    }),
+    total: required(FieldType.NUMBER, {
+      description: 'Total notification count',
+      example: 42,
+    }),
+    unreadCount: required(FieldType.NUMBER, {
+      description: 'Unread notification count',
+      example: 5,
+    }),
+    limit: required(FieldType.NUMBER, {
+      description: 'Pagination limit',
+      example: 20,
+    }),
+    offset: required(FieldType.NUMBER, {
+      description: 'Pagination offset',
+      example: 0,
+    }),
+  },
+};
+
+export const UnreadCountResponseSchema: ContractSchema = {
+  name: 'UnreadCountResponse',
+  description: 'Unread notification count response',
+  fields: {
+    count: required(FieldType.NUMBER, {
+      description: 'Unread count',
+      example: 7,
+    }),
+  },
+};
+
+export const PushTokenRegistrationRequestSchema: ContractSchema = {
+  name: 'PushTokenRegistrationRequest',
+  description: 'Register mobile push token',
+  fields: {
+    token: required(FieldType.STRING, {
+      description: 'Push token',
+      example: 'fcm-token-123',
+      minLength: 1,
+      maxLength: 500,
+    }),
+    platform: required(FieldType.STRING, {
+      description: 'Platform',
+      enum: ['ios', 'android', 'web'],
+      example: 'ios',
+    }),
+    deviceId: optional(FieldType.STRING, {
+      description: 'Device identifier',
+      example: 'device-123',
+    }),
+    deviceName: optional(FieldType.STRING, {
+      description: 'Device display name',
+      example: 'Ben iPhone',
+    }),
+    appVersion: optional(FieldType.STRING, {
+      description: 'App version',
+      example: '1.2.3',
+    }),
+    osVersion: optional(FieldType.STRING, {
+      description: 'OS version',
+      example: 'iOS 18.0',
+    }),
+  },
+};
+
+export const ActionMessageResponseSchema: ContractSchema = {
+  name: 'ActionMessageResponse',
+  description: 'Simple action response',
+  fields: {
+    message: required(FieldType.STRING, {
+      description: 'User-action result message',
+      example: 'Device token registered successfully',
+    }),
+  },
+};
+
+export const NotificationEndpoints: EndpointContract[] = [
+  {
+    method: 'GET',
+    path: '/notifications',
+    description: 'List notifications',
+    auth: 'bearer',
+    responses: { 200: NotificationListResponseSchema },
+  },
+  {
+    method: 'GET',
+    path: '/notifications/unread-count',
+    description: 'Get unread count using mobile-compatible alias',
+    auth: 'bearer',
+    responses: { 200: UnreadCountResponseSchema },
+  },
+  {
+    method: 'PUT',
+    path: '/notifications/:id/read',
+    description: 'Mark one notification as read',
+    auth: 'bearer',
+    responses: {},
+  },
+  {
+    method: 'PUT',
+    path: '/notifications/read-all',
+    description: 'Mark all notifications as read',
+    auth: 'bearer',
+    responses: {},
+  },
+  {
+    method: 'POST',
+    path: '/notifications/push/token',
+    description: 'Register FCM/APNS token',
+    auth: 'bearer',
+    requestBody: PushTokenRegistrationRequestSchema,
+    responses: { 201: ActionMessageResponseSchema },
+  },
+];
+
+export const NotificationContractGroup: ContractGroup = {
+  name: 'Notifications',
+  basePath: '/notifications',
+  description: 'Notification list, unread count, read actions, and push tokens',
+  endpoints: NotificationEndpoints,
+};

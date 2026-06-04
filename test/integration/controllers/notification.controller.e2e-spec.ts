@@ -51,35 +51,88 @@ describe('NotificationController (e2e)', () => {
   });
 
   describe('GET /api/v1/notifications', () => {
-    it('should list notifications (200)', async () => {
+    it('should list mobile-compatible notifications', async () => {
       mockGetUserNotifications.execute.mockResolvedValue({
-        notifications: [],
-        total: 0,
-        unreadCount: 0,
+        notifications: [
+          {
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            type: 'transfer_received',
+            status: 'delivered',
+            title: 'Payment received',
+            body: 'You received 50.00 USDC from Ama.',
+            data: {
+              transactionId: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            referenceType: 'transaction',
+            referenceId: '123e4567-e89b-12d3-a456-426614174001',
+            sentAt: new Date('2026-06-04T10:30:00.000Z'),
+            deliveredAt: new Date('2026-06-04T10:30:05.000Z'),
+            readAt: null,
+            createdAt: new Date('2026-06-04T10:30:00.000Z'),
+            isUnread: true,
+          },
+        ],
+        total: 1,
+        unreadCount: 1,
         limit: 20,
         offset: 0,
       });
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .get('/api/v1/notifications')
         .expect(200);
+
+      expect(res.body).toEqual({
+        notifications: [
+          expect.objectContaining({
+            id: '123e4567-e89b-12d3-a456-426614174000',
+            type: 'transfer_received',
+            status: 'delivered',
+            title: 'Payment received',
+            body: 'You received 50.00 USDC from Ama.',
+            data: {
+              transactionId: '123e4567-e89b-12d3-a456-426614174001',
+            },
+            referenceType: 'transaction',
+            referenceId: '123e4567-e89b-12d3-a456-426614174001',
+            sentAt: '2026-06-04T10:30:00.000Z',
+            deliveredAt: '2026-06-04T10:30:05.000Z',
+            readAt: null,
+            createdAt: '2026-06-04T10:30:00.000Z',
+            isUnread: true,
+          }),
+        ],
+        total: 1,
+        unreadCount: 1,
+        limit: 20,
+        offset: 0,
+      });
     });
   });
 
   describe('PUT /api/v1/notifications/:id/read', () => {
-    it('should mark as read (200)', async () => {
+    it('should mark as read and return no content', async () => {
       mockMarkNotificationRead.execute.mockResolvedValue(undefined);
       await request(app.getHttpServer())
         .put('/api/v1/notifications/123/read')
         .expect(204);
+
+      expect(mockMarkNotificationRead.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        notificationId: '123',
+      });
     });
   });
 
   describe('PUT /api/v1/notifications/read-all', () => {
-    it('should mark all as read (200)', async () => {
+    it('should mark all as read and return no content', async () => {
       mockMarkAllNotificationsRead.execute.mockResolvedValue(undefined);
       await request(app.getHttpServer())
         .put('/api/v1/notifications/read-all')
         .expect(204);
+
+      expect(mockMarkAllNotificationsRead.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+      });
     });
   });
 
@@ -88,7 +141,10 @@ describe('NotificationController (e2e)', () => {
       mockGetUnreadCount.execute.mockResolvedValue({ count: 5 });
       await request(app.getHttpServer())
         .get('/api/v1/notifications/unread/count')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({ count: 5 });
+        });
     });
   });
 
@@ -105,6 +161,35 @@ describe('NotificationController (e2e)', () => {
 
       expect(mockGetUnreadCount.execute).toHaveBeenCalledWith({
         userId: TEST_USER.id,
+      });
+    });
+  });
+
+  describe('POST /api/v1/notifications/push/token', () => {
+    it('should accept the mobile FCM registration payload', async () => {
+      mockRegisterDeviceToken.execute.mockResolvedValue(undefined);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/notifications/push/token')
+        .send({
+          token: 'fcm-token-123',
+          platform: 'ios',
+          deviceId: 'device-123',
+          deviceName: 'Ben iPhone',
+          appVersion: '1.2.3',
+          osVersion: 'iOS 18.0',
+        })
+        .expect(201);
+
+      expect(res.body).toEqual({
+        message: 'Push token registered successfully',
+      });
+      expect(mockRegisterDeviceToken.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        token: 'fcm-token-123',
+        platform: 'ios',
+        deviceId: 'device-123',
+        deviceName: 'Ben iPhone',
       });
     });
   });
