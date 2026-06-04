@@ -6,24 +6,89 @@ export interface SupportedCountry {
   code: string;
   dialCode: string;
   name: string;
+  nameEn: string;
+  nameFr: string;
   flag: string;
   currency: string;
+  defaultLocale: string;
+  supportedLocales: string[];
+  region: 'west_africa' | 'north_america' | 'europe' | 'africa';
+  market: 'active' | 'planned';
+  paymentRails: string[];
+  mobileMoneyProviders: string[];
+  depositMethods: string[];
+  withdrawalMethods: string[];
 }
 
 const SUPPORTED_COUNTRIES: SupportedCountry[] = [
-  { code: 'CI', dialCode: '+225', name: "Côte d'Ivoire", flag: '🇨🇮', currency: 'XOF' },
-  { code: 'SN', dialCode: '+221', name: 'Sénégal', flag: '🇸🇳', currency: 'XOF' },
-  { code: 'ML', dialCode: '+223', name: 'Mali', flag: '🇲🇱', currency: 'XOF' },
-  { code: 'BF', dialCode: '+226', name: 'Burkina Faso', flag: '🇧🇫', currency: 'XOF' },
-  { code: 'BJ', dialCode: '+229', name: 'Bénin', flag: '🇧🇯', currency: 'XOF' },
-  { code: 'TG', dialCode: '+228', name: 'Togo', flag: '🇹🇬', currency: 'XOF' },
-  { code: 'NE', dialCode: '+227', name: 'Niger', flag: '🇳🇪', currency: 'XOF' },
-  { code: 'GW', dialCode: '+245', name: 'Guinée-Bissau', flag: '🇬🇼', currency: 'XOF' },
-  { code: 'CM', dialCode: '+237', name: 'Cameroun', flag: '🇨🇲', currency: 'XAF' },
-  { code: 'GH', dialCode: '+233', name: 'Ghana', flag: '🇬🇭', currency: 'GHS' },
-  { code: 'NG', dialCode: '+234', name: 'Nigeria', flag: '🇳🇬', currency: 'NGN' },
-  { code: 'FR', dialCode: '+33', name: 'France', flag: '🇫🇷', currency: 'EUR' },
-  { code: 'US', dialCode: '+1', name: 'États-Unis', flag: '🇺🇸', currency: 'USD' },
+  {
+    code: 'CI',
+    dialCode: '+225',
+    name: "Côte d'Ivoire",
+    nameEn: 'Ivory Coast',
+    nameFr: "Côte d'Ivoire",
+    flag: '🇨🇮',
+    currency: 'XOF',
+    defaultLocale: 'fr-CI',
+    supportedLocales: ['fr-CI', 'en'],
+    region: 'west_africa',
+    market: 'active',
+    paymentRails: ['mobile_money', 'usdc'],
+    mobileMoneyProviders: ['orange_money', 'mtn_momo', 'wave'],
+    depositMethods: ['mobile_money', 'usdc'],
+    withdrawalMethods: ['mobile_money', 'usdc'],
+  },
+  {
+    code: 'SN',
+    dialCode: '+221',
+    name: 'Sénégal',
+    nameEn: 'Senegal',
+    nameFr: 'Sénégal',
+    flag: '🇸🇳',
+    currency: 'XOF',
+    defaultLocale: 'fr-SN',
+    supportedLocales: ['fr-SN', 'en'],
+    region: 'west_africa',
+    market: 'planned',
+    paymentRails: ['mobile_money', 'usdc'],
+    mobileMoneyProviders: ['orange_money', 'wave'],
+    depositMethods: ['mobile_money', 'usdc'],
+    withdrawalMethods: ['mobile_money', 'usdc'],
+  },
+  {
+    code: 'ML',
+    dialCode: '+223',
+    name: 'Mali',
+    nameEn: 'Mali',
+    nameFr: 'Mali',
+    flag: '🇲🇱',
+    currency: 'XOF',
+    defaultLocale: 'fr-ML',
+    supportedLocales: ['fr-ML', 'en'],
+    region: 'west_africa',
+    market: 'planned',
+    paymentRails: ['mobile_money', 'usdc'],
+    mobileMoneyProviders: ['orange_money', 'moov_money'],
+    depositMethods: ['mobile_money', 'usdc'],
+    withdrawalMethods: ['mobile_money', 'usdc'],
+  },
+  {
+    code: 'US',
+    dialCode: '+1',
+    name: 'États-Unis',
+    nameEn: 'United States',
+    nameFr: 'États-Unis',
+    flag: '🇺🇸',
+    currency: 'USD',
+    defaultLocale: 'en-US',
+    supportedLocales: ['en-US', 'fr'],
+    region: 'north_america',
+    market: 'active',
+    paymentRails: ['usdc'],
+    mobileMoneyProviders: [],
+    depositMethods: ['usdc'],
+    withdrawalMethods: ['usdc'],
+  },
 ];
 
 @ApiTags('Config')

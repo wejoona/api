@@ -34,6 +34,9 @@ export * from './notification.contract';
 // Device and session contracts
 export * from './device-session.contract';
 
+// App config contracts
+export * from './app-config.contract';
+
 // All contract groups
 import { AuthContractGroup } from './auth.contract';
 import { WalletContractGroup } from './wallet.contract';
@@ -44,6 +47,7 @@ import { BeneficiaryContractGroup } from './beneficiary.contract';
 import { UserContractGroup } from './user.contract';
 import { NotificationContractGroup } from './notification.contract';
 import { DeviceSessionContractGroup } from './device-session.contract';
+import { AppConfigContractGroup } from './app-config.contract';
 
 export const AllContractGroups = [
   AuthContractGroup,
@@ -55,4 +59,5 @@ export const AllContractGroups = [
   UserContractGroup,
   NotificationContractGroup,
   DeviceSessionContractGroup,
+  AppConfigContractGroup,
 ];
