@@ -37,7 +37,37 @@ describe('FeatureSubscriptionService', () => {
     expect(subscription.isActive).toBe(true);
     expect(subscription.metadata).toEqual({
       surface: 'cards',
+      source: 'cards_screen',
+      featureName: 'Korido virtual card',
+      requestedFeature: 'virtual_card_launch',
       countryCode: 'CI',
+    });
+  });
+
+  it('normalizes top-level mobile context into metadata', async () => {
+    repository.findByUserFeatureAndSource.mockResolvedValue(null);
+
+    const subscription = await service.subscribe('user-1', {
+      featureKey: 'budget_controls',
+      source: 'budget_view',
+      phone: '+2250748805663',
+      countryCode: 'CI',
+      locale: 'fr-CI',
+      platform: 'ios',
+      appVersion: '1.0.0',
+      metadata: { surface: 'wallet_budget' },
+    });
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
+    expect(subscription.metadata).toEqual({
+      surface: 'wallet_budget',
+      source: 'budget_view',
+      featureName: 'Budget controls',
+      requestedFeature: 'budget_controls_launch',
+      countryCode: 'CI',
+      locale: 'fr-CI',
+      platform: 'ios',
+      appVersion: '1.0.0',
     });
   });
 
@@ -64,6 +94,11 @@ describe('FeatureSubscriptionService', () => {
     expect(subscription.id).toBe('sub-1');
     expect(subscription.status).toBe('subscribed');
     expect(subscription.phone).toBe('+2250748805663');
-    expect(subscription.metadata).toEqual({ surface: 'cards' });
+    expect(subscription.metadata).toEqual({
+      surface: 'cards',
+      source: 'cards_screen',
+      featureName: 'Korido virtual card',
+      requestedFeature: 'virtual_card_launch',
+    });
   });
 });

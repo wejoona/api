@@ -39,7 +39,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Deposit channel/create/status route parity for CI/US region data.
 - [x] KYC/VerifyHQ OTP and status flow parity under real local stack.
 - [x] Contact discovery/bulk lookup performance and privacy contract audit.
-- [ ] Feature subscription/waitlist payload completeness for every "stay informed" surface.
+- [x] Feature subscription/waitlist payload completeness for every "stay informed" surface.
 - [ ] Background refresh, push registration, and notification unread-count recovery audit.
 - [ ] Backend-mobile verifier must include every active mobile route family before release signoff.
 
@@ -280,6 +280,31 @@ Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="contact.controller.e2e-spec"`
 - `npm run test:contracts -- --runInBand --testPathPatterns="contact.contract"`
+
+### Feature Subscription Payload Completeness - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile has multiple "stay informed" surfaces: cards, wallet virtual card, and budget controls.
+- Backend persisted feature subscriptions idempotently, but product context lived only in arbitrary metadata.
+- That made long-term product ops weaker because `featureName`, `requestedFeature`, `countryCode`, `locale`, platform, and app version were not stable first-class request fields.
+
+Resolution:
+
+- Added typed optional context fields to `CreateFeatureSubscriptionDto`: `featureName`, `requestedFeature`, `countryCode`, `locale`, `platform`, and `appVersion`.
+- Added a server-side feature subscription catalog for known waitlist features: `virtual_card`, `budget_controls`, `bill_payments`, and `bank_linking`.
+- Service now normalizes every subscription into metadata with stable `source`, `featureName`, and `requestedFeature`, while preserving support-safe client metadata.
+- Mobile now sends country/locale and feature labels as typed fields from cards, wallet virtual card, and budget controls waitlist surfaces.
+- Updated backend contracts, controller e2e, service unit tests, and mobile API alignment tests.
+
+Verification:
+
+- `npm test -- --runInBand --testPathPatterns="feature-subscription.service.spec"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="feature-subscription.controller.e2e-spec"`
+- `npm run test:contracts -- --runInBand --testPathPatterns="feature-subscription.contract"`
+- `flutter test test/services/api_contract_alignment_test.dart`
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="transaction.controller.e2e-spec"`

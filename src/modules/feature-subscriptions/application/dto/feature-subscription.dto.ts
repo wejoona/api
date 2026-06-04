@@ -6,16 +6,41 @@ import {
   IsPhoneNumber,
   IsString,
   Length,
+  Matches,
 } from 'class-validator';
 import { FeatureSubscription } from '../../domain/entities';
+
+export const FEATURE_SUBSCRIPTION_CATALOG: Record<
+  string,
+  { featureName: string; requestedFeature: string }
+> = {
+  virtual_card: {
+    featureName: 'Korido virtual card',
+    requestedFeature: 'virtual_card_launch',
+  },
+  budget_controls: {
+    featureName: 'Budget controls',
+    requestedFeature: 'budget_controls_launch',
+  },
+  bill_payments: {
+    featureName: 'Bill payments',
+    requestedFeature: 'bill_payments_launch',
+  },
+  bank_linking: {
+    featureName: 'Bank linking',
+    requestedFeature: 'bank_linking_launch',
+  },
+};
 
 export class CreateFeatureSubscriptionDto {
   @IsString()
   @Length(2, 100)
+  @Matches(/^[a-z0-9_:-]+$/)
   featureKey: string;
 
   @IsString()
   @Length(2, 100)
+  @Matches(/^[a-z0-9_:-]+$/)
   source: string;
 
   @IsOptional()
@@ -29,6 +54,39 @@ export class CreateFeatureSubscriptionDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 100)
+  featureName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 100)
+  requestedFeature?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 3)
+  @Matches(/^[A-Z]{2,3}$/)
+  countryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 16)
+  @Matches(/^[a-z]{2}(-[A-Z]{2})?$/)
+  locale?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 20)
+  @Matches(/^[a-z0-9_-]+$/)
+  platform?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 40)
+  appVersion?: string;
 
   @IsOptional()
   @IsObject()

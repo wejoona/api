@@ -45,9 +45,36 @@ export const FeatureSubscriptionRequestSchema: ContractSchema = {
       description: 'Optional contact email',
       example: 'ben@example.com',
     }),
+    featureName: optional(FieldType.STRING, {
+      description: 'Human-readable feature label for support and product ops',
+      example: 'Korido virtual card',
+    }),
+    requestedFeature: optional(FieldType.STRING, {
+      description: 'Specific launch or capability the user wants updates for',
+      example: 'virtual_card_launch',
+    }),
+    countryCode: optional(FieldType.STRING, {
+      description: 'User market or selected country',
+      pattern: '^[A-Z]{2,3}$',
+      example: 'CI',
+    }),
+    locale: optional(FieldType.STRING, {
+      description: 'User locale at subscription time',
+      pattern: '^[a-z]{2}(-[A-Z]{2})?$',
+      example: 'fr-CI',
+    }),
+    platform: optional(FieldType.STRING, {
+      description: 'Client platform',
+      example: 'ios',
+    }),
+    appVersion: optional(FieldType.STRING, {
+      description: 'Client app version',
+      example: '1.0.0',
+    }),
     metadata: optional(FieldType.OBJECT, {
       description: 'Support-safe product, locale, and region context',
       example: {
+        source: 'cards_screen',
         countryCode: 'CI',
         locale: 'fr-CI',
         requestedFeature: 'virtual_card_launch',
@@ -77,6 +104,7 @@ export const FeatureSubscriptionSchema: ContractSchema = {
     email: nullable(FieldType.EMAIL, { example: 'ben@example.com' }),
     metadata: nullable(FieldType.OBJECT, {
       example: {
+        source: 'cards_screen',
         countryCode: 'CI',
         locale: 'fr-CI',
         requestedFeature: 'virtual_card_launch',

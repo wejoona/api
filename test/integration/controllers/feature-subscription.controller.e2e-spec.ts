@@ -43,12 +43,16 @@ describe('FeatureSubscriptionController (e2e)', () => {
         id: '550e8400-e29b-41d4-a716-446655440010',
         userId: TEST_USER.id,
         featureKey: 'virtual_card',
-        source: 'vcard_screen',
+        source: 'cards_screen',
         phone: '+2250748805663',
         metadata: {
+          source: 'cards_screen',
+          featureName: 'Korido virtual card',
           countryCode: 'CI',
           locale: 'fr-CI',
           requestedFeature: 'virtual_card_launch',
+          platform: 'ios',
+          appVersion: '1.0.0',
         },
       });
       mockFeatureSubscriptionService.subscribe.mockResolvedValue(subscription);
@@ -57,12 +61,18 @@ describe('FeatureSubscriptionController (e2e)', () => {
         .post('/api/v1/feature-subscriptions')
         .send({
           featureKey: 'virtual_card',
-          source: 'vcard_screen',
+          source: 'cards_screen',
           phone: '+2250748805663',
+          countryCode: 'CI',
+          locale: 'fr-CI',
+          platform: 'ios',
+          appVersion: '1.0.0',
           metadata: {
+            surface: 'cards',
+            featureName: 'Korido virtual card',
+            requestedFeature: 'virtual_card_launch',
             countryCode: 'CI',
             locale: 'fr-CI',
-            requestedFeature: 'virtual_card_launch',
           },
         })
         .expect(200)
@@ -71,14 +81,18 @@ describe('FeatureSubscriptionController (e2e)', () => {
             id: subscription.id,
             userId: TEST_USER.id,
             featureKey: 'virtual_card',
-            source: 'vcard_screen',
+            source: 'cards_screen',
             status: 'subscribed',
             isActive: true,
             phone: '+2250748805663',
             metadata: {
+              source: 'cards_screen',
+              featureName: 'Korido virtual card',
               countryCode: 'CI',
               locale: 'fr-CI',
               requestedFeature: 'virtual_card_launch',
+              platform: 'ios',
+              appVersion: '1.0.0',
             },
           });
           expect(body.createdAt).toBeDefined();
@@ -89,12 +103,18 @@ describe('FeatureSubscriptionController (e2e)', () => {
         TEST_USER.id,
         {
           featureKey: 'virtual_card',
-          source: 'vcard_screen',
+          source: 'cards_screen',
           phone: '+2250748805663',
+          countryCode: 'CI',
+          locale: 'fr-CI',
+          platform: 'ios',
+          appVersion: '1.0.0',
           metadata: {
+            surface: 'cards',
+            featureName: 'Korido virtual card',
+            requestedFeature: 'virtual_card_launch',
             countryCode: 'CI',
             locale: 'fr-CI',
-            requestedFeature: 'virtual_card_launch',
           },
         },
       );
