@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CardRepository } from '../../domain/repositories/card.repository';
 import { CardEntity } from '../../domain/entities/card.entity';
@@ -18,13 +19,24 @@ export class CardService {
     private readonly cardRepository: CardRepository,
     private readonly walletRepository: WalletRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {}
 
   async createCard(userId: string, dto: CreateCardDto): Promise<CardEntity> {
+    if (!this.isIssuingEnabled()) {
+      throw AppException.badRequest(
+        ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
+        'Virtual card issuing is not available yet',
+      );
+    }
+
     // Check if user already has a card (limit 1 per user for now)
     const existingCards = await this.cardRepository.findByUserId(userId);
     if (existingCards.length > 0) {
-      throw AppException.badRequest(ERROR_CODES.CARD_ALREADY_EXISTS, 'User already has a virtual card');
+      throw AppException.badRequest(
+        ERROR_CODES.CARD_ALREADY_EXISTS,
+        'User already has a virtual card',
+      );
     }
 
     // Get user's wallet
@@ -66,6 +78,14 @@ export class CardService {
     return this.cardRepository.findByUserId(userId);
   }
 
+  isIssuingEnabled(): boolean {
+    return this.configService.get<boolean>('cards.issuingEnabled') === true;
+  }
+
+  getIssuingProvider(): string | null {
+    return this.configService.get<string>('cards.issuingProvider') || null;
+  }
+
   async getCard(cardId: string, userId: string): Promise<CardEntity> {
     const card = await this.cardRepository.findById(cardId);
     if (!card) {
@@ -104,7 +124,11 @@ export class CardService {
     const card = await this.getCard(cardId, userId);
     card.freeze();
     const saved = await this.cardRepository.save(card);
-    this.eventEmitter.emit('card.frozen', { userId, cardId, timestamp: new Date() });
+    this.eventEmitter.emit('card.frozen', {
+      userId,
+      cardId,
+      timestamp: new Date(),
+    });
     return saved;
   }
 
@@ -112,7 +136,11 @@ export class CardService {
     const card = await this.getCard(cardId, userId);
     card.unfreeze();
     const saved = await this.cardRepository.save(card);
-    this.eventEmitter.emit('card.unfrozen', { userId, cardId, timestamp: new Date() });
+    this.eventEmitter.emit('card.unfrozen', {
+      userId,
+      cardId,
+      timestamp: new Date(),
+    });
     return saved;
   }
 
@@ -130,6 +158,10 @@ export class CardService {
     const card = await this.getCard(cardId, userId);
     card.cancel();
     await this.cardRepository.save(card);
-    this.eventEmitter.emit('card.cancelled', { userId, cardId, timestamp: new Date() });
+    this.eventEmitter.emit('card.cancelled', {
+      userId,
+      cardId,
+      timestamp: new Date(),
+    });
   }
 }

@@ -1,17 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { CardService } from './card.service';
 import { CardRepository } from '../../domain/repositories/card.repository';
 import { WalletRepository } from '../../../wallet/infrastructure/repositories/wallet.repository';
 import { CardEntity } from '../../domain/entities/card.entity';
 import { WalletEntity } from '../../../wallet/domain/entities/wallet.entity';
 import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 describe('CardService', () => {
   let service: CardService;
   let cardRepository: jest.Mocked<CardRepository>;
   let walletRepository: jest.Mocked<WalletRepository>;
+  let configService: { get: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,12 +41,23 @@ describe('CardService', () => {
             emit: jest.fn(),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'cards.issuingEnabled') return true;
+              if (key === 'cards.issuingProvider') return 'test-issuer';
+              return undefined;
+            }),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<CardService>(CardService);
     cardRepository = module.get(CardRepository);
     walletRepository = module.get(WalletRepository);
+    configService = module.get(ConfigService);
   });
 
   describe('createCard', () => {
@@ -66,6 +80,27 @@ describe('CardService', () => {
       expect(result.cardType).toBe('virtual');
       expect(result.status).toBe('active');
       expect(cardRepository.save).toHaveBeenCalled();
+    });
+
+    it('should reject card creation when issuing provider is unavailable', async () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'cards.issuingEnabled') return false;
+        if (key === 'cards.issuingProvider') return '';
+        return undefined;
+      });
+
+      await expect(
+        service.createCard('user-123', {
+          cardholderName: 'John Doe',
+          spendingLimit: 1000,
+        }),
+      ).rejects.toMatchObject({
+        code: ERROR_CODES.CARD_PROVIDER_UNAVAILABLE,
+      });
+
+      expect(cardRepository.findByUserId).not.toHaveBeenCalled();
+      expect(walletRepository.findByUserId).not.toHaveBeenCalled();
+      expect(cardRepository.save).not.toHaveBeenCalled();
     });
 
     it('should throw error if user already has a card', async () => {

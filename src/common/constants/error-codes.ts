@@ -72,6 +72,7 @@ export const ERROR_CODES = {
   CARD_FROZEN: 'E8003',
   CARD_CANCELLED: 'E8004',
   CARD_SPENDING_LIMIT_EXCEEDED: 'E8005',
+  CARD_PROVIDER_UNAVAILABLE: 'E8006',
 
   // Recurring Transfer errors (8.5xxx)
   RECURRING_TRANSFER_NOT_FOUND: 'E8501',
@@ -85,4 +86,4 @@ export const ERROR_CODES = {
   INTERNAL_ERROR: 'E9999',
 } as const;
 
-export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

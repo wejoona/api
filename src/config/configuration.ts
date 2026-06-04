@@ -116,7 +116,8 @@ export default () => ({
       otpLength: parseInt(process.env.OTP_LENGTH, 10) || 6,
       expirySeconds: parseInt(process.env.OTP_EXPIRES_IN, 10) || 300,
       maxRequestsPerHour: parseInt(process.env.OTP_RATE_LIMIT_MAX, 10) || 5,
-      deliveryProvider: process.env.VERIFICATION_DELIVERY_PROVIDER || 'dispatch',
+      deliveryProvider:
+        process.env.VERIFICATION_DELIVERY_PROVIDER || 'dispatch',
       dispatchBaseUrl: process.env.DISPATCH_BASE_URL || '',
     },
   },
@@ -133,6 +134,11 @@ export default () => ({
     clientEmail: process.env.FCM_CLIENT_EMAIL || '',
     privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
     useMock: process.env.FCM_USE_MOCK === 'true' || !process.env.FCM_PROJECT_ID,
+  },
+
+  cards: {
+    issuingEnabled: process.env.CARD_ISSUING_ENABLED === 'true',
+    issuingProvider: process.env.CARD_ISSUING_PROVIDER || '',
   },
 
   // KYC Verification Settings
@@ -235,7 +241,8 @@ export default () => ({
 
   // NTM (Notification Template Manager)
   ntm: {
-    baseUrl: process.env.NTM_BASE_URL || process.env.NTM_URL || 'http://ntm:3100',
+    baseUrl:
+      process.env.NTM_BASE_URL || process.env.NTM_URL || 'http://ntm:3100',
     apiKey: process.env.NTM_API_KEY || '',
     useMock: process.env.NTM_USE_MOCK !== 'false',
     tenantId: process.env.NTM_TENANT_ID || 'korido-app-id',

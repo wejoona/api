@@ -21,7 +21,12 @@ import { CreateCardDto } from '../dto/create-card.dto';
 import { UpdateSpendingLimitDto } from '../dto/update-card.dto';
 import { CardResponseDto, CardListResponseDto } from '../dto/card-response.dto';
 
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 @ApiTags('Cards')
 @Controller('cards')
 @UseGuards(JwtAuthGuard)
@@ -31,16 +36,29 @@ export class CardController {
 
   @Get()
   @ApiOperation({ summary: 'List all cards for current user' })
-  @ApiResponse({ status: 200, description: 'Cards retrieved', type: CardListResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Cards retrieved',
+    type: CardListResponseDto,
+  })
   async getCards(@CurrentUser() user: User): Promise<CardListResponseDto> {
     const cards = await this.cardService.getCards(user.id);
-    return CardListResponseDto.fromEntities(cards);
+    const available = this.cardService.isIssuingEnabled();
+    return CardListResponseDto.fromEntities(cards, {
+      available,
+      provider: this.cardService.getIssuingProvider(),
+      reason: available ? null : 'card_issuing_unavailable',
+    });
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new virtual card' })
-  @ApiResponse({ status: 201, description: 'Card created', type: CardResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Card created',
+    type: CardResponseDto,
+  })
   async createCard(
     @Body() dto: CreateCardDto,
     @CurrentUser() user: User,
@@ -63,7 +81,11 @@ export class CardController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get card details' })
-  @ApiResponse({ status: 200, description: 'Card details', type: CardResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Card details',
+    type: CardResponseDto,
+  })
   async getCard(
     @Param('id') id: string,
     @CurrentUser() user: User,

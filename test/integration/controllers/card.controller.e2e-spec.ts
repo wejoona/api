@@ -15,6 +15,8 @@ const mockCardService = {
   updateSpendingLimit: jest.fn(),
   cancelCard: jest.fn(),
   getCardTransactions: jest.fn(),
+  isIssuingEnabled: jest.fn(),
+  getIssuingProvider: jest.fn(),
 };
 
 import { CardController } from '@modules/cards/application/controllers/card.controller';
@@ -46,12 +48,28 @@ describe('CardController (e2e)', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCardService.isIssuingEnabled.mockReturnValue(true);
+    mockCardService.getIssuingProvider.mockReturnValue('test-issuer');
   });
 
   describe('GET /api/v1/cards', () => {
-    it('should list cards (200)', async () => {
-      mockCardService.getCards.mockResolvedValue([makeCard()]);
-      await request(app.getHttpServer()).get('/api/v1/cards').expect(200);
+    it('should list cards with mobile-safe capability metadata (200)', async () => {
+      mockCardService.getCards.mockResolvedValue([]);
+      mockCardService.isIssuingEnabled.mockReturnValue(false);
+      mockCardService.getIssuingProvider.mockReturnValue(null);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/cards')
+        .expect(200);
+
+      expect(response.body).toEqual({
+        cards: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'card_issuing_unavailable',
+        provider: null,
+      });
     });
   });
 

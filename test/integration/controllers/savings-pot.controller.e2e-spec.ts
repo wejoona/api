@@ -79,6 +79,16 @@ describe('SavingsPotController (e2e)', () => {
         .get('/api/v1/savings-pots')
         .expect(200);
     });
+
+    it('should return a mobile-safe empty savings pot list (200)', async () => {
+      mockGetPots.execute.mockResolvedValue([]);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/savings-pots')
+        .expect(200);
+
+      expect(response.body).toEqual([]);
+    });
   });
 
   describe('GET /api/v1/savings-pots/active', () => {

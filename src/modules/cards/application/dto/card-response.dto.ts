@@ -47,10 +47,29 @@ export class CardResponseDto {
 
 export class CardListResponseDto {
   cards: CardResponseDto[];
+  data: CardResponseDto[];
+  available: boolean;
+  status: 'available' | 'unavailable';
+  reason: string | null;
+  provider: string | null;
 
-  static fromEntities(cards: CardEntity[]): CardListResponseDto {
+  static fromEntities(
+    cards: CardEntity[],
+    options: {
+      available?: boolean;
+      reason?: string | null;
+      provider?: string | null;
+    } = {},
+  ): CardListResponseDto {
+    const data = cards.map((card) => CardResponseDto.fromEntity(card, false));
+    const available = options.available ?? true;
     return {
-      cards: cards.map((card) => CardResponseDto.fromEntity(card, false)),
+      cards: data,
+      data,
+      available,
+      status: available ? 'available' : 'unavailable',
+      reason: options.reason ?? null,
+      provider: options.provider ?? null,
     };
   }
 }
