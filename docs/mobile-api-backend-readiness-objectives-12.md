@@ -6,7 +6,7 @@ Purpose: continue backend/API readiness after pass 11 closed the mobile verifier
 
 - [x] Exchange-rate route parity for mobile `GET /rates/pair?from=USDC&to=XOF`.
 - [x] Legal consent route verifier coverage for mobile onboarding/settings consent calls.
-- [ ] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
+- [x] Compliance mobile-call audit: separate admin-only endpoints from user-facing mobile-safe endpoints.
 - [ ] Audit/log ingestion route decision for mobile background services.
 - [ ] AML/fraud mobile service audit: integrate real risk/compliance capability or gate unavailable screens/services.
 - [ ] Privacy/account export route parity or alias decision.
@@ -64,3 +64,23 @@ Resolution:
 Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="legal.controller"`
+
+### Compliance Mobile Boundary Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed state:
+
+- Customer-facing transaction limits use `/user/limits` and `/user/limits/usage`; these are already covered by `user-profile.controller` e2e and mobile API alignment tests.
+- Backend `/compliance/*` routes are admin/compliance-officer surfaces guarded by `JwtAuthGuard`, `RolesGuard`, and compliance roles.
+- Mobile contains exported compliance utility services, but normal customer features, providers, and router code do not call `/compliance/*`.
+
+Resolution:
+
+- Kept admin/compliance routes separate instead of exposing them to customer mobile flows.
+- Added a mobile architecture test proving customer UI/navigation/provider code does not call `/compliance/*`.
+- Added a guardrail proving customer transaction limits remain sourced from `/user/limits` and `/user/limits/usage`, not `/compliance/limits`.
+
+Verification:
+
+- `flutter test test/services/compliance/customer_compliance_boundary_test.dart`
