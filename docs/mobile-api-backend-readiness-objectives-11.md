@@ -37,7 +37,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Active sessions 401/error-state audit against session routes.
 - [x] Transaction history list/detail field parity with mobile parsers.
 - [x] Deposit channel/create/status route parity for CI/US region data.
-- [ ] KYC/VerifyHQ OTP and status flow parity under real local stack.
+- [x] KYC/VerifyHQ OTP and status flow parity under real local stack.
 - [ ] Contact discovery/bulk lookup performance and privacy contract audit.
 - [ ] Feature subscription/waitlist payload completeness for every "stay informed" surface.
 - [ ] Background refresh, push registration, and notification unread-count recovery audit.
@@ -287,4 +287,24 @@ Verification:
 - `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller.e2e-spec"`
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`
+- `npm run verify:backend:mobile`
+
+### KYC/VerifyHQ/Liveness Verification Coverage - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile uses `/kyc/status`, `/kyc/submit`, `/kyc/liveness/session`, `/kyc/liveness/status`, `/kyc/document/submit`, and `/kyc/verification/status`.
+- Backend had focused e2e coverage for KYC submission, VerifyHQ unavailable states, and liveness session/status, but `npm run verify:backend:mobile` did not include those controller suites.
+- That meant backend-mobile verification could pass while KYC/VerifyHQ routes regressed.
+
+Resolution:
+
+- Added `kyc.controller`, `kyc-verify.controller`, and `liveness.controller` to the backend-mobile verifier command.
+- Re-ran focused KYC/liveness e2e suites and the aggregate verifier.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="kyc.controller|kyc-verify.controller|liveness.controller"`
 - `npm run verify:backend:mobile`
