@@ -136,7 +136,9 @@ describe('HealthController (e2e)', () => {
 
     it('should return not_ready when a core app dependency is down without hiding feature state', async () => {
       mockTypeOrmHealthIndicator.pingCheck.mockRejectedValue(
-        new Error('database unavailable'),
+        new Error(
+          'database unavailable at postgres://wallet:secret@db:5432/usdc_wallet',
+        ),
       );
 
       await request(app.getHttpServer())
@@ -148,9 +150,41 @@ describe('HealthController (e2e)', () => {
           expect(body.app.dependencies.database).toMatchObject({
             status: 'down',
             available: false,
-            error: 'database unavailable',
+            error: 'dependency_unavailable',
+            errorType: 'Error',
           });
+          expect(JSON.stringify(body)).not.toContain('secret');
+          expect(JSON.stringify(body)).not.toContain('usdc_wallet');
           expect(body.features.billPayments.status).toBe('available');
+        });
+    });
+
+    it('should return degraded when only an external provider is down', async () => {
+      mockDependencyIndicator.isHealthy.mockImplementation((name: string) => {
+        if (name === 'circle') {
+          return Promise.reject(
+            new Error(
+              'Circle failed for https://api_key:secret@circle.example/v1',
+            ),
+          );
+        }
+        return Promise.resolve({ [name]: { status: 'up' } });
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/health/mobile-readiness')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.status).toBe('degraded');
+          expect(body.app.ready).toBe(true);
+          expect(body.providers.circle).toMatchObject({
+            status: 'down',
+            available: false,
+            error: 'dependency_unavailable',
+            errorType: 'Error',
+          });
+          expect(JSON.stringify(body)).not.toContain('api_key');
+          expect(JSON.stringify(body)).not.toContain('secret');
         });
     });
   });

@@ -16,9 +16,9 @@ Purpose: continue backend readiness after schema/bootstrap hardening, with focus
 
 ## Provider And Dependency Degradation
 
-- [ ] Confirm VerifyHQ unavailable, NTM unavailable, Blnk unavailable, Circle mock, Yellow Card mock, and Redis unavailable paths return deterministic mobile-safe errors or degraded states.
-- [ ] Confirm user-facing money routes never claim success/refund when provider/ledger rollback is uncertain.
-- [ ] Confirm feature waitlist/newsletter and notifications degrade locally without blocking core wallet flows.
+- [x] Confirm VerifyHQ unavailable, NTM unavailable, Blnk unavailable, Circle mock, Yellow Card mock, and Redis unavailable paths return deterministic mobile-safe errors or degraded states.
+- [x] Confirm user-facing money routes never claim success/refund when provider/ledger rollback is uncertain.
+- [x] Confirm feature waitlist/newsletter and notifications degrade locally without blocking core wallet flows.
 
 ## Audit, Security, And Compliance Backend
 
@@ -80,3 +80,25 @@ Verification:
 - `npm test -- --runInBand src/modules/jobs/services/scheduled-jobs.service.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="jobs.controller"`
 - `npm run build`
+
+### Provider And Dependency Degradation - 2026-06-04
+
+Verified and hardened:
+
+- `GET /health/mobile-readiness` now returns deterministic public dependency errors:
+  - Down dependencies expose `error=dependency_unavailable` and `errorType`.
+  - Raw provider/database exception messages are not returned to mobile, avoiding leaked URLs, database names, API keys, or secrets.
+- Core dependency failure returns `status=not_ready` while still exposing feature availability, so mobile can display a stable maintenance/degraded state.
+- Provider-only failure returns `status=degraded` while `app.ready=true`, so mobile can keep core wallet flows available and gate unavailable provider features.
+- VerifyHQ unavailable paths are wrapped as `KYC_PROVIDER_UNAVAILABLE` or `DEPENDENCY_UNAVAILABLE` state.
+- NTM/push failures are non-blocking: in-app notifications are persisted and push delivery failure is recorded without crashing the main flow.
+- Feature waitlist/newsletter subscriptions persist feature/source/regional metadata and remain isolated from wallet core flows.
+- Money-route behavior is covered:
+  - External transfers void inflight ledger records on provider failure.
+  - If voiding fails, the API returns review metadata and does not claim the funds were refunded.
+  - Internal P2P transfer failure at Blnk ledger recording returns a failed support state before local transaction writes.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+- `npm test -- --runInBand src/modules/wallet/application/usecases/external-transfer.use-case.spec.ts src/modules/wallet/application/usecases/internal-transfer.use-case.spec.ts src/modules/notification/application/domain/services/notification-fallback.spec.ts src/modules/feature-subscriptions/application/services/feature-subscription.service.spec.ts`

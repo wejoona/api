@@ -248,6 +248,7 @@ export class HealthController {
     available: boolean;
     details?: Record<string, any>;
     error?: string;
+    errorType?: string;
   }> {
     try {
       const result = await check();
@@ -263,7 +264,8 @@ export class HealthController {
         name,
         status: 'down',
         available: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'dependency_unavailable',
+        errorType: error instanceof Error ? error.name : 'UnknownError',
       };
     }
   }
