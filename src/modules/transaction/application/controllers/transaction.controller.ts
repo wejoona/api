@@ -26,7 +26,10 @@ import {
   GetDepositStatusUseCase,
   ReverseTransactionUseCase,
 } from '../usecases';
-import { GetTransactionsQueryDto, ReverseTransactionDto } from '../dto/requests';
+import {
+  GetTransactionsQueryDto,
+  ReverseTransactionDto,
+} from '../dto/requests';
 
 @ApiTags('Transactions')
 @Controller('wallet/transactions')
@@ -74,9 +77,10 @@ export class TransactionController {
     @Request() req: AuthenticatedRequest,
     @Query() query: GetTransactionsQueryDto,
   ) {
+    const type = this.normalizeTransactionTypeFilter(query.type);
     const result = await this.getTransactionsUseCase.execute({
       userId: req.user.id,
-      type: query.type,
+      type,
       status: query.status,
       startDate: query.startDate,
       endDate: query.endDate,
@@ -137,7 +141,10 @@ export class TransactionController {
     const deposits = txs.filter((t: any) => t.type === 'deposit');
     const withdrawals = txs.filter((t: any) => t.type === 'withdrawal');
     const transfers = txs.filter(
-      (t: any) => t.type === 'transfer' || t.type === 'transfer_internal' || t.type === 'transfer_external',
+      (t: any) =>
+        t.type === 'transfer' ||
+        t.type === 'transfer_internal' ||
+        t.type === 'transfer_external',
     );
     const sum = (arr: any[]) =>
       arr.reduce((s: number, t: any) => s + (parseFloat(t.amount) || 0), 0);
@@ -309,7 +316,10 @@ export class TransactionController {
       description: transaction.description ?? metadata.note ?? null,
       counterpartyName,
       counterpartyPhone,
-      direction: this.getTransactionDirection(transaction.type),
+      direction: this.getTransactionDirection(
+        transaction.type,
+        transaction.amount,
+      ),
       externalReference,
       supportReference: transaction.id,
       ledgerReference,
@@ -338,7 +348,29 @@ export class TransactionController {
     };
   }
 
-  private getTransactionDirection(type: string): 'credit' | 'debit' | 'neutral' {
+  private normalizeTransactionTypeFilter(type?: string): string | undefined {
+    switch (type) {
+      case undefined:
+      case 'all':
+        return undefined;
+      case 'internal_transfer_sent':
+      case 'internal_transfer_received':
+        return 'transfer_internal';
+      case 'external_transfer':
+        return 'transfer_external';
+      case 'mobile_money_deposit':
+        return 'deposit';
+      case 'mobile_money_withdrawal':
+        return 'withdrawal';
+      default:
+        return type;
+    }
+  }
+
+  private getTransactionDirection(
+    type: string,
+    amount?: number | string,
+  ): 'credit' | 'debit' | 'neutral' {
     if (
       type === 'deposit' ||
       type === 'mobile_money_deposit' ||
@@ -351,9 +383,14 @@ export class TransactionController {
       type === 'withdrawal' ||
       type === 'mobile_money_withdrawal' ||
       type === 'internal_transfer_sent' ||
-      type === 'external_transfer'
+      type === 'external_transfer' ||
+      type === 'transfer_external'
     ) {
       return 'debit';
+    }
+
+    if (type === 'transfer_internal') {
+      return Number(amount) < 0 ? 'debit' : 'credit';
     }
 
     return 'neutral';

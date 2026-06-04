@@ -154,7 +154,8 @@ export const TransactionSchema: ContractSchema = {
       example: 'Lunch money',
     }),
     counterpartyName: nullable(FieldType.STRING, {
-      description: 'Mobile-safe sender or recipient display name when available',
+      description:
+        'Mobile-safe sender or recipient display name when available',
       example: 'Amadou Diallo',
     }),
     counterpartyPhone: nullable(FieldType.PHONE, {
@@ -167,7 +168,8 @@ export const TransactionSchema: ContractSchema = {
       example: 'credit',
     }),
     externalReference: nullable(FieldType.STRING, {
-      description: 'Best available external/ledger reference for receipt display',
+      description:
+        'Best available external/ledger reference for receipt display',
       example: 'yc_dep_1234567890',
     }),
     supportReference: required(FieldType.STRING, {
@@ -179,11 +181,13 @@ export const TransactionSchema: ContractSchema = {
       example: 'ledger-ref-123',
     }),
     providerReference: nullable(FieldType.STRING, {
-      description: 'External payment/on-chain provider reference when available',
+      description:
+        'External payment/on-chain provider reference when available',
       example: 'yc_dep_1234567890',
     }),
     yellowCardRef: optional(FieldType.STRING, {
-      description: 'Legacy Yellow Card reference for deposits; use providerReference in new mobile clients',
+      description:
+        'Legacy Yellow Card reference for deposits; use providerReference in new mobile clients',
       example: 'yc_dep_1234567890',
     }),
   },
@@ -295,9 +299,13 @@ export const GetTransactionsQuerySchema: ContractSchema = {
       enum: [
         'deposit',
         'withdrawal',
+        'transfer_internal',
+        'transfer_external',
         'internal_transfer_sent',
         'internal_transfer_received',
         'external_transfer',
+        'mobile_money_deposit',
+        'mobile_money_withdrawal',
         'all',
       ],
       example: 'all',

@@ -134,6 +134,59 @@ describe('TransactionController (e2e)', () => {
       });
     });
 
+    it('should accept canonical mobile type filters and normalize them for storage', async () => {
+      mockGetTransactions.execute.mockResolvedValue({
+        transactions: [],
+        total: 0,
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/wallet/transactions')
+        .query({
+          type: 'internal_transfer_sent',
+          limit: 20,
+          offset: 0,
+        })
+        .expect(200);
+
+      expect(mockGetTransactions.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: TEST_USER.id,
+          type: 'transfer_internal',
+          limit: 20,
+          offset: 0,
+        }),
+      );
+    });
+
+    it('should treat all type filter as no type filter', async () => {
+      mockGetTransactions.execute.mockResolvedValue({
+        transactions: [],
+        total: 0,
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/wallet/transactions')
+        .query({
+          type: 'all',
+          limit: 20,
+          offset: 0,
+        })
+        .expect(200);
+
+      expect(mockGetTransactions.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: undefined,
+        }),
+      );
+    });
+
     it('should expose mobile-safe counterparty display fields', async () => {
       const transfer = TestData.transaction({
         id: '770e8400-e29b-41d4-a716-446655440111',
@@ -179,6 +232,40 @@ describe('TransactionController (e2e)', () => {
           note: 'Dinner',
         }),
       );
+    });
+
+    it('should expose direction for legacy persisted transfer types', async () => {
+      const internalTransfer = TestData.transaction({
+        id: '770e8400-e29b-41d4-a716-446655440222',
+        type: 'transfer_internal',
+        amount: -25,
+        currency: 'USDC',
+        status: 'completed',
+        completedAt: '2026-06-04T12:05:00.000Z',
+      });
+      const externalTransfer = TestData.transaction({
+        id: '770e8400-e29b-41d4-a716-446655440333',
+        type: 'transfer_external',
+        amount: 25,
+        currency: 'USDC',
+        status: 'completed',
+        completedAt: '2026-06-04T12:05:00.000Z',
+      });
+
+      mockGetTransactions.execute.mockResolvedValue({
+        transactions: [internalTransfer, externalTransfer],
+        total: 2,
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/wallet/transactions')
+        .expect(200);
+
+      expect(res.body.transactions[0].direction).toBe('debit');
+      expect(res.body.transactions[1].direction).toBe('debit');
     });
   });
 

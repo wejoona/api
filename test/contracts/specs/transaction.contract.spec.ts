@@ -8,10 +8,32 @@ import {
   TransactionSchema,
   TransactionListResponseSchema,
   DepositStatusResponseSchema,
+  GetTransactionsQuerySchema,
 } from '../schemas/transaction.contract';
 import { validateSchema } from '../validators/schema-validator';
 
 describe('Transaction Contracts', () => {
+  describe('GET /wallet/transactions - Query Parameters', () => {
+    it('should validate canonical and legacy transaction type filters', () => {
+      for (const type of [
+        'transfer_internal',
+        'transfer_external',
+        'internal_transfer_sent',
+        'internal_transfer_received',
+        'external_transfer',
+        'mobile_money_deposit',
+        'mobile_money_withdrawal',
+      ]) {
+        const result = validateSchema(
+          { type, status: 'completed', limit: 20, offset: 0 },
+          GetTransactionsQuerySchema,
+        );
+
+        expect(result.valid).toBe(true);
+      }
+    });
+  });
+
   describe('GET /wallet/transactions - Transaction List Response', () => {
     it('should validate successful transaction list response', () => {
       const response = {

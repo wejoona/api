@@ -1,6 +1,7 @@
 import {
   IsOptional,
   IsEnum,
+  IsIn,
   IsDateString,
   IsNumber,
   IsString,
@@ -11,13 +12,26 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
+export const TRANSACTION_TYPE_FILTERS = [
+  'deposit',
+  'withdrawal',
+  'transfer_internal',
+  'transfer_external',
+  'internal_transfer_sent',
+  'internal_transfer_received',
+  'external_transfer',
+  'mobile_money_deposit',
+  'mobile_money_withdrawal',
+  'all',
+] as const;
+
 export class GetTransactionsQueryDto {
   @ApiPropertyOptional({
-    enum: ['deposit', 'withdrawal', 'transfer_internal', 'transfer_external'],
+    enum: TRANSACTION_TYPE_FILTERS,
     description: 'Filter by transaction type',
   })
   @IsOptional()
-  @IsEnum(['deposit', 'withdrawal', 'transfer_internal', 'transfer_external'])
+  @IsIn(TRANSACTION_TYPE_FILTERS)
   type?: string;
 
   @ApiPropertyOptional({
