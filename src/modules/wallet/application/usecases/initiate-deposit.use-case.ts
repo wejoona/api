@@ -107,12 +107,16 @@ export class InitiateDepositUseCase {
       targetCurrency: 'USD',
       channelId: input.channelId,
     });
+    const estimatedAmount = this.calculateNetTargetAmount(
+      depositResponse.amount,
+      depositResponse.rate,
+      depositResponse.fee,
+    );
 
     // Create transaction record
     const transaction = TransactionEntity.createDeposit({
       walletId: wallet.id,
-      amount:
-        depositResponse.amount * depositResponse.rate - depositResponse.fee,
+      amount: estimatedAmount,
       currency: 'USD',
       yellowCardRef: depositResponse.externalId,
       metadata: {
@@ -120,6 +124,7 @@ export class InitiateDepositUseCase {
         sourceAmount: input.amount,
         rate: depositResponse.rate,
         fee: depositResponse.fee,
+        feeCurrency: input.sourceCurrency,
         channelId: input.channelId,
         depositId: depositResponse.id,
       },
@@ -144,10 +149,18 @@ export class InitiateDepositUseCase {
       targetCurrency: 'USD',
       rate: depositResponse.rate,
       fee: depositResponse.fee,
-      estimatedAmount:
-        input.amount * depositResponse.rate - depositResponse.fee,
+      estimatedAmount,
       paymentInstructions: depositResponse.paymentInstructions,
       expiresAt: depositResponse.expiresAt,
     };
+  }
+
+  private calculateNetTargetAmount(
+    sourceAmount: number,
+    rate: number,
+    sourceCurrencyFee: number,
+  ): number {
+    const netSourceAmount = Math.max(0, sourceAmount - sourceCurrencyFee);
+    return Math.round(netSourceAmount * rate * 100) / 100;
   }
 }
