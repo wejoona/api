@@ -54,7 +54,8 @@ export class SessionService {
     } = params;
 
     // Enforce maximum concurrent sessions per user
-    const activeCount = await this.sessionRepository.countActiveByUserId(userId);
+    const activeCount =
+      await this.sessionRepository.countActiveByUserId(userId);
     if (activeCount >= this.MAX_ACTIVE_SESSIONS) {
       this.logger.warn(
         `User ${userId} has ${activeCount} active sessions, revoking oldest`,
@@ -198,6 +199,32 @@ export class SessionService {
    */
   async countActiveSessions(userId: string): Promise<number> {
     return this.sessionRepository.countActiveByUserId(userId);
+  }
+
+  async attachLatestActiveSessionToDevice(
+    userId: string,
+    deviceId: string,
+  ): Promise<boolean> {
+    const normalizedDeviceId = this.normalizeInternalDeviceId(deviceId);
+    if (!normalizedDeviceId) {
+      this.logger.warn(
+        `Ignoring invalid device id for session link: ${deviceId}`,
+      );
+      return false;
+    }
+
+    const sessions = await this.sessionRepository.findActiveByUserId(userId);
+    const session = sessions.find((item) => item.deviceId === null);
+    if (!session) {
+      return false;
+    }
+
+    session.attachDevice(normalizedDeviceId);
+    await this.sessionRepository.save(session);
+    this.logger.log(
+      `Linked session ${session.id} to device ${normalizedDeviceId}`,
+    );
+    return true;
   }
 
   /**

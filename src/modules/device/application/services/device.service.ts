@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { DeviceRepository } from '../../domain/repositories/device.repository';
 import { Device, DevicePlatform } from '../../domain/entities/device.entity';
+import { SessionService } from '../../../session/application/services';
 
 export interface RegisterDeviceParams {
   userId: string;
@@ -45,7 +46,10 @@ export interface DeviceResponse {
 export class DeviceService {
   private readonly logger = new Logger(DeviceService.name);
 
-  constructor(private readonly deviceRepository: DeviceRepository) {}
+  constructor(
+    private readonly deviceRepository: DeviceRepository,
+    private readonly sessionService: SessionService,
+  ) {}
 
   /**
    * Register or update a device for a user.
@@ -78,6 +82,7 @@ export class DeviceService {
       device.activate(); // Re-activate if was deactivated
 
       const saved = await this.deviceRepository.save(device);
+      await this.linkCurrentSession(userId, saved.id);
       this.logger.log(
         `Device ${saved.id} updated for user ${userId}, login #${saved.loginCount}`,
       );
@@ -93,6 +98,7 @@ export class DeviceService {
     });
 
     const saved = await this.deviceRepository.save(device);
+    await this.linkCurrentSession(userId, saved.id);
     this.logger.log(`New device ${saved.id} registered for user ${userId}`);
     return saved;
   }
@@ -282,5 +288,21 @@ export class DeviceService {
       loginCount: device.loginCount,
       createdAt: device.createdAt,
     };
+  }
+
+  private async linkCurrentSession(
+    userId: string,
+    deviceId: string,
+  ): Promise<void> {
+    try {
+      await this.sessionService.attachLatestActiveSessionToDevice(
+        userId,
+        deviceId,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Unable to link current session to device ${deviceId}: ${error.message}`,
+      );
+    }
   }
 }

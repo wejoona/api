@@ -30,7 +30,7 @@ export interface CreateSessionProps {
 export class Session {
   readonly id: string;
   readonly userId: string;
-  readonly deviceId: string | null;
+  private _deviceId: string | null;
   readonly refreshTokenHash: string;
   readonly ipAddress: string | null;
   readonly userAgent: string | null;
@@ -46,7 +46,7 @@ export class Session {
   private constructor(props: SessionProps) {
     this.id = props.id || uuidv4();
     this.userId = props.userId;
-    this.deviceId = props.deviceId ?? null;
+    this._deviceId = props.deviceId ?? null;
     this.refreshTokenHash = props.refreshTokenHash;
     this.ipAddress = props.ipAddress ?? null;
     this.userAgent = props.userAgent ?? null;
@@ -62,6 +62,10 @@ export class Session {
 
   get isActive(): boolean {
     return this._isActive;
+  }
+
+  get deviceId(): string | null {
+    return this._deviceId;
   }
 
   get lastActivityAt(): Date {
@@ -86,6 +90,11 @@ export class Session {
 
   recordActivity(): void {
     this._lastActivityAt = new Date();
+  }
+
+  attachDevice(deviceId: string): void {
+    this._deviceId = deviceId;
+    this.recordActivity();
   }
 
   revoke(reason?: string): void {

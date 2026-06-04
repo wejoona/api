@@ -8,9 +8,10 @@ import { DeviceService } from './application/services/device.service';
 import { JweEncryptionService } from './application/services/jwe-encryption.service';
 import { DeviceController } from './application/controllers/device.controller';
 import { JwsDeviceGuard } from './application/guards/jws-device.guard';
+import { SessionModule } from '../session/session.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DeviceOrmEntity])],
+  imports: [TypeOrmModule.forFeature([DeviceOrmEntity]), SessionModule],
   controllers: [DeviceController],
   providers: [
     DeviceMapper,
@@ -22,6 +23,11 @@ import { JwsDeviceGuard } from './application/guards/jws-device.guard';
       useClass: TypeOrmDeviceRepository,
     },
   ],
-  exports: [DeviceService, DeviceRepository, JweEncryptionService, JwsDeviceGuard],
+  exports: [
+    DeviceService,
+    DeviceRepository,
+    JweEncryptionService,
+    JwsDeviceGuard,
+  ],
 })
 export class DeviceModule {}

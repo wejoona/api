@@ -141,6 +141,37 @@ describe('SessionService', () => {
     });
   });
 
+  describe('attachLatestActiveSessionToDevice', () => {
+    it('links the latest active session without a device', async () => {
+      const session = Session.create({
+        userId: 'user-id',
+        refreshTokenHash: 'hash',
+        expiresAt: new Date(Date.now() + 10000),
+      });
+      sessionRepository.findActiveByUserId.mockResolvedValue([session]);
+      sessionRepository.save.mockImplementation(async (s) => s);
+
+      const linked = await service.attachLatestActiveSessionToDevice(
+        'user-id',
+        '4b862970-854d-4a84-98f0-2c36b01c1e87',
+      );
+
+      expect(linked).toBe(true);
+      expect(session.deviceId).toBe('4b862970-854d-4a84-98f0-2c36b01c1e87');
+      expect(sessionRepository.save).toHaveBeenCalledWith(session);
+    });
+
+    it('does not link external non-UUID device identifiers', async () => {
+      const linked = await service.attachLatestActiveSessionToDevice(
+        'user-id',
+        'ios-simulator-external-id',
+      );
+
+      expect(linked).toBe(false);
+      expect(sessionRepository.findActiveByUserId).not.toHaveBeenCalled();
+    });
+  });
+
   describe('revokeSession', () => {
     it('should revoke session if it belongs to user', async () => {
       const session = Session.create({
