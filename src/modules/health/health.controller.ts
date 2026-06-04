@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -86,6 +91,100 @@ export class HealthController {
     };
   }
 
+  @Get('mobile-readiness')
+  @ApiOperation({
+    summary: 'Mobile/API readiness split by app, providers, and features',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Readiness summary that separates core app readiness from external provider and feature availability.',
+  })
+  async mobileReadiness() {
+    const [database, redis, blnk, circle, stellar, yellowCard] =
+      await Promise.all([
+        this.checkDependency('database', async () =>
+          this.db.pingCheck('database'),
+        ),
+        this.checkDependency('redis', async () =>
+          this.redisHealth.isHealthy('redis'),
+        ),
+        this.checkDependency('blnk', async () =>
+          this.blnkHealth.isHealthy('blnk'),
+        ),
+        this.checkDependency('circle', async () =>
+          this.circleHealth.isHealthy('circle'),
+        ),
+        this.checkDependency('stellar', async () =>
+          this.stellarHealth.isHealthy('stellar'),
+        ),
+        this.checkDependency('yellowCard', async () =>
+          this.yellowCardHealth.isHealthy('yellowcard'),
+        ),
+      ]);
+
+    const yellowCardEnabled =
+      this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') === 'true';
+    const cardIssuingEnabled =
+      this.configService.get<boolean>('cards.issuingEnabled') === true;
+    const bankLinkingEnabled =
+      this.configService.get<boolean>('bankLinking.enabled') === true;
+    const bulkPaymentsEnabled =
+      this.configService.get<boolean>('bulkPayments.enabled') === true;
+    const billPayConfigured = Boolean(
+      this.configService.get<string>('billPay.baseUrl'),
+    );
+
+    const appDependencies = { database, redis, blnk };
+    const providerReadiness = {
+      circle,
+      stellar,
+      yellowCard: yellowCardEnabled
+        ? yellowCard
+        : {
+            ...yellowCard,
+            status: 'skipped',
+            available: false,
+            reason: 'YELLOW_CARD_ENABLED=false',
+          },
+    };
+    const features = {
+      deposits: this.featureStatus(yellowCardEnabled, 'yellow_card'),
+      externalWithdrawals: this.featureStatus(yellowCardEnabled, 'yellow_card'),
+      cards: this.featureStatus(
+        cardIssuingEnabled,
+        this.configService.get<string>('cards.issuingProvider') || null,
+      ),
+      bankLinking: this.featureStatus(
+        bankLinkingEnabled,
+        this.configService.get<string>('bankLinking.provider') || null,
+      ),
+      billPayments: this.featureStatus(
+        billPayConfigured,
+        billPayConfigured ? 'bill-pay' : null,
+      ),
+      bulkPayments: this.featureStatus(bulkPaymentsEnabled, null),
+    };
+
+    const appReady = Object.values(appDependencies).every(
+      (dependency) => dependency.status === 'up',
+    );
+    const providerDown = Object.values(providerReadiness).some(
+      (provider) => provider.status === 'down',
+    );
+
+    return {
+      status: appReady ? (providerDown ? 'degraded' : 'ready') : 'not_ready',
+      checkedAt: new Date().toISOString(),
+      app: {
+        ready: appReady,
+        dependencies: appDependencies,
+      },
+      providers: providerReadiness,
+      features,
+    };
+  }
+
   @Get('exchange-rates')
   @ApiOperation({ summary: 'Get current exchange rates' })
   @ApiResponse({ status: 200, description: 'Exchange rates' })
@@ -101,7 +200,8 @@ export class HealthController {
       },
       updatedAt: new Date().toISOString(),
       source: 'fallback',
-      warning: 'These are fallback rates. Inject ExchangeRateService for live rates.',
+      warning:
+        'These are fallback rates. Inject ExchangeRateService for live rates.',
     };
   }
 
@@ -139,11 +239,51 @@ export class HealthController {
     };
   }
 
+  private async checkDependency(
+    name: string,
+    check: () => Promise<Record<string, any>>,
+  ): Promise<{
+    name: string;
+    status: 'up' | 'down';
+    available: boolean;
+    details?: Record<string, any>;
+    error?: string;
+  }> {
+    try {
+      const result = await check();
+      const details = result[name] ?? result;
+      return {
+        name,
+        status: 'up',
+        available: true,
+        details,
+      };
+    } catch (error) {
+      return {
+        name,
+        status: 'down',
+        available: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  private featureStatus(enabled: boolean, provider: string | null) {
+    return {
+      available: enabled,
+      status: enabled ? 'available' : 'unavailable',
+      provider,
+      reason: enabled ? null : 'provider_or_feature_disabled',
+    };
+  }
+
   @Get('detailed')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Detailed health check with all services (admin only)' })
+  @ApiOperation({
+    summary: 'Detailed health check with all services (admin only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Detailed health status',

@@ -29,6 +29,7 @@ import {
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication;
+  const mockConfigGet = jest.fn();
 
   beforeAll(async () => {
     const result = await createTestApp({
@@ -39,7 +40,7 @@ describe('HealthController (e2e)', () => {
           provide: TypeOrmHealthIndicator,
           useValue: mockTypeOrmHealthIndicator,
         },
-        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: ConfigService, useValue: { get: mockConfigGet } },
         { provide: CircleHealthIndicator, useValue: mockDependencyIndicator },
         { provide: BlnkHealthIndicator, useValue: mockDependencyIndicator },
         { provide: RedisHealthIndicator, useValue: mockDependencyIndicator },
@@ -59,6 +60,24 @@ describe('HealthController (e2e)', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTypeOrmHealthIndicator.pingCheck.mockResolvedValue({
+      database: { status: 'up' },
+    });
+    mockDependencyIndicator.isHealthy.mockResolvedValue({
+      dependency: { status: 'up' },
+    });
+    mockConfigGet.mockImplementation((key: string, defaultValue?: unknown) => {
+      const values: Record<string, unknown> = {
+        YELLOW_CARD_ENABLED: 'false',
+        'cards.issuingEnabled': false,
+        'cards.issuingProvider': '',
+        'bankLinking.enabled': false,
+        'bankLinking.provider': '',
+        'bulkPayments.enabled': false,
+        'billPay.baseUrl': 'http://billpay:3400',
+      };
+      return values[key] ?? defaultValue;
+    });
   });
 
   describe('GET /api/v1/health', () => {
@@ -68,6 +87,71 @@ describe('HealthController (e2e)', () => {
         details: { database: { status: 'up' }, redis: { status: 'up' } },
       });
       await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+    });
+  });
+
+  describe('GET /api/v1/health/mobile-readiness', () => {
+    it('should separate app readiness, provider readiness, and feature availability', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/health/mobile-readiness')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.status).toBe('ready');
+          expect(body.app.ready).toBe(true);
+          expect(body.app.dependencies).toMatchObject({
+            database: expect.objectContaining({
+              status: 'up',
+              available: true,
+            }),
+            redis: expect.objectContaining({ status: 'up', available: true }),
+            blnk: expect.objectContaining({ status: 'up', available: true }),
+          });
+          expect(body.providers.yellowCard).toMatchObject({
+            status: 'skipped',
+            available: false,
+            reason: 'YELLOW_CARD_ENABLED=false',
+          });
+          expect(body.features).toMatchObject({
+            deposits: {
+              available: false,
+              status: 'unavailable',
+              provider: 'yellow_card',
+              reason: 'provider_or_feature_disabled',
+            },
+            externalWithdrawals: {
+              available: false,
+              status: 'unavailable',
+              provider: 'yellow_card',
+              reason: 'provider_or_feature_disabled',
+            },
+            billPayments: {
+              available: true,
+              status: 'available',
+              provider: 'bill-pay',
+              reason: null,
+            },
+          });
+        });
+    });
+
+    it('should return not_ready when a core app dependency is down without hiding feature state', async () => {
+      mockTypeOrmHealthIndicator.pingCheck.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/health/mobile-readiness')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.status).toBe('not_ready');
+          expect(body.app.ready).toBe(false);
+          expect(body.app.dependencies.database).toMatchObject({
+            status: 'down',
+            available: false,
+            error: 'database unavailable',
+          });
+          expect(body.features.billPayments.status).toBe('available');
+        });
     });
   });
 });
