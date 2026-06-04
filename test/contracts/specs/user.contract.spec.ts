@@ -12,64 +12,87 @@ import {
 import { UserSchema } from '../schemas/auth.contract';
 import { validateSchema } from '../validators/schema-validator';
 
+const createMobileUserProfile = (
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  phone: '+2250701234567',
+  phoneVerified: true,
+  username: 'amadou_diallo',
+  firstName: 'Amadou',
+  lastName: 'Diallo',
+  email: 'amadou@example.com',
+  avatarUrl: null,
+  avatarThumb: null,
+  preferredLocale: 'fr',
+  countryCode: 'CI',
+  kycStatus: 'approved',
+  kycRejectionReason: null,
+  canTransact: true,
+  canWithdraw: true,
+  hasPin: true,
+  createdAt: '2026-01-18T12:00:00.000Z',
+  ...overrides,
+});
+
 describe('User Contracts', () => {
   describe('GET /user/profile - User Profile Response', () => {
     it('should validate complete user profile', () => {
-      const response = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
-        username: 'amadou_diallo',
-        firstName: 'Amadou',
-        lastName: 'Diallo',
-        email: 'amadou@example.com',
-        countryCode: 'CI',
-        kycStatus: 'approved',
-        canTransact: true,
-        canWithdraw: true,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      const response = createMobileUserProfile({
+        avatarUrl: '/user/avatar/123e4567-e89b-12d3-a456-426614174000',
+        avatarThumb: 'data:image/jpeg;base64,abc123',
+        preferredLocale: 'fr',
+      });
 
       const result = validateSchema(response, UserSchema);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
+      expect(response).toEqual(
+        expect.objectContaining({
+          firstName: 'Amadou',
+          lastName: 'Diallo',
+          avatarUrl: expect.any(String),
+          avatarThumb: expect.any(String),
+          preferredLocale: 'fr',
+          countryCode: 'CI',
+          kycStatus: 'approved',
+          kycRejectionReason: null,
+          hasPin: true,
+        }),
+      );
     });
 
     it('should validate new user profile with minimal data', () => {
-      const response = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
+      const response = createMobileUserProfile({
         username: null,
         firstName: null,
         lastName: null,
         email: null,
-        countryCode: 'CI',
+        avatarUrl: null,
+        avatarThumb: null,
+        preferredLocale: 'fr',
         kycStatus: 'pending',
+        kycRejectionReason: null,
         canTransact: false,
         canWithdraw: false,
+        hasPin: false,
         createdAt: '2026-01-25T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(response, UserSchema);
       expect(result.valid).toBe(true);
     });
 
     it('should validate user from different country', () => {
-      const response = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
+      const response = createMobileUserProfile({
         phone: '+221701234567', // Senegal
-        phoneVerified: true,
         username: 'fatou_traore',
         firstName: 'Fatou',
         lastName: 'Traore',
         email: null,
         countryCode: 'SN', // Senegal
         kycStatus: 'approved',
-        canTransact: true,
-        canWithdraw: true,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(response, UserSchema);
       expect(result.valid).toBe(true);
@@ -78,20 +101,12 @@ describe('User Contracts', () => {
 
   describe('PUT /user/profile - Update Profile Response', () => {
     it('should validate updated profile with username', () => {
-      const response = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
+      const response = createMobileUserProfile({
         username: 'new_username',
         firstName: 'Amadou',
         lastName: 'Diallo',
         email: 'newemail@example.com',
-        countryCode: 'CI',
-        kycStatus: 'approved',
-        canTransact: true,
-        canWithdraw: true,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(response, UserSchema);
       expect(result.valid).toBe(true);
@@ -213,20 +228,7 @@ describe('User Contracts', () => {
 
   describe('GET /user/by-username/:username - Find By Username Response', () => {
     it('should validate found user', () => {
-      const response = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
-        username: 'amadou_diallo',
-        firstName: 'Amadou',
-        lastName: 'Diallo',
-        email: 'amadou@example.com',
-        countryCode: 'CI',
-        kycStatus: 'approved',
-        canTransact: true,
-        canWithdraw: true,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      const response = createMobileUserProfile();
 
       const result = validateSchema(response, UserSchema);
       expect(result.valid).toBe(true);
@@ -377,20 +379,18 @@ describe('User Contracts', () => {
       const statuses = ['pending', 'submitted', 'approved', 'rejected'];
 
       for (const status of statuses) {
-        const response = {
-          id: '123e4567-e89b-12d3-a456-426614174000',
-          phone: '+2250701234567',
-          phoneVerified: true,
+        const response = createMobileUserProfile({
           username: null,
           firstName: null,
           lastName: null,
           email: null,
-          countryCode: 'CI',
           kycStatus: status,
+          kycRejectionReason:
+            status === 'rejected' ? 'Document photo is unclear' : null,
           canTransact: status === 'approved',
           canWithdraw: status === 'approved',
           createdAt: '2026-01-25T12:00:00.000Z',
-        };
+        });
 
         const result = validateSchema(response, UserSchema);
         expect(result.valid).toBe(true);
@@ -409,10 +409,8 @@ describe('User Contracts', () => {
       ];
 
       for (const { code, phone } of countries) {
-        const response = {
-          id: '123e4567-e89b-12d3-a456-426614174000',
+        const response = createMobileUserProfile({
           phone,
-          phoneVerified: true,
           username: null,
           firstName: null,
           lastName: null,
@@ -422,7 +420,7 @@ describe('User Contracts', () => {
           canTransact: false,
           canWithdraw: false,
           createdAt: '2026-01-25T12:00:00.000Z',
-        };
+        });
 
         const result = validateSchema(response, UserSchema);
         expect(result.valid).toBe(true);

@@ -81,7 +81,16 @@ describe('UserController (e2e)', () => {
   // ==========================================
   describe('GET /api/v1/user/profile', () => {
     it('should return user profile (200)', async () => {
-      const user = TestData.user();
+      const user = TestData.user({
+        firstName: 'Awa',
+        lastName: 'Kone',
+        avatarUrl: '/user/avatar/550e8400-e29b-41d4-a716-446655440000',
+        avatarThumb: 'data:image/jpeg;base64,abc123',
+        preferredLocale: 'fr',
+        countryCode: 'CI',
+        kycStatus: 'approved',
+        hasPin: true,
+      });
       mockGetProfile.execute.mockResolvedValue({
         user,
         kycRejectionReason: null,
@@ -94,6 +103,21 @@ describe('UserController (e2e)', () => {
 
       expect(mockGetProfile.execute).toHaveBeenCalledWith({
         userId: TEST_USER.id,
+      });
+      expect(res.body).toMatchObject({
+        id: user.id,
+        phone: user.phone,
+        firstName: 'Awa',
+        lastName: 'Kone',
+        avatarUrl: '/user/avatar/550e8400-e29b-41d4-a716-446655440000',
+        avatarThumb: 'data:image/jpeg;base64,abc123',
+        preferredLocale: 'fr',
+        countryCode: 'CI',
+        kycStatus: 'approved',
+        kycRejectionReason: null,
+        canTransact: true,
+        canWithdraw: true,
+        hasPin: true,
       });
     });
   });

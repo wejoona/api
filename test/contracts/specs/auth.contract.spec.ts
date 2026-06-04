@@ -15,6 +15,29 @@ import {
 } from '../schemas/auth.contract';
 import { validateSchema } from '../validators/schema-validator';
 
+const createAuthUser = (
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  phone: '+2250701234567',
+  phoneVerified: true,
+  username: null,
+  firstName: null,
+  lastName: null,
+  email: null,
+  avatarUrl: null,
+  avatarThumb: null,
+  preferredLocale: 'fr',
+  countryCode: 'CI',
+  kycStatus: 'pending',
+  kycRejectionReason: null,
+  canTransact: false,
+  canWithdraw: false,
+  hasPin: false,
+  createdAt: '2026-01-18T12:00:00.000Z',
+  ...overrides,
+});
+
 describe('Authentication Contracts', () => {
   describe('POST /auth/register - OTP Sent Response', () => {
     it('should validate successful OTP sent response', () => {
@@ -64,20 +87,7 @@ describe('Authentication Contracts', () => {
   });
 
   describe('POST /auth/verify-otp - Auth Response', () => {
-    const validUser = {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      phone: '+2250701234567',
-      phoneVerified: true,
-      username: null,
-      firstName: null,
-      lastName: null,
-      email: null,
-      countryCode: 'CI',
-      kycStatus: 'pending',
-      canTransact: false,
-      canWithdraw: false,
-      createdAt: '2026-01-18T12:00:00.000Z',
-    };
+    const validUser = createAuthUser();
 
     it('should validate successful auth response', () => {
       const response = {
@@ -321,60 +331,42 @@ describe('Authentication Contracts', () => {
 
   describe('User Schema', () => {
     it('should validate complete user object', () => {
-      const user = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
+      const user = createAuthUser({
         username: 'amadou_diallo',
         firstName: 'Amadou',
         lastName: 'Diallo',
         email: 'amadou@example.com',
-        countryCode: 'CI',
+        avatarUrl: '/user/avatar/123e4567-e89b-12d3-a456-426614174000',
+        avatarThumb: 'data:image/jpeg;base64,abc123',
         kycStatus: 'approved',
         canTransact: true,
         canWithdraw: true,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+        hasPin: true,
+      });
 
       const result = validateSchema(user, UserSchema);
       expect(result.valid).toBe(true);
     });
 
     it('should allow nullable fields to be null', () => {
-      const user = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
+      const user = createAuthUser({
         username: null,
         firstName: null,
         lastName: null,
         email: null,
-        countryCode: 'CI',
-        kycStatus: 'pending',
-        canTransact: false,
-        canWithdraw: false,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+        avatarUrl: null,
+        avatarThumb: null,
+        kycRejectionReason: null,
+      });
 
       const result = validateSchema(user, UserSchema);
       expect(result.valid).toBe(true);
     });
 
     it('should fail if phone is not E.164 format', () => {
-      const user = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
+      const user = createAuthUser({
         phone: '0701234567', // Invalid format
-        phoneVerified: true,
-        username: null,
-        firstName: null,
-        lastName: null,
-        email: null,
-        countryCode: 'CI',
-        kycStatus: 'pending',
-        canTransact: false,
-        canWithdraw: false,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(user, UserSchema);
       expect(result.valid).toBe(false);
@@ -384,20 +376,9 @@ describe('Authentication Contracts', () => {
     });
 
     it('should fail if kycStatus is invalid enum', () => {
-      const user = {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        phone: '+2250701234567',
-        phoneVerified: true,
-        username: null,
-        firstName: null,
-        lastName: null,
-        email: null,
-        countryCode: 'CI',
+      const user = createAuthUser({
         kycStatus: 'invalid_status', // Invalid enum
-        canTransact: false,
-        canWithdraw: false,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(user, UserSchema);
       expect(result.valid).toBe(false);
@@ -410,20 +391,9 @@ describe('Authentication Contracts', () => {
     });
 
     it('should fail if id is not a valid UUID', () => {
-      const user = {
+      const user = createAuthUser({
         id: 'not-a-valid-uuid',
-        phone: '+2250701234567',
-        phoneVerified: true,
-        username: null,
-        firstName: null,
-        lastName: null,
-        email: null,
-        countryCode: 'CI',
-        kycStatus: 'pending',
-        canTransact: false,
-        canWithdraw: false,
-        createdAt: '2026-01-18T12:00:00.000Z',
-      };
+      });
 
       const result = validateSchema(user, UserSchema);
       expect(result.valid).toBe(false);

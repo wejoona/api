@@ -10,7 +10,7 @@ Purpose: continue backend/API readiness after pass 8 completed mobile data truth
 
 ## User Profile And Identity Surfaces
 
-- [ ] Confirm profile/avatar endpoints expose stable mobile fields for name, photo, locale, country, and KYC state.
+- [x] Confirm profile/avatar endpoints expose stable mobile fields for name, photo, locale, country, and KYC state.
 - [ ] Confirm profile/avatar dependency or storage failures return classified retry/review metadata.
 
 ## Secondary Feature Capability Surfaces
@@ -45,6 +45,24 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="feature-flag.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="feature-flag.controller"`
+
+### Profile And Avatar Mobile Fields - 2026-06-04
+
+Status: complete.
+
+Verified and hardened:
+
+- `UserSchema` now requires mobile-critical profile fields: `avatarUrl`, `avatarThumb`, `preferredLocale`, `kycRejectionReason`, and `hasPin`.
+- Existing name, country, KYC, transaction eligibility, and creation timestamp fields remain required.
+- Contract tests validate full, minimal, rejected-KYC, and multi-country profile responses with the complete mobile profile shape.
+- `GET /user/profile` e2e asserts runtime output includes name, avatar URL/thumb, locale, country, KYC state, rejection reason, transaction eligibility, and PIN state.
+- `verify:backend:mobile` now includes `user-profile.controller`.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="user.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller"`
 
 ### Feature Flag Documentation Shape - 2026-06-04
 

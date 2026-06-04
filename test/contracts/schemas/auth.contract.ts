@@ -53,6 +53,19 @@ export const UserSchema: ContractSchema = {
       description: 'User email address',
       example: 'amadou@example.com',
     }),
+    avatarUrl: nullable(FieldType.STRING, {
+      description: 'Current avatar URL, if the user has uploaded one',
+      example: '/user/avatar/123e4567-e89b-12d3-a456-426614174000',
+    }),
+    avatarThumb: nullable(FieldType.STRING, {
+      description: 'Small base64 avatar thumbnail for mobile offline display',
+      example: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...',
+    }),
+    preferredLocale: required(FieldType.STRING, {
+      description: 'Preferred app locale',
+      example: 'fr',
+      enum: ['en', 'fr', 'pt', 'ar'],
+    }),
     countryCode: required(FieldType.STRING, {
       description: 'ISO country code',
       example: 'CI',
@@ -64,12 +77,20 @@ export const UserSchema: ContractSchema = {
       enum: ['pending', 'submitted', 'approved', 'rejected'],
       example: 'approved',
     }),
+    kycRejectionReason: nullable(FieldType.STRING, {
+      description: 'Reason shown when KYC is rejected',
+      example: 'Document photo is unclear',
+    }),
     canTransact: required(FieldType.BOOLEAN, {
       description: 'Whether user can make transactions',
       example: true,
     }),
     canWithdraw: required(FieldType.BOOLEAN, {
       description: 'Whether user can make withdrawals',
+      example: true,
+    }),
+    hasPin: required(FieldType.BOOLEAN, {
+      description: 'Whether the user has configured an app PIN',
       example: true,
     }),
     createdAt: required(FieldType.DATE, {
