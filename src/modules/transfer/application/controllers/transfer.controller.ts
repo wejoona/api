@@ -87,9 +87,9 @@ export class TransferController {
         recipientId: '123e4567-e89b-12d3-a456-426614174003',
         recipientWalletId: '123e4567-e89b-12d3-a456-426614174004',
         recipientPhone: '+2250701234567',
-        amount: 5000,
+        amount: 50.25,
         fee: 0,
-        totalAmount: 5000,
+        totalAmount: 50.25,
         currency: 'USDC',
         note: 'Payment for lunch',
         createdAt: '2026-01-23T10:00:00.000Z',
@@ -129,6 +129,7 @@ export class TransferController {
       toPhone: dto.recipientPhone,
       amount: dto.amount,
       currency: dto.currency || 'USDC',
+      note: dto.note,
     });
 
     // Construct transfer response from use case result

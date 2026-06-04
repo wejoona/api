@@ -23,12 +23,12 @@ export class CreateInternalTransferDto {
   recipientPhone: string;
 
   @ApiProperty({
-    description: 'Amount in USDC to transfer (in cents, e.g., 5000 = $50.00)',
-    example: 5000,
-    minimum: 1,
+    description: 'Amount in USDC major units to transfer (e.g., 50.25)',
+    example: 50.25,
+    minimum: 0.01,
   })
   @IsNumber()
-  @Min(1)
+  @Min(0.01)
   amount: number;
 
   @ApiPropertyOptional({

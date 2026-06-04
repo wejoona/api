@@ -8,6 +8,7 @@
 export * from './auth.contract.spec';
 export * from './wallet.contract.spec';
 export * from './transaction.contract.spec';
+export * from './transfer.contract.spec';
 export * from './kyc.contract.spec';
 export * from './contact.contract.spec';
 export * from './beneficiary.contract.spec';

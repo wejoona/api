@@ -12,7 +12,9 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Audit mobile services that cast API responses directly to `Map<String, dynamic>` or `List` and identify backend routes that still need wrapper-tolerant contracts.
 - [x] Patch the first confirmed backend/mobile mismatch with e2e or contract coverage.
 - [x] Continue parser drift audit for the next active screen/backend route mismatch.
-- [ ] Continue parser drift audit for the next active screen/backend route mismatch after user limits.
+- [x] Continue parser drift audit for the next active screen/backend route mismatch after user limits.
+- [x] Align transfer route contract and decimal amount semantics for mobile send/QR.
+- [ ] Continue parser drift audit for the next active screen/backend route mismatch after transfers.
 
 ## Recursive Execution Rule
 
@@ -85,4 +87,33 @@ Verification:
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="user.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller.e2e-spec"`
+- `npm run verify:backend:mobile`
+
+### Transfer Route Mobile Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile send and QR P2P call `POST /transfers/internal` with `recipientPhone`.
+- Backend contract coverage primarily documented the legacy `/wallet/transfer/internal` route with `toPhone`.
+- Transfer DTO and Swagger examples said cents, while the internal transfer use case validates decimal USDC major units and converts to micro-units for Blnk.
+- QR P2P was sending cents to `/transfers/internal`, unlike normal send.
+- Transfer controller returned `note` but did not pass it into the use case for persistence.
+
+Resolution:
+
+- Added dedicated `/transfers/internal` contracts using `recipientPhone` and decimal USDC amount.
+- Updated transfer DTO/response Swagger docs and validation minimum to decimal USDC semantics.
+- Passed `note` into `InternalTransferUseCase`.
+- Added e2e coverage for decimal transfer amount and note propagation.
+- Added `transfer.controller` to `npm run verify:backend:mobile`.
+- Updated mobile QR P2P to send decimal USDC amount to `/transfers/internal`.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="transfer.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="transfer.controller.e2e-spec"`
+- `flutter test test/features/qr_payment/qr_code_service_test.dart test/e2e/transfers_e2e_test.dart`
 - `npm run verify:backend:mobile`

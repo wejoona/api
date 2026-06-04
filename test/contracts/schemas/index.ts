@@ -16,6 +16,9 @@ export * from './wallet.contract';
 // Transaction contracts
 export * from './transaction.contract';
 
+// Transfer contracts
+export * from './transfer.contract';
+
 // KYC contracts
 export * from './kyc.contract';
 
@@ -56,6 +59,7 @@ export * from './health.contract';
 import { AuthContractGroup } from './auth.contract';
 import { WalletContractGroup } from './wallet.contract';
 import { TransactionContractGroup } from './transaction.contract';
+import { TransferContractGroup } from './transfer.contract';
 import { KycContractGroup } from './kyc.contract';
 import { ContactContractGroup } from './contact.contract';
 import { BeneficiaryContractGroup } from './beneficiary.contract';
@@ -74,6 +78,7 @@ export const AllContractGroups = [
   AuthContractGroup,
   WalletContractGroup,
   TransactionContractGroup,
+  TransferContractGroup,
   KycContractGroup,
   ContactContractGroup,
   BeneficiaryContractGroup,

@@ -49,15 +49,15 @@ export class TransferResponse {
   @ApiPropertyOptional({ example: 'polygon' })
   recipientBlockchain?: string;
 
-  @ApiProperty({ example: 5000, description: 'Amount in cents' })
+  @ApiProperty({ example: 50.25, description: 'Amount in USDC major units' })
   amount: number;
 
-  @ApiProperty({ example: 0, description: 'Fee in cents' })
+  @ApiProperty({ example: 0, description: 'Fee in USDC major units' })
   fee: number;
 
   @ApiProperty({
-    example: 5000,
-    description: 'Total amount including fee in cents',
+    example: 50.25,
+    description: 'Total amount including fee in USDC major units',
   })
   totalAmount: number;
 

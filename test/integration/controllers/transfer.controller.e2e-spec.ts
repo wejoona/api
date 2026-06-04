@@ -77,19 +77,66 @@ describe('TransferController (e2e)', () => {
         fromWalletId: TEST_USER.walletId,
         toWalletId: '660e8400-e29b-41d4-a716-446655440001',
         toPhone: '+2250701234568',
-        amount: 50,
+        amount: 50.25,
         fee: 0,
         currency: 'USDC',
         status: 'completed',
       });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/transfers/internal')
+        .send({
+          recipientPhone: '+2250701234568',
+          amount: 50.25,
+          currency: 'USDC',
+          note: 'Payment for lunch',
+        })
+        .expect(200);
+
+      expect(mockInternalTransfer.execute).toHaveBeenCalledWith({
+        fromUserId: TEST_USER.id,
+        toPhone: '+2250701234568',
+        amount: 50.25,
+        currency: 'USDC',
+        note: 'Payment for lunch',
+      });
+      expect(res.body).toMatchObject({
+        recipientPhone: '+2250701234568',
+        amount: 50.25,
+        fee: 0,
+        totalAmount: 50.25,
+        currency: 'USDC',
+        note: 'Payment for lunch',
+      });
+    });
+
+    it('should allow minimum decimal USDC transfer amount (200)', async () => {
+      mockInternalTransfer.execute.mockResolvedValue({
+        transactionId: '550e8400-e29b-41d4-a716-446655440000',
+        fromWalletId: TEST_USER.walletId,
+        toWalletId: '660e8400-e29b-41d4-a716-446655440001',
+        toPhone: '+2250701234568',
+        amount: 0.01,
+        fee: 0,
+        currency: 'USDC',
+        status: 'completed',
+      });
+
       await request(app.getHttpServer())
         .post('/api/v1/transfers/internal')
         .send({
           recipientPhone: '+2250701234568',
-          amount: 50,
+          amount: 0.01,
           currency: 'USDC',
         })
         .expect(200);
+
+      expect(mockInternalTransfer.execute).toHaveBeenCalledWith({
+        fromUserId: TEST_USER.id,
+        toPhone: '+2250701234568',
+        amount: 0.01,
+        currency: 'USDC',
+        note: undefined,
+      });
     });
 
     it('should return 400 for missing amount', async () => {
