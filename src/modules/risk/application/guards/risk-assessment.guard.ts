@@ -209,17 +209,28 @@ export class RiskAssessmentGuard implements CanActivate {
         error,
       );
 
-      // On error, allow transaction but log for review
-      // This prevents risk service outage from blocking all transactions
+      // Fail closed on unexpected risk-service errors. Money movement should
+      // pause for step-up rather than proceed without risk assessment.
       request.riskAssessment = {
-        allowed: true,
-        requiresStepUp: false,
-        riskScore: -1,
+        allowed: false,
+        requiresStepUp: true,
+        riskScore: 100,
         riskLevel: 'unknown',
         error: true,
       };
 
-      return true;
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.PRECONDITION_REQUIRED,
+          error: 'Risk assessment unavailable',
+          message:
+            'Additional verification is required because risk assessment is temporarily unavailable',
+          code: 'RISK_ASSESSMENT_UNAVAILABLE',
+          stepUpType: 'manual_review',
+          riskScore: 100,
+        },
+        HttpStatus.PRECONDITION_REQUIRED,
+      );
     }
   }
 

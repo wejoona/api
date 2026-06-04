@@ -122,6 +122,34 @@ describe('RiskAssessmentGuard', () => {
     });
   });
 
+  it('fails closed with step-up when risk assessment is unavailable', async () => {
+    riskService.checkTransaction.mockRejectedValueOnce(
+      new Error('risk manager unavailable'),
+    );
+    const request: Record<string, any> = {
+      user: { id: 'user-1' },
+      body: { amount: 100, currency: 'USDC' },
+      headers: {},
+    };
+
+    await expect(
+      guard.canActivate(createContext(request)),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        statusCode: HttpStatus.PRECONDITION_REQUIRED,
+        code: 'RISK_ASSESSMENT_UNAVAILABLE',
+        stepUpType: 'manual_review',
+        riskScore: 100,
+      }),
+    });
+    expect(request.riskAssessment).toMatchObject({
+      allowed: false,
+      requiresStepUp: true,
+      riskScore: 100,
+      error: true,
+    });
+  });
+
   it('does nothing when a route has no risk metadata', async () => {
     reflector.get.mockReturnValue(undefined);
     const request: Record<string, any> = {

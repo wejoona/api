@@ -23,7 +23,7 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 ## Risk Client Modes And Production Safety
 
 - [x] Review `RiskClientFactory` live/mock/hybrid behavior so production cannot silently fall back to mock risk screening.
-- [ ] Confirm address screening and transaction risk fail closed when live compliance providers are enabled but unavailable.
+- [x] Confirm address screening and transaction risk fail closed when live compliance providers are enabled but unavailable.
 - [x] Confirm mock risk/client modes are explicit dev/test modes and visible in readiness/admin metadata.
 
 ## Recursive Execution Rule
@@ -143,3 +143,17 @@ Verification:
 
 - `npm test -- --runInBand src/modules/risk/infrastructure/risk-client.factory.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Risk And Compliance Fail-Closed Behavior - 2026-06-04
+
+Verified and hardened:
+
+- `RiskEvaluationService` already returned fail-closed `STEP_UP` decisions when enabled Risk Manager returned errors or was unreachable.
+- `RiskAssessmentGuard` no longer allows money movement after unexpected risk-service failures.
+- Risk guard outages now return a stable `428 RISK_ASSESSMENT_UNAVAILABLE` envelope with `stepUpType=manual_review` and `riskScore=100`.
+- Circle live address-screening outages now produce `DENIED` with a `CRITICAL` risk signal, so unavailable address screening cannot degrade into a soft allow/review path.
+- Disabled Circle compliance mode remains explicit mock/dev behavior; enabled live mode fails closed on provider errors.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/risk/risk-evaluation.service.spec.ts src/modules/risk/application/guards/risk-assessment.guard.spec.ts src/modules/providers/circle/adapters/circle-compliance.adapter.spec.ts`

@@ -529,7 +529,7 @@ export class CircleComplianceAdapter {
       riskSignals: [
         {
           category: 'OTHER',
-          severity: 'HIGH',
+          severity: 'CRITICAL',
           description: `Screening failed: ${errorMessage}. Manual review required.`,
         },
       ],
