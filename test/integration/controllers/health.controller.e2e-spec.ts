@@ -75,6 +75,9 @@ describe('HealthController (e2e)', () => {
         'bankLinking.provider': '',
         'bulkPayments.enabled': false,
         'billPay.baseUrl': 'http://billpay:3400',
+        nodeEnv: 'test',
+        RISK_MANAGER_ENABLED: 'false',
+        RISK_CLIENT_MODE: 'mock',
       };
       return values[key] ?? defaultValue;
     });
@@ -131,6 +134,52 @@ describe('HealthController (e2e)', () => {
               reason: null,
             },
           });
+          expect(body.risk).toMatchObject({
+            mode: 'mock',
+            configuredMode: 'mock',
+            managerEnabled: false,
+            productionLike: false,
+            mockAllowed: true,
+            fallbackAllowed: false,
+            liveConfigured: false,
+            status: 'disabled',
+          });
+        });
+    });
+
+    it('should expose production risk misconfiguration without leaking secrets', async () => {
+      mockConfigGet.mockImplementation(
+        (key: string, defaultValue?: unknown) => {
+          const values: Record<string, unknown> = {
+            YELLOW_CARD_ENABLED: 'false',
+            'cards.issuingEnabled': false,
+            'bankLinking.enabled': false,
+            'bulkPayments.enabled': false,
+            'billPay.baseUrl': 'http://billpay:3400',
+            nodeEnv: 'production',
+            RISK_MANAGER_ENABLED: 'true',
+            RISK_CLIENT_MODE: 'live',
+            RISK_MANAGER_URL: 'http://risk-manager:3000',
+            RISK_MANAGER_API_KEY: 'dev-api-key',
+          };
+          return values[key] ?? defaultValue;
+        },
+      );
+
+      await request(app.getHttpServer())
+        .get('/api/v1/health/mobile-readiness')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.risk).toMatchObject({
+            mode: 'live',
+            managerEnabled: true,
+            productionLike: true,
+            mockAllowed: false,
+            fallbackAllowed: false,
+            liveConfigured: false,
+            status: 'misconfigured',
+          });
+          expect(JSON.stringify(body)).not.toContain('dev-api-key');
         });
     });
 

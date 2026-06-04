@@ -22,9 +22,9 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 
 ## Risk Client Modes And Production Safety
 
-- [ ] Review `RiskClientFactory` live/mock/hybrid behavior so production cannot silently fall back to mock risk screening.
+- [x] Review `RiskClientFactory` live/mock/hybrid behavior so production cannot silently fall back to mock risk screening.
 - [ ] Confirm address screening and transaction risk fail closed when live compliance providers are enabled but unavailable.
-- [ ] Confirm mock risk/client modes are explicit dev/test modes and visible in readiness/admin metadata.
+- [x] Confirm mock risk/client modes are explicit dev/test modes and visible in readiness/admin metadata.
 
 ## Recursive Execution Rule
 
@@ -125,3 +125,21 @@ Verified and hardened:
   - Bill pay: `bill_pay_unavailable`.
 - List/capability endpoints return stable unavailable states instead of empty data with ambiguous reason strings.
 - Mutating endpoints return coded mobile envelopes with the same generic reason plus feature-specific context.
+
+### Risk Client Mode Safety - 2026-06-04
+
+Verified and hardened:
+
+- `RiskClientFactory` no longer silently falls back to mock for invalid modes in production-like environments.
+- Production and staging default to `live`; development and test default to `mock`.
+- `mock` and `hybrid` modes are rejected in production-like environments.
+- Live mode fails fast in production-like environments unless `RISK_MANAGER_URL` and a non-dev `RISK_MANAGER_API_KEY` are configured.
+- Hybrid fallback remains available only outside production-like environments.
+- `/health/mobile-readiness` now exposes risk mode metadata:
+  - `mode`, `configuredMode`, `managerEnabled`, `productionLike`, `mockAllowed`, `fallbackAllowed`, `liveConfigured`, and `status`.
+- The readiness response reports misconfiguration without leaking the API key.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/risk/infrastructure/risk-client.factory.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`

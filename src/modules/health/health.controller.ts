@@ -134,6 +134,7 @@ export class HealthController {
     const billPayConfigured = Boolean(
       this.configService.get<string>('billPay.baseUrl'),
     );
+    const riskClient = this.riskClientStatus();
 
     const appDependencies = { database, redis, blnk };
     const providerReadiness = {
@@ -182,6 +183,7 @@ export class HealthController {
       },
       providers: providerReadiness,
       features,
+      risk: riskClient,
     };
   }
 
@@ -303,6 +305,51 @@ export class HealthController {
       status: enabled ? 'available' : 'unavailable',
       provider,
       reason: enabled ? null : 'provider_or_feature_disabled',
+    };
+  }
+
+  private riskClientStatus() {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+    const productionLike = ['production', 'staging'].includes(nodeEnv);
+    const configuredMode =
+      this.configService.get<string>('RISK_CLIENT_MODE') || null;
+    const mode =
+      configuredMode === 'live' ||
+      configuredMode === 'mock' ||
+      configuredMode === 'hybrid'
+        ? configuredMode
+        : productionLike
+          ? 'live'
+          : 'mock';
+    const managerEnabled =
+      this.configService.get<string>('RISK_MANAGER_ENABLED', 'false') ===
+      'true';
+    const apiKey = this.configService.get<string>('RISK_MANAGER_API_KEY');
+    const liveConfigured = Boolean(
+      this.configService.get<string>('RISK_MANAGER_URL') &&
+      apiKey &&
+      apiKey !== 'dev-api-key',
+    );
+    const mockAllowed = !productionLike;
+
+    return {
+      mode,
+      configuredMode,
+      managerEnabled,
+      productionLike,
+      mockAllowed,
+      fallbackAllowed: mode === 'hybrid' && mockAllowed,
+      liveConfigured,
+      status:
+        mode === 'live' && !liveConfigured
+          ? 'misconfigured'
+          : managerEnabled
+            ? 'enabled'
+            : 'disabled',
     };
   }
 

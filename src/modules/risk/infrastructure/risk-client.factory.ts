@@ -12,6 +12,15 @@ import { MockRiskClient } from './clients/mock-risk.client';
 
 export type RiskClientMode = 'live' | 'mock' | 'hybrid';
 
+export interface RiskClientRuntimeStatus {
+  mode: RiskClientMode;
+  configuredMode: string | null;
+  productionLike: boolean;
+  mockAllowed: boolean;
+  fallbackAllowed: boolean;
+  liveConfigured: boolean;
+}
+
 @Injectable()
 export class RiskClientFactory {
   private readonly logger = new Logger(RiskClientFactory.name);
@@ -23,10 +32,8 @@ export class RiskClientFactory {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.mode = this.configService.get<RiskClientMode>(
-      'RISK_CLIENT_MODE',
-      'mock',
-    );
+    this.mode = this.resolveMode();
+    this.validateModeForEnvironment(this.mode);
     this.logger.log(`Risk client mode: ${this.mode}`);
   }
 
@@ -43,11 +50,61 @@ export class RiskClientFactory {
         // In hybrid mode, try live first, fallback to mock
         return this.getHybridClient();
       default:
-        return this.getMockClient();
+        throw new Error(`Unsupported Risk client mode: ${this.mode}`);
+    }
+  }
+
+  getRuntimeStatus(): RiskClientRuntimeStatus {
+    return {
+      mode: this.mode,
+      configuredMode:
+        this.configService.get<string>('RISK_CLIENT_MODE', null) ?? null,
+      productionLike: this.isProductionLike(),
+      mockAllowed: this.isMockAllowed(),
+      fallbackAllowed: this.mode === 'hybrid' && this.isMockAllowed(),
+      liveConfigured: this.isLiveConfigured(),
+    };
+  }
+
+  private resolveMode(): RiskClientMode {
+    const configured = this.configService.get<string>('RISK_CLIENT_MODE');
+    if (!configured) {
+      return this.isProductionLike() ? 'live' : 'mock';
+    }
+
+    if (
+      configured === 'live' ||
+      configured === 'mock' ||
+      configured === 'hybrid'
+    ) {
+      return configured;
+    }
+
+    if (this.isProductionLike()) {
+      throw new Error(`Invalid RISK_CLIENT_MODE for production: ${configured}`);
+    }
+
+    this.logger.warn(
+      `Invalid RISK_CLIENT_MODE=${configured}; using mock in non-production environment`,
+    );
+    return 'mock';
+  }
+
+  private validateModeForEnvironment(mode: RiskClientMode): void {
+    if (mode === 'live') {
+      this.assertLiveConfigured();
+      return;
+    }
+
+    if (!this.isMockAllowed()) {
+      throw new Error(
+        `RISK_CLIENT_MODE=${mode} is not allowed in production-like environments`,
+      );
     }
   }
 
   private getLiveClient(): RiskManagerClient {
+    this.assertLiveConfigured();
     if (!this.liveClient) {
       this.liveClient = new RiskManagerClient(
         this.configService,
@@ -65,6 +122,11 @@ export class RiskClientFactory {
   }
 
   private getHybridClient(): IRiskClient {
+    if (!this.isMockAllowed()) {
+      throw new Error(
+        'RISK_CLIENT_MODE=hybrid is not allowed because mock fallback is disabled',
+      );
+    }
     // Create a proxy that tries live first, falls back to mock
     const live = this.getLiveClient();
     const mock = this.getMockClient();
@@ -94,5 +156,38 @@ export class RiskClientFactory {
         return originalMethod;
       },
     }) as IRiskClient;
+  }
+
+  private isProductionLike(): boolean {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+
+    return ['production', 'staging'].includes(nodeEnv);
+  }
+
+  private isMockAllowed(): boolean {
+    return !this.isProductionLike();
+  }
+
+  private isLiveConfigured(): boolean {
+    const url = this.configService.get<string>('RISK_MANAGER_URL');
+    const apiKey = this.configService.get<string>('RISK_MANAGER_API_KEY');
+
+    return Boolean(url && apiKey && apiKey !== 'dev-api-key');
+  }
+
+  private assertLiveConfigured(): void {
+    if (this.isLiveConfigured()) {
+      return;
+    }
+
+    if (this.isProductionLike()) {
+      throw new Error(
+        'Risk Manager live mode requires RISK_MANAGER_URL and a non-dev RISK_MANAGER_API_KEY',
+      );
+    }
   }
 }
