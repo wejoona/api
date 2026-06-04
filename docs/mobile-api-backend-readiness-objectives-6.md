@@ -17,7 +17,7 @@ Purpose: continue API/backend readiness after mobile smoke, schema repair, job h
 ## Rates, Regions, And Provider Feature Flags
 
 - [x] Replace or clearly classify `/health/exchange-rates` fallback data so mobile never treats static rates as live executable quotes.
-- [ ] Confirm CI and US feature availability is derived from config/profile/app-config data instead of hardcoded Orange/Wave/Ivory Coast assumptions.
+- [x] Confirm CI and US feature availability is derived from config/profile/app-config data instead of hardcoded Orange/Wave/Ivory Coast assumptions.
 - [ ] Confirm disabled providers return deterministic `provider_or_feature_disabled` states across deposits, withdrawals, cards, bank linking, and bill pay.
 
 ## Risk Client Modes And Production Safety
@@ -101,3 +101,14 @@ Verified and hardened:
   - `reason=exchange_rate_provider_not_connected`
 - Each returned rate also carries `source=static_fallback` and `executable=false`.
 - Health remains diagnostic only; executable quotes must come from wallet/provider quote endpoints.
+
+### Region App Config Source - 2026-06-04
+
+Verified and hardened:
+
+- `/config/countries` remains the backend-owned mobile source of truth for market rails.
+- Default country config includes:
+  - CI: XOF, `fr-CI`, `west_africa`, mobile money + USDC, Orange/MTN/Wave.
+  - US: USD, `en-US`, `north_america`, USDC-only by default, no mobile money providers.
+- The endpoint now supports deployment-driven overrides via `app.supportedCountries` or `SUPPORTED_COUNTRIES_JSON`.
+- E2E coverage proves US rails can be changed to `usdc + bank` from backend config without mobile hardcoding.

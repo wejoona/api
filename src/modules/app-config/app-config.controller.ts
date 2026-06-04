@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Optional } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { Public } from '../../common/decorators/public.decorator';
 
 export interface SupportedCountry {
@@ -94,11 +95,40 @@ const SUPPORTED_COUNTRIES: SupportedCountry[] = [
 @ApiTags('Config')
 @Controller('config')
 export class AppConfigController {
+  constructor(
+    @Optional()
+    private readonly configService?: ConfigService,
+  ) {}
+
   @Public()
   @Get('countries')
   @ApiOperation({ summary: 'Get list of supported countries' })
   @ApiResponse({ status: 200, description: 'Supported countries list' })
   getCountries(): SupportedCountry[] {
-    return SUPPORTED_COUNTRIES;
+    return this.getConfiguredCountries();
+  }
+
+  private getConfiguredCountries(): SupportedCountry[] {
+    const configuredCountries =
+      this.configService?.get<SupportedCountry[]>('app.supportedCountries');
+    if (Array.isArray(configuredCountries) && configuredCountries.length > 0) {
+      return configuredCountries.map((country) => ({ ...country }));
+    }
+
+    const encodedCountries = this.configService?.get<string>(
+      'SUPPORTED_COUNTRIES_JSON',
+    );
+    if (encodedCountries) {
+      try {
+        const parsed = JSON.parse(encodedCountries) as unknown;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((country) => ({ ...(country as SupportedCountry) }));
+        }
+      } catch {
+        // Invalid overrides fall back to built-in defaults.
+      }
+    }
+
+    return SUPPORTED_COUNTRIES.map((country) => ({ ...country }));
   }
 }

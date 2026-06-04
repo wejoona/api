@@ -6,20 +6,27 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../setup/test-app';
 import { AppConfigController } from '@modules/app-config/app-config.controller';
+import { ConfigService } from '@nestjs/config';
 
 describe('AppConfigController (e2e)', () => {
   let app: INestApplication;
+  const mockConfigGet = jest.fn();
 
   beforeAll(async () => {
     const result = await createTestApp({
       controllers: [AppConfigController],
-      providers: [],
+      providers: [{ provide: ConfigService, useValue: { get: mockConfigGet } }],
     });
     app = result.app;
   });
 
   afterAll(async () => {
     await app?.close();
+  });
+
+  beforeEach(() => {
+    mockConfigGet.mockReset();
+    mockConfigGet.mockReturnValue(undefined);
   });
 
   describe('GET /api/v1/config/countries', () => {
@@ -48,6 +55,45 @@ describe('AppConfigController (e2e)', () => {
             market: 'active',
             paymentRails: ['usdc'],
             mobileMoneyProviders: [],
+          });
+        });
+    });
+
+    it('should allow deployment config to drive country rails without mobile hardcoding', async () => {
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key !== 'app.supportedCountries') return undefined;
+        return [
+          {
+            code: 'US',
+            dialCode: '+1',
+            name: 'United States',
+            nameEn: 'United States',
+            nameFr: 'États-Unis',
+            flag: '🇺🇸',
+            currency: 'USD',
+            defaultLocale: 'en-US',
+            supportedLocales: ['en-US', 'fr'],
+            region: 'north_america',
+            market: 'active',
+            paymentRails: ['usdc', 'bank'],
+            mobileMoneyProviders: [],
+            depositMethods: ['usdc', 'bank'],
+            withdrawalMethods: ['usdc', 'bank'],
+          },
+        ];
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/config/countries')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toHaveLength(1);
+          expect(body[0]).toMatchObject({
+            code: 'US',
+            paymentRails: ['usdc', 'bank'],
+            mobileMoneyProviders: [],
+            depositMethods: ['usdc', 'bank'],
+            withdrawalMethods: ['usdc', 'bank'],
           });
         });
     });
