@@ -137,6 +137,7 @@ export class HealthController {
     const riskClient = this.riskClientStatus();
     const kyc = this.kycStatus();
     const messaging = this.messagingStatus();
+    const moneyMovement = this.moneyMovementProviderStatus();
 
     const appDependencies = { database, redis, blnk };
     const providerReadiness = {
@@ -150,10 +151,20 @@ export class HealthController {
             available: false,
             reason: 'YELLOW_CARD_ENABLED=false',
           },
+      mobileMoneyDeposit: moneyMovement.deposit,
+      mobileMoneyPayout: moneyMovement.payout,
     };
     const features = {
-      deposits: this.featureStatus(yellowCardEnabled, 'yellow_card'),
-      externalWithdrawals: this.featureStatus(yellowCardEnabled, 'yellow_card'),
+      deposits: this.featureStatus(
+        moneyMovement.deposit.available,
+        'mobile_money',
+        moneyMovement.deposit.reason,
+      ),
+      externalWithdrawals: this.featureStatus(
+        moneyMovement.payout.available,
+        'mobile_money',
+        moneyMovement.payout.reason,
+      ),
       cards: this.featureStatus(
         cardIssuingEnabled,
         this.configService.get<string>('cards.issuingProvider') || null,
@@ -303,12 +314,16 @@ export class HealthController {
     }
   }
 
-  private featureStatus(enabled: boolean, provider: string | null) {
+  private featureStatus(
+    enabled: boolean,
+    provider: string | null,
+    reason: string | null = 'provider_or_feature_disabled',
+  ) {
     return {
       available: enabled,
       status: enabled ? 'available' : 'unavailable',
       provider,
-      reason: enabled ? null : 'provider_or_feature_disabled',
+      reason: enabled ? null : reason,
     };
   }
 
@@ -431,6 +446,81 @@ export class HealthController {
               : 'enabled',
       },
     };
+  }
+
+  private moneyMovementProviderStatus() {
+    return {
+      deposit: this.mockBackedProviderStatus(
+        'DEPOSIT_USE_MOCK',
+        'deposit_provider_not_connected',
+      ),
+      payout: this.mockBackedProviderStatus(
+        'WITHDRAWAL_USE_MOCK',
+        'payout_provider_not_connected',
+      ),
+    };
+  }
+
+  private mockBackedProviderStatus(configKey: string, featureReason: string) {
+    const productionLike = this.isProductionLike();
+    const useMock = this.getBooleanConfig(configKey, !productionLike);
+
+    if (productionLike && useMock) {
+      return {
+        mode: 'mock',
+        productionLike,
+        mockAllowed: false,
+        liveConfigured: false,
+        available: false,
+        status: 'misconfigured',
+        reason: 'mock_not_allowed',
+        featureReason,
+      };
+    }
+
+    if (useMock) {
+      return {
+        mode: 'mock',
+        productionLike,
+        mockAllowed: true,
+        liveConfigured: false,
+        available: true,
+        status: 'mock',
+        reason: null,
+        featureReason: null,
+      };
+    }
+
+    return {
+      mode: 'disabled',
+      productionLike,
+      mockAllowed: !productionLike,
+      liveConfigured: false,
+      available: false,
+      status: 'unavailable',
+      reason: 'provider_not_implemented',
+      featureReason,
+    };
+  }
+
+  private isProductionLike(): boolean {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+
+    return ['production', 'staging'].includes(nodeEnv);
+  }
+
+  private getBooleanConfig(key: string, defaultValue: boolean): boolean {
+    const value = this.configService.get<boolean | string>(key, defaultValue);
+
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+
+    return value;
   }
 
   @Get('detailed')

@@ -76,6 +76,14 @@ export function validateProductionConfig(): void {
     throw new Error('YELLOW_CARD_USE_MOCK must be false in production');
   }
 
+  if (process.env.DEPOSIT_USE_MOCK === 'true') {
+    throw new Error('DEPOSIT_USE_MOCK cannot be true in production');
+  }
+
+  if (process.env.WITHDRAWAL_USE_MOCK === 'true') {
+    throw new Error('WITHDRAWAL_USE_MOCK cannot be true in production');
+  }
+
   if (process.env.SMS_PROVIDER === 'mock') {
     throw new Error('SMS_PROVIDER cannot be mock in production');
   }

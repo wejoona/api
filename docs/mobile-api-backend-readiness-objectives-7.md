@@ -10,7 +10,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 
 ## Provider Factories And Legacy Mock Fallbacks
 
-- [ ] Review deposit and payout provider factories so unavailable real providers return explicit disabled/unavailable states instead of falling back to mock.
+- [x] Review deposit and payout provider factories so unavailable real providers return explicit disabled/unavailable states instead of falling back to mock.
 - [ ] Confirm Circle, Stellar, Yellow Card, and Blnk provider factory modes are visible in readiness/admin metadata.
 - [ ] Confirm stale mock provider documentation cannot be mistaken for current production behavior.
 
@@ -78,3 +78,21 @@ Verified and hardened:
 Verification:
 
 - `npm test -- --runInBand src/modules/webhook/application/controllers/twilio-webhook.controller.spec.ts src/config/environments/index.spec.ts`
+
+### Deposit And Payout Provider Fallback Safety - 2026-06-04
+
+Verified and hardened:
+
+- `DEPOSIT_USE_MOCK=false` no longer falls back to mock deposit providers.
+- `WITHDRAWAL_USE_MOCK=false` no longer falls back to mock payout providers.
+- Production-like environments reject `DEPOSIT_USE_MOCK=true` and `WITHDRAWAL_USE_MOCK=true`.
+- Live/unimplemented provider requests now return explicit service-unavailable application errors:
+  - deposit: `E4001`, `reason=provider_not_implemented`, `featureReason=deposit_provider_not_connected`
+  - withdrawal: `E6003`, `reason=provider_not_implemented`, `featureReason=payout_provider_not_connected`
+- `/health/mobile-readiness` now exposes `providers.mobileMoneyDeposit` and `providers.mobileMoneyPayout`.
+- Deposit provider list entries now include `status`, `available`, `reason`, and `featureReason`.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/deposit/infrastructure/providers/payment-provider.factory.spec.ts src/modules/withdrawal/infrastructure/providers/payout-provider.factory.spec.ts src/config/environments/index.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`

@@ -55,11 +55,24 @@ export class AppException extends HttpException {
     return new AppException(code, message, HttpStatus.CONFLICT);
   }
 
-  static serviceUnavailable(code: ErrorCode | string, message: string): AppException {
-    return new AppException(code, message, HttpStatus.SERVICE_UNAVAILABLE);
+  static serviceUnavailable(
+    code: ErrorCode | string,
+    message: string,
+    details?: string[],
+    context?: Record<string, unknown>,
+  ): AppException {
+    return new AppException(
+      code,
+      message,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      details,
+      context,
+    );
   }
 
-  static tooManyRequests(message: string = 'Rate limit exceeded'): AppException {
+  static tooManyRequests(
+    message: string = 'Rate limit exceeded',
+  ): AppException {
     return new AppException('E9001', message, HttpStatus.TOO_MANY_REQUESTS);
   }
 }

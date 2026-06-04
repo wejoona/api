@@ -55,6 +55,22 @@ describe('validateProductionConfig', () => {
     );
   });
 
+  it('rejects mock deposit providers in production', () => {
+    process.env.DEPOSIT_USE_MOCK = 'true';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'DEPOSIT_USE_MOCK cannot be true in production',
+    );
+  });
+
+  it('rejects mock withdrawal providers in production', () => {
+    process.env.WITHDRAWAL_USE_MOCK = 'true';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'WITHDRAWAL_USE_MOCK cannot be true in production',
+    );
+  });
+
   it('rejects disabled Twilio signature validation in production', () => {
     process.env.TWILIO_VALIDATE_SIGNATURES = 'false';
 

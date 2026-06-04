@@ -117,18 +117,32 @@ describe('HealthController (e2e)', () => {
             available: false,
             reason: 'YELLOW_CARD_ENABLED=false',
           });
+          expect(body.providers.mobileMoneyDeposit).toMatchObject({
+            mode: 'mock',
+            productionLike: false,
+            mockAllowed: true,
+            available: true,
+            status: 'mock',
+          });
+          expect(body.providers.mobileMoneyPayout).toMatchObject({
+            mode: 'mock',
+            productionLike: false,
+            mockAllowed: true,
+            available: true,
+            status: 'mock',
+          });
           expect(body.features).toMatchObject({
             deposits: {
-              available: false,
-              status: 'unavailable',
-              provider: 'yellow_card',
-              reason: 'provider_or_feature_disabled',
+              available: true,
+              status: 'available',
+              provider: 'mobile_money',
+              reason: null,
             },
             externalWithdrawals: {
-              available: false,
-              status: 'unavailable',
-              provider: 'yellow_card',
-              reason: 'provider_or_feature_disabled',
+              available: true,
+              status: 'available',
+              provider: 'mobile_money',
+              reason: null,
             },
             billPayments: {
               available: true,
@@ -229,6 +243,24 @@ describe('HealthController (e2e)', () => {
               liveConfigured: false,
               status: 'misconfigured',
             },
+          });
+          expect(body.providers.mobileMoneyDeposit).toMatchObject({
+            mode: 'disabled',
+            productionLike: true,
+            mockAllowed: false,
+            available: false,
+            status: 'unavailable',
+            reason: 'provider_not_implemented',
+            featureReason: 'deposit_provider_not_connected',
+          });
+          expect(body.providers.mobileMoneyPayout).toMatchObject({
+            mode: 'disabled',
+            productionLike: true,
+            mockAllowed: false,
+            available: false,
+            status: 'unavailable',
+            reason: 'provider_not_implemented',
+            featureReason: 'payout_provider_not_connected',
           });
           expect(JSON.stringify(body)).not.toContain('dev-api-key');
           expect(JSON.stringify(body)).not.toContain('your-api-key-here');

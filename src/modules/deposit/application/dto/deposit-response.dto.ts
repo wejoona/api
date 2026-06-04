@@ -118,7 +118,7 @@ export class ProviderInfoDto {
 
   @ApiProperty({
     description: 'Provider name',
-    example: 'Orange Money Côte d\'Ivoire',
+    example: "Orange Money Côte d'Ivoire",
   })
   name: string;
 
@@ -134,4 +134,28 @@ export class ProviderInfoDto {
     example: ['XOF'],
   })
   supportedCurrencies: string[];
+
+  @ApiPropertyOptional({
+    description: 'Provider runtime status',
+    example: 'mock',
+  })
+  status?: 'mock' | 'available' | 'unavailable';
+
+  @ApiPropertyOptional({
+    description: 'Whether the provider can currently initiate deposits',
+    example: true,
+  })
+  available?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Stable machine-readable reason when unavailable',
+    example: 'provider_not_implemented',
+  })
+  reason?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Feature-specific reason for client messaging',
+    example: 'deposit_provider_not_connected',
+  })
+  featureReason?: string | null;
 }
