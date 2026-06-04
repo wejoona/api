@@ -42,6 +42,12 @@ Cote d'Ivoire and the United States.
   - posts `/feature-subscriptions` with `featureKey`, `source`, phone, country,
     locale, platform, app version, and screen metadata
   - asserts the response remains feature-specific, active, and region-aware
+- Strengthened risk/compliance mobile contract verification:
+  - `/risk/session` must return a session risk token, risk level, device trust,
+    and required actions array
+  - `/risk/profile` must return score, level, KYC level, transaction limits,
+    velocity limits, screening status, and risk factors
+  - controller e2e now asserts these response fields instead of only status
 
 ## Verification
 
@@ -49,6 +55,7 @@ Cote d'Ivoire and the United States.
 - `npm test -- --runInBand --testPathPatterns="yellow-card.adapter|get-deposit-channels.use-case"`
 - `npm test -- --runInBand --testPathPatterns="device.service"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="app-config.controller"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="risk.controller"`
 - `npm run schema:check:mobile`
 - `npm run smoke:mobile:api`
 - `COUNTRY_CODE=US npm run smoke:mobile:api`

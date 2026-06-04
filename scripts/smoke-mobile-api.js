@@ -318,14 +318,41 @@ async function main() {
   await expectStatus('GET', '/referrals/capability', [200], { token });
   await expectStatus('GET', '/referrals', [200], { token });
   await expectStatus('GET', '/referrals/history', [200], { token });
-  await expectStatus('POST', '/risk/session', [200], {
+  const riskSession = await expectStatus('POST', '/risk/session', [200], {
     token,
     body: {
       deviceFingerprint: `smoke-${Date.now()}`,
       appVersion: '1.0.0-smoke',
     },
   });
-  await expectStatus('GET', '/risk/profile', [200], { token });
+  if (
+    riskSession.data?.success !== true ||
+    !riskSession.data?.data?.sessionRiskToken ||
+    !['low', 'medium', 'high', 'critical'].includes(
+      riskSession.data?.data?.riskLevel,
+    ) ||
+    typeof riskSession.data?.data?.deviceTrust !== 'number' ||
+    !Array.isArray(riskSession.data?.data?.requiredActions)
+  ) {
+    throw new Error('/risk/session did not return mobile risk session data');
+  }
+  const riskProfile = await expectStatus('GET', '/risk/profile', [200], {
+    token,
+  });
+  if (
+    riskProfile.data?.success !== true ||
+    !['low', 'medium', 'high', 'critical'].includes(
+      riskProfile.data?.data?.riskLevel,
+    ) ||
+    typeof riskProfile.data?.data?.overallRiskScore !== 'number' ||
+    !riskProfile.data?.data?.transactionLimits ||
+    !riskProfile.data?.data?.velocityLimits ||
+    !['clear', 'potential_match', 'confirmed_match'].includes(
+      riskProfile.data?.data?.screeningStatus,
+    )
+  ) {
+    throw new Error('/risk/profile did not return mobile risk profile data');
+  }
   await expectStatus('GET', '/security/addresses', [200], { token });
   if (registeredDevice.data?.id) {
     await expectStatus(

@@ -36,12 +36,49 @@ describe('RiskController (e2e)', () => {
   describe('GET /api/v1/risk/profile', () => {
     it('should return risk profile (200)', async () => {
       mockRiskService.getUserRiskProfile.mockResolvedValue({
-        riskScore: 15,
+        userId: 'test-user-id',
+        overallRiskScore: 15,
         riskLevel: 'low',
+        kycLevel: 1,
+        transactionLimits: {
+          dailyLimit: 1000,
+          monthlyLimit: 10000,
+          singleTransactionLimit: 500,
+        },
+        velocityLimits: {
+          maxTransactionsPerHour: 5,
+          maxTransactionsPerDay: 20,
+          maxUniqueRecipientsPerDay: 10,
+        },
+        screeningStatus: 'clear',
+        riskFactors: [],
+        updatedAt: new Date('2026-06-04T00:00:00.000Z'),
       });
       await request(app.getHttpServer())
         .get('/api/v1/risk/profile')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: true,
+            data: {
+              overallRiskScore: 15,
+              riskLevel: 'low',
+              kycLevel: 1,
+              transactionLimits: {
+                dailyLimit: 1000,
+                monthlyLimit: 10000,
+                singleTransactionLimit: 500,
+              },
+              velocityLimits: {
+                maxTransactionsPerHour: 5,
+                maxTransactionsPerDay: 20,
+                maxUniqueRecipientsPerDay: 10,
+              },
+              screeningStatus: 'clear',
+              riskFactors: [],
+            },
+          });
+        });
     });
   });
 
@@ -52,7 +89,7 @@ describe('RiskController (e2e)', () => {
         deviceTrustScore: 90,
       });
       mockRiskService.getUserRiskProfile.mockResolvedValue({
-        riskScore: 10,
+        overallRiskScore: 10,
         riskLevel: 'low',
       });
       await request(app.getHttpServer())
@@ -62,7 +99,18 @@ describe('RiskController (e2e)', () => {
           appVersion: '1.0.0',
           ipAddress: '127.0.0.1',
         })
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            success: true,
+            data: {
+              riskLevel: 'low',
+              deviceTrust: 90,
+              requiredActions: [],
+            },
+          });
+          expect(body.data.sessionRiskToken).toEqual(expect.any(String));
+        });
     });
   });
 });
