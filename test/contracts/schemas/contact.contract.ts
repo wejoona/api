@@ -159,6 +159,18 @@ export const CheckContactsRequestSchema: ContractSchema = {
   },
 };
 
+export const SyncContactsRequestSchema: ContractSchema = {
+  name: 'SyncContactsRequest',
+  description: 'Primary mobile contact sync request',
+  fields: {
+    phoneHashes: required(FieldType.ARRAY, {
+      description:
+        'Up to 500 SHA-256 hashes of normalized E.164 phone numbers. Raw phone numbers are not accepted on this endpoint.',
+      itemType: FieldType.STRING,
+    }),
+  },
+};
+
 export const RegisteredContactSchema: ContractSchema = {
   name: 'RegisteredContact',
   description: 'Registered Korido user match for a contact hash',
@@ -187,6 +199,45 @@ export const RegisteredContactSchema: ContractSchema = {
     isKoridoUser: required(FieldType.BOOLEAN, {
       description: 'Whether this contact is a Korido user',
       example: true,
+    }),
+  },
+};
+
+export const SyncedContactMatchSchema: ContractSchema = {
+  name: 'SyncedContactMatch',
+  description: 'Registered Korido user match returned to mobile sync',
+  fields: {
+    phoneHash: required(FieldType.STRING, {
+      description: 'Matched phone hash',
+      pattern: '^[a-f0-9]{64}$',
+      example: 'a'.repeat(64),
+    }),
+    userId: required(FieldType.STRING, {
+      description: 'Matched Korido user id',
+      example: 'user_amadou_123',
+    }),
+    avatarUrl: nullable(FieldType.STRING, {
+      description: 'Avatar URL',
+      example: 'https://example.com/avatar.png',
+    }),
+  },
+};
+
+export const SyncContactsResponseSchema: ContractSchema = {
+  name: 'SyncContactsResponse',
+  description: 'Primary mobile contact sync response',
+  fields: {
+    matches: required(FieldType.ARRAY, {
+      description: 'Matched registered Korido users',
+      itemType: SyncedContactMatchSchema,
+    }),
+    totalChecked: required(FieldType.NUMBER, {
+      description: 'Number of submitted hashes checked',
+      example: 500,
+    }),
+    matchesFound: required(FieldType.NUMBER, {
+      description: 'Number of matched registered users',
+      example: 2,
     }),
   },
 };
@@ -388,6 +439,19 @@ export const CheckContactsEndpoint: EndpointContract = {
   },
 };
 
+export const SyncContactsEndpoint: EndpointContract = {
+  method: 'POST',
+  path: '/contacts/sync',
+  description:
+    'Sync hashed mobile contacts against registered Korido users without accepting raw phone book data',
+  auth: 'bearer',
+  requestBody: SyncContactsRequestSchema,
+  responses: {
+    200: SyncContactsResponseSchema,
+    400: ContactErrorSchema,
+  },
+};
+
 // ============================================
 // Contract Group
 // ============================================
@@ -406,5 +470,6 @@ export const ContactContractGroup: ContractGroup = {
     ToggleFavoriteEndpoint,
     DeleteContactEndpoint,
     CheckContactsEndpoint,
+    SyncContactsEndpoint,
   ],
 };

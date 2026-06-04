@@ -9,6 +9,8 @@ import {
   ContactListResponseSchema,
   CheckContactsRequestSchema,
   CheckContactsResponseSchema,
+  SyncContactsRequestSchema,
+  SyncContactsResponseSchema,
 } from '../schemas/contact.contract';
 import { validateSchema } from '../validators/schema-validator';
 
@@ -395,6 +397,52 @@ describe('Contact Contracts', () => {
       };
 
       const result = validateSchema(response, CheckContactsResponseSchema);
+      expect(result.valid).toBe(false);
+    });
+  });
+
+  describe('POST /contacts/sync - Primary Mobile Contact Sync', () => {
+    it('should validate hashed sync request without raw phone numbers', () => {
+      const request = {
+        phoneHashes: ['a'.repeat(64), 'b'.repeat(64)],
+      };
+
+      const result = validateSchema(request, SyncContactsRequestSchema);
+      expect(result.valid).toBe(true);
+      expect(JSON.stringify(request)).not.toContain('+2250701234571');
+    });
+
+    it('should validate sync response with hash matches only', () => {
+      const response = {
+        matches: [
+          {
+            phoneHash: 'a'.repeat(64),
+            userId: 'user_amadou_123',
+            avatarUrl: null,
+          },
+        ],
+        totalChecked: 2,
+        matchesFound: 1,
+      };
+
+      const result = validateSchema(response, SyncContactsResponseSchema);
+      expect(result.valid).toBe(true);
+      expect(JSON.stringify(response)).not.toContain('+2250701234571');
+    });
+
+    it('should fail if a sync match omits phoneHash', () => {
+      const response = {
+        matches: [
+          {
+            userId: 'user_amadou_123',
+            avatarUrl: null,
+          },
+        ],
+        totalChecked: 1,
+        matchesFound: 1,
+      };
+
+      const result = validateSchema(response, SyncContactsResponseSchema);
       expect(result.valid).toBe(false);
     });
   });

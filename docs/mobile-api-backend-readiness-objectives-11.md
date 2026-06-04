@@ -38,7 +38,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Transaction history list/detail field parity with mobile parsers.
 - [x] Deposit channel/create/status route parity for CI/US region data.
 - [x] KYC/VerifyHQ OTP and status flow parity under real local stack.
-- [ ] Contact discovery/bulk lookup performance and privacy contract audit.
+- [x] Contact discovery/bulk lookup performance and privacy contract audit.
 - [ ] Feature subscription/waitlist payload completeness for every "stay informed" surface.
 - [ ] Background refresh, push registration, and notification unread-count recovery audit.
 - [ ] Backend-mobile verifier must include every active mobile route family before release signoff.
@@ -258,6 +258,28 @@ Resolution:
 Verification:
 
 - `flutter test test/services/api_contract_alignment_test.dart`
+
+### Contact Discovery/Bulk Lookup Audit - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile primary contact discovery calls `POST /contacts/sync` with hashed phone numbers.
+- Backend `/contacts/check` already enforced hash format, permission-aware empty handling, and a 500-item cap.
+- Backend `/contacts/sync` used the same indexed user hash lookup path, but its DTO did not enforce array shape, SHA-256 format, or max batch size before reaching the service.
+
+Resolution:
+
+- Added `IsArray`, SHA-256 hash format validation, and a 500-item cap to `SyncContactsDto`.
+- Added e2e coverage for malformed hashes, oversized batches, and the accepted 500-hash boundary.
+- Added formal `/contacts/sync` request/response contract schemas and contract tests proving the mobile sync response contains hash matches only and does not expose raw uploaded phone numbers.
+- Verified the lookup path uses `auth.users.phone_hash` with an existing database index and repository-level deduplication.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="contact.controller.e2e-spec"`
+- `npm run test:contracts -- --runInBand --testPathPatterns="contact.contract"`
 - `npm run build`
 - `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="transaction.controller.e2e-spec"`

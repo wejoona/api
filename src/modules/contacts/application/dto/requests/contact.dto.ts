@@ -5,6 +5,8 @@ import {
   MinLength,
   IsBoolean,
   Matches,
+  IsArray,
+  ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -103,9 +105,13 @@ export class SyncContactsDto {
       'b3a8e0e1f9ab1bfe3a36f231f676f78bb30a519d2b21e6c530c0eee8ebb4a5d0',
     ],
     type: [String],
+    maxItems: 500,
   })
+  @IsArray()
   @IsString({ each: true })
   @MaxLength(64, { each: true })
+  @Matches(/^[a-fA-F0-9]{64}$/, { each: true })
+  @ArrayMaxSize(500)
   phoneHashes: string[];
 }
 

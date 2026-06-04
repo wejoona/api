@@ -158,6 +158,56 @@ describe('ContactController (e2e)', () => {
         [phoneHash],
       );
     });
+
+    it('should reject malformed contact hashes before service lookup', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/sync')
+        .send({ phoneHashes: ['+2250701234567'] })
+        .expect(400);
+
+      expect(mockContactService.syncContacts).not.toHaveBeenCalled();
+    });
+
+    it('should reject oversized contact sync batches before service lookup', async () => {
+      const hashes = Array.from({ length: 501 }, (_, index) =>
+        index.toString(16).padStart(64, '0'),
+      );
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/sync')
+        .send({ phoneHashes: hashes })
+        .expect(400);
+
+      expect(mockContactService.syncContacts).not.toHaveBeenCalled();
+    });
+
+    it('should accept the maximum contact sync batch size', async () => {
+      const hashes = Array.from({ length: 500 }, (_, index) =>
+        index.toString(16).padStart(64, '0'),
+      );
+      mockContactService.syncContacts.mockResolvedValue({
+        matches: [],
+        totalChecked: 500,
+        matchesFound: 0,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/contacts/sync')
+        .send({ phoneHashes: hashes })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            matches: [],
+            totalChecked: 500,
+            matchesFound: 0,
+          });
+        });
+
+      expect(mockContactService.syncContacts).toHaveBeenCalledWith(
+        TEST_USER.id,
+        hashes,
+      );
+    });
   });
 
   describe('POST /api/v1/contacts/check', () => {
