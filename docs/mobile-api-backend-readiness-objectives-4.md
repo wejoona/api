@@ -6,7 +6,7 @@ Purpose: move from hardened mobile contracts into operational backend readiness 
 
 - [x] Verify local Korido API + VerifyHQ dev OTP path boots and supports register, login, verify OTP, session, wallet, and readiness smoke with real HTTP calls.
 - [x] Confirm auth/session refresh/logout/logout-all flows return deterministic mobile-safe envelopes under expired, revoked, and missing-device conditions.
-- [ ] Confirm KYC and liveness flows expose clear pending, manual-review, approved, rejected, and dependency-unavailable states.
+- [x] Confirm KYC and liveness flows expose clear pending, manual-review, approved, rejected, and dependency-unavailable states.
 
 ## Ledger And Reconciliation Operations
 
@@ -62,4 +62,19 @@ Verification:
 
 - Focused unit: `npm test -- --runInBand src/modules/user/application/domain/usecases/logout.usecase.spec.ts`
 - Live HTTP smoke against local Korido API + VerifyHQ confirmed forged logout rejection and logout-all invalidation.
+- Full backend/mobile verifier: `npm run verify:backend:mobile`
+
+### KYC And Liveness State Contracts - 2026-06-04
+
+Verified and hardened:
+
+- KYC status contracts already cover `none`, `documents_pending`, `pending_verification`, `manual_review`, `approved`, `auto_approved`, and `rejected`.
+- `GET /kyc/liveness/status` no longer hides VerifyHQ failures as `NOT_STARTED`; provider failures now return `{ status: "DEPENDENCY_UNAVAILABLE", provider: "verifyhq", retryable: true }`.
+- `GET /kyc/verification/status` includes the same dependency-unavailable state in the `verification` object while preserving the local KYC state.
+- VerifyHQ-backed liveness/document commands now fail with a mobile-safe `503` envelope and code `E5005` (`KYC_PROVIDER_UNAVAILABLE`) when the provider is unavailable.
+- `GET /liveness/:sessionId` now returns a proper mobile-safe `404 NOT_FOUND` envelope when the session is missing or expired instead of returning `200` with an error-like message.
+
+Verification:
+
+- Focused e2e: `npm run test:e2e -- --runInBand --testPathPatterns="kyc-verify.controller|liveness.controller"`
 - Full backend/mobile verifier: `npm run verify:backend:mobile`

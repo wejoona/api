@@ -70,5 +70,23 @@ describe('LivenessController (e2e)', () => {
         .get('/api/v1/liveness/550e8400-e29b-41d4-a716-446655440010')
         .expect(200);
     });
+
+    it('should return a mobile-safe 404 envelope when session is missing', async () => {
+      mockLivenessService.getSessionStatus.mockResolvedValue(null);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/liveness/550e8400-e29b-41d4-a716-446655440010')
+        .expect(404);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'NOT_FOUND',
+            message: 'Liveness session not found or expired',
+          }),
+        }),
+      );
+    });
   });
 });

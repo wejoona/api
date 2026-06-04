@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -443,10 +444,7 @@ export class LivenessController {
     );
 
     if (!result) {
-      return {
-        message: 'Session not found or expired',
-        sessionId,
-      };
+      throw new NotFoundException('Liveness session not found or expired');
     }
 
     return result;

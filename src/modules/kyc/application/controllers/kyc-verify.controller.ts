@@ -23,6 +23,8 @@ import { CurrentUser } from '../../../../common/decorators/current-user.decorato
 import { VerifyHqService } from '../../../shared/infrastructure/verify-hq';
 import { KycService } from '../services/kyc.service';
 import { IsString, IsOptional } from 'class-validator';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 // ==========================================
 // DTOs
@@ -76,7 +78,9 @@ export class KycVerifyController {
   @ApiOperation({ summary: 'Create liveness session with 2-3 challenges' })
   @ApiResponse({ status: 200, description: 'Session created with challenges' })
   async createLivenessSession(@CurrentUser() user: JwtUser) {
-    const session = await this.verifyHqService.createLivenessSession(user.id);
+    const session = await this.callVerifyHq(() =>
+      this.verifyHqService.createLivenessSession(user.id),
+    );
     return {
       sessionToken: session.sessionToken,
       challenges: session.challenges,
@@ -106,10 +110,12 @@ export class KycVerifyController {
     // Convert file buffer to Blob for SDK
     const photoBlob = new Blob([new Uint8Array(photo.buffer)], { type: photo.mimetype });
 
-    const result = await this.verifyHqService.submitChallenge(
-      dto.sessionToken,
-      dto.challengeId,
-      photoBlob,
+    const result = await this.callVerifyHq(() =>
+      this.verifyHqService.submitChallenge(
+        dto.sessionToken,
+        dto.challengeId,
+        photoBlob,
+      ),
     );
 
     return result;
@@ -126,7 +132,9 @@ export class KycVerifyController {
     @UploadedFile() selfie: Express.Multer.File,
   ) {
     const selfieBlob = new Blob([new Uint8Array(selfie.buffer)], { type: selfie.mimetype });
-    return this.verifyHqService.submitReferenceSelfie(body.sessionToken, selfieBlob);
+    return this.callVerifyHq(() =>
+      this.verifyHqService.submitReferenceSelfie(body.sessionToken, selfieBlob),
+    );
   }
 
   @Get('liveness/status')
@@ -148,7 +156,7 @@ export class KycVerifyController {
         confidence: liveness.confidence,
       };
     } catch {
-      return { status: 'NOT_STARTED' };
+      return this.verifyHqUnavailableState();
     }
   }
 
@@ -163,11 +171,13 @@ export class KycVerifyController {
     @CurrentUser() user: JwtUser,
     @Body() dto: SubmitDocumentDto,
   ) {
-    const result = await this.verifyHqService.submitDocumentVerification(
-      user.id,
-      dto.docType,
-      new Blob([dto.frontImageKey]),
-      dto.backImageKey ? new Blob([dto.backImageKey]) : undefined,
+    const result = await this.callVerifyHq(() =>
+      this.verifyHqService.submitDocumentVerification(
+        user.id,
+        dto.docType,
+        new Blob([dto.frontImageKey]),
+        dto.backImageKey ? new Blob([dto.backImageKey]) : undefined,
+      ),
     );
 
     return {
@@ -199,9 +209,28 @@ export class KycVerifyController {
         };
       }
     } catch {
-      // VerifyHQ might not be available
+      verifyHqStatus = this.verifyHqUnavailableState();
     }
 
     return { kyc: kycStatus, verification: verifyHqStatus };
+  }
+
+  private async callVerifyHq<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch {
+      throw AppException.serviceUnavailable(
+        ERROR_CODES.KYC_PROVIDER_UNAVAILABLE,
+        'KYC verification provider is temporarily unavailable',
+      );
+    }
+  }
+
+  private verifyHqUnavailableState() {
+    return {
+      status: 'DEPENDENCY_UNAVAILABLE',
+      provider: 'verifyhq',
+      retryable: true,
+    };
   }
 }
