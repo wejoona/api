@@ -35,7 +35,6 @@ export class CircleHealthIndicator extends HealthIndicator {
         // 404 is okay - means API is reachable even if /ping doesn't exist
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
-          url: circleApiUrl,
           status: response.status,
         });
         return result;
@@ -51,7 +50,6 @@ export class CircleHealthIndicator extends HealthIndicator {
         'Circle API check failed',
         this.getStatus(key, false, {
           latency: `${latency}ms`,
-          url: circleApiUrl,
           error: errorMessage,
         }),
       );

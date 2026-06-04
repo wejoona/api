@@ -30,7 +30,6 @@ export class BlnkHealthIndicator extends HealthIndicator {
       if (response.ok) {
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
-          url: blnkUrl,
           status: response.status,
         });
         return result;
@@ -46,7 +45,6 @@ export class BlnkHealthIndicator extends HealthIndicator {
         'Blnk API check failed',
         this.getStatus(key, false, {
           latency: `${latency}ms`,
-          url: blnkUrl,
           error: errorMessage,
         }),
       );

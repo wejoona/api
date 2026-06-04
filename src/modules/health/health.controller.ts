@@ -319,7 +319,7 @@ export class HealthController {
         name,
         status: 'up',
         available: true,
-        details,
+        details: this.sanitizeHealthDetails(details),
       };
     } catch (error) {
       return {
@@ -343,6 +343,51 @@ export class HealthController {
       provider,
       reason: enabled ? null : reason,
     };
+  }
+
+  private sanitizeHealthDetails(value: unknown): Record<string, any> {
+    const blockedKeys = new Set([
+      'url',
+      'uri',
+      'endpoint',
+      'host',
+      'hostname',
+      'port',
+      'database',
+      'databaseName',
+      'dbName',
+      'dsn',
+      'connectionString',
+      'apiKey',
+      'key',
+      'secret',
+      'token',
+      'authToken',
+      'password',
+      'accountSid',
+      'ledgerId',
+    ]);
+
+    const sanitize = (input: unknown): unknown => {
+      if (Array.isArray(input)) {
+        return input.map(sanitize);
+      }
+
+      if (!input || typeof input !== 'object') {
+        return input;
+      }
+
+      return Object.fromEntries(
+        Object.entries(input as Record<string, unknown>)
+          .filter(([key]) => !blockedKeys.has(key))
+          .map(([key, nestedValue]) => [key, sanitize(nestedValue)]),
+      );
+    };
+
+    const sanitized = sanitize(value);
+    return sanitized && typeof sanitized === 'object'
+      ? (sanitized as Record<string, any>)
+      : {};
   }
 
   private riskClientStatus() {

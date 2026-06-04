@@ -15,8 +15,13 @@ export class YellowCardHealthIndicator extends HealthIndicator {
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     // Yellow Card integration disabled — always report as healthy (skipped)
-    if (this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true') {
-      return this.getStatus(key, true, { note: 'Yellow Card disabled (YELLOW_CARD_ENABLED=false)', skipped: true });
+    if (
+      this.configService.get<string>('YELLOW_CARD_ENABLED', 'false') !== 'true'
+    ) {
+      return this.getStatus(key, true, {
+        note: 'Yellow Card disabled (YELLOW_CARD_ENABLED=false)',
+        skipped: true,
+      });
     }
 
     const apiUrl = this.configService.get<string>(
@@ -57,7 +62,6 @@ export class YellowCardHealthIndicator extends HealthIndicator {
       if (response.ok) {
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
-          url: apiUrl,
           status: response.status,
         });
         return result;
@@ -67,7 +71,6 @@ export class YellowCardHealthIndicator extends HealthIndicator {
       if (response.status === 401 || response.status === 403) {
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
-          url: apiUrl,
           status: response.status,
           note: 'API reachable but authentication required',
         });
@@ -84,7 +87,6 @@ export class YellowCardHealthIndicator extends HealthIndicator {
         'Yellow Card API check failed',
         this.getStatus(key, false, {
           latency: `${latency}ms`,
-          url: apiUrl,
           error: errorMessage,
         }),
       );

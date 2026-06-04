@@ -98,6 +98,20 @@ describe('HealthController (e2e)', () => {
 
   describe('GET /api/v1/health/mobile-readiness', () => {
     it('should separate app readiness, provider readiness, and feature availability', async () => {
+      mockDependencyIndicator.isHealthy.mockResolvedValue({
+        dependency: {
+          status: 'up',
+          url: 'http://internal-provider.local',
+          host: 'internal-provider.local',
+          port: 1234,
+          apiKey: 'provider-secret',
+          nested: {
+            token: 'nested-token',
+            safe: 'kept',
+          },
+        },
+      });
+
       await request(app.getHttpServer())
         .get('/api/v1/health/mobile-readiness')
         .expect(200)
@@ -221,6 +235,12 @@ describe('HealthController (e2e)', () => {
               status: 'mock',
             },
           });
+          const serialized = JSON.stringify(body);
+          expect(serialized).not.toContain('http://internal-provider.local');
+          expect(serialized).not.toContain('internal-provider.local');
+          expect(serialized).not.toContain('provider-secret');
+          expect(serialized).not.toContain('nested-token');
+          expect(serialized).toContain('kept');
         });
     });
 

@@ -17,7 +17,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 ## Mobile-Facing Operational Contracts
 
 - [x] Confirm all mobile-facing provider-down responses include stable `reason`, optional `featureReason`, and support-safe retry/review metadata.
-- [ ] Confirm health/readiness does not expose raw URLs, API keys, database names, tokens, or provider exception bodies.
+- [x] Confirm health/readiness does not expose raw URLs, API keys, database names, tokens, or provider exception bodies.
 - [ ] Confirm contract tests cover the new readiness metadata needed by mobile/dashboard clients.
 
 ## Recursive Execution Rule
@@ -139,3 +139,15 @@ Verification:
 
 - `npm test -- --runInBand src/modules/bulk-payments/application/services/bulk-payment.service.spec.ts src/modules/cards/application/services/card.service.spec.ts src/modules/bank-linking/application/services/bank-linking.service.spec.ts src/modules/bill-payments/infrastructure/services/bill-pay-client.service.spec.ts src/modules/shared/infrastructure/gateways/payment/noop-payment.adapter.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="card.controller|bank-linking.controller|bill-payment.controller|wallet.controller"`
+
+### Health Readiness Sanitization - 2026-06-04
+
+Verified and hardened:
+
+- `mobile-readiness` sanitizes dependency details before returning them to mobile/dashboard clients.
+- Health indicators no longer include raw provider URLs, Redis host/port, or Twilio account identifiers.
+- Regression tests inject URL, host, port, API key, and token-like fields into dependency health details and assert they do not appear in the response.
+
+Verification:
+
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`

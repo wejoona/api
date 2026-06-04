@@ -21,15 +21,11 @@ export class RedisHealthIndicator
 
   constructor(private readonly configService: ConfigService) {
     super();
-    this.redis = createConfiguredRedisClient(
-      this.configService,
-      this.logger,
-      {
-        maxRetriesPerRequest: 1,
-        connectTimeout: 5000,
-        lazyConnect: true,
-      },
-    );
+    this.redis = createConfiguredRedisClient(this.configService, this.logger, {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 5000,
+      lazyConnect: true,
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -48,8 +44,6 @@ export class RedisHealthIndicator
       if (pong === 'PONG') {
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
-          host: this.configService.get<string>('redis.host'),
-          port: this.configService.get<number>('redis.port'),
         });
         return result;
       }
@@ -64,8 +58,6 @@ export class RedisHealthIndicator
         'Redis check failed',
         this.getStatus(key, false, {
           latency: `${latency}ms`,
-          host: this.configService.get<string>('redis.host'),
-          port: this.configService.get<number>('redis.port'),
           error: errorMessage,
         }),
       );

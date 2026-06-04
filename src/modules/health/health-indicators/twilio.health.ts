@@ -42,7 +42,6 @@ export class TwilioHealthIndicator extends HealthIndicator {
         const result = this.getStatus(key, true, {
           latency: `${latency}ms`,
           accountStatus: data.status || 'active',
-          accountSid: accountSid.substring(0, 8) + '...',
         });
         return result;
       }
