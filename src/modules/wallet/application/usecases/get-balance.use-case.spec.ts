@@ -76,6 +76,7 @@ describe('GetBalanceUseCase', () => {
     const cachedBalance: GetBalanceOutput = {
       walletId: 'wallet-123',
       currency: 'USDC',
+      source: 'ledger',
       balances: [
         {
           currency: 'USDC',
@@ -111,6 +112,7 @@ describe('GetBalanceUseCase', () => {
     expect(result).toEqual({
       walletId: 'wallet-123',
       currency: 'USDC',
+      source: 'ledger',
       balances: [
         {
           currency: 'USDC',
@@ -120,15 +122,6 @@ describe('GetBalanceUseCase', () => {
           pendingDecimal: '10.000000',
           total: 60,
           totalDecimal: '60.000000',
-        },
-        {
-          currency: 'USD',
-          available: 50,
-          availableDecimal: '50.00',
-          pending: 10,
-          pendingDecimal: '10.00',
-          total: 60,
-          totalDecimal: '60.00',
         },
       ],
     });
@@ -160,16 +153,8 @@ describe('GetBalanceUseCase', () => {
     expect(result).toEqual({
       walletId: 'wallet-123',
       currency: 'USDC',
+      source: 'local_mirror',
       balances: [
-        {
-          currency: 'USD',
-          available: 75,
-          availableDecimal: '75.00',
-          pending: 0,
-          pendingDecimal: '0.00',
-          total: 75,
-          totalDecimal: '75.00',
-        },
         {
           currency: 'USDC',
           available: 75,
@@ -196,15 +181,6 @@ describe('GetBalanceUseCase', () => {
 
     expect(result.balances).toEqual([
       {
-        currency: 'USD',
-        available: 75,
-        availableDecimal: '75.00',
-        pending: 0,
-        pendingDecimal: '0.00',
-        total: 75,
-        totalDecimal: '75.00',
-      },
-      {
         currency: 'USDC',
         available: 75,
         availableDecimal: '75.000000',
@@ -214,6 +190,7 @@ describe('GetBalanceUseCase', () => {
         totalDecimal: '75.000000',
       },
     ]);
+    expect(result.source).toBe('local_mirror');
   });
 
   it('uses independent cache keys for different users', async () => {

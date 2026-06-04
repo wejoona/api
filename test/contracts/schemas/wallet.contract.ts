@@ -68,7 +68,12 @@ export const WalletBalanceResponseSchema: ContractSchema = {
     }),
     currency: required(FieldType.STRING, {
       description: 'Primary currency',
-      example: 'USD',
+      example: 'USDC',
+    }),
+    source: required(FieldType.STRING, {
+      description: 'Balance source',
+      enum: ['ledger', 'local_mirror'],
+      example: 'ledger',
     }),
     balances: required(FieldType.ARRAY, {
       description: 'Balances by currency',

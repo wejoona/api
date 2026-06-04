@@ -16,6 +16,7 @@ export interface GetBalanceInput {
 export interface GetBalanceOutput {
   walletId: string;
   currency: string;
+  source: 'ledger' | 'local_mirror';
   balances: Array<
     Balance & {
       availableDecimal: string;
@@ -79,9 +80,9 @@ export class GetBalanceUseCase {
         const result: GetBalanceOutput = {
           walletId: wallet.id,
           currency: wallet.currency,
+          source: 'ledger',
           balances: [
             this.withBalanceDecimals('USDC', available, pending, total),
-            this.withBalanceDecimals('USD', available, pending, total),
           ],
         };
 
@@ -98,9 +99,14 @@ export class GetBalanceUseCase {
     const result: GetBalanceOutput = {
       walletId: wallet.id,
       currency: wallet.currency,
+      source: 'local_mirror',
       balances: [
-        this.withBalanceDecimals('USD', wallet.balance, 0, wallet.balance),
-        this.withBalanceDecimals('USDC', wallet.balance, 0, wallet.balance),
+        this.withBalanceDecimals(
+          wallet.currency,
+          wallet.balance,
+          0,
+          wallet.balance,
+        ),
       ],
     };
 

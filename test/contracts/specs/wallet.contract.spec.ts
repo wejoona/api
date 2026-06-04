@@ -23,16 +23,17 @@ describe('Wallet Contracts', () => {
     it('should validate successful balance response', () => {
       const response = {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
-        currency: 'USD',
+        currency: 'USDC',
+        source: 'ledger',
         balances: [
           {
-            currency: 'USD',
+            currency: 'USDC',
             available: 100.0,
-            availableDecimal: '100.00',
+            availableDecimal: '100.000000',
             pending: 0,
-            pendingDecimal: '0.00',
+            pendingDecimal: '0.000000',
             total: 100.0,
-            totalDecimal: '100.00',
+            totalDecimal: '100.000000',
           },
         ],
       };
@@ -42,28 +43,20 @@ describe('Wallet Contracts', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should validate response with multiple balances', () => {
+    it('should validate local mirror fallback source', () => {
       const response = {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
-        currency: 'USD',
+        currency: 'USDC',
+        source: 'local_mirror',
         balances: [
           {
-            currency: 'USD',
-            available: 100.0,
-            availableDecimal: '100.00',
-            pending: 10,
-            pendingDecimal: '10.00',
-            total: 110.0,
-            totalDecimal: '110.00',
-          },
-          {
             currency: 'USDC',
-            available: 50.0,
-            availableDecimal: '50.000000',
+            available: 100.0,
+            availableDecimal: '100.000000',
             pending: 0,
             pendingDecimal: '0.000000',
-            total: 50.0,
-            totalDecimal: '50.000000',
+            total: 100.0,
+            totalDecimal: '100.000000',
           },
         ],
       };
@@ -75,9 +68,10 @@ describe('Wallet Contracts', () => {
     it('should fail if walletId is not a UUID', () => {
       const response = {
         walletId: 'not-a-uuid',
-        currency: 'USD',
+        currency: 'USDC',
+        source: 'ledger',
         balances: [
-          { currency: 'USD', available: 100.0, pending: 0, total: 100.0 },
+          { currency: 'USDC', available: 100.0, pending: 0, total: 100.0 },
         ],
       };
 
@@ -91,9 +85,10 @@ describe('Wallet Contracts', () => {
     it('should fail if balance item is missing required field', () => {
       const response = {
         walletId: '123e4567-e89b-12d3-a456-426614174000',
-        currency: 'USD',
+        currency: 'USDC',
+        source: 'ledger',
         balances: [
-          { currency: 'USD', available: 100.0 }, // Missing pending and total
+          { currency: 'USDC', available: 100.0 }, // Missing pending and total
         ],
       };
 

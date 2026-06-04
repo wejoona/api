@@ -992,6 +992,12 @@ describe('Transfer Flow (Integration)', () => {
         .set('Authorization', `Bearer ${senderToken}`)
         .expect(200);
 
+      expect(fundedBalance.body).toMatchObject({
+        currency: 'USDC',
+        source: expect.stringMatching(/^(ledger|local_mirror)$/),
+      });
+      expect(fundedBalance.body.balances).toHaveLength(1);
+      expect(fundedBalance.body.balances[0].currency).toBe('USDC');
       expect(getUsdcAvailable(fundedBalance.body)).toBeGreaterThan(0);
       expect(fundedBalance.body.balances[0]).toEqual(
         expect.objectContaining({
@@ -1027,6 +1033,12 @@ describe('Transfer Flow (Integration)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('balances');
+      expect(response.body).toMatchObject({
+        currency: 'USDC',
+        source: expect.stringMatching(/^(ledger|local_mirror)$/),
+      });
+      expect(response.body.balances).toHaveLength(1);
+      expect(response.body.balances[0].currency).toBe('USDC');
       expect(typeof getUsdcAvailable(response.body)).toBe('number');
     });
 
