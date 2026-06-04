@@ -37,7 +37,7 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Auth login, refresh, logout, and logout-all e2e tests assert mobile-consumable success/action payloads.
 - [x] Device list endpoints return `200 []` for users with no registered devices.
 - [x] Confirm refresh-token, logout, logout-all, and active-session endpoints return mobile-consumable 401/403 states without noisy stack traces.
-- [ ] Verify device registration/update/revocation behavior is idempotent and audit-safe.
+- [x] Verify device registration/update/revocation behavior is idempotent and audit-safe.
 - [x] Confirm active-session screen never shows raw 401 text; backend now emits a normalized auth failure envelope.
 
 ## Wallet And Transaction Flows
