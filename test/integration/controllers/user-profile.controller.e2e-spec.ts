@@ -267,17 +267,70 @@ describe('UserController (e2e)', () => {
   // GET /user/limits
   // ==========================================
   describe('GET /api/v1/user/limits', () => {
-    it('should return user limits (200)', async () => {
-      mockGetUserLimits.execute.mockResolvedValue({
-        dailyTransferLimit: 5000,
-        monthlyTransferLimit: 50000,
-        singleTransferLimit: 2000,
-      });
+    const nestedLimits = {
+      tier: 'verified',
+      kycStatus: 'verified',
+      daily: {
+        send: { limit: 5000, used: 1250, remaining: 3750 },
+        withdraw: { limit: 2500, used: 100, remaining: 2400 },
+        deposit: { limit: 20000, used: 5000, remaining: 15000 },
+      },
+      monthly: {
+        total: { limit: 50000, used: 9000, remaining: 41000 },
+        international: { limit: 10000, used: 0, remaining: 10000 },
+      },
+      perTransaction: {
+        send: 2500,
+        withdraw: 2500,
+      },
+      upgradeMessage: 'Your account is verified.',
+    };
 
-      const res = await request(app.getHttpServer())
+    it('should return user limits with mobile flat aliases (200)', async () => {
+      mockGetUserLimits.execute.mockResolvedValue(nestedLimits);
+
+      await request(app.getHttpServer())
         .get('/api/v1/user/limits')
         .set('Authorization', 'Bearer mock.token')
-        .expect(200);
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            ...nestedLimits,
+            dailyLimit: 5000,
+            weeklyLimit: 0,
+            monthlyLimit: 50000,
+            singleTransactionLimit: 2500,
+            singleTransactionMax: 2500,
+            withdrawalLimit: 2500,
+            dailyUsed: 1250,
+            weeklyUsed: 0,
+            monthlyUsed: 9000,
+            currency: 'USDC',
+            kycTier: 2,
+            tierName: 'Verified',
+          });
+          expect(body.resetTime).toEqual(expect.any(String));
+          expect(body.hoursUntilReset).toEqual(expect.any(Number));
+          expect(body.minutesUntilReset).toEqual(expect.any(Number));
+        });
     });
+
+    it('should return mobile limit usage summary (200)', async () => {
+      mockGetUserLimits.execute.mockResolvedValue(nestedLimits);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/user/limits/usage')
+        .set('Authorization', 'Bearer mock.token')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toMatchObject({
+            dailyUsed: 1250,
+            weeklyUsed: 0,
+            monthlyUsed: 9000,
+          });
+          expect(body.resetAt).toEqual(expect.any(String));
+        });
+    });
+
   });
 });

@@ -11,7 +11,8 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 
 - [x] Audit mobile services that cast API responses directly to `Map<String, dynamic>` or `List` and identify backend routes that still need wrapper-tolerant contracts.
 - [x] Patch the first confirmed backend/mobile mismatch with e2e or contract coverage.
-- [ ] Continue parser drift audit for the next active screen/backend route mismatch.
+- [x] Continue parser drift audit for the next active screen/backend route mismatch.
+- [ ] Continue parser drift audit for the next active screen/backend route mismatch after user limits.
 
 ## Recursive Execution Rule
 
@@ -59,4 +60,29 @@ Verification:
 
 - `npm run test:contracts -- --runInBand --testPathPatterns="savings-pot.contract|referral.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="savings-pot.controller.e2e-spec"`
+- `npm run verify:backend:mobile`
+
+### User Limits Mobile Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile calls `GET /user/limits` and parses flat fields such as `dailyLimit`, `monthlyLimit`, `singleTransactionLimit`, `dailyUsed`, and `kycTier`.
+- Backend returned only the canonical nested shape: `tier`, `kycStatus`, `daily`, `monthly`, and `perTransaction`.
+- Mobile also calls `GET /user/limits/usage`, but backend did not expose that route.
+
+Resolution:
+
+- Kept the canonical nested backend limits response.
+- Added flat mobile aliases to `GET /user/limits`.
+- Added `GET /user/limits/usage`, derived from the same computed limits source.
+- Updated user limits contracts to match the actual server response plus mobile aliases.
+- Added e2e coverage for both limits routes.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="user.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller.e2e-spec"`
 - `npm run verify:backend:mobile`

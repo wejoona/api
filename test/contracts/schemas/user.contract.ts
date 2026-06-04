@@ -89,91 +89,100 @@ export const SearchUsernameResponseSchema: ContractSchema = {
 /**
  * User transaction limits response
  */
+export const LimitDetailSchema: ContractSchema = {
+  name: 'LimitDetail',
+  description: 'Limit, usage, and remaining amount for one limit bucket',
+  fields: {
+    limit: required(FieldType.NUMBER, { example: 5000 }),
+    used: required(FieldType.NUMBER, { example: 1250 }),
+    remaining: required(FieldType.NUMBER, { example: 3750 }),
+  },
+};
+
 export const UserLimitsResponseSchema: ContractSchema = {
   name: 'UserLimitsResponse',
-  description: 'User transaction limits',
+  description:
+    'User transaction limits with canonical nested shape and flat mobile aliases',
   fields: {
+    tier: required(FieldType.STRING, {
+      enum: ['basic', 'verified', 'premium'],
+      example: 'verified',
+    }),
+    kycStatus: required(FieldType.STRING, {
+      enum: ['none', 'pending', 'verified'],
+      example: 'verified',
+    }),
+    daily: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'DailyLimits',
+        fields: {
+          send: required(FieldType.OBJECT, { nestedSchema: LimitDetailSchema }),
+          withdraw: required(FieldType.OBJECT, {
+            nestedSchema: LimitDetailSchema,
+          }),
+          deposit: required(FieldType.OBJECT, {
+            nestedSchema: LimitDetailSchema,
+          }),
+        },
+      },
+    }),
+    monthly: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'MonthlyLimits',
+        fields: {
+          total: required(FieldType.OBJECT, { nestedSchema: LimitDetailSchema }),
+          international: required(FieldType.OBJECT, {
+            nestedSchema: LimitDetailSchema,
+          }),
+        },
+      },
+    }),
+    perTransaction: required(FieldType.OBJECT, {
+      nestedSchema: {
+        name: 'PerTransactionLimits',
+        fields: {
+          send: required(FieldType.NUMBER, { example: 2500 }),
+          withdraw: required(FieldType.NUMBER, { example: 2500 }),
+        },
+      },
+    }),
+    upgradeMessage: required(FieldType.STRING, {
+      example: 'Your account is verified.',
+    }),
+    dailyLimit: required(FieldType.NUMBER, { example: 5000 }),
+    weeklyLimit: required(FieldType.NUMBER, { example: 0 }),
+    monthlyLimit: required(FieldType.NUMBER, { example: 50000 }),
+    singleTransactionLimit: required(FieldType.NUMBER, { example: 2500 }),
+    singleTransactionMax: required(FieldType.NUMBER, { example: 2500 }),
+    withdrawalLimit: required(FieldType.NUMBER, { example: 2500 }),
+    dailyUsed: required(FieldType.NUMBER, { example: 1250 }),
+    weeklyUsed: required(FieldType.NUMBER, { example: 0 }),
+    monthlyUsed: required(FieldType.NUMBER, { example: 9000 }),
+    currency: required(FieldType.STRING, { example: 'USDC' }),
     kycTier: required(FieldType.NUMBER, {
-      description: 'KYC tier (0-3)',
+      description: 'Mobile numeric KYC tier',
       example: 2,
-      min: 0,
+      min: 1,
       max: 3,
     }),
-    limits: required(FieldType.OBJECT, {
-      description: 'Transaction limits',
-      nestedSchema: {
-        name: 'TransactionLimits',
-        fields: {
-          dailyDeposit: required(FieldType.NUMBER, {
-            description: 'Daily deposit limit',
-            example: 1000,
-          }),
-          monthlyDeposit: required(FieldType.NUMBER, {
-            description: 'Monthly deposit limit',
-            example: 10000,
-          }),
-          dailyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Daily withdrawal limit',
-            example: 500,
-          }),
-          monthlyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Monthly withdrawal limit',
-            example: 5000,
-          }),
-          singleTransaction: required(FieldType.NUMBER, {
-            description: 'Single transaction limit',
-            example: 500,
-          }),
-        },
-      },
+    tierName: required(FieldType.STRING, { example: 'Verified' }),
+    resetTime: required(FieldType.DATE, {
+      example: '2026-06-05T00:00:00.000Z',
     }),
-    usage: required(FieldType.OBJECT, {
-      description: 'Current usage',
-      nestedSchema: {
-        name: 'LimitUsage',
-        fields: {
-          dailyDeposit: required(FieldType.NUMBER, {
-            description: 'Daily deposit used',
-            example: 150,
-          }),
-          monthlyDeposit: required(FieldType.NUMBER, {
-            description: 'Monthly deposit used',
-            example: 2500,
-          }),
-          dailyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Daily withdrawal used',
-            example: 0,
-          }),
-          monthlyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Monthly withdrawal used',
-            example: 500,
-          }),
-        },
-      },
-    }),
-    remaining: required(FieldType.OBJECT, {
-      description: 'Remaining limits',
-      nestedSchema: {
-        name: 'RemainingLimits',
-        fields: {
-          dailyDeposit: required(FieldType.NUMBER, {
-            description: 'Remaining daily deposit',
-            example: 850,
-          }),
-          monthlyDeposit: required(FieldType.NUMBER, {
-            description: 'Remaining monthly deposit',
-            example: 7500,
-          }),
-          dailyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Remaining daily withdrawal',
-            example: 500,
-          }),
-          monthlyWithdrawal: required(FieldType.NUMBER, {
-            description: 'Remaining monthly withdrawal',
-            example: 4500,
-          }),
-        },
-      },
+    hoursUntilReset: required(FieldType.NUMBER, { example: 12 }),
+    minutesUntilReset: required(FieldType.NUMBER, { example: 720 }),
+  },
+};
+
+export const UserLimitUsageResponseSchema: ContractSchema = {
+  name: 'UserLimitUsageResponse',
+  description: 'Flat mobile limit usage summary',
+  fields: {
+    dailyUsed: required(FieldType.NUMBER, { example: 1250 }),
+    weeklyUsed: required(FieldType.NUMBER, { example: 0 }),
+    monthlyUsed: required(FieldType.NUMBER, { example: 9000 }),
+    resetAt: required(FieldType.DATE, {
+      example: '2026-06-05T00:00:00.000Z',
     }),
   },
 };
@@ -485,27 +494,49 @@ export const GetUserLimitsEndpoint: EndpointContract = {
   },
   exampleResponse: {
     200: {
+      tier: 'verified',
+      kycStatus: 'verified',
+      daily: {
+        send: { limit: 5000, used: 1250, remaining: 3750 },
+        withdraw: { limit: 2500, used: 100, remaining: 2400 },
+        deposit: { limit: 20000, used: 5000, remaining: 15000 },
+      },
+      monthly: {
+        total: { limit: 50000, used: 9000, remaining: 41000 },
+        international: { limit: 10000, used: 0, remaining: 10000 },
+      },
+      perTransaction: {
+        send: 2500,
+        withdraw: 2500,
+      },
+      upgradeMessage: 'Your account is verified.',
+      dailyLimit: 5000,
+      weeklyLimit: 0,
+      monthlyLimit: 50000,
+      singleTransactionLimit: 2500,
+      singleTransactionMax: 2500,
+      withdrawalLimit: 2500,
+      dailyUsed: 1250,
+      weeklyUsed: 0,
+      monthlyUsed: 9000,
+      currency: 'USDC',
       kycTier: 2,
-      limits: {
-        dailyDeposit: 1000,
-        monthlyDeposit: 10000,
-        dailyWithdrawal: 500,
-        monthlyWithdrawal: 5000,
-        singleTransaction: 500,
-      },
-      usage: {
-        dailyDeposit: 150,
-        monthlyDeposit: 2500,
-        dailyWithdrawal: 0,
-        monthlyWithdrawal: 500,
-      },
-      remaining: {
-        dailyDeposit: 850,
-        monthlyDeposit: 7500,
-        dailyWithdrawal: 500,
-        monthlyWithdrawal: 4500,
-      },
+      tierName: 'Verified',
+      resetTime: '2026-06-05T00:00:00.000Z',
+      hoursUntilReset: 12,
+      minutesUntilReset: 720,
     },
+  },
+};
+
+export const GetUserLimitUsageEndpoint: EndpointContract = {
+  method: 'GET',
+  path: '/user/limits/usage',
+  description: 'Get user transaction limit usage summary',
+  auth: 'bearer',
+  responses: {
+    200: UserLimitUsageResponseSchema,
+    404: UserErrorSchema,
   },
 };
 
@@ -526,5 +557,6 @@ export const UserContractGroup: ContractGroup = {
     SearchUsernameEndpoint,
     FindByUsernameEndpoint,
     GetUserLimitsEndpoint,
+    GetUserLimitUsageEndpoint,
   ],
 };

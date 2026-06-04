@@ -86,6 +86,31 @@ import {
   EmailStatusUsecase,
 } from '../domain/usecases';
 
+interface MobileUserLimitsResponse extends UserLimitsResponse {
+  dailyLimit: number;
+  weeklyLimit: number;
+  monthlyLimit: number;
+  singleTransactionLimit: number;
+  singleTransactionMax: number;
+  withdrawalLimit: number;
+  dailyUsed: number;
+  weeklyUsed: number;
+  monthlyUsed: number;
+  currency: string;
+  kycTier: number;
+  tierName: string;
+  resetTime: string;
+  hoursUntilReset: number;
+  minutesUntilReset: number;
+}
+
+interface MobileLimitUsageResponse {
+  dailyUsed: number;
+  weeklyUsed: number;
+  monthlyUsed: number;
+  resetAt: string;
+}
+
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -542,10 +567,79 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User or wallet not found' })
   async getLimits(
     @Request() req: AuthenticatedRequest,
-  ): Promise<UserLimitsResponse> {
-    return this.getUserLimitsUseCase.execute({
+  ): Promise<MobileUserLimitsResponse> {
+    const limits = await this.getUserLimitsUseCase.execute({
       userId: req.user.id,
     });
+
+    return this.toMobileLimitsResponse(limits);
+  }
+
+  @Get('limits/usage')
+  @ApiOperation({ summary: 'Get user transaction limit usage summary' })
+  @ApiResponse({ status: 200, description: 'User limit usage summary' })
+  @ApiResponse({ status: 404, description: 'User or wallet not found' })
+  async getLimitUsage(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<MobileLimitUsageResponse> {
+    const limits = await this.getUserLimitsUseCase.execute({
+      userId: req.user.id,
+    });
+    const mobileLimits = this.toMobileLimitsResponse(limits);
+
+    return {
+      dailyUsed: mobileLimits.dailyUsed,
+      weeklyUsed: mobileLimits.weeklyUsed,
+      monthlyUsed: mobileLimits.monthlyUsed,
+      resetAt: mobileLimits.resetTime,
+    };
+  }
+
+  private toMobileLimitsResponse(
+    limits: UserLimitsResponse,
+  ): MobileUserLimitsResponse {
+    const now = new Date();
+    const reset = new Date(now);
+    reset.setUTCHours(24, 0, 0, 0);
+    const msUntilReset = Math.max(0, reset.getTime() - now.getTime());
+    const minutesUntilReset = Math.ceil(msUntilReset / 60000);
+    const hoursUntilReset = Math.floor(minutesUntilReset / 60);
+    const kycTier = this.mapMobileKycTier(limits.tier);
+
+    return {
+      ...limits,
+      dailyLimit: limits.daily.send.limit,
+      weeklyLimit: 0,
+      monthlyLimit: limits.monthly.total.limit,
+      singleTransactionLimit: limits.perTransaction.send,
+      singleTransactionMax: limits.perTransaction.send,
+      withdrawalLimit: limits.daily.withdraw.limit,
+      dailyUsed: limits.daily.send.used,
+      weeklyUsed: 0,
+      monthlyUsed: limits.monthly.total.used,
+      currency: 'USDC',
+      kycTier,
+      tierName: this.toTitleCase(limits.tier),
+      resetTime: reset.toISOString(),
+      hoursUntilReset,
+      minutesUntilReset,
+    };
+  }
+
+  private mapMobileKycTier(tier: UserLimitsResponse['tier']): number {
+    switch (tier) {
+      case 'premium':
+        return 3;
+      case 'verified':
+        return 2;
+      case 'basic':
+      default:
+        return 1;
+    }
+  }
+
+  private toTitleCase(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   // ============================================

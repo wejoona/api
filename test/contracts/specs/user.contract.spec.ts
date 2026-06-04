@@ -9,6 +9,7 @@ import {
   CheckUsernameResponseSchema,
   ProfileDependencyUnavailableSchema,
   SearchUsernameResponseSchema,
+  UserLimitUsageResponseSchema,
   UserLimitsResponseSchema,
 } from '../schemas/user.contract';
 import { UserSchema } from '../schemas/auth.contract';
@@ -283,138 +284,88 @@ describe('User Contracts', () => {
   });
 
   describe('GET /user/limits - User Limits Response', () => {
-    it('should validate complete limits response', () => {
-      const response = {
-        kycTier: 2,
-        limits: {
-          dailyDeposit: 1000,
-          monthlyDeposit: 10000,
-          dailyWithdrawal: 500,
-          monthlyWithdrawal: 5000,
-          singleTransaction: 500,
-        },
-        usage: {
-          dailyDeposit: 150,
-          monthlyDeposit: 2500,
-          dailyWithdrawal: 0,
-          monthlyWithdrawal: 500,
-        },
-        remaining: {
-          dailyDeposit: 850,
-          monthlyDeposit: 7500,
-          dailyWithdrawal: 500,
-          monthlyWithdrawal: 4500,
-        },
-      };
+    const createLimitsResponse = (overrides: Record<string, unknown> = {}) => ({
+      tier: 'verified',
+      kycStatus: 'verified',
+      daily: {
+        send: { limit: 5000, used: 1250, remaining: 3750 },
+        withdraw: { limit: 2500, used: 100, remaining: 2400 },
+        deposit: { limit: 20000, used: 5000, remaining: 15000 },
+      },
+      monthly: {
+        total: { limit: 50000, used: 9000, remaining: 41000 },
+        international: { limit: 10000, used: 0, remaining: 10000 },
+      },
+      perTransaction: {
+        send: 2500,
+        withdraw: 2500,
+      },
+      upgradeMessage: 'Your account is verified.',
+      dailyLimit: 5000,
+      weeklyLimit: 0,
+      monthlyLimit: 50000,
+      singleTransactionLimit: 2500,
+      singleTransactionMax: 2500,
+      withdrawalLimit: 2500,
+      dailyUsed: 1250,
+      weeklyUsed: 0,
+      monthlyUsed: 9000,
+      currency: 'USDC',
+      kycTier: 2,
+      tierName: 'Verified',
+      resetTime: '2026-06-05T00:00:00.000Z',
+      hoursUntilReset: 12,
+      minutesUntilReset: 720,
+      ...overrides,
+    });
+
+    it('should validate complete limits response with mobile aliases', () => {
+      const response = createLimitsResponse();
 
       const result = validateSchema(response, UserLimitsResponseSchema);
       expect(result.valid).toBe(true);
     });
 
-    it('should validate tier 0 limits (no KYC)', () => {
+    it('should validate basic tier limits', () => {
       const response = {
-        kycTier: 0,
-        limits: {
-          dailyDeposit: 100,
-          monthlyDeposit: 500,
-          dailyWithdrawal: 0,
-          monthlyWithdrawal: 0,
-          singleTransaction: 50,
-        },
-        usage: {
-          dailyDeposit: 0,
-          monthlyDeposit: 0,
-          dailyWithdrawal: 0,
-          monthlyWithdrawal: 0,
-        },
-        remaining: {
-          dailyDeposit: 100,
-          monthlyDeposit: 500,
-          dailyWithdrawal: 0,
-          monthlyWithdrawal: 0,
-        },
-      };
-
-      const result = validateSchema(response, UserLimitsResponseSchema);
-      expect(result.valid).toBe(true);
-    });
-
-    it('should validate tier 3 limits (maximum)', () => {
-      const response = {
-        kycTier: 3,
-        limits: {
-          dailyDeposit: 100000,
-          monthlyDeposit: 1000000,
-          dailyWithdrawal: 50000,
-          monthlyWithdrawal: 500000,
-          singleTransaction: 25000,
-        },
-        usage: {
-          dailyDeposit: 5000,
-          monthlyDeposit: 100000,
-          dailyWithdrawal: 1000,
-          monthlyWithdrawal: 25000,
-        },
-        remaining: {
-          dailyDeposit: 95000,
-          monthlyDeposit: 900000,
-          dailyWithdrawal: 49000,
-          monthlyWithdrawal: 475000,
-        },
-      };
-
-      const result = validateSchema(response, UserLimitsResponseSchema);
-      expect(result.valid).toBe(true);
-    });
-
-    it('should validate limits when near capacity', () => {
-      const response = {
+        ...createLimitsResponse(),
+        tier: 'basic',
+        kycStatus: 'pending',
         kycTier: 1,
-        limits: {
-          dailyDeposit: 500,
-          monthlyDeposit: 2000,
-          dailyWithdrawal: 250,
-          monthlyWithdrawal: 1000,
-          singleTransaction: 250,
-        },
-        usage: {
-          dailyDeposit: 450,
-          monthlyDeposit: 1900,
-          dailyWithdrawal: 200,
-          monthlyWithdrawal: 950,
-        },
-        remaining: {
-          dailyDeposit: 50,
-          monthlyDeposit: 100,
-          dailyWithdrawal: 50,
-          monthlyWithdrawal: 50,
-        },
+        tierName: 'Basic',
       };
 
       const result = validateSchema(response, UserLimitsResponseSchema);
       expect(result.valid).toBe(true);
     });
 
-    it('should fail if nested limits object is incomplete', () => {
+    it('should validate premium tier limits', () => {
       const response = {
-        kycTier: 2,
-        limits: {
-          dailyDeposit: 1000,
-          // Missing other fields
-        },
-        usage: {
-          dailyDeposit: 150,
-          monthlyDeposit: 2500,
-          dailyWithdrawal: 0,
-          monthlyWithdrawal: 500,
-        },
-        remaining: {
-          dailyDeposit: 850,
-          monthlyDeposit: 7500,
-          dailyWithdrawal: 500,
-          monthlyWithdrawal: 4500,
-        },
+        ...createLimitsResponse(),
+        tier: 'premium',
+        kycTier: 3,
+        tierName: 'Premium',
       };
+
+      const result = validateSchema(response, UserLimitsResponseSchema);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate mobile usage summary endpoint', () => {
+      const response = {
+        dailyUsed: 1250,
+        weeklyUsed: 0,
+        monthlyUsed: 9000,
+        resetAt: '2026-06-05T00:00:00.000Z',
+      };
+
+      const result = validateSchema(response, UserLimitUsageResponseSchema);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail if mobile flat aliases are missing', () => {
+      const response: Record<string, unknown> = createLimitsResponse();
+      delete response.dailyLimit;
 
       const result = validateSchema(response, UserLimitsResponseSchema);
       expect(result.valid).toBe(false);
