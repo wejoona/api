@@ -15,6 +15,8 @@ import {
 } from '../../../shared/domain/gateways';
 import { RiskEvaluationService } from '../../../risk/risk-evaluation.service';
 import { v4 as uuidv4 } from 'uuid';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
+import { AppException } from '../../../../common/exceptions';
 import {
   formatDecimalAmount,
   formatRateDecimal,
@@ -90,6 +92,8 @@ export class InitiateDepositUseCase {
       );
     }
 
+    const channel = await this.resolveDepositChannel(input);
+
     // Risk evaluation via Risk Manager
     const riskResult = await this.riskEvaluationService.evaluate({
       transactionId: uuidv4(),
@@ -97,7 +101,7 @@ export class InitiateDepositUseCase {
       currency: input.sourceCurrency,
       type: 'DEPOSIT',
       senderId: input.userId,
-      senderCountry: 'CI',
+      senderCountry: channel.country,
     });
     if (riskResult?.decision === 'DECLINE') {
       throw new BadRequestException(
@@ -116,7 +120,7 @@ export class InitiateDepositUseCase {
       amount: input.amount,
       sourceCurrency: input.sourceCurrency,
       targetCurrency: 'USDC',
-      channelId: input.channelId,
+      channelId: channel.id,
     });
     const estimatedAmount = this.calculateNetTargetAmount(
       depositResponse.amount,
@@ -136,7 +140,8 @@ export class InitiateDepositUseCase {
         rate: depositResponse.rate,
         fee: depositResponse.fee,
         feeCurrency: input.sourceCurrency,
-        channelId: input.channelId,
+        channelId: channel.id,
+        channelCountry: channel.country,
         depositId: depositResponse.id,
         providerReference: depositResponse.externalId,
         paymentReference: depositResponse.paymentInstructions?.reference,
@@ -185,5 +190,67 @@ export class InitiateDepositUseCase {
   ): number {
     const netSourceAmount = Math.max(0, sourceAmount - sourceCurrencyFee);
     return Math.round(netSourceAmount * rate * 100) / 100;
+  }
+
+  private async resolveDepositChannel(input: InitiateDepositInput) {
+    const country = this.countryForCurrency(input.sourceCurrency);
+    const requestedChannelId = input.channelId.trim().toLowerCase();
+    const channels = await this.paymentGateway.getOnRampChannels(
+      country,
+      input.sourceCurrency.trim().toUpperCase(),
+    );
+    const channel = channels.find(
+      (item) => item.id.toLowerCase() === requestedChannelId,
+    );
+
+    if (!channel) {
+      throw AppException.badRequest(
+        ERROR_CODES.DEPOSIT_PROVIDER_UNAVAILABLE,
+        'Deposit channel is not available for this market or currency.',
+        undefined,
+        {
+          reason: 'deposit_channel_unavailable',
+          featureReason: 'deposit_channel_not_available',
+          provider: 'payment_gateway',
+          country,
+          currency: input.sourceCurrency.trim().toUpperCase(),
+          channelId: input.channelId,
+          retryable: false,
+          supportReviewRequired: false,
+        },
+      );
+    }
+
+    if (input.amount < channel.minAmount || input.amount > channel.maxAmount) {
+      throw AppException.badRequest(
+        ERROR_CODES.DEPOSIT_PROVIDER_UNAVAILABLE,
+        `Deposit amount must be between ${channel.minAmount} and ${channel.maxAmount} ${channel.currency}.`,
+        undefined,
+        {
+          reason: 'deposit_amount_out_of_range',
+          featureReason: 'deposit_amount_out_of_range',
+          provider: channel.provider,
+          country: channel.country,
+          currency: channel.currency,
+          channelId: channel.id,
+          minAmount: channel.minAmount,
+          maxAmount: channel.maxAmount,
+          retryable: false,
+          supportReviewRequired: false,
+        },
+      );
+    }
+
+    return channel;
+  }
+
+  private countryForCurrency(currency: string): string {
+    switch (currency.trim().toUpperCase()) {
+      case 'USD':
+        return 'US';
+      case 'XOF':
+      default:
+        return 'CI';
+    }
   }
 }

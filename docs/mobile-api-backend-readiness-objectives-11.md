@@ -22,7 +22,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Add notification device-token legacy route contract coverage.
 - [x] Continue parser drift audit for profile/photo and active session routes.
 - [x] Add profile avatar upload success-path contract coverage.
-- [ ] Continue parser drift audit for transaction history list/detail routes.
+- [x] Continue parser drift audit for transaction history list/detail routes.
 
 ## Recursive Backend/API Objective Checklist
 
@@ -35,8 +35,8 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Notification device-token legacy route contract coverage.
 - [x] Profile/photo upload and profile data persistence route audit.
 - [x] Active sessions 401/error-state audit against session routes.
-- [ ] Transaction history list/detail field parity with mobile parsers.
-- [ ] Deposit channel/create/status route parity for CI/US region data.
+- [x] Transaction history list/detail field parity with mobile parsers.
+- [x] Deposit channel/create/status route parity for CI/US region data.
 - [ ] KYC/VerifyHQ OTP and status flow parity under real local stack.
 - [ ] Contact discovery/bulk lookup performance and privacy contract audit.
 - [ ] Feature subscription/waitlist payload completeness for every "stay informed" surface.
@@ -236,3 +236,55 @@ Verification:
 
 - `npm run build`
 - `npm run test:e2e -- --runInBand --testPathPatterns="user-profile.controller.e2e-spec|session.controller.e2e-spec"`
+
+### Transaction History List/Detail Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Backend transaction contracts expose canonical mobile types such as `internal_transfer_sent`, `internal_transfer_received`, `external_transfer`, `mobile_money_deposit`, and `mobile_money_withdrawal`.
+- The live backend query DTO only accepted legacy filters: `deposit`, `withdrawal`, `transfer_internal`, and `transfer_external`.
+- Mobile domain and list parsers only recognized the legacy names and could classify positive `internal_transfer_sent` rows as credits.
+
+Resolution:
+
+- Backend now accepts canonical and legacy transaction type filters, including `all`.
+- Backend normalizes canonical filter aliases before reaching the storage/use-case layer.
+- Backend response direction now handles legacy persisted `transfer_internal` and `transfer_external` types.
+- Mobile domain `Transaction` and list `TransactionItem` now preserve backend `direction` and accept canonical type aliases.
+- Added backend contract/e2e coverage and mobile parser regression tests.
+
+Verification:
+
+- `flutter test test/services/api_contract_alignment_test.dart`
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="transaction.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="transaction.controller.e2e-spec"`
+- `npm run verify:backend:mobile`
+
+### Deposit Channel/Create/Status Region Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile derives deposit behavior from backend channels, but backend deposit initiation did not verify that the requested channel existed for the source currency/market.
+- With mock Yellow Card enabled, a USD/BANK-style deposit could incorrectly return CI Orange Money instructions.
+- DTO validation used one XOF-oriented minimum for every currency, so small USD deposits could be rejected before the use case had enough context to return a market-aware result.
+
+Resolution:
+
+- Relaxed DTO validation to currency-neutral numeric bounds.
+- Added use-case validation against `GET /wallet/deposit/channels` data before provider initiation.
+- Unsupported USD/market/channel combinations now return the existing stable `DEPOSIT_PROVIDER_UNAVAILABLE` envelope with `deposit_channel_unavailable` context.
+- Persisted deposit metadata now records the resolved channel id and channel country.
+- Added use-case coverage and controller e2e coverage for small USD deposits and unsupported USD channel rejection.
+
+Verification:
+
+- `npm test -- --runInBand --testPathPatterns="initiate-deposit.use-case"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="wallet.controller.e2e-spec"`
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="wallet.contract"`
+- `npm run verify:backend:mobile`

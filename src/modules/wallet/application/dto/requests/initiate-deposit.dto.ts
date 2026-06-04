@@ -5,12 +5,12 @@ export class InitiateDepositDto {
   @ApiProperty({
     description: 'Amount in source currency (e.g., XOF)',
     example: 10000,
-    minimum: 500,
-    maximum: 1000000,
+    minimum: 1,
+    maximum: 10000000,
   })
   @IsNumber()
-  @Min(500)
-  @Max(1000000)
+  @Min(1)
+  @Max(10000000)
   amount: number;
 
   @ApiProperty({

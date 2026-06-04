@@ -366,6 +366,29 @@ describe('WalletController (e2e)', () => {
       );
     });
 
+    it('should let the use case validate small USD deposits by market channel', async () => {
+      mockInitiateDeposit.execute.mockResolvedValue({
+        ...depositResponse,
+        amount: 25,
+        sourceCurrency: 'USD',
+        rate: 1,
+        fee: 0.25,
+        estimatedAmount: 24.75,
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/wallet/deposit')
+        .send({ amount: 25, sourceCurrency: 'USD', channelId: 'bank_us_ach' })
+        .expect(201);
+
+      expect(mockInitiateDeposit.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        amount: 25,
+        sourceCurrency: 'USD',
+        channelId: 'bank_us_ach',
+      });
+    });
+
     it('should return 400 for missing amount', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/wallet/deposit')
@@ -537,7 +560,8 @@ describe('WalletController (e2e)', () => {
         estimatedArrival: externalTransferUseCaseResponse.estimatedArrival,
         supportReference: externalTransferUseCaseResponse.supportReference,
         ledgerReference: externalTransferUseCaseResponse.ledgerReference,
-        ledgerTransactionId: externalTransferUseCaseResponse.ledgerTransactionId,
+        ledgerTransactionId:
+          externalTransferUseCaseResponse.ledgerTransactionId,
         providerReference: externalTransferUseCaseResponse.providerReference,
         timestamp: expect.any(String),
         createdAt: expect.any(String),
@@ -576,7 +600,8 @@ describe('WalletController (e2e)', () => {
         status: externalTransferUseCaseResponse.status,
         supportReference: externalTransferUseCaseResponse.supportReference,
         ledgerReference: externalTransferUseCaseResponse.ledgerReference,
-        ledgerTransactionId: externalTransferUseCaseResponse.ledgerTransactionId,
+        ledgerTransactionId:
+          externalTransferUseCaseResponse.ledgerTransactionId,
         providerReference: externalTransferUseCaseResponse.providerReference,
       });
     });
