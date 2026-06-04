@@ -104,6 +104,25 @@ const requiredTables: RequiredTable[] = [
     ],
   },
   {
+    schema: 'public',
+    table: 'device_tokens',
+    columns: [
+      'id',
+      'user_id',
+      'token',
+      'platform',
+      'device_id',
+      'device_name',
+      'app_version',
+      'os_version',
+      'is_active',
+      'last_used_at',
+      'created_at',
+      'updated_at',
+    ],
+    indexes: [['user_id'], ['token'], ['user_id', 'token']],
+  },
+  {
     schema: 'system',
     table: 'feature_subscriptions',
     columns: [
@@ -127,6 +146,7 @@ const requiredTables: RequiredTable[] = [
       'user_id',
       'actor_id',
       'action',
+      'event_type',
       'resource_type',
       'resource_id',
       'created_at',
@@ -176,8 +196,38 @@ async function main(): Promise<void> {
 
   await client.connect();
   const failures: string[] = [];
+  const warnings: string[] = [];
 
   try {
+    const migrationLedger = await client.query<{
+      migration_count: string;
+      table_count: string;
+    }>(`
+      SELECT
+        COALESCE((SELECT COUNT(*)::text FROM "migrations"), '0') AS migration_count,
+        (
+          SELECT COUNT(*)::text
+          FROM information_schema.tables
+          WHERE table_schema IN ('public', 'auth', 'system')
+            AND table_type = 'BASE TABLE'
+        ) AS table_count
+      WHERE to_regclass('public.migrations') IS NOT NULL
+    `);
+
+    if (migrationLedger.rowCount && migrationLedger.rowCount > 0) {
+      const migrationCount = Number(migrationLedger.rows[0].migration_count);
+      const tableCount = Number(migrationLedger.rows[0].table_count);
+      if (migrationCount === 0 && tableCount > 5) {
+        const message =
+          'migration ledger is empty while application tables already exist; `npm run migration:run` may try to replay historical migrations';
+        if (process.env.SCHEMA_CHECK_STRICT_MIGRATIONS === 'true') {
+          failures.push(message);
+        } else {
+          warnings.push(message);
+        }
+      }
+    }
+
     for (const required of requiredTables) {
       const tableExists = await client.query(
         `
@@ -270,6 +320,13 @@ async function main(): Promise<void> {
       console.error(`- ${failure}`);
     }
     process.exit(1);
+  }
+
+  if (warnings.length > 0) {
+    console.warn('Mobile dogfood schema check warnings:');
+    for (const warning of warnings) {
+      console.warn(`- ${warning}`);
+    }
   }
 
   console.log('Mobile dogfood schema check passed.');

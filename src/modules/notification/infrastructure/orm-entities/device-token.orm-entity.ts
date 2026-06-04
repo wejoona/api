@@ -10,6 +10,7 @@ import {
 export type DevicePlatform = 'ios' | 'android' | 'web';
 
 @Entity('device_tokens')
+@Index('IDX_device_tokens_user_token', ['userId', 'token'], { unique: true })
 export class DeviceTokenOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
