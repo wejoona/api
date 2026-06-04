@@ -28,6 +28,12 @@ export class PushFactory {
 
     this.logger.log(`Creating Push gateway with provider: ${provider}`);
 
+    if (provider === 'mock' && this.isProductionLike()) {
+      throw new Error(
+        'FCM mock mode is not allowed in production-like environments',
+      );
+    }
+
     switch (provider) {
       case 'fcm':
         return new FcmPushAdapter(this.configService);
@@ -52,6 +58,16 @@ export class PushFactory {
    */
   isMockMode(): boolean {
     return this.getProviderType() === 'mock';
+  }
+
+  private isProductionLike(): boolean {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+
+    return ['production', 'staging'].includes(nodeEnv);
   }
 }
 

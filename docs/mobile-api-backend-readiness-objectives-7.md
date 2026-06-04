@@ -5,7 +5,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 ## Identity, Messaging, And Provider Mode Safety
 
 - [x] Confirm KYC/identity verification cannot silently use mock providers in production-like environments.
-- [ ] Confirm SMS/OTP and push provider mock modes are explicit in readiness metadata and blocked in production-like environments.
+- [x] Confirm SMS/OTP and push provider mock modes are explicit in readiness metadata and blocked in production-like environments.
 - [ ] Confirm webhook signature validation cannot be disabled in production-like environments by missing provider secrets.
 
 ## Provider Factories And Legacy Mock Fallbacks
@@ -46,4 +46,21 @@ Verified and hardened:
 Verification:
 
 - `npm test -- --runInBand src/modules/kyc/kyc.module.spec.ts src/config/environments/index.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Messaging Provider Mode Safety - 2026-06-04
+
+Verified and hardened:
+
+- Production startup validation already rejected `SMS_PROVIDER=mock` and `FCM_USE_MOCK=true`; tests now cover both.
+- `SmsFactory` now rejects `mock` in production-like environments at runtime.
+- `PushFactory` now rejects FCM mock mode in production-like environments at runtime.
+- `/health/mobile-readiness` now exposes messaging provider metadata:
+  - SMS: `provider`, `productionLike`, `mockAllowed`, and `status`.
+  - Push: `provider`, `productionLike`, `mockAllowed`, `liveConfigured`, and `status`.
+- Messaging readiness reports production mock modes as `misconfigured` without exposing provider secrets.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/shared/infrastructure/gateways/sms/sms.factory.spec.ts src/modules/shared/infrastructure/gateways/push/push.factory.spec.ts src/config/environments/index.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`

@@ -79,6 +79,8 @@ describe('HealthController (e2e)', () => {
         RISK_MANAGER_ENABLED: 'false',
         RISK_CLIENT_MODE: 'mock',
         KYC_PROVIDER: 'mock',
+        'sms.provider': 'mock',
+        'fcm.useMock': true,
       };
       return values[key] ?? defaultValue;
     });
@@ -152,6 +154,21 @@ describe('HealthController (e2e)', () => {
             liveConfigured: false,
             status: 'mock',
           });
+          expect(body.messaging).toMatchObject({
+            sms: {
+              provider: 'mock',
+              productionLike: false,
+              mockAllowed: true,
+              status: 'mock',
+            },
+            push: {
+              provider: 'mock',
+              productionLike: false,
+              mockAllowed: true,
+              liveConfigured: false,
+              status: 'mock',
+            },
+          });
         });
     });
 
@@ -171,6 +188,8 @@ describe('HealthController (e2e)', () => {
             RISK_MANAGER_API_KEY: 'dev-api-key',
             KYC_PROVIDER: 'verifyhq',
             VERIFY_HQ_API_KEY: 'your-api-key-here',
+            'sms.provider': 'mock',
+            'fcm.useMock': true,
           };
           return values[key] ?? defaultValue;
         },
@@ -195,6 +214,21 @@ describe('HealthController (e2e)', () => {
             mockAllowed: false,
             liveConfigured: false,
             status: 'misconfigured',
+          });
+          expect(body.messaging).toMatchObject({
+            sms: {
+              provider: 'mock',
+              productionLike: true,
+              mockAllowed: false,
+              status: 'misconfigured',
+            },
+            push: {
+              provider: 'mock',
+              productionLike: true,
+              mockAllowed: false,
+              liveConfigured: false,
+              status: 'misconfigured',
+            },
           });
           expect(JSON.stringify(body)).not.toContain('dev-api-key');
           expect(JSON.stringify(body)).not.toContain('your-api-key-here');

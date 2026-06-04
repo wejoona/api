@@ -28,6 +28,12 @@ export class SmsFactory {
 
     this.logger.log(`Creating SMS gateway with provider: ${provider}`);
 
+    if (provider === 'mock' && this.isProductionLike()) {
+      throw new Error(
+        'SMS_PROVIDER=mock is not allowed in production-like environments',
+      );
+    }
+
     switch (provider) {
       case 'twilio':
         return new TwilioSmsAdapter(this.configService);
@@ -56,6 +62,16 @@ export class SmsFactory {
    */
   isMockMode(): boolean {
     return this.getProviderType() === 'mock';
+  }
+
+  private isProductionLike(): boolean {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+
+    return ['production', 'staging'].includes(nodeEnv);
   }
 }
 

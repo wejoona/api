@@ -136,6 +136,7 @@ export class HealthController {
     );
     const riskClient = this.riskClientStatus();
     const kyc = this.kycStatus();
+    const messaging = this.messagingStatus();
 
     const appDependencies = { database, redis, blnk };
     const providerReadiness = {
@@ -186,6 +187,7 @@ export class HealthController {
       features,
       risk: riskClient,
       kyc,
+      messaging,
     };
   }
 
@@ -386,6 +388,48 @@ export class HealthController {
           : configuredProvider === 'mock'
             ? 'mock'
             : 'enabled',
+    };
+  }
+
+  private messagingStatus() {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+    const productionLike = ['production', 'staging'].includes(nodeEnv);
+    const smsProvider =
+      this.configService.get<string>('sms.provider') ||
+      this.configService.get<string>('SMS_PROVIDER') ||
+      'mock';
+    const fcmUseMock = this.configService.get<boolean>('fcm.useMock') ?? true;
+    const fcmProjectId = this.configService.get<string>('fcm.projectId');
+    const pushProvider = fcmUseMock || !fcmProjectId ? 'mock' : 'fcm';
+
+    return {
+      sms: {
+        provider: smsProvider,
+        productionLike,
+        mockAllowed: !productionLike,
+        status:
+          productionLike && smsProvider === 'mock'
+            ? 'misconfigured'
+            : smsProvider === 'mock'
+              ? 'mock'
+              : 'enabled',
+      },
+      push: {
+        provider: pushProvider,
+        productionLike,
+        mockAllowed: !productionLike,
+        liveConfigured: pushProvider === 'fcm',
+        status:
+          productionLike && pushProvider === 'mock'
+            ? 'misconfigured'
+            : pushProvider === 'mock'
+              ? 'mock'
+              : 'enabled',
+      },
     };
   }
 

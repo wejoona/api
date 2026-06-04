@@ -46,4 +46,20 @@ describe('validateProductionConfig', () => {
       'VERIFY_HQ_API_KEY is required in production',
     );
   });
+
+  it('rejects mock SMS provider in production', () => {
+    process.env.SMS_PROVIDER = 'mock';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'SMS_PROVIDER cannot be mock in production',
+    );
+  });
+
+  it('rejects mock FCM provider in production', () => {
+    process.env.FCM_USE_MOCK = 'true';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'FCM_USE_MOCK must be false in production',
+    );
+  });
 });
