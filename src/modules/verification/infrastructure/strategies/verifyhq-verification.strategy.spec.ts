@@ -11,6 +11,7 @@ jest.mock('ioredis', () => {
       return 'OK';
     }),
     get: jest.fn(async (key: string) => redisStore.get(key) ?? null),
+    del: jest.fn(async (key: string) => (redisStore.delete(key) ? 1 : 0)),
     quit: jest.fn(async () => 'OK'),
   }));
 
@@ -133,5 +134,57 @@ describe('VerifyHqVerificationStrategy', () => {
         body: JSON.stringify({ code: '123456' }),
       }),
     );
+    expect(redisStore.has('verifyhq:verification:+2250750000001')).toBe(false);
+  });
+
+  it('expires stale phone mappings when VerifyHQ no longer has the verification', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verificationId: 'vhq_verification_stale',
+          expiresAt: '2026-06-04T05:30:00.000Z',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => 'not found',
+      });
+
+    const strategy = makeStrategy();
+    await strategy.createVerification({
+      phone: '+2250750000002',
+      channel: 'sms',
+      purpose: VerificationPurpose.LOGIN,
+    });
+
+    await expect(
+      strategy.checkVerification({
+        verificationId: '+2250750000002',
+        code: '123456',
+      }),
+    ).resolves.toEqual({
+      status: 'expired',
+      attemptsRemaining: 0,
+    });
+
+    expect(redisStore.has('verifyhq:verification:+2250750000002')).toBe(false);
+  });
+
+  it('treats phone-based checks without an active mapping as expired', async () => {
+    const strategy = makeStrategy();
+
+    await expect(
+      strategy.checkVerification({
+        verificationId: '+2250750000003',
+        code: '000000',
+      }),
+    ).resolves.toEqual({
+      status: 'expired',
+      attemptsRemaining: 0,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

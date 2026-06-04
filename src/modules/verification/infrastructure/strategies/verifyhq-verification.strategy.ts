@@ -133,9 +133,17 @@ export class VerifyHqVerificationStrategy
     request: CheckVerificationRequest,
   ): Promise<CheckVerificationResult> {
     const { code } = request;
-    const verificationId =
-      (await this.redis.get(this.getPhoneMappingKey(request.verificationId))) ||
-      request.verificationId;
+    const phoneMappingKey = this.getPhoneMappingKey(request.verificationId);
+    const mappedVerificationId = await this.redis.get(phoneMappingKey);
+
+    if (!mappedVerificationId && request.verificationId.startsWith('+')) {
+      return {
+        status: 'expired' as VerificationCheckStatus,
+        attemptsRemaining: 0,
+      };
+    }
+
+    const verificationId = mappedVerificationId || request.verificationId;
 
     const response = await this.makeRequest(
       `/verifications/${verificationId}/check`,
@@ -158,6 +166,9 @@ export class VerifyHqVerificationStrategy
 
       // 404 = expired/not found
       if (response.status === 404) {
+        if (mappedVerificationId) {
+          await this.redis.del(phoneMappingKey);
+        }
         return {
           status: 'expired' as VerificationCheckStatus,
           attemptsRemaining: 0,
@@ -182,6 +193,10 @@ export class VerifyHqVerificationStrategy
     };
 
     const status: VerificationCheckStatus = statusMap[data.status] || 'pending';
+
+    if (status === 'approved' && mappedVerificationId) {
+      await this.redis.del(phoneMappingKey);
+    }
 
     return {
       status,

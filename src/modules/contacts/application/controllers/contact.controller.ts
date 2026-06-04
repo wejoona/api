@@ -118,6 +118,39 @@ export class ContactController {
     return ContactListResponse.fromDomain(contacts);
   }
 
+  @Get('lookup')
+  @ApiOperation({
+    summary: 'Search registered Korido users for contact discovery',
+    description:
+      'Returns masked registered users that match a phone, name, or username query.',
+  })
+  @ApiResponse({ status: 200, description: 'Korido users matching query' })
+  async lookupKoridoUsers(
+    @Request() req: AuthenticatedRequest,
+    @Query('query') query: string,
+  ) {
+    const trimmed = query?.trim();
+    if (!trimmed || trimmed.length < 2) {
+      return { users: [], total: 0 };
+    }
+
+    const users = await this.userRepository.search(trimmed, 20);
+    const results = users
+      .filter((user) => user.id !== req.user.id)
+      .map((user) => ({
+        userId: user.id,
+        displayName: user.displayName,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone ? `${user.phone.substring(0, 6)}****` : null,
+        avatarUrl: user.avatarUrl,
+        isKoridoUser: true,
+      }));
+
+    return { users: results, total: results.length };
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update a contact' })
   @ApiParam({ name: 'id', description: 'Contact ID' })
@@ -177,16 +210,13 @@ export class ContactController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Check which phone numbers are registered Korido users',
-    description: 'Accepts up to 500 phone numbers and returns matching registered users.',
+    description:
+      'Accepts up to 500 phone numbers and returns matching registered users.',
   })
   @ApiResponse({ status: 200, description: 'Registered users found' })
-  async checkContacts(
-    @Body() dto: CheckContactsDto,
-  ) {
+  async checkContacts(@Body() dto: CheckContactsDto) {
     // Normalize phone numbers to international format (strip spaces/dashes)
-    const normalized = dto.phoneNumbers.map((p) =>
-      p.replace(/[\s\-()]/g, ''),
-    );
+    const normalized = dto.phoneNumbers.map((p) => p.replace(/[\s\-()]/g, ''));
 
     const users = await this.userRepository.findByPhones(normalized);
 
