@@ -10,9 +10,9 @@ Purpose: continue backend readiness after schema/bootstrap hardening, with focus
 
 ## Background And Job Boundaries
 
-- [ ] Confirm scheduled reconciliation and batch-processing queries run against the repaired schema without runtime column errors.
-- [ ] Confirm job failure states produce admin/support-visible metadata without leaking provider secrets.
-- [ ] Confirm CronHub status can represent registered, late, missed, failed, and recovered jobs from persisted history.
+- [x] Confirm scheduled reconciliation and batch-processing queries run against the repaired schema without runtime column errors.
+- [x] Confirm job failure states produce admin/support-visible metadata without leaking provider secrets.
+- [x] Confirm CronHub status can represent registered, late, missed, failed, and recovered jobs from persisted history.
 
 ## Provider And Dependency Degradation
 
@@ -61,3 +61,22 @@ Verification:
 - `npm run build`
 - Live HTTP smoke against `127.0.0.1:3401`
 - Fresh dist startup/readiness smoke against `127.0.0.1:3402`
+
+### Background And Job Boundaries - 2026-06-04
+
+Verified and hardened:
+
+- Fresh startup logs showed batch-processing scheduled queries using the repaired snake_case schema: `user_id`, `organization_id`, `scheduled_at`, `updated_at`, and `created_at`.
+- CronHub-compatible `status` remains backward-compatible with `new`, `healthy`, `running`, `late`, and `missed`.
+- Added explicit operational metadata for support/admin dashboards:
+  - `healthState`: `new`, `healthy`, `running`, `late`, `missed`, `failed`, or `recovered`.
+  - `previousLastStatus`: previous run state when available.
+  - `recoveredAt`: timestamp of a successful run that directly follows a failed run.
+- Failed jobs now stay CronHub-compatible as `status=missed` while exposing `healthState=failed` and the persisted `errorMessage`.
+- Recovered jobs now report `status=healthy`, `healthState=recovered`, `previousLastStatus=failure`, and `recoveredAt`.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/jobs/services/scheduled-jobs.service.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="jobs.controller"`
+- `npm run build`

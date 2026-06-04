@@ -20,11 +20,21 @@ export interface CronHubCompatibleJobStatus {
   gracePeriodSeconds: number;
   expectedIntervalMinutes: number;
   status: 'new' | 'healthy' | 'running' | 'late' | 'missed';
+  healthState:
+    | 'new'
+    | 'healthy'
+    | 'running'
+    | 'late'
+    | 'missed'
+    | 'failed'
+    | 'recovered';
   lastStatus: 'success' | 'failure' | 'running' | 'new';
+  previousLastStatus: 'success' | 'failure' | 'running' | 'new' | null;
   lastRunId: string | null;
   lastStartedAt: string | null;
   lastHeartbeatAt: string | null;
   nextExpectedAt: string | null;
+  recoveredAt: string | null;
   durationMs: number | null;
   recordsProcessed: number;
   errorMessage: string | null;
@@ -283,13 +293,15 @@ export class ScheduledJobsService {
         for (const tx of stuckTransactions) {
           tx.status = 'failed';
           await this.transactionRepository.save(tx);
-          this.logger.warn(`Marked stuck transaction ${tx.id} as failed (stuck >30min)`);
+          this.logger.warn(
+            `Marked stuck transaction ${tx.id} as failed (stuck >30min)`,
+          );
         }
 
         // Emit alert for monitoring
         this.eventEmitter.emit('alert.stuck_transactions', {
           count: stuckTransactions.length,
-          transactionIds: stuckTransactions.map(tx => tx.id),
+          transactionIds: stuckTransactions.map((tx) => tx.id),
         });
       }
     } catch (error) {
@@ -432,8 +444,13 @@ export class ScheduledJobsService {
 
     // Blnk API check
     try {
-      const blnkUrl = this.configService.get<string>('BLNK_API_URL', 'http://localhost:5001');
-      const response = await fetch(`${blnkUrl}/health`, { signal: AbortSignal.timeout(5000) });
+      const blnkUrl = this.configService.get<string>(
+        'BLNK_API_URL',
+        'http://localhost:5001',
+      );
+      const response = await fetch(`${blnkUrl}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
       checks['blnk'] = response.ok ? 'ok' : 'degraded';
     } catch {
       checks['blnk'] = 'down';
@@ -614,11 +631,14 @@ export class ScheduledJobsService {
 
     const jobs = await Promise.all(
       registrations.map(async (registration) => {
-        const latestRun = await this.getLatestJobRun(registration.name);
+        const recentRuns = await this.getRecentJobRuns(registration.name);
+        const latestRun = recentRuns[0] ?? null;
+        const previousRun = recentRuns[1] ?? null;
 
         return this.toCronHubCompatibleStatus(
           registration,
           latestRun,
+          previousRun,
           generatedAt,
         );
       }),
@@ -632,19 +652,23 @@ export class ScheduledJobsService {
     };
   }
 
-  private async getLatestJobRun(
+  private async getRecentJobRuns(
     jobName: string,
-  ): Promise<ScheduledJobEntity | null> {
+  ): Promise<ScheduledJobEntity[]> {
     return this.jobRepository
       .createQueryBuilder('job')
       .where('job.jobName = :jobName', { jobName })
       .orderBy('job.createdAt', 'DESC')
-      .getOne();
+      .take(2)
+      .getMany();
   }
 
   private toCronHubCompatibleStatus(
-    registration: ReturnType<CronHubReporterService['getRegisteredJobs']>[number],
+    registration: ReturnType<
+      CronHubReporterService['getRegisteredJobs']
+    >[number],
     latestRun: ScheduledJobEntity | null,
+    previousRun: ScheduledJobEntity | null,
     generatedAt: Date,
   ): CronHubCompatibleJobStatus {
     const lastStartedAt = latestRun?.startedAt ?? null;
@@ -661,11 +685,23 @@ export class ScheduledJobsService {
         )
       : null;
     const lastStatus = this.toCronHubLastStatus(latestRun);
+    const previousLastStatus = previousRun
+      ? this.toCronHubLastStatus(previousRun)
+      : null;
     const status = this.computeCronHubStatus(
       latestRun,
       nextExpectedAt,
       registration.grace_period,
       generatedAt,
+    );
+    const recoveredAt =
+      latestRun?.status === 'completed' && previousRun?.status === 'failed'
+        ? latestRun.completedAt
+        : null;
+    const healthState = this.toOperationalHealthState(
+      status,
+      latestRun,
+      recoveredAt,
     );
 
     return {
@@ -676,11 +712,14 @@ export class ScheduledJobsService {
       gracePeriodSeconds: registration.grace_period,
       expectedIntervalMinutes: registration.expected_interval_minutes,
       status,
+      healthState,
       lastStatus,
+      previousLastStatus,
       lastRunId: latestRun?.id ?? null,
       lastStartedAt: lastStartedAt?.toISOString() ?? null,
       lastHeartbeatAt: lastHeartbeatAt?.toISOString() ?? null,
       nextExpectedAt: nextExpectedAt?.toISOString() ?? null,
+      recoveredAt: recoveredAt?.toISOString() ?? null,
       durationMs,
       recordsProcessed: latestRun?.recordsProcessed ?? 0,
       errorMessage: latestRun?.errorMessage ?? null,
@@ -720,6 +759,16 @@ export class ScheduledJobsService {
       nextExpectedAt.getTime() + gracePeriodSeconds * 1000,
     );
     return generatedAt > graceDeadline ? 'late' : 'healthy';
+  }
+
+  private toOperationalHealthState(
+    status: CronHubCompatibleJobStatus['status'],
+    latestRun: ScheduledJobEntity | null,
+    recoveredAt: Date | null,
+  ): CronHubCompatibleJobStatus['healthState'] {
+    if (recoveredAt) return 'recovered';
+    if (latestRun?.status === 'failed') return 'failed';
+    return status;
   }
 
   /**
