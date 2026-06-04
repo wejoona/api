@@ -18,6 +18,8 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 - [x] Contact sync test covers hashed lookup instead of raw full phone book matching.
 - [x] Contact sync excludes the requesting user from Korido matches.
 - [x] Notification unread count supports the mobile-compatible `/notifications/unread-count` alias.
+- [x] Device list/register responses include mobile-used `userId` and `appVersion` fields.
+- [x] Session and device controller e2e tests assert response shape and request bodies, not only HTTP status.
 - [ ] Verify mobile request/response mappings against live API for auth, wallet, transactions, contacts, devices, sessions, notifications, and feature subscriptions.
 - [ ] Add missing contract tests where mobile currently depends on undocumented response fields.
 - [ ] Ensure every mobile-facing error returns a stable user-actionable code/message pair.
@@ -25,6 +27,10 @@ Purpose: make Korido usable for internal dogfooding with real API-backed flows, 
 ## Auth, Sessions, And Devices
 
 - [ ] Verify login OTP flow through Korido API and VerifyHQ-compatible local path using default test OTP where configured.
+- [x] Session list endpoint returns mobile-parsable active session fields.
+- [x] Session revoke and revoke-all endpoints accept/pass mobile reason payloads.
+- [x] Device list endpoint returns mobile-parsable device fields used by the settings screen.
+- [x] Device register endpoint returns app version after registration/update.
 - [ ] Confirm refresh-token, logout, logout-all, and active-session endpoints return mobile-consumable 401/403 states without noisy stack traces.
 - [ ] Verify device registration/update/revocation behavior is idempotent and audit-safe.
 - [ ] Confirm active-session screen never shows raw 401 text; backend must provide consistent auth failure semantics.

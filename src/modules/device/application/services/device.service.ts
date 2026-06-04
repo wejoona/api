@@ -26,12 +26,14 @@ export interface RegisterDeviceParams {
 
 export interface DeviceResponse {
   id: string;
+  userId: string;
   deviceIdentifier: string;
   displayName: string;
   brand: string | null;
   model: string | null;
   os: string | null;
   osVersion: string | null;
+  appVersion: string | null;
   platform: DevicePlatform;
   isTrusted: boolean;
   trustedAt: Date | null;
@@ -273,12 +275,14 @@ export class DeviceService {
   private toResponse(device: Device): DeviceResponse {
     return {
       id: device.id,
+      userId: device.userId,
       deviceIdentifier: device.deviceIdentifier,
       displayName: device.displayName,
       brand: device.brand,
       model: device.model,
       os: device.os,
       osVersion: device.osVersion,
+      appVersion: device.appVersion,
       platform: device.platform,
       isTrusted: device.isTrusted,
       trustedAt: device.trustedAt,

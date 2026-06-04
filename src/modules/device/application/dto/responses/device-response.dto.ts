@@ -14,6 +14,12 @@ export class DeviceResponseDto {
   id: string;
 
   @ApiProperty({
+    description: 'Owner user identifier',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  userId: string;
+
+  @ApiProperty({
     description: 'Device fingerprint/identifier',
     example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   })
@@ -52,6 +58,13 @@ export class DeviceResponseDto {
     nullable: true,
   })
   osVersion: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Application version last reported by this device',
+    example: '1.2.3',
+    nullable: true,
+  })
+  appVersion: string | null;
 
   @ApiProperty({
     description: 'Device platform',

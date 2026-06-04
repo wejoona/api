@@ -7,12 +7,31 @@ import { createTestApp } from '../setup/test-app';
 
 const mockSessionService = {
   getActiveSessions: jest.fn(),
+  getAllSessions: jest.fn(),
   revokeSession: jest.fn(),
   revokeAllSessions: jest.fn(),
 };
 
 import { SessionController } from '@modules/session/application/controllers/session.controller';
 import { SessionService } from '@modules/session/application/services/session.service';
+
+const SESSION_ID = '550e8400-e29b-41d4-a716-446655440010';
+const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+function createSession() {
+  return {
+    id: SESSION_ID,
+    userId: USER_ID,
+    deviceId: '550e8400-e29b-41d4-a716-446655440321',
+    ipAddress: '127.0.0.1',
+    userAgent: 'Korido iOS',
+    location: null,
+    isActive: true,
+    lastActivityAt: new Date('2026-06-04T10:00:00.000Z'),
+    expiresAt: new Date('2026-06-11T10:00:00.000Z'),
+    createdAt: new Date('2026-06-04T09:00:00.000Z'),
+  };
+}
 
 describe('SessionController (e2e)', () => {
   let app: INestApplication;
@@ -33,25 +52,59 @@ describe('SessionController (e2e)', () => {
   });
 
   describe('GET /api/v1/sessions', () => {
-    it('should list active sessions (200)', async () => {
-      mockSessionService.getActiveSessions.mockResolvedValue([]);
-      await request(app.getHttpServer()).get('/api/v1/sessions').expect(200);
+    it('should list mobile-compatible active sessions', async () => {
+      mockSessionService.getActiveSessions.mockResolvedValue([createSession()]);
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/sessions')
+        .expect(200);
+
+      expect(res.body).toEqual([
+        expect.objectContaining({
+          id: SESSION_ID,
+          userId: USER_ID,
+          deviceId: '550e8400-e29b-41d4-a716-446655440321',
+          ipAddress: '127.0.0.1',
+          userAgent: 'Korido iOS',
+          isActive: true,
+          lastActivityAt: '2026-06-04T10:00:00.000Z',
+          expiresAt: '2026-06-11T10:00:00.000Z',
+        }),
+      ]);
     });
   });
 
   describe('DELETE /api/v1/sessions/:id', () => {
-    it('should revoke session (200)', async () => {
-      mockSessionService.revokeSession.mockResolvedValue({ success: true });
+    it('should pass revoke reason and return stable action response', async () => {
       await request(app.getHttpServer())
-        .delete('/api/v1/sessions/550e8400-e29b-41d4-a716-446655440010')
+        .delete(`/api/v1/sessions/${SESSION_ID}`)
+        .send({ reason: 'user_revoke_device' })
         .expect(200);
+
+      expect(mockSessionService.revokeSession).toHaveBeenCalledWith(
+        USER_ID,
+        SESSION_ID,
+        'user_revoke_device',
+      );
     });
   });
 
   describe('DELETE /api/v1/sessions', () => {
-    it('should revoke all sessions (200)', async () => {
-      mockSessionService.revokeAllSessions.mockResolvedValue({ count: 3 });
-      await request(app.getHttpServer()).delete('/api/v1/sessions').expect(200);
+    it('should revoke all sessions and return action count', async () => {
+      mockSessionService.revokeAllSessions.mockResolvedValue(3);
+      const res = await request(app.getHttpServer())
+        .delete('/api/v1/sessions')
+        .send({ reason: 'user_logout_all_devices' })
+        .expect(200);
+
+      expect(mockSessionService.revokeAllSessions).toHaveBeenCalledWith(
+        USER_ID,
+        'user_logout_all_devices',
+      );
+      expect(res.body).toEqual({
+        success: true,
+        message: '3 session(s) revoked successfully',
+        count: 3,
+      });
     });
   });
 });

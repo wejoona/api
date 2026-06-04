@@ -18,7 +18,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
-import { DeviceService } from '../services/device.service';
+import { DeviceResponse, DeviceService } from '../services/device.service';
 import {
   RegisterDeviceDto,
   UpdateFcmTokenDto,
@@ -27,6 +27,7 @@ import {
   DeviceResponseDto,
   DeviceActionResponseDto,
 } from '../dto';
+import { Device } from '../../domain/entities';
 
 interface UserPayload {
   id: string;
@@ -59,23 +60,7 @@ export class DeviceController {
       ...dto,
     });
 
-    return {
-      id: device.id,
-      deviceIdentifier: device.deviceIdentifier,
-      displayName: device.displayName,
-      brand: device.brand,
-      model: device.model,
-      os: device.os,
-      osVersion: device.osVersion,
-      platform: device.platform,
-      isTrusted: device.isTrusted,
-      trustedAt: device.trustedAt,
-      isActive: device.isActive,
-      lastLoginAt: device.lastLoginAt,
-      lastIpAddress: device.lastIpAddress,
-      loginCount: device.loginCount,
-      createdAt: device.createdAt,
-    };
+    return this.toDeviceResponse(device);
   }
 
   @Post('fcm-token')
@@ -110,23 +95,7 @@ export class DeviceController {
     @CurrentUser() user: UserPayload,
   ): Promise<DeviceResponseDto[]> {
     const devices = await this.deviceService.getActiveDevices(user.id);
-    return devices.map((device) => ({
-      id: device.id,
-      deviceIdentifier: device.deviceIdentifier,
-      displayName: device.displayName,
-      brand: device.brand,
-      model: device.model,
-      os: device.os,
-      osVersion: device.osVersion,
-      platform: device.platform,
-      isTrusted: device.isTrusted,
-      trustedAt: device.trustedAt,
-      isActive: device.isActive,
-      lastLoginAt: device.lastLoginAt,
-      lastIpAddress: device.lastIpAddress,
-      loginCount: device.loginCount,
-      createdAt: device.createdAt,
-    }));
+    return devices.map((device) => this.toDeviceResponse(device));
   }
 
   @Get('all')
@@ -140,23 +109,7 @@ export class DeviceController {
     @CurrentUser() user: UserPayload,
   ): Promise<DeviceResponseDto[]> {
     const devices = await this.deviceService.getUserDevices(user.id);
-    return devices.map((device) => ({
-      id: device.id,
-      deviceIdentifier: device.deviceIdentifier,
-      displayName: device.displayName,
-      brand: device.brand,
-      model: device.model,
-      os: device.os,
-      osVersion: device.osVersion,
-      platform: device.platform,
-      isTrusted: device.isTrusted,
-      trustedAt: device.trustedAt,
-      isActive: device.isActive,
-      lastLoginAt: device.lastLoginAt,
-      lastIpAddress: device.lastIpAddress,
-      loginCount: device.loginCount,
-      createdAt: device.createdAt,
-    }));
+    return devices.map((device) => this.toDeviceResponse(device));
   }
 
   @Post(':id/trust')
@@ -268,5 +221,27 @@ export class DeviceController {
       dto.publicKeyJwk,
     );
     return { success: true, message: 'Public key registered successfully' };
+  }
+
+  private toDeviceResponse(device: Device | DeviceResponse): DeviceResponseDto {
+    return {
+      id: device.id,
+      userId: device.userId,
+      deviceIdentifier: device.deviceIdentifier,
+      displayName: device.displayName,
+      brand: device.brand,
+      model: device.model,
+      os: device.os,
+      osVersion: device.osVersion,
+      appVersion: device.appVersion,
+      platform: device.platform,
+      isTrusted: device.isTrusted,
+      trustedAt: device.trustedAt,
+      isActive: device.isActive,
+      lastLoginAt: device.lastLoginAt,
+      lastIpAddress: device.lastIpAddress,
+      loginCount: device.loginCount,
+      createdAt: device.createdAt,
+    };
   }
 }
