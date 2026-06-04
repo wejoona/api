@@ -16,7 +16,7 @@ Purpose: continue mobile dogfooding readiness after the first checklist is compl
 
 - [x] Confirm risk/compliance checks are reachable from money-moving flows without blocking local dogfooding when external dependencies are mocked.
 - [x] Confirm all mobile-facing money-moving endpoints use idempotency/PIN guards consistently where needed.
-- [ ] Confirm API error envelopes are stable for unavailable feature, forbidden ownership, insufficient funds, invalid PIN, and missing wallet states.
+- [x] Confirm API error envelopes are stable for unavailable feature, forbidden ownership, insufficient funds, invalid PIN, and missing wallet states.
 
 ## Recursive Execution Rule
 

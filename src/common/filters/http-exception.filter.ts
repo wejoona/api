@@ -61,6 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
     let errorCode = 'INTERNAL_ERROR';
     let details: string[] = [];
+    let contextDetails: Record<string, unknown> | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -76,8 +77,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else {
           message = resp.message || message;
         }
+        if (Array.isArray(resp.details)) {
+          details = resp.details;
+        }
         // Allow custom error codes from application exceptions
-        errorCode = resp.code || resp.errorCode || STATUS_TO_ERROR_CODE[status] || errorCode;
+        errorCode =
+          resp.code ||
+          resp.errorCode ||
+          STATUS_TO_ERROR_CODE[status] ||
+          errorCode;
+        contextDetails = this.extractContext(resp);
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -105,6 +114,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: errorCode,
         message,
         details: details.length > 0 ? details : undefined,
+        context: contextDetails,
       },
       meta: {
         timestamp: new Date().toISOString(),
@@ -125,5 +135,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     response.status(status).json(errorResponse);
+  }
+
+  private extractContext(resp: Record<string, unknown>) {
+    const ignoredKeys = new Set([
+      'code',
+      'errorCode',
+      'message',
+      'error',
+      'statusCode',
+      'details',
+    ]);
+    const context = Object.fromEntries(
+      Object.entries(resp).filter(([key, value]) => {
+        return !ignoredKeys.has(key) && value !== undefined;
+      }),
+    );
+
+    return Object.keys(context).length > 0 ? context : undefined;
   }
 }
