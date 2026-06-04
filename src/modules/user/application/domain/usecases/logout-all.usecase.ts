@@ -7,6 +7,8 @@ import {
   closeRedisClient,
   createConfiguredRedisClient,
 } from '@/common/redis/redis-client.helper';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 export interface LogoutAllInput {
   userId: string;
@@ -80,7 +82,10 @@ export class LogoutAllUsecase implements OnModuleDestroy {
 
   private ensureConnection(): void {
     if (!this.isRedisConnected) {
-      throw new Error('Redis connection unavailable. Please try again later.');
+      throw AppException.serviceUnavailable(
+        ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+        'Session store is temporarily unavailable. Please try again later.',
+      );
     }
   }
 
@@ -145,10 +150,17 @@ export class LogoutAllUsecase implements OnModuleDestroy {
         sessionsInvalidated: 0, // We don't track exact count in current implementation
       };
     } catch (error) {
+      if (error instanceof AppException) {
+        throw error;
+      }
+
       this.logger.error(
         `Logout all failed for user ${input.userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      throw new Error('Failed to logout from all devices. Please try again.');
+      throw AppException.serviceUnavailable(
+        ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+        'Session store is temporarily unavailable. Please try again later.',
+      );
     }
   }
 

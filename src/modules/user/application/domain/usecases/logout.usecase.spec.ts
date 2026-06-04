@@ -118,4 +118,15 @@ describe('LogoutUsecase', () => {
     );
     expect(mockRedisClient.setex).not.toHaveBeenCalled();
   });
+
+  it('fails closed when Redis cannot persist token revocation', async () => {
+    (usecase as any).isRedisConnected = false;
+
+    await expect(usecase.execute({ userId, refreshToken })).rejects.toMatchObject({
+      code: 'E1009',
+      message: 'Session store is temporarily unavailable. Please try again later.',
+    });
+    expect(jwtService.verify).not.toHaveBeenCalled();
+    expect(mockRedisClient.setex).not.toHaveBeenCalled();
+  });
 });

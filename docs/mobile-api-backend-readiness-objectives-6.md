@@ -1,0 +1,55 @@
+# Korido API/Backend Readiness Objectives - Pass 6
+
+Purpose: continue API/backend readiness after mobile smoke, schema repair, job health, dependency degradation, and audit/risk hardening. This pass focuses on remaining backend behaviors that can still surprise a mobile dogfood build.
+
+## Auth, Session, And Logout Resilience
+
+- [x] Confirm login, OTP, refresh-token, logout, logout-all, active sessions, and device revoke return stable mobile error envelopes when Redis or session storage is unavailable.
+- [x] Confirm Redis-dependent token invalidation fails closed for logout/logout-all without corrupting local session state.
+- [x] Confirm the active-session screen cannot produce an unclassified 401 when the access token is valid and the refresh token is recoverable.
+
+## Wallet Read Model And Balance Truth
+
+- [ ] Confirm balance reads clearly identify Blnk source-of-truth, cached, and local fallback states for mobile.
+- [ ] Confirm local fallback balance is marked degraded/stale and cannot be mistaken for final ledger truth.
+- [ ] Confirm transaction history, payment links, and wallet summaries share consistent amount/currency precision and support references.
+
+## Rates, Regions, And Provider Feature Flags
+
+- [ ] Replace or clearly classify `/health/exchange-rates` fallback data so mobile never treats static rates as live executable quotes.
+- [ ] Confirm CI and US feature availability is derived from config/profile/app-config data instead of hardcoded Orange/Wave/Ivory Coast assumptions.
+- [ ] Confirm disabled providers return deterministic `provider_or_feature_disabled` states across deposits, withdrawals, cards, bank linking, and bill pay.
+
+## Risk Client Modes And Production Safety
+
+- [ ] Review `RiskClientFactory` live/mock/hybrid behavior so production cannot silently fall back to mock risk screening.
+- [ ] Confirm address screening and transaction risk fail closed when live compliance providers are enabled but unavailable.
+- [ ] Confirm mock risk/client modes are explicit dev/test modes and visible in readiness/admin metadata.
+
+## Recursive Execution Rule
+
+1. Pick the first unchecked item.
+2. Prove current behavior with unit, contract, e2e, or live local HTTP smoke.
+3. Fix the backend/API boundary with the smallest durable change.
+4. Run focused verification plus `npm run verify:backend:mobile`.
+5. Commit and push to GitLab/GitHub before moving to the next item.
+
+## Execution Notes
+
+### Auth, Session, And Logout Resilience - 2026-06-04
+
+Verified and hardened:
+
+- Added `E1009 AUTH_SESSION_STORE_UNAVAILABLE` for Redis/session-store outages that affect token refresh or revocation.
+- `POST /auth/refresh` now returns a mobile-safe 503 envelope when Redis is unavailable instead of collapsing the outage into a misleading 401 invalid-token state.
+- `POST /auth/logout` now fails closed with `E1009` if refresh-token revocation cannot be persisted.
+- `POST /auth/logout-all` now fails closed with `E1009` if global token invalidation cannot be persisted.
+- Active sessions endpoint coverage confirms:
+  - valid access token returns the mobile-compatible session list.
+  - expired/invalid access token returns a classified 401 envelope with `UNAUTHORIZED` and `Invalid or expired token`, not an unclassified error.
+- Existing device/session revoke coverage confirms stable success and forbidden envelopes for session ownership errors.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/user/application/domain/usecases/logout.usecase.spec.ts src/modules/user/application/domain/usecases/logout-all.usecase.spec.ts src/modules/user/application/domain/usecases/refresh-token.usecase.spec.ts`
+- `npm run test:e2e -- --runInBand --testPathPatterns="auth.controller|session.controller"`

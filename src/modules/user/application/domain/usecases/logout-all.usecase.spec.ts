@@ -161,8 +161,24 @@ describe('LogoutAllUsecase', () => {
       // Manually set disconnected state
       (usecase as any).isRedisConnected = false;
 
-      await expect(usecase.execute({ userId: mockUserId })).rejects.toThrow(
-        'Redis connection unavailable',
+      await expect(usecase.execute({ userId: mockUserId })).rejects.toMatchObject(
+        {
+          code: 'E1009',
+          message:
+            'Session store is temporarily unavailable. Please try again later.',
+        },
+      );
+    });
+
+    it('should fail closed when Redis cannot write global invalidation', async () => {
+      mockRedisClient.setex.mockRejectedValue(new Error('Redis write failed'));
+
+      await expect(usecase.execute({ userId: mockUserId })).rejects.toMatchObject(
+        {
+          code: 'E1009',
+          message:
+            'Session store is temporarily unavailable. Please try again later.',
+        },
       );
     });
   });

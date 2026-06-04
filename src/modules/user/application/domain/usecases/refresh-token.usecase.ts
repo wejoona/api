@@ -15,6 +15,8 @@ import {
   closeRedisClient,
   createConfiguredRedisClient,
 } from '@/common/redis/redis-client.helper';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 export interface RefreshTokenInput {
   refreshToken: string;
@@ -94,7 +96,10 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
 
   private ensureConnection(): void {
     if (!this.isRedisConnected) {
-      throw new Error('Redis connection unavailable. Please try again later.');
+      throw AppException.serviceUnavailable(
+        ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+        'Session store is temporarily unavailable. Please try again later.',
+      );
     }
   }
 
@@ -209,7 +214,8 @@ export class RefreshTokenUsecase implements OnModuleDestroy {
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||
-        error instanceof NotFoundException
+        error instanceof NotFoundException ||
+        error instanceof AppException
       ) {
         throw error;
       }

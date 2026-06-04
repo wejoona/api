@@ -12,6 +12,8 @@ import {
   closeRedisClient,
   createConfiguredRedisClient,
 } from '@/common/redis/redis-client.helper';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 export interface LogoutInput {
   userId: string;
@@ -79,14 +81,17 @@ export class LogoutUsecase implements OnModuleDestroy {
 
   private ensureConnection(): void {
     if (!this.isRedisConnected) {
-      throw new Error('Redis connection unavailable. Please try again later.');
+      throw AppException.serviceUnavailable(
+        ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+        'Session store is temporarily unavailable. Please try again later.',
+      );
     }
   }
 
   async execute(input: LogoutInput): Promise<LogoutOutput> {
-    this.ensureConnection();
-
     try {
+      this.ensureConnection();
+
       const decoded = this.jwtService.verify(input.refreshToken, {
         secret: this.refreshSecret,
       });
@@ -132,7 +137,10 @@ export class LogoutUsecase implements OnModuleDestroy {
         message: 'Logged out successfully',
       };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof AppException
+      ) {
         throw error;
       }
       this.logger.error(

@@ -366,7 +366,7 @@ describe('RefreshTokenUsecase', () => {
   });
 
   describe('Redis connection handling', () => {
-    it('should throw UnauthorizedException when Redis is not connected', async () => {
+    it('should return session-store unavailable when Redis is not connected', async () => {
       // Arrange
       (useCase as any).isRedisConnected = false;
 
@@ -375,10 +375,12 @@ describe('RefreshTokenUsecase', () => {
       };
 
       // Act & Assert
-      // Note: The execute method catches all errors and wraps them in UnauthorizedException
-      await expect(useCase.execute(input)).rejects.toThrow(
-        'Invalid or expired refresh token',
-      );
+      await expect(useCase.execute(input)).rejects.toMatchObject({
+        code: 'E1009',
+        message:
+          'Session store is temporarily unavailable. Please try again later.',
+      });
+      expect(jwtService.verify).not.toHaveBeenCalled();
     });
   });
 

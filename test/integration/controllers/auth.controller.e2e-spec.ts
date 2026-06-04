@@ -12,6 +12,8 @@ import {
   TEST_USER,
 } from '../setup/test-app';
 import { TestData } from '../setup/mock-helpers';
+import { AppException } from '@/common/exceptions';
+import { ERROR_CODES } from '@/common/constants/error-codes';
 
 // Mock use cases
 const mockRegisterUser = { execute: jest.fn() };
@@ -246,6 +248,31 @@ describe('AuthController (e2e)', () => {
         }),
       );
     });
+
+    it('should return mobile-safe 503 when session store is unavailable', async () => {
+      mockRefreshToken.execute.mockRejectedValueOnce(
+        AppException.serviceUnavailable(
+          ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+          'Session store is temporarily unavailable. Please try again later.',
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: 'mock.refresh.token' })
+        .expect(503);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+            message:
+              'Session store is temporarily unavailable. Please try again later.',
+          }),
+        }),
+      );
+    });
   });
 
   // ==========================================
@@ -291,6 +318,32 @@ describe('AuthController (e2e)', () => {
         }),
       );
     });
+
+    it('should return mobile-safe 503 when logout cannot persist token revocation', async () => {
+      mockLogout.execute.mockRejectedValueOnce(
+        AppException.serviceUnavailable(
+          ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+          'Session store is temporarily unavailable. Please try again later.',
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/logout')
+        .set('Authorization', 'Bearer mock.token')
+        .send({ refreshToken: 'mock.refresh.token' })
+        .expect(503);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+            message:
+              'Session store is temporarily unavailable. Please try again later.',
+          }),
+        }),
+      );
+    });
   });
 
   // ==========================================
@@ -319,6 +372,32 @@ describe('AuthController (e2e)', () => {
         message: 'All devices logged out successfully',
         sessionsInvalidated: 3,
       });
+    });
+
+    it('should return mobile-safe 503 when logout-all cannot persist token invalidation', async () => {
+      mockLogoutAll.execute.mockRejectedValueOnce(
+        AppException.serviceUnavailable(
+          ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+          'Session store is temporarily unavailable. Please try again later.',
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/logout-all')
+        .set('Authorization', 'Bearer mock.token')
+        .send({ currentRefreshToken: 'mock.refresh.token' })
+        .expect(503);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: ERROR_CODES.AUTH_SESSION_STORE_UNAVAILABLE,
+            message:
+              'Session store is temporarily unavailable. Please try again later.',
+          }),
+        }),
+      );
     });
   });
 });
