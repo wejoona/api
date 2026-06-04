@@ -55,6 +55,23 @@ describe('validateProductionConfig', () => {
     );
   });
 
+  it('rejects disabled Twilio signature validation in production', () => {
+    process.env.TWILIO_VALIDATE_SIGNATURES = 'false';
+
+    expect(() => validateProductionConfig()).toThrow(
+      'TWILIO_VALIDATE_SIGNATURES cannot be false in production',
+    );
+  });
+
+  it('requires Twilio auth token when production SMS provider is Twilio', () => {
+    process.env.SMS_PROVIDER = 'twilio';
+    delete process.env.TWILIO_AUTH_TOKEN;
+
+    expect(() => validateProductionConfig()).toThrow(
+      'TWILIO_AUTH_TOKEN is required in production',
+    );
+  });
+
   it('rejects mock FCM provider in production', () => {
     process.env.FCM_USE_MOCK = 'true';
 

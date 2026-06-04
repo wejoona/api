@@ -6,7 +6,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 
 - [x] Confirm KYC/identity verification cannot silently use mock providers in production-like environments.
 - [x] Confirm SMS/OTP and push provider mock modes are explicit in readiness metadata and blocked in production-like environments.
-- [ ] Confirm webhook signature validation cannot be disabled in production-like environments by missing provider secrets.
+- [x] Confirm webhook signature validation cannot be disabled in production-like environments by missing provider secrets.
 
 ## Provider Factories And Legacy Mock Fallbacks
 
@@ -64,3 +64,17 @@ Verification:
 
 - `npm test -- --runInBand src/modules/shared/infrastructure/gateways/sms/sms.factory.spec.ts src/modules/shared/infrastructure/gateways/push/push.factory.spec.ts src/config/environments/index.spec.ts`
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Webhook Signature Safety - 2026-06-04
+
+Verified and hardened:
+
+- Twilio webhook controller now rejects `TWILIO_VALIDATE_SIGNATURES=false` in production-like environments.
+- Twilio webhook controller now requires `TWILIO_AUTH_TOKEN` in production-like environments when signature validation is enabled.
+- Production startup validation rejects `TWILIO_VALIDATE_SIGNATURES=false`.
+- Production startup validation requires `TWILIO_AUTH_TOKEN` when `SMS_PROVIDER=twilio`.
+- Development can still run without Twilio auth token for local callback testing.
+
+Verification:
+
+- `npm test -- --runInBand src/modules/webhook/application/controllers/twilio-webhook.controller.spec.ts src/config/environments/index.spec.ts`

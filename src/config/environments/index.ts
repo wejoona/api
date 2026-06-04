@@ -80,6 +80,14 @@ export function validateProductionConfig(): void {
     throw new Error('SMS_PROVIDER cannot be mock in production');
   }
 
+  if (process.env.TWILIO_VALIDATE_SIGNATURES === 'false') {
+    throw new Error('TWILIO_VALIDATE_SIGNATURES cannot be false in production');
+  }
+
+  if (process.env.SMS_PROVIDER === 'twilio' && !process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error('TWILIO_AUTH_TOKEN is required in production');
+  }
+
   if (!process.env.KYC_PROVIDER || process.env.KYC_PROVIDER === 'mock') {
     throw new Error('KYC_PROVIDER cannot be mock in production');
   }

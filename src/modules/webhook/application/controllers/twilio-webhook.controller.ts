@@ -58,6 +58,18 @@ export class TwilioWebhookController {
       true,
     );
 
+    if (this.isProductionLike() && !this.validateSignatures) {
+      throw new Error(
+        'TWILIO_VALIDATE_SIGNATURES=false is not allowed in production-like environments',
+      );
+    }
+
+    if (this.isProductionLike() && !this.authToken) {
+      throw new Error(
+        'TWILIO_AUTH_TOKEN is required for Twilio webhook validation in production-like environments',
+      );
+    }
+
     if (!this.authToken && this.validateSignatures) {
       this.logger.warn(
         'Twilio auth token not configured. Signature validation disabled.',
@@ -164,6 +176,16 @@ export class TwilioWebhookController {
       this.configService.get<string>('app.publicUrl') ||
       'https://api.joonapay.com';
     return `${baseUrl}/webhooks/twilio/sms-status`;
+  }
+
+  private isProductionLike(): boolean {
+    const nodeEnv =
+      this.configService.get<string>('nodeEnv') ||
+      this.configService.get<string>('NODE_ENV') ||
+      process.env.NODE_ENV ||
+      'development';
+
+    return ['production', 'staging'].includes(nodeEnv);
   }
 
   /**
