@@ -1,12 +1,28 @@
-import { Injectable, Logger, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ILedgerProvider, LEDGER_PROVIDER } from '../../../providers/interfaces';
-import { WithdrawalRepository, CreateWithdrawalParams } from '../../infrastructure/repositories/withdrawal.repository';
+import {
+  ILedgerProvider,
+  LEDGER_PROVIDER,
+} from '../../../providers/interfaces';
+import {
+  WithdrawalRepository,
+  CreateWithdrawalParams,
+} from '../../infrastructure/repositories/withdrawal.repository';
 import { PayoutProviderFactory } from '../../infrastructure/providers/payout-provider.factory';
 import { WithdrawalEntity } from '../../domain/entities/withdrawal.entity';
 import { WithdrawalStatus } from '../../domain/enums/withdrawal-status.enum';
-import { WithdrawalInitiatedEvent, WithdrawalCompletedEvent, WithdrawalFailedEvent } from '../../domain/events/withdrawal.events';
+import {
+  WithdrawalInitiatedEvent,
+  WithdrawalCompletedEvent,
+  WithdrawalFailedEvent,
+} from '../../domain/events/withdrawal.events';
 import { InitiateWithdrawalDto } from '../dto/initiate-withdrawal.dto';
 import { WithdrawalResponseDto } from '../dto/withdrawal-response.dto';
 import { ExchangeRateService } from '../../../exchange-rate/application/services/exchange-rate.service';
@@ -34,13 +50,15 @@ export class WithdrawalService {
     userId: string,
     dto: InitiateWithdrawalDto,
   ): Promise<WithdrawalResponseDto> {
-    this.logger.log(`Initiating withdrawal for user ${userId}: ${dto.amount} USDC → ${dto.currency}`);
+    this.logger.log(
+      `Initiating withdrawal for user ${userId}: ${dto.amount} USDC → ${dto.currency}`,
+    );
 
     // Validate minimum withdrawal amount
     if (dto.amount < 100) {
       throw AppException.badRequest(
         ERROR_CODES.WITHDRAWAL_AMOUNT_TOO_LOW,
-        'Minimum withdrawal amount is 100 (cents). That\'s $1.00 USDC.',
+        "Minimum withdrawal amount is 100 (cents). That's $1.00 USDC.",
       );
     }
 
@@ -84,7 +102,9 @@ export class WithdrawalService {
       });
       blnkTransactionId = debitResult?.transactionId;
     } catch (error) {
-      this.logger.error(`Ledger debit failed for user ${userId}: ${error.message}`);
+      this.logger.error(
+        `Ledger debit failed for user ${userId}: ${error.message}`,
+      );
       throw new BadRequestException('Insufficient balance or ledger error');
     }
 
@@ -108,28 +128,44 @@ export class WithdrawalService {
 
     // Update with blnk transaction ID
     if (blnkTransactionId) {
-      await this.withdrawalRepository.update(withdrawal.id, { blnkTransactionId });
+      await this.withdrawalRepository.update(withdrawal.id, {
+        blnkTransactionId,
+      });
+      withdrawal.blnkTransactionId = blnkTransactionId;
     }
 
     // Emit initiated event
     this.eventEmitter.emit(
       'withdrawal.initiated',
       new WithdrawalInitiatedEvent(
-        withdrawal.id, userId, usdcAmount, fiatAmount,
-        dto.currency, dto.providerCode, dto.phoneNumber,
+        withdrawal.id,
+        userId,
+        usdcAmount,
+        fiatAmount,
+        dto.currency,
+        dto.providerCode,
+        dto.phoneNumber,
       ),
     );
 
     // Initiate fiat payout via provider (async but with error handling)
     this.processPayoutAsync(withdrawal, dto, fiatAmount).catch((error) => {
-      this.logger.error(`Unhandled payout error for withdrawal ${withdrawal.id}: ${error.message}`);
+      this.logger.error(
+        `Unhandled payout error for withdrawal ${withdrawal.id}: ${error.message}`,
+      );
     });
 
     return this.toResponseDto(withdrawal);
   }
 
-  async getWithdrawal(id: string, userId: string): Promise<WithdrawalResponseDto> {
-    const withdrawal = await this.withdrawalRepository.findByIdAndUser(id, userId);
+  async getWithdrawal(
+    id: string,
+    userId: string,
+  ): Promise<WithdrawalResponseDto> {
+    const withdrawal = await this.withdrawalRepository.findByIdAndUser(
+      id,
+      userId,
+    );
     if (!withdrawal) throw new NotFoundException('Withdrawal not found');
     return this.toResponseDto(withdrawal);
   }
@@ -139,10 +175,14 @@ export class WithdrawalService {
     status?: WithdrawalStatus;
     limit?: number;
     offset?: number;
-  }): Promise<{ withdrawals: WithdrawalResponseDto[]; total: number; hasMore: boolean }> {
+  }): Promise<{
+    withdrawals: WithdrawalResponseDto[];
+    total: number;
+    hasMore: boolean;
+  }> {
     const result = await this.withdrawalRepository.list(params);
     return {
-      withdrawals: result.withdrawals.map(w => this.toResponseDto(w)),
+      withdrawals: result.withdrawals.map((w) => this.toResponseDto(w)),
       total: result.total,
       hasMore: (params.offset || 0) + (params.limit || 20) < result.total,
     };
@@ -151,7 +191,10 @@ export class WithdrawalService {
   /**
    * Enforce daily and monthly withdrawal limits based on user's KYC status.
    */
-  private async enforceWithdrawalLimits(userId: string, amount: number): Promise<void> {
+  private async enforceWithdrawalLimits(
+    userId: string,
+    amount: number,
+  ): Promise<void> {
     // Amount is in minor units (cents), limits are in dollars
     const amountInDollars = amount / 100;
 
@@ -197,7 +240,10 @@ export class WithdrawalService {
     }
 
     if (monthlyVolumeInDollars + amountInDollars > limits.monthlyLimit) {
-      const remaining = Math.max(0, limits.monthlyLimit - monthlyVolumeInDollars);
+      const remaining = Math.max(
+        0,
+        limits.monthlyLimit - monthlyVolumeInDollars,
+      );
       throw AppException.badRequest(
         ERROR_CODES.WITHDRAWAL_LIMIT_EXCEEDED,
         `Monthly withdrawal limit exceeded. Remaining: $${remaining.toFixed(2)}`,
@@ -227,47 +273,77 @@ export class WithdrawalService {
       await this.withdrawalRepository.update(withdrawal.id, {
         providerTransactionId: payoutResult.providerTransactionId,
         providerReference: payoutResult.providerReference,
-        status: payoutResult.status === 'completed'
-          ? WithdrawalStatus.COMPLETED
-          : payoutResult.status === 'failed'
-            ? WithdrawalStatus.FAILED
-            : WithdrawalStatus.PROCESSING,
-        completedAt: payoutResult.status === 'completed' ? new Date() : undefined,
+        status:
+          payoutResult.status === 'completed'
+            ? WithdrawalStatus.COMPLETED
+            : payoutResult.status === 'failed'
+              ? WithdrawalStatus.FAILED
+              : WithdrawalStatus.PROCESSING,
+        completedAt:
+          payoutResult.status === 'completed' ? new Date() : undefined,
         failureReason: payoutResult.failureReason,
       });
 
       if (payoutResult.status === 'completed') {
+        if (withdrawal.blnkTransactionId) {
+          await this.ledgerProvider.commitTransaction(
+            withdrawal.blnkTransactionId,
+          );
+        }
         this.eventEmitter.emit(
           'withdrawal.completed',
           new WithdrawalCompletedEvent(
-            withdrawal.id, withdrawal.userId, withdrawal.amount, fiatAmount,
-            dto.currency, dto.providerCode, payoutResult.providerReference,
+            withdrawal.id,
+            withdrawal.userId,
+            withdrawal.amount,
+            fiatAmount,
+            dto.currency,
+            dto.providerCode,
+            payoutResult.providerReference,
             withdrawal.blnkTransactionId,
           ),
         );
       } else if (payoutResult.status === 'failed') {
-        // Reverse the ledger debit on failure
+        if (withdrawal.blnkTransactionId) {
+          await this.ledgerProvider.voidTransaction(
+            withdrawal.blnkTransactionId,
+          );
+        }
         this.eventEmitter.emit(
           'withdrawal.failed',
           new WithdrawalFailedEvent(
-            withdrawal.id, withdrawal.userId, withdrawal.amount,
-            dto.currency, payoutResult.failureReason || 'Provider payout failed', dto.providerCode,
+            withdrawal.id,
+            withdrawal.userId,
+            withdrawal.amount,
+            dto.currency,
+            payoutResult.failureReason || 'Provider payout failed',
+            dto.providerCode,
           ),
         );
       }
     } catch (error) {
-      this.logger.error(`Payout processing failed for withdrawal ${withdrawal.id}: ${error.message}`);
+      this.logger.error(
+        `Payout processing failed for withdrawal ${withdrawal.id}: ${error.message}`,
+      );
 
       await this.withdrawalRepository.update(withdrawal.id, {
         status: WithdrawalStatus.FAILED,
         failureReason: error.message,
       });
 
+      if (withdrawal.blnkTransactionId) {
+        await this.ledgerProvider.voidTransaction(withdrawal.blnkTransactionId);
+      }
+
       this.eventEmitter.emit(
         'withdrawal.failed',
         new WithdrawalFailedEvent(
-          withdrawal.id, withdrawal.userId, withdrawal.amount,
-          dto.currency, error.message, dto.providerCode,
+          withdrawal.id,
+          withdrawal.userId,
+          withdrawal.amount,
+          dto.currency,
+          error.message,
+          dto.providerCode,
         ),
       );
     }
