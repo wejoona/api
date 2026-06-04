@@ -24,3 +24,9 @@ Scope: mobile-facing Korido API flows that can move money or create future money
 Do not add local balance debit logic to Korido API for delegated services. Active spend flows must either execute through Blnk-backed wallet use cases or delegate to a service that owns its own Blnk-backed debit.
 
 Disabled feature modules may expose read/empty/unavailable states, but must not be enabled for money movement until their provider implementation uses the same ledger authority.
+
+## Recurring And Scheduled Execution Decision
+
+Recurring transfers in this repo do not execute money movement. They store configuration, list upcoming records, and record execution history. A future executor must call a Blnk-backed transfer use case instead of debiting local balances.
+
+Scheduled payments do execute money movement and deliberately call `InternalTransferUseCase`. That means execution-time balance, limit, risk, and ledger decisions are re-evaluated at the time money moves, rather than relying only on the original setup approval.
