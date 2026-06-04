@@ -18,7 +18,7 @@ Purpose: continue backend/API readiness after provider-state, risk, and mobile c
 
 - [x] Confirm all mobile-facing provider-down responses include stable `reason`, optional `featureReason`, and support-safe retry/review metadata.
 - [x] Confirm health/readiness does not expose raw URLs, API keys, database names, tokens, or provider exception bodies.
-- [ ] Confirm contract tests cover the new readiness metadata needed by mobile/dashboard clients.
+- [x] Confirm contract tests cover the new readiness metadata needed by mobile/dashboard clients.
 
 ## Recursive Execution Rule
 
@@ -113,6 +113,18 @@ Verified and hardened:
 Verification:
 
 - `npm run test:e2e -- --runInBand --testPathPatterns="health.controller"`
+
+### Mobile Readiness Contract Coverage - 2026-06-04
+
+Verified and added:
+
+- New health contract schema group for `/health/mobile-readiness`.
+- Contract tests cover provider mode metadata, dependency readiness, mobile money provider state, feature readiness, and top-level response shape.
+- Contract samples assert readiness payloads do not contain raw URLs, keys, tokens, secrets, database names, or ledger IDs.
+
+Verification:
+
+- `npm run test:contracts`
 
 ### Mock Provider Documentation Alignment - 2026-06-04
 
