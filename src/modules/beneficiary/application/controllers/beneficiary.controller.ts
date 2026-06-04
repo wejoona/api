@@ -46,10 +46,30 @@ export class BeneficiaryController {
 
   @Get()
   @ApiOperation({ summary: 'List beneficiaries with optional filters' })
-  @ApiQuery({ name: 'type', required: false, enum: ['internal', 'external', 'bank', 'mobile_money'], description: 'Filter by account type' })
-  @ApiQuery({ name: 'favorites', required: false, type: String, description: 'Set to "true" to get favorites only' })
-  @ApiQuery({ name: 'recent', required: false, type: String, description: 'Set to "true" to get recently used' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Max results (used with recent)' })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: ['internal', 'external', 'bank', 'mobile_money'],
+    description: 'Filter by account type',
+  })
+  @ApiQuery({
+    name: 'favorites',
+    required: false,
+    type: String,
+    description: 'Set to "true" to get favorites only',
+  })
+  @ApiQuery({
+    name: 'recent',
+    required: false,
+    type: String,
+    description: 'Set to "true" to get recently used',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max results (used with recent)',
+  })
   @ApiResponse({ status: 200, description: 'List of beneficiaries' })
   async getBeneficiaries(
     @CurrentUser() user: UserPayload,
@@ -173,18 +193,32 @@ export class BeneficiaryController {
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @Body() dto: UpdateBeneficiaryDto,
     @CurrentUser() user: UserPayload,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<
+    BeneficiaryResponse & {
+      success: boolean;
+      message: string;
+      beneficiary: BeneficiaryResponse;
+      data: BeneficiaryResponse;
+    }
+  > {
     const walletId = user.walletId;
     if (!walletId) {
       throw new BadRequestException('User has no wallet');
     }
 
-    await this.beneficiaryService.updateBeneficiary(
+    const beneficiary = await this.beneficiaryService.updateBeneficiary(
       walletId,
       beneficiaryId,
       dto,
     );
-    return { success: true, message: 'Beneficiary updated successfully' };
+    const response = this.toResponse(beneficiary);
+    return {
+      ...response,
+      success: true,
+      message: 'Beneficiary updated successfully',
+      beneficiary: response,
+      data: response,
+    };
   }
 
   @Post(':id/favorite')
@@ -196,7 +230,14 @@ export class BeneficiaryController {
   async toggleFavorite(
     @Param('id', ParseUUIDPipe) beneficiaryId: string,
     @CurrentUser() user: UserPayload,
-  ): Promise<{ success: boolean; isFavorite: boolean }> {
+  ): Promise<
+    BeneficiaryResponse & {
+      success: boolean;
+      isFavorite: boolean;
+      beneficiary: BeneficiaryResponse;
+      data: BeneficiaryResponse;
+    }
+  > {
     const walletId = user.walletId;
     if (!walletId) {
       throw new BadRequestException('User has no wallet');
@@ -206,7 +247,14 @@ export class BeneficiaryController {
       walletId,
       beneficiaryId,
     );
-    return { success: true, isFavorite: beneficiary.isFavorite };
+    const response = this.toResponse(beneficiary);
+    return {
+      ...response,
+      success: true,
+      isFavorite: beneficiary.isFavorite,
+      beneficiary: response,
+      data: response,
+    };
   }
 
   @Delete(':id')
@@ -226,5 +274,26 @@ export class BeneficiaryController {
 
     await this.beneficiaryService.deleteBeneficiary(walletId, beneficiaryId);
     return { success: true, message: 'Beneficiary deleted successfully' };
+  }
+
+  private toResponse(beneficiary: any): BeneficiaryResponse {
+    return {
+      id: beneficiary.id,
+      walletId: beneficiary.walletId,
+      name: beneficiary.name,
+      phoneE164: beneficiary.phoneE164,
+      accountType: beneficiary.accountType,
+      beneficiaryUserId: beneficiary.beneficiaryUserId,
+      beneficiaryWalletAddress: beneficiary.beneficiaryWalletAddress,
+      bankCode: beneficiary.bankCode,
+      bankAccountNumber: beneficiary.bankAccountNumber,
+      mobileMoneyProvider: beneficiary.mobileMoneyProvider,
+      isFavorite: beneficiary.isFavorite,
+      isVerified: beneficiary.isVerified,
+      transferCount: beneficiary.transferCount,
+      totalTransferred: beneficiary.totalTransferred,
+      lastTransferAt: beneficiary.lastTransferAt,
+      createdAt: beneficiary.createdAt,
+    };
   }
 }

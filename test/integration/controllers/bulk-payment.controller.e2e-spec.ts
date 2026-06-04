@@ -36,11 +36,26 @@ describe('BulkPaymentController (e2e)', () => {
   });
 
   describe('GET /api/v1/bulk-payments/batches', () => {
-    it('should list batches (200)', async () => {
-      mockBulkPaymentService.getBatches.mockResolvedValue([]);
-      await request(app.getHttpServer())
+    it('should list batches with mobile-safe unavailable metadata (200)', async () => {
+      mockBulkPaymentService.getBatches.mockResolvedValue({
+        batches: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bulk_payments_unavailable',
+      });
+
+      const response = await request(app.getHttpServer())
         .get('/api/v1/bulk-payments/batches')
         .expect(200);
+
+      expect(response.body).toEqual({
+        batches: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bulk_payments_unavailable',
+      });
     });
   });
 

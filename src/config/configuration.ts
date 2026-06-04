@@ -146,6 +146,10 @@ export default () => ({
     provider: process.env.BANK_LINKING_PROVIDER || '',
   },
 
+  bulkPayments: {
+    enabled: process.env.BULK_PAYMENTS_ENABLED === 'true',
+  },
+
   // KYC Verification Settings
   kyc: {
     autoApprovalEnabled: process.env.KYC_AUTO_APPROVAL_ENABLED !== 'false', // Default true

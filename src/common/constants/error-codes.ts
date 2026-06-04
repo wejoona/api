@@ -83,6 +83,9 @@ export const ERROR_CODES = {
   // Bank Linking errors (8.7xxx)
   BANK_LINKING_UNAVAILABLE: 'E8701',
 
+  // Bulk Payment errors (8.8xxx)
+  BULK_PAYMENTS_UNAVAILABLE: 'E8801',
+
   // System errors (9xxx)
   RATE_LIMITED: 'E9001',
   MAINTENANCE_MODE: 'E9002',

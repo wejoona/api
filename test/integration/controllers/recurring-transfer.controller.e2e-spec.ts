@@ -41,24 +41,40 @@ describe('RecurringTransferController (e2e)', () => {
   });
 
   describe('GET /api/v1/recurring-transfers', () => {
-    it('should list recurring transfers (200)', async () => {
+    it('should list recurring transfers with data alias (200)', async () => {
       mockRecurringService.getRecurringTransfers.mockResolvedValue([
         TestData.recurringTransfer(),
       ]);
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .get('/api/v1/recurring-transfers')
         .expect(200);
+
+      expect(response.body.transfers).toHaveLength(1);
+      expect(response.body.data).toHaveLength(1);
+    });
+
+    it('should return a mobile-safe empty recurring transfer list (200)', async () => {
+      mockRecurringService.getRecurringTransfers.mockResolvedValue([]);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/recurring-transfers')
+        .expect(200);
+
+      expect(response.body).toEqual({ transfers: [], data: [] });
     });
   });
 
   describe('GET /api/v1/recurring-transfers/upcoming', () => {
-    it('should list upcoming (200)', async () => {
+    it('should list upcoming with data alias (200)', async () => {
       mockRecurringService.getUpcomingExecutions.mockResolvedValue([
         TestData.recurringTransfer(),
       ]);
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .get('/api/v1/recurring-transfers/upcoming')
         .expect(200);
+
+      expect(response.body.upcoming).toHaveLength(1);
+      expect(response.body.data).toHaveLength(1);
     });
   });
 

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BulkPaymentRepository } from '../../domain/repositories/bulk-payment.repository';
 import {
@@ -16,18 +17,23 @@ import {
   BulkPaymentListResponseDto,
   FailedReportResponseDto,
 } from '../dto/bulk-payment-response.dto';
+import { AppException } from '../../../../common/exceptions';
+import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
 @Injectable()
 export class BulkPaymentService {
   constructor(
     private readonly bulkPaymentRepository: BulkPaymentRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {}
 
   async createBatch(
     walletId: string,
     dto: CreateBulkPaymentDto,
   ): Promise<BulkPaymentResponseDto> {
+    this.assertBulkPaymentsAvailable();
+
     // Validate items
     if (!dto.payments || dto.payments.length === 0) {
       throw new BadRequestException('Batch must contain at least one payment');
@@ -65,12 +71,42 @@ export class BulkPaymentService {
   }
 
   async getBatches(walletId: string): Promise<BulkPaymentListResponseDto> {
+    if (!this.isBulkPaymentsEnabled()) {
+      return {
+        batches: [],
+        data: [],
+        available: false,
+        status: 'unavailable',
+        reason: 'bulk_payments_unavailable',
+      };
+    }
+
     const bulkPayments =
       await this.bulkPaymentRepository.findByWalletId(walletId);
+    const batches = bulkPayments.map((bp) => this.mapToResponseDto(bp));
 
     return {
-      batches: bulkPayments.map((bp) => this.mapToResponseDto(bp)),
+      batches,
+      data: batches,
+      available: true,
+      status: 'available',
+      reason: null,
     };
+  }
+
+  isBulkPaymentsEnabled(): boolean {
+    return this.configService.get<boolean>('bulkPayments.enabled') === true;
+  }
+
+  private assertBulkPaymentsAvailable(): void {
+    if (this.isBulkPaymentsEnabled()) {
+      return;
+    }
+
+    throw AppException.badRequest(
+      ERROR_CODES.BULK_PAYMENTS_UNAVAILABLE,
+      'Bulk payments are not available yet',
+    );
   }
 
   async getBatch(

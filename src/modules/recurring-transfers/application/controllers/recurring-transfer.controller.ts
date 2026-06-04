@@ -27,7 +27,14 @@ interface UserPayload {
   walletId?: string;
 }
 
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiHeader } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiHeader,
+} from '@nestjs/swagger';
 @ApiTags('Recurring Transfers')
 @Controller('recurring-transfers')
 @UseGuards(JwtAuthGuard)
@@ -71,7 +78,7 @@ export class RecurringTransferController {
 
     const transfers =
       await this.recurringTransferService.getRecurringTransfers(walletId);
-    return { transfers };
+    return { transfers, data: transfers };
   }
 
   @Get('upcoming')
@@ -89,7 +96,7 @@ export class RecurringTransferController {
       walletId,
       limit || 10,
     );
-    return { upcoming };
+    return { upcoming, data: upcoming };
   }
 
   @Get(':id')
@@ -100,37 +107,48 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) throw new BadRequestException('User has no wallet');
-    const transfer = await this.recurringTransferService.getRecurringTransfer(walletId, id);
+    const transfer = await this.recurringTransferService.getRecurringTransfer(
+      walletId,
+      id,
+    );
     return this.mapTransfer(transfer);
   }
 
   @Post()
   @UseGuards(PinVerificationGuard)
   @ApiOperation({ summary: 'Create a recurring transfer (requires PIN)' })
-  @ApiHeader({ name: 'X-Pin-Token', description: 'PIN verification token', required: true })
+  @ApiHeader({
+    name: 'X-Pin-Token',
+    description: 'PIN verification token',
+    required: true,
+  })
   @ApiResponse({ status: 201, description: 'Recurring transfer created' })
   @ApiResponse({ status: 400, description: 'Invalid request data' })
-  @ApiResponse({ status: 403, description: 'PIN verification required or expired' })
+  @ApiResponse({
+    status: 403,
+    description: 'PIN verification required or expired',
+  })
   async create(
     @Body() dto: CreateRecurringTransferDto,
     @CurrentUser() user: UserPayload,
   ) {
     const walletId = user.walletId;
     if (!walletId) throw new BadRequestException('User has no wallet');
-    const transfer = await this.recurringTransferService.createRecurringTransfer({
-      walletId,
-      recipientPhone: dto.recipientPhone,
-      recipientName: dto.recipientName,
-      amount: dto.amount,
-      currency: dto.currency || 'XOF',
-      frequency: dto.frequency,
-      startDate: new Date(dto.startDate),
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      occurrences: dto.occurrences,
-      note: dto.note,
-      dayOfWeek: dto.dayOfWeek,
-      dayOfMonth: dto.dayOfMonth,
-    });
+    const transfer =
+      await this.recurringTransferService.createRecurringTransfer({
+        walletId,
+        recipientPhone: dto.recipientPhone,
+        recipientName: dto.recipientName,
+        amount: dto.amount,
+        currency: dto.currency || 'XOF',
+        frequency: dto.frequency,
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        occurrences: dto.occurrences,
+        note: dto.note,
+        dayOfWeek: dto.dayOfWeek,
+        dayOfMonth: dto.dayOfMonth,
+      });
     return this.mapTransfer(transfer);
   }
 
@@ -143,14 +161,19 @@ export class RecurringTransferController {
   ) {
     const walletId = user.walletId;
     if (!walletId) throw new BadRequestException('User has no wallet');
-    const transfer = await this.recurringTransferService.updateRecurringTransfer(walletId, id, {
-      amount: dto.amount,
-      frequency: dto.frequency,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      note: dto.note,
-      dayOfWeek: dto.dayOfWeek,
-      dayOfMonth: dto.dayOfMonth,
-    });
+    const transfer =
+      await this.recurringTransferService.updateRecurringTransfer(
+        walletId,
+        id,
+        {
+          amount: dto.amount,
+          frequency: dto.frequency,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+          note: dto.note,
+          dayOfWeek: dto.dayOfWeek,
+          dayOfMonth: dto.dayOfMonth,
+        },
+      );
     return this.mapTransfer(transfer);
   }
 
@@ -230,7 +253,7 @@ export class RecurringTransferController {
       walletId,
       id,
     );
-    return { history };
+    return { history, data: history };
   }
 
   @Get(':id/next-dates')
@@ -250,6 +273,6 @@ export class RecurringTransferController {
       id,
       count || 3,
     );
-    return { dates };
+    return { dates, data: dates };
   }
 }

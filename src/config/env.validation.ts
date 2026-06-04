@@ -101,6 +101,7 @@ export const envValidationSchema = Joi.object({
   CARD_ISSUING_PROVIDER: Joi.string().allow('').default(''),
   BANK_LINKING_ENABLED: Joi.boolean().default(false),
   BANK_LINKING_PROVIDER: Joi.string().allow('').default(''),
+  BULK_PAYMENTS_ENABLED: Joi.boolean().default(false),
   MIN_DEPOSIT_AMOUNT: Joi.number().positive().default(500),
   MAX_DEPOSIT_AMOUNT: Joi.number().positive().default(1000000),
   MIN_TRANSFER_AMOUNT: Joi.number().positive().default(1),

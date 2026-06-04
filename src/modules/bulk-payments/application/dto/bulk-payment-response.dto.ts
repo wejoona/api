@@ -22,6 +22,10 @@ export class BulkPaymentResponseDto {
 
 export class BulkPaymentListResponseDto {
   batches: BulkPaymentResponseDto[];
+  data: BulkPaymentResponseDto[];
+  available: boolean;
+  status: 'available' | 'unavailable';
+  reason: string | null;
 }
 
 export class FailedReportResponseDto {

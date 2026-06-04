@@ -8,6 +8,9 @@ import { TestData } from '../setup/mock-helpers';
 
 const mockBeneficiaryService = {
   getBeneficiaries: jest.fn(),
+  getFavoriteBeneficiaries: jest.fn(),
+  getRecentBeneficiaries: jest.fn(),
+  getBeneficiariesByType: jest.fn(),
   getBeneficiary: jest.fn(),
   createBeneficiary: jest.fn(),
   updateBeneficiary: jest.fn(),
@@ -65,9 +68,25 @@ describe('BeneficiaryController (e2e)', () => {
       mockBeneficiaryService.getBeneficiaries.mockResolvedValue([
         beneficiary(),
       ]);
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .get('/api/v1/beneficiaries')
         .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0]).toMatchObject({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John Doe',
+      });
+    });
+
+    it('should return a mobile-safe empty beneficiary list (200)', async () => {
+      mockBeneficiaryService.getBeneficiaries.mockResolvedValue([]);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/beneficiaries')
+        .expect(200);
+
+      expect(response.body).toEqual([]);
     });
   });
 
@@ -91,25 +110,53 @@ describe('BeneficiaryController (e2e)', () => {
   });
 
   describe('PUT /api/v1/beneficiaries/:id', () => {
-    it('should update beneficiary (200)', async () => {
-      mockBeneficiaryService.updateBeneficiary.mockResolvedValue(undefined);
-      await request(app.getHttpServer())
+    it('should update beneficiary and return parseable beneficiary payload (200)', async () => {
+      mockBeneficiaryService.updateBeneficiary.mockResolvedValue(
+        beneficiary({ name: 'Updated' }),
+      );
+      const response = await request(app.getHttpServer())
         .put('/api/v1/beneficiaries/550e8400-e29b-41d4-a716-446655440000')
         .send({ name: 'Updated' })
         .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        name: 'Updated',
+        beneficiary: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Updated',
+        },
+        data: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Updated',
+        },
+      });
     });
   });
 
   describe('POST /api/v1/beneficiaries/:id/favorite', () => {
-    it('should toggle favorite (200)', async () => {
+    it('should toggle favorite and return parseable beneficiary payload (200)', async () => {
       mockBeneficiaryService.toggleFavorite.mockResolvedValue(
         beneficiary({ isFavorite: true }),
       );
-      await request(app.getHttpServer())
+      const response = await request(app.getHttpServer())
         .post(
           '/api/v1/beneficiaries/550e8400-e29b-41d4-a716-446655440000/favorite',
         )
         .expect(200);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        isFavorite: true,
+        beneficiary: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          isFavorite: true,
+        },
+        data: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          isFavorite: true,
+        },
+      });
     });
   });
 
