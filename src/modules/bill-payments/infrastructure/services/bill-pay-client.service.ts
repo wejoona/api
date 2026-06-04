@@ -157,10 +157,21 @@ export class BillPayClientService {
     params?: Record<string, any>,
   ): Promise<any> {
     try {
+      const { page, limit, startDate, endDate, ...filters } = params ?? {};
+      const normalizedLimit = this.normalizeLimit(limit);
+      const normalizedPage = this.normalizePage(page);
+      const downstreamParams = {
+        ...filters,
+        limit: normalizedLimit,
+        offset: (normalizedPage - 1) * normalizedLimit,
+        ...(startDate ? { fromDate: startDate } : {}),
+        ...(endDate ? { toDate: endDate } : {}),
+      };
+
       const { data } = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/api/v1/bills/payments`, {
           headers: this.getHeaders(userId),
-          params: { ...params, userId },
+          params: downstreamParams,
         }),
       );
       return data;
@@ -183,5 +194,17 @@ export class BillPayClientService {
     } catch (error) {
       this.handleError(error, 'getPayment');
     }
+  }
+
+  private normalizeLimit(value: unknown): number {
+    const parsed = Number(value ?? 20);
+    if (!Number.isFinite(parsed)) return 20;
+    return Math.min(Math.max(Math.trunc(parsed), 1), 100);
+  }
+
+  private normalizePage(value: unknown): number {
+    const parsed = Number(value ?? 1);
+    if (!Number.isFinite(parsed)) return 1;
+    return Math.max(Math.trunc(parsed), 1);
   }
 }

@@ -84,6 +84,27 @@ describe('ReferralController (e2e)', () => {
   });
 
   describe('GET /api/v1/referrals', () => {
+    it('should create a referral summary for fresh users without stats', async () => {
+      mockReferralService.getUserStats.mockResolvedValue(null);
+      mockReferralService.generateReferralCode.mockResolvedValue('NEW123');
+      mockReferralService.getUserReferrals.mockResolvedValue([]);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/referrals')
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body).toEqual({
+            referralCode: 'NEW123',
+            referralLink: 'https://joonapay.com/invite/NEW123',
+            totalReferrals: 0,
+            successfulReferrals: 0,
+            totalEarned: 0,
+            currency: 'USDC',
+            referrals: [],
+          });
+        });
+    });
+
     it('should return the mobile referral summary object', async () => {
       mockReferralService.getUserStats.mockResolvedValue({
         referralCode: 'REF123',

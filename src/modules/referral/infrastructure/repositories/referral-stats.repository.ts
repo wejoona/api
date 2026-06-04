@@ -23,7 +23,7 @@ export class ReferralStatsRepository {
   async create(
     stats: Partial<ReferralStatsOrmEntity>,
   ): Promise<ReferralStatsOrmEntity> {
-    const entity = this.repository.create(stats);
+    const entity = this.repository.create(this.normalizeMoneyFields(stats));
     return this.repository.save(entity);
   }
 
@@ -31,7 +31,10 @@ export class ReferralStatsRepository {
     userId: string,
     updates: Partial<ReferralStatsOrmEntity>,
   ): Promise<ReferralStatsOrmEntity | null> {
-    await this.repository.update({ userId }, updates);
+    await this.repository.update(
+      { userId },
+      this.normalizeMoneyFields(updates),
+    );
     return this.findByUserId(userId);
   }
 
@@ -54,7 +57,9 @@ export class ReferralStatsRepository {
       await this.repository.update(
         { userId },
         {
-          totalEarnings: BigInt(stats.totalEarnings) + amount,
+          totalEarnings: (
+            BigInt(stats.totalEarnings) + amount
+          ).toString() as any,
         },
       );
     }
@@ -69,5 +74,21 @@ export class ReferralStatsRepository {
 
   async updateTier(userId: string, tier: string): Promise<void> {
     await this.repository.update({ userId }, { tier });
+  }
+
+  private normalizeMoneyFields(
+    value: Partial<ReferralStatsOrmEntity>,
+  ): Partial<ReferralStatsOrmEntity> {
+    return {
+      ...value,
+      totalEarnings: this.toDatabaseBigInt(value.totalEarnings),
+      pendingEarnings: this.toDatabaseBigInt(value.pendingEarnings),
+    };
+  }
+
+  private toDatabaseBigInt(
+    value: bigint | string | number | null | undefined,
+  ): any {
+    return typeof value === 'bigint' ? value.toString() : value;
   }
 }

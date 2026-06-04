@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
-const baseUrl = (process.env.API_URL || 'http://127.0.0.1:3401/api/v1').replace(/\/$/, '');
+const baseUrl = (process.env.API_URL || 'http://127.0.0.1:3401/api/v1').replace(
+  /\/$/,
+  '',
+);
 const countryCode = process.env.COUNTRY_CODE || 'CI';
 const otp = process.env.OTP || '123456';
 const phone =
@@ -44,7 +47,9 @@ async function expectStatus(method, path, expected, options) {
     } ${summarize(result.data)}`,
   );
   if (!ok) {
-    throw new Error(`${method} ${path} expected ${expected.join('/')} got ${result.status}`);
+    throw new Error(
+      `${method} ${path} expected ${expected.join('/')} got ${result.status}`,
+    );
   }
   return result;
 }
@@ -86,6 +91,43 @@ async function main() {
   await expectStatus('GET', '/user/data-export?format=json', [200], { token });
   await expectStatus('GET', '/feature-flags/me', [200], { token });
   await expectStatus('GET', '/feature-subscriptions', [200], { token });
+  await expectStatus('GET', '/wallet/deposit/channels', [200], { token });
+  await expectStatus('GET', '/wallet/deposit/providers', [200], { token });
+  await expectStatus(
+    'GET',
+    '/wallet/exchange-rate?sourceCurrency=XOF&targetCurrency=USD&amount=10000&direction=buy',
+    [200],
+    { token },
+  );
+  await expectStatus('GET', '/rates/pair?from=USDC&to=XOF', [200], { token });
+  await expectStatus(
+    'GET',
+    '/wallet/transfer/external/estimate-fee?amount=25&currency=USDC&network=stellar',
+    [200],
+    { token },
+  );
+  await expectStatus('GET', '/cards', [200], { token });
+  await expectStatus('GET', '/banks', [200], { token });
+  await expectStatus('GET', '/bank-accounts', [200], { token });
+  await expectStatus('GET', '/bill-payments/providers', [200], { token });
+  await expectStatus('GET', '/bill-payments/categories', [200], { token });
+  await expectStatus('GET', '/bill-payments/history?page=1&limit=20', [200], {
+    token,
+  });
+  await expectStatus('GET', '/payment-links/capability', [200], { token });
+  await expectStatus('GET', '/payment-links', [200], { token });
+  await expectStatus('GET', '/savings-pots/capability', [200], { token });
+  await expectStatus('GET', '/savings-pots', [200], { token });
+  await expectStatus('GET', '/recurring-transfers/capability', [200], {
+    token,
+  });
+  await expectStatus('GET', '/recurring-transfers', [200], { token });
+  await expectStatus('GET', '/recurring-transfers/upcoming', [200], { token });
+  await expectStatus('GET', '/referrals/capability', [200], { token });
+  await expectStatus('GET', '/referrals', [200], { token });
+  await expectStatus('GET', '/referrals/history', [200], { token });
+  await expectStatus('GET', '/risk/profile', [200], { token });
+  await expectStatus('GET', '/security/addresses', [200], { token });
 
   console.log('Mobile API smoke passed.');
 }

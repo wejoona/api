@@ -49,7 +49,7 @@ export class ReferralRepository {
   async create(
     referral: Partial<ReferralOrmEntity>,
   ): Promise<ReferralOrmEntity> {
-    const entity = this.repository.create(referral);
+    const entity = this.repository.create(this.normalizeMoneyFields(referral));
     return this.repository.save(entity);
   }
 
@@ -57,7 +57,7 @@ export class ReferralRepository {
     id: string,
     updates: Partial<ReferralOrmEntity>,
   ): Promise<ReferralOrmEntity | null> {
-    await this.repository.update(id, updates);
+    await this.repository.update(id, this.normalizeMoneyFields(updates));
     return this.findById(id);
   }
 
@@ -86,5 +86,21 @@ export class ReferralRepository {
       where: { status: 'completed' },
       order: { completedAt: 'ASC' },
     });
+  }
+
+  private normalizeMoneyFields(
+    value: Partial<ReferralOrmEntity>,
+  ): Partial<ReferralOrmEntity> {
+    return {
+      ...value,
+      referrerReward: this.toDatabaseBigInt(value.referrerReward),
+      referredReward: this.toDatabaseBigInt(value.referredReward),
+    };
+  }
+
+  private toDatabaseBigInt(
+    value: bigint | string | number | null | undefined,
+  ): any {
+    return typeof value === 'bigint' ? value.toString() : value;
   }
 }

@@ -2,7 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { AxiosError } from 'axios';
-import { throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { BillPayClientService } from './bill-pay-client.service';
 import { ERROR_CODES } from '../../../../common/constants/error-codes';
 
@@ -90,5 +90,43 @@ describe('BillPayClientService provider-disabled semantics', () => {
         message: 'Provider not found',
       }),
     });
+  });
+
+  it('maps mobile history pagination to downstream offset pagination', async () => {
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: [],
+          pagination: { total: 0, limit: 20, offset: 20, hasMore: false },
+        },
+      }),
+    );
+
+    await service.listPayments('user-123', {
+      page: 2,
+      limit: 20,
+      category: 'electricity',
+      status: 'completed',
+      startDate: '2026-06-01T00:00:00.000Z',
+      endDate: '2026-06-30T00:00:00.000Z',
+    });
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'http://bill-pay.local/api/v1/bills/payments',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-Key': 'test-key',
+          'X-User-Id': 'user-123',
+        }),
+        params: {
+          category: 'electricity',
+          status: 'completed',
+          limit: 20,
+          offset: 20,
+          fromDate: '2026-06-01T00:00:00.000Z',
+          toDate: '2026-06-30T00:00:00.000Z',
+        },
+      }),
+    );
   });
 });
