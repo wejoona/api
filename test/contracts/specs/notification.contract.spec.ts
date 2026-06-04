@@ -7,6 +7,7 @@
 import {
   ActionMessageResponseSchema,
   NotificationDependencyUnavailableSchema,
+  NotificationEndpoints,
   NotificationListResponseSchema,
   NotificationPreferencesResponseSchema,
   NotificationSchema,
@@ -177,6 +178,22 @@ describe('Notification Contracts', () => {
   });
 
   describe('Push token registration', () => {
+    it('should document active mobile legacy device-token routes', () => {
+      expect(NotificationEndpoints).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            method: 'POST',
+            path: '/notifications/device-token',
+            requestBody: PushTokenRegistrationRequestSchema,
+          }),
+          expect.objectContaining({
+            method: 'DELETE',
+            path: '/notifications/device-token/:token',
+          }),
+        ]),
+      );
+    });
+
     it('should validate mobile push token registration request', () => {
       const request = {
         token: 'fcm-token-123',

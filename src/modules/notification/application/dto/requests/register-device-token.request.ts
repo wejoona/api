@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNotEmpty,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterDeviceTokenRequest {
@@ -33,4 +39,24 @@ export class RegisterDeviceTokenRequest {
   @IsString()
   @IsOptional()
   deviceName?: string;
+
+  @ApiPropertyOptional({
+    description: 'App version string',
+    example: '1.2.3',
+    maxLength: 50,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  appVersion?: string;
+
+  @ApiPropertyOptional({
+    description: 'Operating system version',
+    example: 'iOS 18.0',
+    maxLength: 50,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  osVersion?: string;
 }

@@ -369,6 +369,24 @@ export const NotificationEndpoints: EndpointContract[] = [
   },
   {
     method: 'POST',
+    path: '/notifications/device-token',
+    description: 'Register device token using the mobile legacy route',
+    auth: 'bearer',
+    requestBody: PushTokenRegistrationRequestSchema,
+    responses: {
+      201: ActionMessageResponseSchema,
+      503: NotificationDependencyUnavailableSchema,
+    },
+  },
+  {
+    method: 'DELETE',
+    path: '/notifications/device-token/:token',
+    description: 'Remove device token using the mobile legacy route',
+    auth: 'bearer',
+    responses: { 503: NotificationDependencyUnavailableSchema },
+  },
+  {
+    method: 'POST',
     path: '/notifications/push/token',
     description: 'Register FCM/APNS token',
     auth: 'bearer',

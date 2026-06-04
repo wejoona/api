@@ -31,12 +31,30 @@ describe('NotificationController (e2e)', () => {
     const result = await createTestApp({
       controllers: [NotificationController],
       providers: [
-        { provide: GetUserNotificationsUseCase, useValue: mockGetUserNotifications },
-        { provide: MarkNotificationReadUseCase, useValue: mockMarkNotificationRead },
-        { provide: MarkAllNotificationsReadUseCase, useValue: mockMarkAllNotificationsRead },
-        { provide: RegisterDeviceTokenUseCase, useValue: mockRegisterDeviceToken },
-        { provide: UnregisterDeviceTokenUseCase, useValue: mockUnregisterDeviceToken },
-        { provide: UnregisterAllDeviceTokensUseCase, useValue: mockUnregisterAllDeviceTokens },
+        {
+          provide: GetUserNotificationsUseCase,
+          useValue: mockGetUserNotifications,
+        },
+        {
+          provide: MarkNotificationReadUseCase,
+          useValue: mockMarkNotificationRead,
+        },
+        {
+          provide: MarkAllNotificationsReadUseCase,
+          useValue: mockMarkAllNotificationsRead,
+        },
+        {
+          provide: RegisterDeviceTokenUseCase,
+          useValue: mockRegisterDeviceToken,
+        },
+        {
+          provide: UnregisterDeviceTokenUseCase,
+          useValue: mockUnregisterDeviceToken,
+        },
+        {
+          provide: UnregisterAllDeviceTokensUseCase,
+          useValue: mockUnregisterAllDeviceTokens,
+        },
         { provide: GetUnreadCountUseCase, useValue: mockGetUnreadCount },
       ],
     });
@@ -271,6 +289,35 @@ describe('NotificationController (e2e)', () => {
     });
   });
 
+  describe('POST /api/v1/notifications/device-token', () => {
+    it('should accept the active mobile device-token registration route', async () => {
+      mockRegisterDeviceToken.execute.mockResolvedValue(undefined);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/notifications/device-token')
+        .send({
+          token: 'fcm-token-legacy-123',
+          platform: 'ios',
+          deviceId: 'device-legacy-123',
+          deviceName: 'Ben iPhone',
+          appVersion: '1.2.3',
+          osVersion: 'iOS 18.0',
+        })
+        .expect(201);
+
+      expect(res.body).toEqual({
+        message: 'Device token registered successfully',
+      });
+      expect(mockRegisterDeviceToken.execute).toHaveBeenCalledWith({
+        userId: TEST_USER.id,
+        token: 'fcm-token-legacy-123',
+        platform: 'ios',
+        deviceId: 'device-legacy-123',
+        deviceName: 'Ben iPhone',
+      });
+    });
+  });
+
   describe('DELETE /api/v1/notifications/push/token', () => {
     it('should remove the mobile FCM token with no content response', async () => {
       mockUnregisterDeviceToken.execute.mockResolvedValue(undefined);
@@ -282,6 +329,20 @@ describe('NotificationController (e2e)', () => {
 
       expect(mockUnregisterDeviceToken.execute).toHaveBeenCalledWith({
         token: 'fcm-token-123',
+      });
+    });
+  });
+
+  describe('DELETE /api/v1/notifications/device-token/:token', () => {
+    it('should remove the active mobile device-token route token', async () => {
+      mockUnregisterDeviceToken.execute.mockResolvedValue(undefined);
+
+      await request(app.getHttpServer())
+        .delete('/api/v1/notifications/device-token/fcm-token-legacy-123')
+        .expect(204);
+
+      expect(mockUnregisterDeviceToken.execute).toHaveBeenCalledWith({
+        token: 'fcm-token-legacy-123',
       });
     });
   });

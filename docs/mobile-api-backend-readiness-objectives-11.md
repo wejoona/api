@@ -18,7 +18,9 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Align alerts route ordering and mobile mark-read methods.
 - [x] Continue parser drift audit for the next active screen/backend route mismatch after alerts.
 - [x] Align notification preferences route and payload compatibility for mobile settings.
-- [ ] Continue parser drift audit for the next active settings/backend route mismatch after notification preferences.
+- [x] Continue parser drift audit for the next active settings/backend route mismatch after notification preferences.
+- [x] Add notification device-token legacy route contract coverage.
+- [ ] Continue parser drift audit for profile/photo and active session routes.
 
 ## Recursive Backend/API Objective Checklist
 
@@ -28,7 +30,7 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Transfer internal route, decimal USDC semantics, and QR send payload.
 - [x] Alerts preferences route ordering and mobile read aliases.
 - [x] Notification preferences mobile route, response aliases, and grouped-payload compatibility.
-- [ ] Notification device-token legacy route contract coverage.
+- [x] Notification device-token legacy route contract coverage.
 - [ ] Profile/photo upload and profile data persistence route audit.
 - [ ] Active sessions 401/error-state audit against session routes.
 - [ ] Transaction history list/detail field parity with mobile parsers.
@@ -190,3 +192,25 @@ Verification:
 - `npm run test:e2e -- --runInBand --testPathPatterns="notification-preferences.controller.e2e-spec"`
 - `flutter test test/services/api_contract_alignment_test.dart`
 - `npm run verify:backend:mobile`
+
+### Notification Device Token Legacy Route Coverage - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile actively registers/removes push tokens through `/notifications/device-token`.
+- Backend supported the route, but the formal notification contract only documented `/notifications/push/token`.
+- The legacy route rejected richer mobile metadata such as `appVersion` and `osVersion` even though the newer push-token route accepted them.
+
+Resolution:
+
+- Added `/notifications/device-token` and `/notifications/device-token/:token` to the notification contract endpoint list.
+- Aligned the legacy registration DTO with mobile metadata fields accepted by `/notifications/push/token`.
+- Added e2e coverage proving both active mobile routes call the expected device token use cases.
+
+Verification:
+
+- `npm run build`
+- `npm run test:contracts -- --runInBand --testPathPatterns="notification.contract"`
+- `npm run test:e2e -- --runInBand --testPathPatterns="notification.controller.e2e-spec"`
