@@ -3,8 +3,10 @@ import {
   Logger,
   BadRequestException,
   ServiceUnavailableException,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 import {
   IVerificationStrategy,
   CreateVerificationRequest,
@@ -21,16 +23,20 @@ import {
  * We only store the verificationId returned by their API.
  *
  * VerifyHQ API:
- *   POST /v1/verifications       → create (sends OTP)
- *   POST /v1/verifications/check → verify code
+ *   POST /verifications             → create (sends OTP)
+ *   POST /verifications/:id/check   → verify code
  */
 @Injectable()
-export class VerifyHqVerificationStrategy implements IVerificationStrategy {
+export class VerifyHqVerificationStrategy
+  implements IVerificationStrategy, OnModuleDestroy
+{
   readonly strategyName = 'verifyhq';
 
   private readonly logger = new Logger(VerifyHqVerificationStrategy.name);
   private readonly baseUrl: string;
   private readonly apiKey: string;
+  private readonly redis: Redis;
+  private readonly mappingTtlSeconds: number;
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl =
@@ -38,6 +44,18 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
       'https://api.verifyhq.com';
     this.apiKey =
       this.configService.get<string>('verification.verifyhq.apiKey') || '';
+    this.mappingTtlSeconds =
+      this.configService.get<number>('verification.local.expirySeconds') ||
+      this.configService.get<number>('otp.expiresIn') ||
+      300;
+
+    this.redis = new Redis({
+      host: this.configService.get<string>('redis.host'),
+      port: this.configService.get<number>('redis.port'),
+      password: this.configService.get<string>('redis.password'),
+      retryStrategy: (times) => Math.min(times * 50, 2000),
+      maxRetriesPerRequest: 3,
+    });
 
     if (!this.apiKey) {
       this.logger.warn(
@@ -50,14 +68,23 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
     );
   }
 
+  async onModuleDestroy() {
+    await this.redis.quit();
+  }
+
   async createVerification(
     request: CreateVerificationRequest,
   ): Promise<CreateVerificationResult> {
     const { phone, channel } = request;
 
-    const response = await this.makeRequest('/v1/verifications', {
-      to: phone,
+    const response = await this.makeRequest('/verifications', {
+      phone,
       channel: channel || 'sms',
+      purpose: request.purpose,
+      codeLength:
+        this.configService.get<number>('verification.local.otpLength') ||
+        this.configService.get<number>('otp.length') ||
+        6,
     });
 
     if (!response.ok) {
@@ -77,9 +104,25 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
     }
 
     const data = await response.json();
+    const verificationId = data.verificationId || data.id || data.sid;
+
+    if (!verificationId) {
+      this.logger.error(
+        `VerifyHQ createVerification returned no verification id: ${JSON.stringify(data)}`,
+      );
+      throw new ServiceUnavailableException(
+        'Verification service temporarily unavailable',
+      );
+    }
+
+    await this.redis.setex(
+      this.getPhoneMappingKey(phone),
+      this.mappingTtlSeconds,
+      verificationId,
+    );
 
     return {
-      verificationId: data.id || data.verificationId || data.sid,
+      verificationId,
       expiresAt: data.expiresAt
         ? new Date(data.expiresAt)
         : new Date(Date.now() + 300_000), // default 5min
@@ -89,12 +132,17 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
   async checkVerification(
     request: CheckVerificationRequest,
   ): Promise<CheckVerificationResult> {
-    const { verificationId, code } = request;
+    const { code } = request;
+    const verificationId =
+      (await this.redis.get(this.getPhoneMappingKey(request.verificationId))) ||
+      request.verificationId;
 
-    const response = await this.makeRequest('/v1/verifications/check', {
-      verificationId,
-      code,
-    });
+    const response = await this.makeRequest(
+      `/verifications/${verificationId}/check`,
+      {
+        code,
+      },
+    );
 
     if (!response.ok) {
       const body = await response.text();
@@ -133,12 +181,12 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
       canceled: 'failed',
     };
 
-    const status: VerificationCheckStatus =
-      statusMap[data.status] || 'pending';
+    const status: VerificationCheckStatus = statusMap[data.status] || 'pending';
 
     return {
       status,
-      attemptsRemaining: data.attemptsRemaining ?? (status === 'approved' ? 0 : 2),
+      attemptsRemaining:
+        data.attemptsRemaining ?? (status === 'approved' ? 0 : 2),
     };
   }
 
@@ -153,7 +201,7 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
+          'X-API-Key': this.apiKey,
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(10_000),
@@ -165,5 +213,9 @@ export class VerifyHqVerificationStrategy implements IVerificationStrategy {
         'Verification service temporarily unavailable',
       );
     }
+  }
+
+  private getPhoneMappingKey(phone: string): string {
+    return `verifyhq:verification:${phone}`;
   }
 }
