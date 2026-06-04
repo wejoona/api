@@ -219,22 +219,7 @@ export class MonitoringController {
     return { count };
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get alert details' })
-  @ApiParam({ name: 'id', description: 'Alert ID' })
-  @ApiResponse({ status: 200, description: 'Returns alert details' })
-  @ApiResponse({ status: 404, description: 'Alert not found' })
-  async getAlert(
-    @CurrentUser('userId') userId: string,
-    @Param('id', ParseUUIDPipe) alertId: string,
-  ): Promise<TransactionAlert> {
-    const alert = await this.alertRepository.findByIdAndUser(alertId, userId);
-    if (!alert) {
-      throw new BadRequestException('Alert not found');
-    }
-    return alert;
-  }
-
+  @Put(':id/read')
   @Post(':id/read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark alert as read' })
@@ -248,6 +233,7 @@ export class MonitoringController {
     return { success: true };
   }
 
+  @Put('read-all')
   @Post('read-all')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all alerts as read' })
@@ -388,6 +374,22 @@ export class MonitoringController {
   @ApiResponse({ status: 200, description: 'Returns available alert types' })
   async getAlertTypes() {
     return this.preferencesUseCase.getAvailableAlertTypes();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get alert details' })
+  @ApiParam({ name: 'id', description: 'Alert ID' })
+  @ApiResponse({ status: 200, description: 'Returns alert details' })
+  @ApiResponse({ status: 404, description: 'Alert not found' })
+  async getAlert(
+    @CurrentUser('userId') userId: string,
+    @Param('id', ParseUUIDPipe) alertId: string,
+  ): Promise<TransactionAlert> {
+    const alert = await this.alertRepository.findByIdAndUser(alertId, userId);
+    if (!alert) {
+      throw new BadRequestException('Alert not found');
+    }
+    return alert;
   }
 
   // ==================== ADMIN ENDPOINTS ====================

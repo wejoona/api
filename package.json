@@ -14,7 +14,7 @@
     "start:prod": "node -r tsconfig-paths/register dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
-    "verify:backend:mobile": "npm run build && npm test -- --runInBand && npm run test:contracts && npm run test:e2e -- --testPathPatterns=\"auth.controller|contact.controller|device.controller|session.controller|user-profile.controller|wallet.controller|transfer.controller|transaction.controller|notification.controller|feature-subscription.controller|feature-flag.controller|referral.controller|app-config.controller|merchant.controller|payment-link.controller|card.controller|savings-pot.controller|bank-linking.controller|beneficiary.controller|bulk-payment.controller|recurring-transfer.controller\"",
+    "verify:backend:mobile": "npm run build && npm test -- --runInBand && npm run test:contracts && npm run test:e2e -- --testPathPatterns=\"auth.controller|contact.controller|device.controller|session.controller|user-profile.controller|wallet.controller|transfer.controller|transaction.controller|notification.controller|monitoring.controller|feature-subscription.controller|feature-flag.controller|referral.controller|app-config.controller|merchant.controller|payment-link.controller|card.controller|savings-pot.controller|bank-linking.controller|beneficiary.controller|bulk-payment.controller|recurring-transfer.controller\"",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",

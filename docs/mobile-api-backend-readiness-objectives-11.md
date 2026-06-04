@@ -14,7 +14,9 @@ Purpose: continue backend/API readiness after pass 10 aligned secondary feature 
 - [x] Continue parser drift audit for the next active screen/backend route mismatch.
 - [x] Continue parser drift audit for the next active screen/backend route mismatch after user limits.
 - [x] Align transfer route contract and decimal amount semantics for mobile send/QR.
-- [ ] Continue parser drift audit for the next active screen/backend route mismatch after transfers.
+- [x] Continue parser drift audit for the next active screen/backend route mismatch after transfers.
+- [x] Align alerts route ordering and mobile mark-read methods.
+- [ ] Continue parser drift audit for the next active screen/backend route mismatch after alerts.
 
 ## Recursive Execution Rule
 
@@ -116,4 +118,27 @@ Verification:
 - `npm run test:contracts -- --runInBand --testPathPatterns="transfer.contract"`
 - `npm run test:e2e -- --runInBand --testPathPatterns="transfer.controller.e2e-spec"`
 - `flutter test test/features/qr_payment/qr_code_service_test.dart test/e2e/transfers_e2e_test.dart`
+- `npm run verify:backend:mobile`
+
+### Alerts Mobile Compatibility - 2026-06-04
+
+Status: complete.
+
+Confirmed gap:
+
+- Mobile loads `/alerts/preferences`, but backend registered `/alerts/:id` before the preferences route.
+- Mobile marks alerts read with `PUT /alerts/:id/read` and `PUT /alerts/read-all`, while backend only exposed POST variants.
+- Monitoring e2e was not part of the backend-mobile verifier.
+
+Resolution:
+
+- Moved `GET /alerts/:id` after concrete preference routes.
+- Added PUT aliases for mark-one-read and mark-all-read while preserving existing POST routes.
+- Added e2e coverage for preferences route ordering, alert-types, and mobile PUT mark-read calls.
+- Added `monitoring.controller` to `npm run verify:backend:mobile`.
+
+Verification:
+
+- `npm run build`
+- `npm run test:e2e -- --runInBand --testPathPatterns="monitoring.controller.e2e-spec"`
 - `npm run verify:backend:mobile`
