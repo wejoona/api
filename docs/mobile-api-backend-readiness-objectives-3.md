@@ -16,7 +16,7 @@ Purpose: harden the API beyond route existence and happy-path contracts. Focus o
 
 ## Operational Safety
 
-- [ ] Confirm mobile-facing endpoints emit enough structured events for audit, reconciliation, and support without logging PINs, OTPs, tokens, or full wallet addresses.
+- [x] Confirm mobile-facing endpoints emit enough structured events for audit, reconciliation, and support without logging PINs, OTPs, tokens, or full wallet addresses.
 - [ ] Confirm provider-disabled modes are consistent across cards, banks, deposits, bill pay, and external withdrawals.
 - [ ] Confirm API health/readiness reports distinguish app readiness, provider readiness, and feature availability.
 

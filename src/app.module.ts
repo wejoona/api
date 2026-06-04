@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -15,6 +15,7 @@ import { configuration, envValidationSchema } from './config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CustomTypeOrmLogger } from './common/logger';
+import { MobileMutationAuditInterceptor } from './common/interceptors/mobile-mutation-audit.interceptor';
 
 // Core Modules
 import { SharedModule } from './modules/shared/shared.module';
@@ -323,6 +324,10 @@ import { DatabaseProfiler } from './common/profilers/database.profiler';
     {
       provide: APP_GUARD,
       useClass: TestAwareThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MobileMutationAuditInterceptor,
     },
   ],
 })
